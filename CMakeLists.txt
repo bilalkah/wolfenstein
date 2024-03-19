@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)  
+cmake_minimum_required(VERSION 3.16)  
 project(wolfenstein VERSION 1.0 LANGUAGES CXX)
 add_definitions("-Wall" "-g")
 set(CMAKE_CXX_STANDARD 17)
@@ -6,9 +6,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(EXECUTABLE wolfenstein)
 set(PROJECT WOLFENSTEIN)
+set(RESOURCE_DIR ${PROJECT_SOURCE_DIR}/resources)
 
 # define debug mode
 set(CMAKE_BUILD_TYPE Debug)
+# set(CMAKE_BUILD_TYPE Release)
+
 
 find_package(SDL2 REQUIRED)
 
@@ -30,4 +33,4 @@ link_directories(
 )
 add_executable(${EXECUTABLE} main.cpp ${${PROJECT}_SOURCES})
 target_compile_definitions(${EXECUTABLE} PRIVATE DEBUG=1)
-target_link_libraries(${EXECUTABLE} ${SDL2_LIBRARIES})
+target_link_libraries(${EXECUTABLE} ${SDL2_LIBRARIES} SDL2_ttf)
