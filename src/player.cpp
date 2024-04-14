@@ -73,8 +73,7 @@ Player::GetPose() const
 vector2i
 Player::GetMapPose() const
 {
-  return vector2i{ .x{ static_cast<int>(pose.x_) },
-                   .y{ static_cast<int>(pose.y_) } };
+  return vector2i{ static_cast<int>(pose.x_), static_cast<int>(pose.y_) };
 }
 
 std::vector<Ray>

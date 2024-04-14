@@ -92,9 +92,10 @@ struct Ray
   }
   vector2d direction_;
   double length_;
-  double perpWallDist_;
+  double perp_wall_dist_;
   bool is_x_side_;
   ui16 wall_color_;
+  double angle_;
 };
 
 } // namespace wolfenstein
