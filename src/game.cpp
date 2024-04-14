@@ -220,29 +220,35 @@ Game::Render3D()
     {
       if(ray.length_ != 0.0)
         {
-          if (ray.wall_color_ == 1)
-          {
-            SDL_SetRenderDrawColor(renderer_, 0xFF, 0x00, 0x00, 0xFF); // red
-          }
-          else if (ray.wall_color_ == 2)
-          {
-            SDL_SetRenderDrawColor(renderer_, 0x00, 0xFF, 0x00, 0xFF); // green
-          }
-          else if (ray.wall_color_ == 3)
-          {
-            SDL_SetRenderDrawColor(renderer_, 0x00, 0x00, 0xFF, 0xFF); // blue
-          }
-          else if (ray.wall_color_ == 4)
-          {
-            SDL_SetRenderDrawColor(renderer_, 0xFF, 0xFF, 0x00, 0xFF); // yellow
-          }
+          if(ray.wall_color_ == 1)
+            {
+              SDL_SetRenderDrawColor(renderer_, 0xFF, 0x00, 0x00, 0xFF); // red
+            }
+          else if(ray.wall_color_ == 2)
+            {
+              SDL_SetRenderDrawColor(renderer_, 0x00, 0xFF, 0x00,
+                                     0xFF); // green
+            }
+          else if(ray.wall_color_ == 3)
+            {
+              SDL_SetRenderDrawColor(renderer_, 0x00, 0x00, 0xFF,
+                                     0xFF); // blue
+            }
+          else if(ray.wall_color_ == 4)
+            {
+              SDL_SetRenderDrawColor(renderer_, 0xFF, 0xFF, 0x00,
+                                     0xFF); // yellow
+            }
           else
-          {
-            SDL_SetRenderDrawColor(renderer_, 0xFF, 0xFF, 0xFF, 0xFF); // white
-          }
+            {
+              SDL_SetRenderDrawColor(renderer_, 0xFF, 0xFF, 0xFF,
+                                     0xFF); // white
+            }
 
           // Calculate height of line to draw on screen
-          int lineHeight = (int)(config_.height_ / ray.perpWallDist_);
+          auto ray_length
+              = ray.perp_wall_dist_ * std::cos(pose.theta_ - ray.angle_);
+          int lineHeight = (int)(config_.height_ / ray_length);
 
           // calculate lowest and highest pixel to fill in current stripe
           int drawStart = -lineHeight / 2 + config_.height_ / 2;

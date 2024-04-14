@@ -35,91 +35,87 @@ RayCaster::Cast(const Pose2D pose)
       vector2d ray_dir{ std::cos(ray_angle), std::sin(ray_angle) };
       ray_dir.Norm();
 
-      vector2d vRayUnitStepSize
-          = { sqrt(1 + (ray_dir.y / ray_dir.x) * (ray_dir.y / ray_dir.x)),
-              sqrt(1 + (ray_dir.x / ray_dir.y) * (ray_dir.x / ray_dir.y)) };
-      vector2i vMapCheck{ static_cast<int>(ray_orig.x),
+      vector2d ray_unit_step;
+      ray_unit_step.x = ray_dir.x == 0 ? 1e30 : std::abs(1 / ray_dir.x);
+      ray_unit_step.y = ray_dir.y == 0 ? 1e30 : std::abs(1 / ray_dir.y);
+      vector2i map_check{ static_cast<int>(ray_orig.x),
                           static_cast<int>(ray_orig.y) };
-      vector2d vRayLength1D;
-      vector2i vStep;
+      vector2d ray_length_1d;
+      vector2i step;
 
-      // Establish Starting Conditions
       if(ray_dir.x < 0)
         {
-          vStep.x = -1;
-          vRayLength1D.x
-              = (ray_orig.x - float(vMapCheck.x)) * vRayUnitStepSize.x;
+          step.x = -1;
+          ray_length_1d.x
+              = (ray_orig.x - float(map_check.x)) * ray_unit_step.x;
         }
       else
         {
-          vStep.x = 1;
-          vRayLength1D.x
-              = (float(vMapCheck.x + 1) - ray_orig.x) * vRayUnitStepSize.x;
+          step.x = 1;
+          ray_length_1d.x
+              = (float(map_check.x + 1) - ray_orig.x) * ray_unit_step.x;
         }
 
       if(ray_dir.y < 0)
         {
-          vStep.y = -1;
-          vRayLength1D.y
-              = (ray_orig.y - float(vMapCheck.y)) * vRayUnitStepSize.y;
+          step.y = -1;
+          ray_length_1d.y
+              = (ray_orig.y - float(map_check.y)) * ray_unit_step.y;
         }
       else
         {
-          vStep.y = 1;
-          vRayLength1D.y
-              = (float(vMapCheck.y + 1) - ray_orig.y) * vRayUnitStepSize.y;
+          step.y = 1;
+          ray_length_1d.y
+              = (float(map_check.y + 1) - ray_orig.y) * ray_unit_step.y;
         }
 
-      // Perform "Walk" until collision or range check
-      bool bTileFound = false;
+      bool ray_hit = false;
       bool is_x_side;
-      float fDistance = 0.0f;
-      while(!bTileFound && fDistance < ray_length_)
+      float ray_distance = 0.0f;
+      while(!ray_hit && ray_distance < ray_length_)
         {
-          // Walk along shortest path
-          if(vRayLength1D.x < vRayLength1D.y)
+          if(ray_length_1d.x < ray_length_1d.y)
             {
-              vMapCheck.x += vStep.x;
-              fDistance = vRayLength1D.x;
-              vRayLength1D.x += vRayUnitStepSize.x;
+              map_check.x += step.x;
+              ray_distance = ray_length_1d.x;
+              ray_length_1d.x += ray_unit_step.x;
               is_x_side = true;
             }
           else
             {
               is_x_side = false;
-              vMapCheck.y += vStep.y;
-              fDistance = vRayLength1D.y;
-              vRayLength1D.y += vRayUnitStepSize.y;
+              map_check.y += step.y;
+              ray_distance = ray_length_1d.y;
+              ray_length_1d.y += ray_unit_step.y;
             }
 
-          // Test tile at new test point
-          if(vMapCheck.x >= 0 && vMapCheck.x < row_size && vMapCheck.y >= 0
-             && vMapCheck.y < col_size)
+          if(map_check.x >= 0 && map_check.x < row_size && map_check.y >= 0
+             && map_check.y < col_size)
             {
-              if(map_data[vMapCheck.x][vMapCheck.y] != 0)
+              if(map_data[map_check.x][map_check.y] != 0)
                 {
-                  bTileFound = true;
+                  ray_hit = true;
                 }
             }
         }
       Ray intersected_ray(ray_dir);
-      if(bTileFound)
+      if(ray_hit)
         {
-          intersected_ray.length_ = fDistance;
+          intersected_ray.length_ = ray_distance;
           if(is_x_side == true)
             {
-              intersected_ray.perpWallDist_
-                  = (vRayLength1D.x - vRayUnitStepSize.x);
-              intersected_ray.is_x_side_ = true;
+              intersected_ray.perp_wall_dist_
+                  = (ray_length_1d.x - ray_unit_step.x);
             }
           else
             {
-              intersected_ray.perpWallDist_
-                  = (vRayLength1D.y - vRayUnitStepSize.y);
-              intersected_ray.is_x_side_ = false;
+              intersected_ray.perp_wall_dist_
+                  = (ray_length_1d.y - ray_unit_step.y);
             }
-          intersected_ray.wall_color_ = map_data[vMapCheck.x][vMapCheck.y];
+          intersected_ray.is_x_side_ = is_x_side;
+          intersected_ray.wall_color_ = map_data[map_check.x][map_check.y];
         }
+      intersected_ray.angle_ = ray_angle;
       rays.push_back(intersected_ray);
       ray_angle += delta_angle;
     }
