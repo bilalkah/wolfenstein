@@ -16,23 +16,21 @@
 
 #include <vector>
 
-namespace wolfenstein
-{
+namespace wolfenstein {
 
-class Map
-{
-public:
+class Map {
+ public:
   void LoadMap();
-  std::vector<std::vector<ui16> > GetMap();
-  ui16 GetSizeX();
-  ui16 GetSizeY();
+  std::vector<std::vector<uint16_t>> GetMap();
+  uint16_t GetSizeX();
+  uint16_t GetSizeY();
 
-private:
-  std::vector<std::vector<ui16> > map;
-  ui16 size_x;
-  ui16 size_y;
+ private:
+  std::vector<std::vector<uint16_t>> map;
+  uint16_t size_x;
+  uint16_t size_y;
 };
 
-} // namespace wolfenstein
+}  // namespace wolfenstein
 
 #endif
