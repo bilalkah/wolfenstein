@@ -9,6 +9,9 @@ set(EXECUTABLE wolfenstein)
 set(PROJECT WOLFENSTEIN)
 set(RESOURCE_DIR ${PROJECT_SOURCE_DIR}/resources)
 
+add_definitions(
+    -DRESOURCE_DIR="${RESOURCE_DIR}"
+)
 # define debug mode
 set(CMAKE_BUILD_TYPE Debug)
 # set(CMAKE_BUILD_TYPE Release)

@@ -12,27 +12,25 @@
 #ifndef PLAYER_H_
 #define PLAYER_H_
 
+#include <memory>
 #include "config.h"
 #include "map.h"
 #include "raycast.h"
 #include "types.h"
-#include <memory>
-namespace wolfenstein
-{
+namespace wolfenstein {
 
-class Player
-{
-public:
-  Player(const PlayerConfig &config);
+class Player {
+ public:
+  Player(const PlayerConfig& config);
   void Movement(const double delta_time);
   void Update(const double delta_time);
 
   Pose2D GetPose() const;
   vector2i GetMapPose() const;
   std::vector<Ray> GetRays() const;
-  void SetMap(const std::shared_ptr<Map> &map);
+  void SetMap(const std::shared_ptr<Map>& map);
 
-private:
+ private:
   void MoveIfNotCollision(double dx, double dy);
   Pose2D pose;
   double player_speed_;
@@ -43,6 +41,6 @@ private:
   std::vector<Ray> ray_;
 };
 
-} // namespace wolfenstein
+}  // namespace wolfenstein
 
 #endif
