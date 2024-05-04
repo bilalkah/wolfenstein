@@ -46,21 +46,21 @@ void Map::LoadMap() {
       }
       ++it;
     }
-    map.push_back(row);
+    map_.push_back(row);
   }
-  size_x = map.size();
-  size_y = map[0].size();
+  size_x_ = map_.size();
+  size_y_ = map_[0].size();
 }
 
 std::vector<std::vector<uint16_t>> Map::GetMap() {
-  return map;
+  return map_;
 }
 
 uint16_t Map::GetSizeX() {
-  return size_x;
+  return size_x_;
 }
 uint16_t Map::GetSizeY() {
-  return size_y;
+  return size_y_;
 }
 
 }  // namespace wolfenstein

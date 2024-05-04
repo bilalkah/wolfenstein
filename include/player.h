@@ -32,13 +32,11 @@ class Player {
 
  private:
   void MoveIfNotCollision(double dx, double dy);
-  Pose2D pose;
-  double player_speed_;
-  double player_rot_speed_;
+  PlayerConfig config_;
 
   std::shared_ptr<Map> map_ptr_;
   std::shared_ptr<RayCaster> ray_caster_;
-  std::vector<Ray> ray_;
+  std::vector<Ray> rays_;
 };
 
 }  // namespace wolfenstein

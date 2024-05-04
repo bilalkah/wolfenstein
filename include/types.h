@@ -13,7 +13,6 @@
 #define TYPES_H_
 
 #include <cmath>
-#include <cstddef>
 #include <cstdint>
 #include <iostream>
 

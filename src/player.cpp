@@ -5,19 +5,16 @@
 
 namespace wolfenstein {
 
-Player::Player(const PlayerConfig& config)
-    : pose(config.initial_pose_),
-      player_speed_(config.player_speed_),
-      player_rot_speed_(config.player_rot_speed_) {
+Player::Player(const PlayerConfig& config) : config_(config) {
   ray_caster_ = std::make_shared<RayCaster>(512, 10.0, 1.57079633);
 }
 
 void Player::Movement(const double delta_time) {
   double dx = 0.0;
   double dy = 0.0;
-  auto speed = player_speed_ * delta_time;
-  double speed_sin = speed * std::sin(pose.theta_);
-  double speed_cos = speed * std::cos(pose.theta_);
+  auto speed = config_.player_speed_ * delta_time;
+  double speed_sin = speed * std::sin(config_.pose_.theta_);
+  double speed_cos = speed * std::cos(config_.pose_.theta_);
   const Uint8* keystate = SDL_GetKeyboardState(NULL);
 
   if (keystate[SDL_SCANCODE_W]) {
@@ -40,29 +37,30 @@ void Player::Movement(const double delta_time) {
   MoveIfNotCollision(dx, dy);
 
   if (keystate[SDL_SCANCODE_LEFT]) {
-    pose.theta_ -= player_rot_speed_ * delta_time;
+    config_.pose_.theta_ -= config_.player_rot_speed_ * delta_time;
   }
   if (keystate[SDL_SCANCODE_RIGHT]) {
-    pose.theta_ += player_rot_speed_ * delta_time;
+    config_.pose_.theta_ += config_.player_rot_speed_ * delta_time;
   }
-  pose.theta_ = std::fmod(pose.theta_, (M_PI * 2));
+  config_.pose_.theta_ = std::fmod(config_.pose_.theta_, (M_PI * 2));
 }
 
 void Player::Update(const double delta_time) {
   Movement(delta_time);
-  ray_ = ray_caster_->Cast(pose);
+  rays_ = ray_caster_->Cast(config_.pose_);
 }
 
 Pose2D Player::GetPose() const {
-  return pose;
+  return config_.pose_;
 }
 
 vector2i Player::GetMapPose() const {
-  return vector2i{static_cast<int>(pose.x_), static_cast<int>(pose.y_)};
+  return vector2i{static_cast<int>(config_.pose_.x_),
+                  static_cast<int>(config_.pose_.y_)};
 }
 
 std::vector<Ray> Player::GetRays() const {
-  return ray_;
+  return rays_;
 }
 
 void Player::SetMap(const std::shared_ptr<Map>& map) {
@@ -75,12 +73,14 @@ void Player::MoveIfNotCollision(double dx, double dy) {
     bool is_collide = map_ptr_->GetMap()[x][y] != 0;
     return is_collide;
   };
-  if (!check_collision(static_cast<int>(pose.x_ + dx), pose.y_)) {
-    pose.x_ += dx;
+  if (!check_collision(static_cast<int>(config_.pose_.x_ + dx),
+                       config_.pose_.y_)) {
+    config_.pose_.x_ += dx;
   }
 
-  if (!check_collision(pose.x_, static_cast<int>(pose.y_ + dy))) {
-    pose.y_ += dy;
+  if (!check_collision(config_.pose_.x_,
+                       static_cast<int>(config_.pose_.y_ + dy))) {
+    config_.pose_.y_ += dy;
   }
 }
 
