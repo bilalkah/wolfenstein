@@ -12,8 +12,7 @@
 #ifndef MAP_H
 #define MAP_H
 
-#include "types.h"
-
+#include <cstdint>
 #include <vector>
 
 namespace wolfenstein {
@@ -26,9 +25,9 @@ class Map {
   uint16_t GetSizeY();
 
  private:
-  std::vector<std::vector<uint16_t>> map;
-  uint16_t size_x;
-  uint16_t size_y;
+  std::vector<std::vector<uint16_t>> map_;
+  uint16_t size_x_;
+  uint16_t size_y_;
 };
 
 }  // namespace wolfenstein
