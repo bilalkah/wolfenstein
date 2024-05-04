@@ -1,5 +1,8 @@
 #include "include/game.h"
+#include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
+#include <SDL_events.h>
+#include <SDL_render.h>
 #include "include/macros.h"
 
 namespace utils {
@@ -21,7 +24,9 @@ void drawCircle(SDL_Renderer* renderer, int centerX, int centerY, int radius) {
 namespace wolfenstein {
 
 Game::Game(GeneralConfig config, PlayerConfig player_config)
-    : config_(config), player_(Player(player_config)) {
+    : config_(config),
+      player_(Player(player_config, config_.width_ / 2, config_.view_distance_,
+                     config_.fov_)) {
   isRunning_ = false;
   window_ = nullptr;
   renderer_ = nullptr;
@@ -57,6 +62,25 @@ void Game::Init() {
     DEBUG_MSG("TTF could not initialize! TTF_Error: " << TTF_GetError());
     isRunning_ = false;
   }
+
+  // Load textures
+  std::string sky_path = std::string(RESOURCE_DIR) + "/textures/sky.png";
+  SDL_Texture* sky_texture = IMG_LoadTexture(renderer_, sky_path.c_str());
+  textures_[0] = sky_texture;
+
+  for (int i = 1; i < 5; i++) {
+    std::string wall_path = std::string(RESOURCE_DIR) + "/textures/wall" +
+                            std::to_string(i) + ".png";
+    SDL_Texture* wall_texture = IMG_LoadTexture(renderer_, wall_path.c_str());
+    textures_[i] = wall_texture;
+  }
+
+  // Hide cursor
+  SDL_ShowCursor(SDL_DISABLE);
+
+  // Set windows full screen
+  SDL_SetWindowFullscreen(window_, SDL_WINDOW_FULLSCREEN_DESKTOP);
+
   map_.LoadMap();
   player_.SetMap(std::make_shared<Map>(map_));
   clock_.InitClock();
@@ -67,16 +91,29 @@ void Game::CheckEvent() {
   // Check for events
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
+    // When user close the window
     if (event.type == SDL_QUIT || (event.type == SDL_EventType::SDL_KEYDOWN &&
                                    event.key.keysym.sym == SDLK_ESCAPE)) {
       isRunning_ = false;
     }
+    // When user press the key '*' change render type
     if (event.type == SDL_EventType::SDL_KEYDOWN &&
         event.key.keysym.sym == SDLK_ASTERISK) {
       if (render_type_ == RenderType::RENDER2D) {
         render_type_ = RenderType::RENDER3D;
       } else {
         render_type_ = RenderType::RENDER2D;
+      }
+    }
+    // When user alt tab the window
+    if (event.type == SDL_WINDOWEVENT) {
+      if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
+        SDL_ShowCursor(SDL_ENABLE);
+
+      } else if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED &&
+                 // When user focus back to the window
+                 SDL_ShowCursor(SDL_QUERY) == SDL_ENABLE) {
+        SDL_ShowCursor(SDL_DISABLE);
       }
     }
   }
@@ -161,6 +198,17 @@ void Game::RenderPlayer2D() {
 }
 
 void Game::Render3D() {
+
+  // render sky
+  SDL_Rect sky_rect = {0, 0, config_.width_, config_.height_ / 2};
+  SDL_RenderCopy(renderer_, textures_[0], NULL, &sky_rect);
+
+  // render light gray from half screen to bottom
+  SDL_SetRenderDrawColor(renderer_, 0x20, 0x20, 0x20, 0xFF);
+  SDL_Rect rect = {0, config_.height_ / 2, config_.width_, config_.height_ / 2};
+  SDL_RenderFillRect(renderer_, &rect);
+
+  // render walls
   Pose2D pose{player_.GetPose()};
   auto rays = player_.GetRays();
   auto start_x = 0;
@@ -188,21 +236,20 @@ void Game::Render3D() {
 
       // calculate lowest and highest pixel to fill in current stripe
       int drawStart = -lineHeight / 2 + config_.height_ / 2;
-      if (drawStart < 0)
+      if (drawStart < 0) {
         drawStart = 0;
+      }
       int drawEnd = lineHeight / 2 + config_.height_ / 2;
-      if (drawEnd >= config_.height_)
+      if (drawEnd >= config_.height_) {
         drawEnd = config_.height_ - 1;
-
-      if (!ray.is_x_side_) {
-        SDL_SetRenderDrawColor(renderer_, 0xFF, 0xFF, 0xFF,
-                               0x80);  // white
       }
 
-      SDL_RenderDrawLine(renderer_, start_x * 2, drawStart, start_x * 2,
-                         drawEnd);
+      for (int i = 0; i < 2; i++) {
+        SDL_RenderDrawLine(renderer_, start_x + i, drawStart, start_x + i,
+                           drawEnd);
+      }
     }
-    start_x++;
+    start_x += 2;
   }
 }
 
@@ -222,6 +269,9 @@ void Game::RenderTextFPS() {
 }
 
 void Game::Clean() {
+  for (auto& texture : textures_) {
+    SDL_DestroyTexture(texture.second);
+  }
   SDL_DestroyRenderer(renderer_);
   SDL_DestroyWindow(window_);
   SDL_Quit();

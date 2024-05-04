@@ -1,7 +1,5 @@
 #include "include/raycast.h"
-#include <algorithm>
 #include <cmath>
-#include "macros.h"
 
 namespace wolfenstein {
 

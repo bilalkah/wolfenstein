@@ -1,6 +1,4 @@
 #include "include/map.h"
-#include <iostream>
-#include <sstream>
 #include <string>
 
 namespace wolfenstein {

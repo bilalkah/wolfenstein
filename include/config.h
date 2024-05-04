@@ -29,12 +29,13 @@ struct PlayerConfig {
 struct GeneralConfig {
 
   GeneralConfig(uint16_t width, uint16_t height, uint16_t padding,
-                uint16_t scale, uint16_t fps, double fov)
+                uint16_t scale, uint16_t fps, double view_distance, double fov)
       : width_(width),
         height_(height),
         padding_(padding),
         scale_(scale),
         fps_(fps),
+        view_distance_(view_distance),
         fov_(fov) {
     half_width_ = width / 2;
     half_height_ = height / 2;
@@ -46,6 +47,7 @@ struct GeneralConfig {
   uint16_t half_width_;
   uint16_t half_height_;
   uint16_t fps_;
+  double view_distance_;
   double fov_;
 };
 

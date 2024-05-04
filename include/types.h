@@ -52,6 +52,8 @@ struct vector2d {
     x /= size;
     y /= size;
   }
+
+  vector2d operator*(double scalar) const { return {x * scalar, y * scalar}; }
 };
 
 struct Ray {

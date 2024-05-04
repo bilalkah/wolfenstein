@@ -21,7 +21,8 @@ namespace wolfenstein {
 
 class Player {
  public:
-  Player(const PlayerConfig& config);
+  Player(const PlayerConfig& config, uint16_t half_of_width,
+         double view_distance, double fov);
   void Movement(const double delta_time);
   void Update(const double delta_time);
 

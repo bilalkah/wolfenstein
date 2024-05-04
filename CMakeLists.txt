@@ -37,6 +37,7 @@ link_directories(
 set(LIBRARIES
     ${SDL2_LIBRARIES}
     SDL2_ttf
+    SDL2_image
 )
 
 add_executable(${EXECUTABLE} main.cpp ${${PROJECT}_SOURCES})
