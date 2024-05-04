@@ -1,12 +1,15 @@
 #include "include/player.h"
 #include <SDL2/SDL.h>
+#include <SDL_mouse.h>
+#include <SDL_stdinc.h>
 #include <cmath>
-#include "include/macros.h"
 
 namespace wolfenstein {
 
-Player::Player(const PlayerConfig& config) : config_(config) {
-  ray_caster_ = std::make_shared<RayCaster>(512, 10.0, 1.57079633);
+Player::Player(const PlayerConfig& config, uint16_t half_of_width,
+               double view_distance, double fov)
+    : config_(config) {
+  ray_caster_ = std::make_shared<RayCaster>(half_of_width, view_distance, fov);
 }
 
 void Player::Movement(const double delta_time) {
@@ -36,13 +39,14 @@ void Player::Movement(const double delta_time) {
 
   MoveIfNotCollision(dx, dy);
 
-  if (keystate[SDL_SCANCODE_LEFT]) {
-    config_.pose_.theta_ -= config_.player_rot_speed_ * delta_time;
+  // check if cursor is visible
+  if (SDL_ShowCursor(SDL_QUERY) == SDL_DISABLE) {
+    int x, y;
+    SDL_GetMouseState(&x, &y);
+    config_.pose_.theta_ += (x - 400) * 0.001;
+    SDL_WarpMouseInWindow(nullptr, 400, 300);
+    config_.pose_.theta_ = std::fmod(config_.pose_.theta_, (M_PI * 2));
   }
-  if (keystate[SDL_SCANCODE_RIGHT]) {
-    config_.pose_.theta_ += config_.player_rot_speed_ * delta_time;
-  }
-  config_.pose_.theta_ = std::fmod(config_.pose_.theta_, (M_PI * 2));
 }
 
 void Player::Update(const double delta_time) {

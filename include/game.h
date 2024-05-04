@@ -13,11 +13,11 @@
 #define GAME_H_
 
 #include <SDL2/SDL.h>
+#include <map>
 #include "clock.h"
 #include "config.h"
 #include "map.h"
 #include "player.h"
-
 /**
  * @brief Game class
  *
@@ -68,6 +68,8 @@ class Game {
   SDL_Renderer* renderer_;
   bool isRunning_;
   RenderType render_type_;
+
+  std::map<int, SDL_Texture*> textures_;
 };
 
 }  // namespace wolfenstein
