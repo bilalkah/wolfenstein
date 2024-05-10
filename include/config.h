@@ -17,11 +17,12 @@
 namespace wolfenstein {
 
 struct PlayerConfig {
-  PlayerConfig(Pose2D pose, double player_speed, double player_rot_speed)
-      : pose_(pose),
+  PlayerConfig(Position2D position, double player_speed,
+               double player_rot_speed)
+      : position_(position),
         player_speed_(player_speed),
         player_rot_speed_(player_rot_speed) {}
-  Pose2D pose_;
+  Position2D position_;
   double player_speed_;
   double player_rot_speed_;
 };

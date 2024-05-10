@@ -16,8 +16,8 @@
 
 int main() {
 
-  wolfenstein::Pose2D pose(3, 1.5, 1.50);
-  wolfenstein::PlayerConfig player_config(pose, 2.0, 0.5);
+  wolfenstein::Position2D position(3, 1.5, 1.50);
+  wolfenstein::PlayerConfig player_config(position, 2.0, 0.5);
   wolfenstein::GeneralConfig config(1920, 1080, 0, 50, 120, 15.0,
                                     wolfenstein::utility::ToRadians(60.0));
 

@@ -3,6 +3,8 @@
 #include <SDL_mouse.h>
 #include <SDL_stdinc.h>
 #include <cmath>
+#include "types.h"
+#include "utils.h"
 
 namespace wolfenstein {
 
@@ -16,8 +18,8 @@ void Player::Movement(const double delta_time) {
   double dx = 0.0;
   double dy = 0.0;
   auto speed = config_.player_speed_ * delta_time;
-  double speed_sin = speed * std::sin(config_.pose_.theta_);
-  double speed_cos = speed * std::cos(config_.pose_.theta_);
+  double speed_sin = speed * std::sin(config_.position_.theta);
+  double speed_cos = speed * std::cos(config_.position_.theta);
   const Uint8* keystate = SDL_GetKeyboardState(NULL);
 
   if (keystate[SDL_SCANCODE_W]) {
@@ -43,24 +45,23 @@ void Player::Movement(const double delta_time) {
   if (SDL_ShowCursor(SDL_QUERY) == SDL_DISABLE) {
     int x, y;
     SDL_GetMouseState(&x, &y);
-    config_.pose_.theta_ += (x - 400) * 0.001;
+    config_.position_.theta += (x - 400) * 0.001;
     SDL_WarpMouseInWindow(nullptr, 400, 300);
-    config_.pose_.theta_ = std::fmod(config_.pose_.theta_, (M_PI * 2));
+    config_.position_.theta = std::fmod(config_.position_.theta, (M_PI * 2));
   }
 }
 
 void Player::Update(const double delta_time) {
   Movement(delta_time);
-  rays_ = ray_caster_->Cast(config_.pose_);
+  rays_ = ray_caster_->Cast(config_.position_);
 }
 
-Pose2D Player::GetPose() const {
-  return config_.pose_;
+Position2D Player::GetPosition() const {
+  return config_.position_;
 }
 
 vector2i Player::GetMapPose() const {
-  return vector2i{static_cast<int>(config_.pose_.x_),
-                  static_cast<int>(config_.pose_.y_)};
+  return utility::ToVector2i(config_.position_.pose);
 }
 
 std::vector<Ray> Player::GetRays() const {
@@ -77,14 +78,15 @@ void Player::MoveIfNotCollision(double dx, double dy) {
     bool is_collide = map_ptr_->GetMap()[x][y] != 0;
     return is_collide;
   };
-  if (!check_collision(static_cast<int>(config_.pose_.x_ + dx),
-                       config_.pose_.y_)) {
-    config_.pose_.x_ += dx;
+
+  if (!check_collision(static_cast<int>(config_.position_.pose.x + dx),
+                       config_.position_.pose.y)) {
+    config_.position_.pose.x += dx;
   }
 
-  if (!check_collision(config_.pose_.x_,
-                       static_cast<int>(config_.pose_.y_ + dy))) {
-    config_.pose_.y_ += dy;
+  if (!check_collision(config_.position_.pose.x,
+                       static_cast<int>(config_.position_.pose.y + dy))) {
+    config_.position_.pose.y += dy;
   }
 }
 

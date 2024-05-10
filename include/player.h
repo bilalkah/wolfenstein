@@ -26,7 +26,7 @@ class Player {
   void Movement(const double delta_time);
   void Update(const double delta_time);
 
-  Pose2D GetPose() const;
+  Position2D GetPosition() const;
   vector2i GetMapPose() const;
   std::vector<Ray> GetRays() const;
   void SetMap(const std::shared_ptr<Map>& map);

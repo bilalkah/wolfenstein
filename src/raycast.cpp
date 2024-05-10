@@ -1,5 +1,6 @@
 #include "include/raycast.h"
 #include <cmath>
+#include "include/utils.h"
 
 namespace wolfenstein {
 
@@ -11,9 +12,9 @@ void RayCaster::SetMap(const std::shared_ptr<Map> map) {
   map_ptr_ = map;
 }
 
-std::vector<Ray> RayCaster::Cast(const Pose2D pose) {
+std::vector<Ray> RayCaster::Cast(const Position2D position) {
   double delta_angle = fov_ / number_of_rays_;
-  double ray_angle = pose.theta_ - (fov_ / 2);
+  double ray_angle = position.theta - (fov_ / 2);
   const auto& map_data = map_ptr_->GetMap();
   const auto& row_size = map_ptr_->GetSizeX();
   const auto& col_size = map_ptr_->GetSizeY();
@@ -21,15 +22,14 @@ std::vector<Ray> RayCaster::Cast(const Pose2D pose) {
   // DDA algorithm
   std::vector<Ray> rays{};
   for (uint16_t i = 0; i < number_of_rays_; i++) {
-    vector2d ray_orig{pose.x_, pose.y_};
+    vector2d ray_orig{position.pose.x, position.pose.y};
     vector2d ray_dir{std::cos(ray_angle), std::sin(ray_angle)};
     ray_dir.Norm();
 
     vector2d ray_unit_step;
     ray_unit_step.x = ray_dir.x == 0 ? 1e30 : std::abs(1 / ray_dir.x);
     ray_unit_step.y = ray_dir.y == 0 ? 1e30 : std::abs(1 / ray_dir.y);
-    vector2i map_check{static_cast<int>(ray_orig.x),
-                       static_cast<int>(ray_orig.y)};
+    vector2i map_check = utility::ToVector2i(ray_orig);
     vector2d ray_length_1d;
     vector2i step;
 
@@ -74,16 +74,18 @@ std::vector<Ray> RayCaster::Cast(const Pose2D pose) {
     }
     Ray intersected_ray(ray_dir);
     if (ray_hit) {
-      intersected_ray.length_ = ray_distance;
+      intersected_ray.length = ray_distance;
+      intersected_ray.wall_x = ray_orig.x + ray_dir.x * ray_distance;
+      intersected_ray.wall_y = ray_orig.y + ray_dir.y * ray_distance;
       if (is_x_side == true) {
-        intersected_ray.perp_wall_dist_ = (ray_length_1d.x - ray_unit_step.x);
+        intersected_ray.perp_wall_dist = (ray_length_1d.x - ray_unit_step.x);
       } else {
-        intersected_ray.perp_wall_dist_ = (ray_length_1d.y - ray_unit_step.y);
+        intersected_ray.perp_wall_dist = (ray_length_1d.y - ray_unit_step.y);
       }
-      intersected_ray.is_x_side_ = is_x_side;
-      intersected_ray.wall_color_ = map_data[map_check.x][map_check.y];
+      intersected_ray.is_x_side = is_x_side;
+      intersected_ray.wall_color = map_data[map_check.x][map_check.y];
     }
-    intersected_ray.angle_ = ray_angle;
+    intersected_ray.angle = ray_angle;
     rays.push_back(intersected_ray);
     ray_angle += delta_angle;
   }
