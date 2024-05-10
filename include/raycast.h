@@ -16,7 +16,7 @@ class RayCaster {
   RayCaster(const uint16_t number_of_rays, const double ray_length,
             const double fov);
   void SetMap(const std::shared_ptr<Map> map);
-  std::vector<Ray> Cast(const Pose2D pose);
+  std::vector<Ray> Cast(const Position2D position);
 
  private:
   uint16_t number_of_rays_;

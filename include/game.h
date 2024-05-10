@@ -26,7 +26,8 @@ namespace wolfenstein {
 
 enum class RenderType {
   RENDER2D,
-  RENDER3D,
+  RENDER3DBASIC,
+  RENDER3DTEXTURE,
 };
 
 class Game {
@@ -47,7 +48,8 @@ class Game {
   void RenderMap2D();
   void RenderPlayer2D();
 
-  void Render3D();
+  void Render3DBasicWall();
+  void Render3DTextureWall();
 
   void Clean();
 

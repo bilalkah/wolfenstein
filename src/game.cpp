@@ -2,6 +2,8 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 #include <SDL_events.h>
+#include <SDL_keycode.h>
+#include <SDL_rect.h>
 #include <SDL_render.h>
 #include "include/macros.h"
 
@@ -25,7 +27,7 @@ namespace wolfenstein {
 
 Game::Game(GeneralConfig config, PlayerConfig player_config)
     : config_(config),
-      player_(Player(player_config, config_.width_ / 2, config_.view_distance_,
+      player_(Player(player_config, config_.half_width_, config_.view_distance_,
                      config_.fov_)) {
   isRunning_ = false;
   window_ = nullptr;
@@ -99,12 +101,17 @@ void Game::CheckEvent() {
     // When user press the key '*' change render type
     if (event.type == SDL_EventType::SDL_KEYDOWN &&
         event.key.keysym.sym == SDLK_ASTERISK) {
-      if (render_type_ == RenderType::RENDER2D) {
-        render_type_ = RenderType::RENDER3D;
-      } else {
-        render_type_ = RenderType::RENDER2D;
-      }
+      render_type_ = RenderType::RENDER3DBASIC;
     }
+    if (event.type == SDL_EventType::SDL_KEYDOWN &&
+        event.key.keysym.sym == SDLK_0) {
+      render_type_ = RenderType::RENDER3DTEXTURE;
+    }
+    if (event.type == SDL_EventType::SDL_KEYDOWN &&
+        event.key.keysym.sym == SDLK_MINUS) {
+      render_type_ = RenderType::RENDER2D;
+    }
+
     // When user alt tab the window
     if (event.type == SDL_WINDOWEVENT) {
       if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
@@ -137,8 +144,12 @@ void Game::RenderMainScreen() {
       Render2D();
       break;
 
-    case RenderType::RENDER3D:
-      Render3D();
+    case RenderType::RENDER3DBASIC:
+      Render3DBasicWall();
+      break;
+
+    case RenderType::RENDER3DTEXTURE:
+      Render3DTextureWall();
       break;
 
     default:
@@ -173,31 +184,32 @@ void Game::RenderMap2D() {
 }
 
 void Game::RenderPlayer2D() {
-  Pose2D pose{player_.GetPose()};
+  Position2D position{player_.GetPosition()};
   uint16_t radius{10};
   SDL_SetRenderDrawColor(renderer_, 0xFF, 0x00, 0x00, 0xFF);  // red color
-  utils::drawCircle(renderer_, pose.x_ * config_.scale_,
-                    pose.y_ * config_.scale_, radius);
+  utils::drawCircle(renderer_, position.pose.x * config_.scale_,
+                    position.pose.y * config_.scale_, radius);
   SDL_RenderDrawLine(
-      renderer_, pose.x_ * config_.scale_, pose.y_ * config_.scale_,
-      pose.x_ * config_.scale_ +
-          map_.GetSizeX() * std::cos(pose.theta_) * config_.scale_,
-      pose.y_ * config_.scale_ +
-          map_.GetSizeY() * std::sin(pose.theta_) * config_.scale_);
+      renderer_, position.pose.x * config_.scale_,
+      position.pose.y * config_.scale_,
+      position.pose.x * config_.scale_ +
+          map_.GetSizeX() * std::cos(position.theta) * config_.scale_,
+      position.pose.y * config_.scale_ +
+          map_.GetSizeY() * std::sin(position.theta) * config_.scale_);
 
   SDL_SetRenderDrawColor(renderer_, 0xFF, 0xA5, 0x00, 0xFF);  // orange color
   auto rays = player_.GetRays();
   for (const auto& ray : rays) {
-    SDL_RenderDrawLine(renderer_, pose.x_ * config_.scale_,
-                       pose.y_ * config_.scale_,
-                       pose.x_ * config_.scale_ +
-                           ray.direction_.x * ray.length_ * config_.scale_,
-                       pose.y_ * config_.scale_ +
-                           ray.direction_.y * ray.length_ * config_.scale_);
+    SDL_RenderDrawLine(renderer_, position.pose.x * config_.scale_,
+                       position.pose.y * config_.scale_,
+                       position.pose.x * config_.scale_ +
+                           ray.direction.x * ray.length * config_.scale_,
+                       position.pose.y * config_.scale_ +
+                           ray.direction.y * ray.length * config_.scale_);
   }
 }
 
-void Game::Render3D() {
+void Game::Render3DBasicWall() {
 
   // render sky
   SDL_Rect sky_rect = {0, 0, config_.width_, config_.height_ / 2};
@@ -209,29 +221,33 @@ void Game::Render3D() {
   SDL_RenderFillRect(renderer_, &rect);
 
   // render walls
-  Pose2D pose{player_.GetPose()};
+  Position2D position{player_.GetPosition()};
   auto rays = player_.GetRays();
-  auto start_x = 0;
+  int start_x = 0;
   for (const auto& ray : rays) {
-    if (ray.length_ != 0.0) {
-      if (ray.wall_color_ == 1) {
-        SDL_SetRenderDrawColor(renderer_, 0xFF, 0x00, 0x00, 0xFF);  // red
-      } else if (ray.wall_color_ == 2) {
-        SDL_SetRenderDrawColor(renderer_, 0x00, 0xFF, 0x00,
+    if (ray.length != 0.0) {
+      // coef for the color regarding the distance
+      auto coef = 1.0 - ray.length / config_.view_distance_;
+      if (ray.wall_color == 1) {
+        SDL_SetRenderDrawColor(renderer_, 0xFF * coef, 0x00, 0x00,
+                               0xFF);  // red
+      } else if (ray.wall_color == 2) {
+        SDL_SetRenderDrawColor(renderer_, 0x00, 0xFF * coef, 0x00,
                                0xFF);  // green
-      } else if (ray.wall_color_ == 3) {
-        SDL_SetRenderDrawColor(renderer_, 0x00, 0x00, 0xFF,
+      } else if (ray.wall_color == 3) {
+        SDL_SetRenderDrawColor(renderer_, 0x00, 0x00, 0xFF * coef,
                                0xFF);  // blue
-      } else if (ray.wall_color_ == 4) {
-        SDL_SetRenderDrawColor(renderer_, 0xFF, 0xFF, 0x00,
+      } else if (ray.wall_color == 4) {
+        SDL_SetRenderDrawColor(renderer_, 0xFF * coef, 0xFF * coef, 0x00,
                                0xFF);  // yellow
       } else {
-        SDL_SetRenderDrawColor(renderer_, 0xFF, 0xFF, 0xFF,
+        SDL_SetRenderDrawColor(renderer_, 0xFF * coef, 0xFF * coef, 0xFF * coef,
                                0xFF);  // white
       }
 
       // Calculate height of line to draw on screen
-      auto ray_length = ray.length_ * std::cos(pose.theta_ - ray.angle_);
+      // auto ray_length = ray.length * std::cos(position.theta - ray.angle);
+      auto ray_length = ray.perp_wall_dist * std::cos(position.theta - ray.angle);
       int lineHeight = (int)(config_.height_ / (ray_length));
 
       // calculate lowest and highest pixel to fill in current stripe
@@ -250,6 +266,51 @@ void Game::Render3D() {
       }
     }
     start_x += 2;
+  }
+}
+
+void Game::Render3DTextureWall() {
+  Position2D position{player_.GetPosition()};
+  auto rays = player_.GetRays();
+  Uint32 buffer[config_.height_][config_.width_];
+  int width = 1024;
+  int height = 1024;
+  for (int i = 0; i < config_.half_width_; i++) {
+    auto ray = rays[i];
+
+    int lineHeight = (int)(config_.height_ / (ray.length * ray.perp_wall_dist));
+    int drawStart = -lineHeight / 2 + config_.height_ / 2;
+    if (drawStart < 0) {
+      drawStart = 0;
+    }
+    int drawEnd = lineHeight / 2 + config_.height_ / 2;
+    if (drawEnd >= config_.height_) {
+      drawEnd = config_.height_ - 1;
+    }
+
+    auto texture = textures_[ray.wall_color];
+    double wall;
+    if (ray.is_x_side) {
+      wall = position.pose.y + ray.perp_wall_dist * ray.direction.y;
+    } else {
+      wall = position.pose.x + ray.perp_wall_dist * ray.direction.x;
+    }
+    wall -= std::floor(wall);
+    int texX = (int)(wall * (double)width);
+    if ((!ray.is_x_side && ray.direction.x > 0) ||
+        (ray.is_x_side && ray.direction.y < 0)) {
+      texX = width - texX - 1;
+    }
+
+    double step = 1.0 * height / lineHeight;
+    double texPos = (drawStart - config_.height_ / 2 + lineHeight / 2) * step;
+    for (int y = drawStart; y < drawEnd; y++) {
+      int texY = (int)texPos & (height - 1);
+      texPos += step;
+      Uint32 color = 0;
+
+      buffer[y][i] = color;
+    }
   }
 }
 
