@@ -76,7 +76,13 @@ void Render3DSimple::RenderPlayer(
 		if (draw_end >= config_.height) {
 			draw_end = config_.height - 1;
 		}
-
+		if (ray.is_hit_vertical) {
+			SetDrawColor({255, 255, 255, 255});
+		}
+		else 
+		{
+			SetDrawColor(color_map_[ray.wall_id]);
+		}
 		DrawLine({start_x, draw_start}, {start_x, draw_end});
 		DrawLine({start_x + 1, draw_start}, {start_x + 1, draw_end});
 		start_x += 2;
