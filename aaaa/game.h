@@ -16,7 +16,7 @@
 #include <map>
 #include "clock.h"
 #include "config.h"
-#include "map.h"
+#include "map/map.h"
 #include "player.h"
 /**
  * @brief Game class

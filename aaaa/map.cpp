@@ -1,4 +1,4 @@
-#include "include/map.h"
+#include "include/map/map.h"
 #include <string>
 
 namespace wolfenstein {
