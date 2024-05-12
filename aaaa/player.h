@@ -14,7 +14,7 @@
 
 #include <memory>
 #include "config.h"
-#include "map.h"
+#include "map/map.h"
 #include "raycast.h"
 #include "types.h"
 namespace wolfenstein {

@@ -3,7 +3,7 @@
 #ifndef RAYCAST_H_
 #define RAYCAST_H_
 
-#include "map.h"
+#include "map/map.h"
 #include "types.h"
 
 #include <memory>

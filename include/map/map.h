@@ -1,5 +1,5 @@
 /**
- * @file map.h
+ * @file map/map.h
  * @author Bilal Kahraman (kahramannbilal@gmail.com)
  * @brief
  * @version 0.1
@@ -17,17 +17,19 @@
 
 namespace wolfenstein {
 
-class Map {
- public:
-  void LoadMap();
-  std::vector<std::vector<uint16_t>> GetMap();
-  uint16_t GetSizeX();
-  uint16_t GetSizeY();
+class Map
+{
+  public:
+	Map();
+	void LoadMap();
+	std::vector<std::vector<uint16_t>> GetMap();
+	uint16_t GetSizeX();
+	uint16_t GetSizeY();
 
- private:
-  std::vector<std::vector<uint16_t>> map_;
-  uint16_t size_x_;
-  uint16_t size_y_;
+  private:
+	std::vector<std::vector<uint16_t>> map_;
+	uint16_t size_x_;
+	uint16_t size_y_;
 };
 
 }  // namespace wolfenstein
