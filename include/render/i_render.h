@@ -19,6 +19,17 @@ namespace wolfenstein {
 
 class ICharacter;
 
+struct RenderConfig
+{
+	int width;
+	int height;
+	int padding;
+	int scale;
+	int fps;
+	double view_distance;
+	double fov;
+};
+
 class IRender
 {
   public:

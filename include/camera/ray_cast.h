@@ -50,7 +50,9 @@ class RayCast
 				const std::shared_ptr<RayVector>& rays_);
 	void SetMap(const std::shared_ptr<Map>& map);
 
-	Ray CastRay(const Position2D& position, const double ray_angle);
+	Ray CastRay(const Position2D& position, const double ray_angle,
+				const std::vector<std::vector<uint16_t>>& map,
+				const int row_size, const int col_size);
 
   private:
 	void PrepareRay(const Position2D& position, const double ray_angle,
