@@ -1,6 +1,7 @@
 #include "camera/ray_cast.h"
 #include "base/types.h"
 #include <cmath>
+#include <sys/types.h>
 
 namespace wolfenstein {
 
@@ -52,9 +53,11 @@ void RayCast::Update(const Position2D& position,
 					 const std::shared_ptr<RayVector>& rays) {
 
 	double ray_theta = position.theta - (fov_ / 2);
-
+	const auto& map = map_ptr_->GetMap();
+	const auto& row_size = map_ptr_->GetSizeX();
+	const auto& col_size = map_ptr_->GetSizeY();
 	for (auto& ray : *rays) {
-		ray = CastRay(position, ray_theta);
+		ray = CastRay(position, ray_theta, map, row_size, col_size);
 		ray_theta += delta_theta_;
 	}
 }
@@ -63,11 +66,10 @@ void RayCast::SetMap(const std::shared_ptr<Map>& map) {
 	map_ptr_ = map;
 }
 
-Ray RayCast::CastRay(const Position2D& position, const double ray_theta) {
+Ray RayCast::CastRay(const Position2D& position, const double ray_theta,
+					 const std::vector<std::vector<uint16_t>>& map,
+					 const int row_size, const int col_size) {
 	Ray ray;
-	const auto& map = map_ptr_->GetMap();
-	const auto& row_size = map_ptr_->GetSizeX();
-	const auto& col_size = map_ptr_->GetSizeY();
 	vector2d ray_unit_step, ray_length_1d;
 	vector2i step, map_check;
 	PrepareRay(position, ray_theta, ray, ray_unit_step, ray_length_1d, step,
@@ -93,13 +95,10 @@ Ray RayCast::CastRay(const Position2D& position, const double ray_theta) {
 			map_check.y < col_size) {
 			if (map[map_check.x][map_check.y] != 0) {
 				ray.is_hit = true;
+				ray.hit_point = ray.origin + ray.direction * ray.distance;
+				ray.wall_id = map[map_check.x][map_check.y];
 			}
 		}
-	}
-
-	if (ray.is_hit) {
-		ray.hit_point = ray.origin + ray.direction * ray.distance;
-		ray.wall_id = map_ptr_->GetMap()[map_check.x][map_check.y];
 	}
 	return ray;
 }

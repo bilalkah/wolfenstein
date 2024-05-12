@@ -1,8 +1,10 @@
 #include "game/game.h"
+#include "base/macros.h"
 #include "camera/camera.h"
 #include "character/i_character.h"
 #include "clock/clock.h"
 #include "render/render_2d.h"
+#include "render/render_3d_simple.h"
 #include <memory>
 #include <vector>
 
@@ -34,7 +36,7 @@ void Game::Init() {
 
 	clock_ptr_ = std::make_shared<Clock>();
 	map_ptr_ = std::make_shared<Map>();
-	render_ptr_ = std::make_unique<Render2D>(render_config);
+	render_ptr_ = std::make_unique<Render3DSimple>(render_config);
 	render_ptr_->SetMap(map_ptr_);
 
 	player_ptr_ = std::make_shared<Player>(player_config);

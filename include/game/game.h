@@ -18,6 +18,7 @@
 #include "map/map.h"
 #include "render/i_render.h"
 #include "render/render_2d.h"
+#include "render/render_3d_simple.h"
 #include <memory>
 #include <vector>
 
@@ -49,7 +50,7 @@ class Game
 
 	std::shared_ptr<Clock> clock_ptr_;
 	std::shared_ptr<Map> map_ptr_;
-	std::unique_ptr<Render2D> render_ptr_;
+	std::unique_ptr<Render3DSimple> render_ptr_;
 	std::shared_ptr<Player> player_ptr_;
 	std::vector<std::shared_ptr<ICharacter>> characters_;
 
