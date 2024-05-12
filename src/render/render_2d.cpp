@@ -13,6 +13,7 @@
 #include "base/types.h"
 #include "character/player.h"
 #include "map/map.h"
+#include "render/i_render.h"
 #include "render/utils.h"
 #include <memory>
 #include <vector>
@@ -38,6 +39,7 @@ Render2D::Render2D(RenderConfig config) : config_(config) {
 	}
 
 	SDL_SetWindowFullscreen(window_, SDL_WINDOW_FULLSCREEN_DESKTOP);
+
 }
 
 Render2D::~Render2D() {
@@ -101,38 +103,5 @@ void Render2D::RenderPlayer(
 			 ToVector2i(crosshair_ray->hit_point * config_.scale));
 }
 
-void Render2D::ClearScreen() {
-	SetDrawColor({0, 0, 0, 255});
-	SDL_RenderClear(renderer_);
-}
-
-void Render2D::SetDrawColor(SDL_Color color) {
-	SDL_SetRenderDrawColor(renderer_, color.r, color.g, color.b, color.a);
-}
-
-void Render2D::DrawPixel(vector2i point) {
-	SDL_RenderDrawPoint(renderer_, point.x, point.y);
-}
-
-void Render2D::DrawLine(vector2i start, vector2i end) {
-	SDL_RenderDrawLine(renderer_, start.x, start.y, end.x, end.y);
-}
-
-void Render2D::DrawCircle(vector2i center, int radius) {
-	const auto circle_points = GenerateCirclePoints(center, radius, 20);
-	for (unsigned int i = 0; i < circle_points.size(); i++) {
-		DrawPixel(circle_points[i]);
-	}
-}
-
-void Render2D::DrawRectangle(vector2i start, vector2i end) {
-	SDL_Rect rect{start.x, start.y, end.x - start.x, end.y - start.y};
-	SDL_RenderDrawRect(renderer_, &rect);
-}
-
-void Render2D::DrawFilledRectangle(vector2i start, vector2i end) {
-	SDL_Rect rect{start.x, start.y, end.x - start.x, end.y - start.y};
-	SDL_RenderFillRect(renderer_, &rect);
-}
 
 }  // namespace wolfenstein

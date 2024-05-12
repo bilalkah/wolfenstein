@@ -32,7 +32,7 @@ struct RenderConfig
 	double fov;
 };
 
-class Render2D final : public IRender
+class Render2D final : public SimpleRender
 {
   public:
 	Render2D(RenderConfig config);
@@ -45,17 +45,6 @@ class Render2D final : public IRender
   private:
 	void RenderMap();
 	void RenderPlayer(std::vector<std::shared_ptr<ICharacter>> characters);
-
-	void ClearScreen();
-	void SetDrawColor(SDL_Color color);
-	void DrawPixel(vector2i point);
-	void DrawLine(vector2i start, vector2i end);
-	void DrawCircle(vector2i center, int radius);
-	void DrawRectangle(vector2i start, vector2i end);
-	void DrawFilledRectangle(vector2i start, vector2i end);
-
-	SDL_Window* window_;
-	SDL_Renderer* renderer_;
 
 	std::shared_ptr<wolfenstein::Map> map_;
 	RenderConfig config_;
