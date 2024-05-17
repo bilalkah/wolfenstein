@@ -9,20 +9,16 @@
  *
  */
 
-#include "include/config.h"
-#include "include/game.h"
-#include "include/types.h"
-#include "include/utils.h"
+#include "base/utils.h"
+#include "game/game.h"
 
 int main() {
+	using namespace wolfenstein;
 
-  wolfenstein::Position2D position(3, 1.5, 1.50);
-  wolfenstein::PlayerConfig player_config(position, 2.0, 0.5);
-  wolfenstein::GeneralConfig config(1920, 1080, 0, 50, 120, 15.0,
-                                    wolfenstein::utility::ToRadians(60.0));
+	GeneralConfig config(860, 640, 0, 50, 120, 15.0, ToRadians(60.0));
 
-  wolfenstein::Game game(config, player_config);
-  game.Run();
+	Game game(config);
+	game.Run();
 
-  return 0;
+	return 0;
 }
