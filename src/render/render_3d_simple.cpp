@@ -57,7 +57,6 @@ void Render3DSimple::RenderPlayer(
 	const auto rays = player->GetRays();
 	const auto map = map_->GetMap();
 	int start_x = 0;
-	SetDrawColor({255, 255, 255, 255});
 	for (const auto& ray : *rays) {
 		if (!ray.is_hit) {
 			continue;

@@ -21,6 +21,7 @@
 #include "render/render_3d_simple.h"
 #include <memory>
 #include <vector>
+#include "render/render_3d_texture.h"
 
 namespace wolfenstein {
 
@@ -50,7 +51,7 @@ class Game
 
 	std::shared_ptr<Clock> clock_ptr_;
 	std::shared_ptr<Map> map_ptr_;
-	std::unique_ptr<Render3DSimple> render_ptr_;
+	std::unique_ptr<Render3DTexture> render_ptr_;
 	std::shared_ptr<Player> player_ptr_;
 	std::vector<std::shared_ptr<ICharacter>> characters_;
 

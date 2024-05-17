@@ -56,6 +56,7 @@ struct vector2d
 	vector2d Cross(const vector2d& v) const;
 	double Dot(const vector2d& v) const;
 	void Norm();
+	double Magnitude() const;
 };
 
 // To convert vector2d to vector2i
