@@ -58,13 +58,32 @@ void Player::Move() {
 	}
 
 	const auto check_collision = [this](const auto dx, const auto dy) {
-		return camera_->GetMap()->GetMap()[dx][dy] != 0;
+		constexpr double kCollisionDistance = 0.2;
+		auto px = position_.pose.x;
+		auto py = position_.pose.y;
+		if ( dx > 0)
+		{
+			px += kCollisionDistance;
+		}
+		else if (dx < 0)
+		{
+			px -= kCollisionDistance;
+		}
+		if (dy > 0)
+		{
+			py += kCollisionDistance;
+		}
+		else if (dy < 0)
+		{
+			py -= kCollisionDistance;
+		}
+		return camera_->GetMap()->GetMap()[px][py] != 0;
 	};
 
-	if (!check_collision(position_.pose.x + dx, position_.pose.y)) {
+	if (!check_collision(dx, 0)) {
 		position_.pose.x += dx;
 	}
-	if (!check_collision(position_.pose.x, position_.pose.y + dy)) {
+	if (!check_collision(0, dy)) {
 		position_.pose.y += dy;
 	}
 }
