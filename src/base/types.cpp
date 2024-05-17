@@ -119,6 +119,10 @@ void vector2d::Norm() {
 	y /= size;
 }
 
+double vector2d::Magnitude() const {
+	return std::sqrt(x * x + y * y);
+}
+
 vector2i ToVector2i(const vector2d& v) {
 	return {static_cast<int>(v.x), static_cast<int>(v.y)};
 }

@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(EXECUTABLE wolfenstein)
 set(PROJECT WOLFENSTEIN)
-set(RESOURCE_DIR ${PROJECT_SOURCE_DIR}/resources)
+set(RESOURCE_DIR ${PROJECT_SOURCE_DIR}/resources/)
 
 add_definitions(
     -DRESOURCE_DIR="${RESOURCE_DIR}"
