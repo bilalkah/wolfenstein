@@ -19,6 +19,13 @@
 
 namespace wolfenstein {
 
+struct Texture
+{
+	SDL_Texture* texture;
+	int width;
+	int height;
+};
+
 class TextureManager
 {
 
@@ -32,13 +39,13 @@ class TextureManager
 	void InitManager(SDL_Renderer* renderer);
 
 	void LoadTexture(uint16_t texture_id, const std::string& texture_path);
-	SDL_Texture* GetTexture(uint16_t texture_id);
+	Texture GetTexture(uint16_t texture_id);
 
   private:
 	TextureManager() = default;
 
 	static TextureManager* instance_;
-	std::unordered_map<uint16_t, SDL_Texture*> textures_;
+	std::unordered_map<uint16_t, Texture> textures_;
 	SDL_Renderer* renderer_;
 };
 

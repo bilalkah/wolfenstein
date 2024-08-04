@@ -57,9 +57,9 @@ void Renderer::RenderScene(const std::shared_ptr<Scene>& scene_ptr,
 void Renderer::RenderBackground() {
 	// Render sky
 	auto sky_texture = TextureManager::GetInstance().GetTexture(0);
-	SDL_Rect src_rect = {0, 0, config_.width, config_.height / 2};
+	SDL_Rect src_rect = {0, 0, sky_texture.width, sky_texture.height};
 	SDL_Rect dest_rect = {0, 0, config_.width, config_.height / 2};
-	SDL_RenderCopy(renderer_, sky_texture, &src_rect, &dest_rect);
+	SDL_RenderCopy(renderer_, sky_texture.texture, &src_rect, &dest_rect);
 	// Render ground black
 	SDL_SetRenderDrawColor(renderer_, 50, 50, 50, 255);
 	SDL_Rect ground_rect = {0, config_.height / 2, config_.width,
@@ -71,31 +71,53 @@ void Renderer::RenderWalls(const std::shared_ptr<Map>& map_ptr,
 						   const std::shared_ptr<Camera2D>& camera_ptr,
 						   RenderQueue& render_queue) {
 	camera_ptr->Update(map_ptr);
-	const auto map = map_ptr->GetMap();
 	const auto rays = camera_ptr->GetRays();
-	const auto camera_position = camera_ptr->GetPosition();
-	const auto texture_size = 1024;
-	int start_x = 0;
+
+	int horizontal_slice = 0;
 	for (const auto& ray : *rays) {
 		if (!ray.is_hit) {
-			continue;
+			RenderIfRayHitNot(horizontal_slice, render_queue);
 		}
-		auto distance = ray.perpendicular_distance *
-						std::cos(camera_position.theta - ray.theta);
-		auto line_height = static_cast<int>(config_.height / distance);
-		int draw_start = -line_height / 2 + config_.height / 2;
-		int draw_end = line_height / 2 + config_.height / 2;
-
-		auto hit_point =
-			ray.is_hit_vertical ? ray.hit_point.y : ray.hit_point.x;
-		hit_point = std::fmod(hit_point, 1.0);
-		int texture_point = static_cast<int>(hit_point * texture_size);
-
-		SDL_Rect src_rect = {texture_point, 0, 2, texture_size};
-		SDL_Rect dest_rect = {start_x, draw_start, 2, draw_end - draw_start};
-		render_queue.push({ray.wall_id, src_rect, dest_rect, distance});
-		start_x += 2;
+		else {
+			RenderIfRayHit(horizontal_slice, ray, camera_ptr, render_queue);
+		}
+		horizontal_slice += 2;
 	};
+}
+
+void Renderer::RenderIfRayHit(const int horizontal_slice, const Ray& ray,
+							  const std::shared_ptr<Camera2D>& camera_ptr,
+							  RenderQueue& render_queue) {
+	auto distance = ray.perpendicular_distance *
+					std::cos(camera_ptr->GetPosition().theta - ray.theta);
+	auto line_height = static_cast<int>(config_.height / distance);
+	int draw_start = -line_height / 2 + config_.height / 2;
+	int draw_end = line_height / 2 + config_.height / 2;
+
+	auto hit_point = ray.is_hit_vertical ? ray.hit_point.y : ray.hit_point.x;
+	hit_point = std::fmod(hit_point, 1.0);
+	const auto texture_height =
+		TextureManager::GetInstance().GetTexture(ray.wall_id).height;
+	int texture_point = static_cast<int>(hit_point * texture_height);
+
+	SDL_Rect src_rect = {texture_point, 0, 2, texture_height};
+	SDL_Rect dest_rect = {horizontal_slice, draw_start, 2,
+						  draw_end - draw_start};
+	render_queue.push({ray.wall_id, src_rect, dest_rect, distance});
+}
+
+void Renderer::RenderIfRayHitNot(const int horizontal_slice,
+								 RenderQueue& render_queue) {
+	auto line_height =
+		static_cast<int>(config_.height / (config_.view_distance + 0.5));
+	int draw_start = -line_height / 2 + config_.height / 2;
+	int draw_end = line_height / 2 + config_.height / 2;
+
+	SDL_Rect src_rect = {0, 0, 2,
+						 TextureManager::GetInstance().GetTexture(7).height};
+	SDL_Rect dest_rect = {horizontal_slice, draw_start, 2,
+						  draw_end - draw_start};
+	render_queue.push({7, src_rect, dest_rect, config_.view_distance});
 }
 
 void Renderer::RenderObjects(
@@ -139,10 +161,9 @@ void Renderer::RenderTextures(RenderQueue& render_queue) {
 	while (!render_queue.empty()) {
 		auto renderable_texture = render_queue.top();
 		render_queue.pop();
-		SDL_RenderCopy(renderer_,
-					   TextureManager::GetInstance().GetTexture(
-						   renderable_texture.texture_id),
-					   &renderable_texture.src_rect,
+		const auto texture = TextureManager::GetInstance().GetTexture(
+			renderable_texture.texture_id);
+		SDL_RenderCopy(renderer_, texture.texture, &renderable_texture.src_rect,
 					   &renderable_texture.dest_rect);
 	}
 }
