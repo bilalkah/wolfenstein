@@ -23,14 +23,19 @@ void TextureManager::InitManager(SDL_Renderer* renderer) {
 	LoadTexture(4, texture_path + "4.png");
 	LoadTexture(5, texture_path + "5.png");
 	LoadTexture(6, texture_path + "candlebra.png");
+	LoadTexture(7, texture_path + "solid_black.png");
 }
 
 void TextureManager::LoadTexture(uint16_t texture_id,
 								 const std::string& texture_path) {
-	textures_[texture_id] = IMG_LoadTexture(renderer_, texture_path.c_str());
+	Texture texture;
+	texture.texture = IMG_LoadTexture(renderer_, texture_path.c_str());
+	SDL_QueryTexture(texture.texture, nullptr, nullptr, &texture.width,
+					 &texture.height);
+	textures_[texture_id] = texture;
 }
 
-SDL_Texture* TextureManager::GetTexture(uint16_t texture_id) {
+Texture TextureManager::GetTexture(uint16_t texture_id) {
 	return textures_[texture_id];
 }
 

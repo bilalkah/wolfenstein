@@ -79,6 +79,11 @@ class Renderer
 	void RenderWalls(const std::shared_ptr<Map>& map_ptr,
 					 const std::shared_ptr<Camera2D>& camera_ptr,
 					 RenderQueue& render_queue);
+	void RenderIfRayHit(const int horizontal_slice, const Ray& ray,
+						const std::shared_ptr<Camera2D>& camera_ptr,
+						RenderQueue& render_queue);
+	void RenderIfRayHitNot(const int horizontal_slice,
+						   RenderQueue& render_queue);
 	void RenderObjects(const std::vector<std::shared_ptr<IGameObject>>& objects,
 					   const std::shared_ptr<Camera2D>& camera_ptr,
 					   RenderQueue& render_queue);

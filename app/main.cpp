@@ -13,7 +13,7 @@
 
 int main() {
 	using namespace wolfenstein;
-	GeneralConfig config(1280, 768, 0, 50, 120, 15.0, ToRadians(60.0));
+	GeneralConfig config(1280, 768, 0, 50, 120, 10.0, ToRadians(60.0));
 
 	Game game(config);
 	game.Run();
