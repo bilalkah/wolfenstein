@@ -82,36 +82,16 @@ void Renderer::RenderWalls(const std::shared_ptr<Map>& map_ptr,
 		}
 		auto distance = ray.perpendicular_distance *
 						std::cos(camera_position.theta - ray.theta);
-
 		auto line_height = static_cast<int>(config_.height / distance);
-
 		int draw_start = -line_height / 2 + config_.height / 2;
 		int draw_end = line_height / 2 + config_.height / 2;
-		const auto height_scale = 1.0 * texture_size / line_height;
-		SDL_Rect src_rect;
-		if (draw_start < 0) {
-			src_rect.y = (0 - draw_start) * height_scale;
-			// DEBUG_MSG("draw_start: " << draw_start);
-			draw_start = 0;
-		}
-		else {
-			src_rect.y = 0;
-		}
-		if (draw_end >= config_.height) {
-			src_rect.h = config_.height * height_scale;
-			// DEBUG_MSG("draw_end: " << draw_end);
-			draw_end = config_.height - 1;
-		}
-		else {
-			src_rect.h = texture_size;
-		}
+
 		auto hit_point =
 			ray.is_hit_vertical ? ray.hit_point.y : ray.hit_point.x;
 		hit_point = std::fmod(hit_point, 1.0);
 		int texture_point = static_cast<int>(hit_point * texture_size);
-		// src_rect = {texture_point, 0, 2, texture_size};
-		src_rect.x = texture_point;
-		src_rect.w = 2;
+
+		SDL_Rect src_rect = {texture_point, 0, 2, texture_size};
 		SDL_Rect dest_rect = {start_x, draw_start, 2, draw_end - draw_start};
 		render_queue.push({ray.wall_id, src_rect, dest_rect, distance});
 		start_x += 2;
