@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(EXECUTABLE wolfenstein)
 set(PROJECT WOLFENSTEIN)
-set(RESOURCE_DIR ${PROJECT_SOURCE_DIR}/resources/)
+set(RESOURCE_DIR ${PROJECT_SOURCE_DIR}/assets/)
 
 add_definitions(
     -DRESOURCE_DIR="${RESOURCE_DIR}"
@@ -16,10 +16,20 @@ add_definitions(
 set(CMAKE_BUILD_TYPE Debug)
 # set(CMAKE_BUILD_TYPE Release)
 
+add_subdirectory(app)
+add_subdirectory(src/Camera)
+add_subdirectory(src/CollisionManager)
+add_subdirectory(src/Core)
+add_subdirectory(src/Characters)
+add_subdirectory(src/GameObjects)
+add_subdirectory(src/Graphics)
+add_subdirectory(src/Map)
+add_subdirectory(src/Math)
+add_subdirectory(src/TextureManager)
+add_subdirectory(src/TimeManager)
+add_subdirectory(src/Utilities)
 
 find_package(SDL2 REQUIRED)
-file(GLOB_RECURSE ${PROJECT}_SOURCES "src/*.cpp" "include/*.h")
-message(STATUS "SOURCES: ${${PROJECT}_SOURCES}")
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -40,6 +50,3 @@ set(LIBRARIES
     SDL2_image
 )
 
-add_executable(${EXECUTABLE} main.cpp ${${PROJECT}_SOURCES})
-target_compile_definitions(${EXECUTABLE} PRIVATE DEBUG=1)
-target_link_libraries(${EXECUTABLE} ${LIBRARIES})
