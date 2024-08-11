@@ -12,15 +12,14 @@
 #ifndef GRAPHICS_RENDERER_H_
 #define GRAPHICS_RENDERER_H_
 
-#include "GameObjects/dynamic_object.h"
 #include "GameObjects/game_object.h"
-#include "GameObjects/static_object.h"
 #include "scene.h"
 #include <Camera/camera.h>
 #include <SDL2/SDL.h>
 #include <memory>
 #include <queue>
 #include <string>
+#include <tuple>
 #include <vector>
 
 namespace wolfenstein {
@@ -74,6 +73,9 @@ class Renderer
 	void RenderScene(const std::shared_ptr<Scene>& scene_ptr,
 					 const std::shared_ptr<Camera2D>& camera_ptr);
 
+	void RenderScene2D(const std::shared_ptr<Scene>& scene_ptr,
+					   const std::shared_ptr<Camera2D>& camera_ptr);
+
   private:
 	void RenderBackground();
 	void RenderWalls(const std::shared_ptr<Map>& map_ptr,
@@ -87,9 +89,19 @@ class Renderer
 	void RenderObjects(const std::vector<std::shared_ptr<IGameObject>>& objects,
 					   const std::shared_ptr<Camera2D>& camera_ptr,
 					   RenderQueue& render_queue);
-
+	int CalculateHorizontalSlice(const Ray& ray,
+								 const std::shared_ptr<Camera2D> camera_ptr);
+	std::tuple<int, int, int> CalculateVerticalSlice(const double& distance);
 	void RenderTextures(RenderQueue& render_queue);
+
+	// Render 2D
 	void ClearScreen();
+	void SetDrawColor(SDL_Color color);
+	void DrawFilledRectangle(vector2i start, vector2i end);
+	void RenderMap(const std::shared_ptr<Map> map_ptr);
+	void RenderObjects(const std::vector<std::shared_ptr<IGameObject>>& objects,
+					   const std::shared_ptr<Camera2D> camera_ptr);
+	void DrawLine(vector2i start, vector2i end);
 
 	SDL_Renderer* renderer_;
 	SDL_Window* window_;

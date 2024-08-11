@@ -7,7 +7,6 @@ link_directories(
 add_library(
     game_object
     STATIC
-    src/game_object.cpp
     src/static_object.cpp
     src/dynamic_object.cpp
 )

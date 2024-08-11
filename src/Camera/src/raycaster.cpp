@@ -4,10 +4,11 @@
 
 namespace wolfenstein {
 
-RayCaster::RayCaster(const int width, const double fov, const double depth)
-	: width_(width), fov_(fov), depth_(depth) {
-	delta_theta_ = fov_ / width_;
-}
+RayCaster::RayCaster(const int num_ray, const double fov, const double depth)
+	: num_ray_(num_ray),
+	  fov_(fov),
+	  depth_(depth),
+	  delta_theta_(fov_ / num_ray) {}
 
 RayCaster::~RayCaster() {}
 
@@ -59,6 +60,10 @@ Ray RayCaster::Cast(const std::shared_ptr<Map>& map_ptr,
 		}
 	}
 	return ray;
+}
+
+double RayCaster::GetDeltaTheta() const {
+	return delta_theta_;
 }
 
 void RayCaster::PrepareRay(const Position2D& position, const double ray_theta,

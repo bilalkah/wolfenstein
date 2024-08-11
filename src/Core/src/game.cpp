@@ -30,7 +30,7 @@ void Game::Init() {
 								  config_.fov,			false};
 	renderer_ = std::make_shared<Renderer>("Wolfenstein", render_config);
 
-	Camera2DConfig camera_config = {config_.screen_width / 2, config_.fov,
+	Camera2DConfig camera_config = {config_.screen_width, config_.fov,
 									config_.view_distance};
 	camera_ = std::make_shared<Camera2D>(camera_config);
 
@@ -43,11 +43,17 @@ void Game::Init() {
 
 	player_->SetCameraPositionUpdator(
 		std::bind(camera_position_updator, std::placeholders::_1));
-	std::shared_ptr<StaticObject> candlebra =
-		std::make_shared<StaticObject>(vector2d(3.5, 1.5), 6, 0.1, 0.1);
+	const auto candlebra =
+		std::make_shared<StaticObject>(vector2d(3.5, 1.5), 6, 0.2, 0.2);
+	const auto candlebra1 =
+		std::make_shared<StaticObject>(vector2d(12.5, 9.5), 8, 0.2, 0.2);
+	const auto candlebra2 =
+		std::make_shared<StaticObject>(vector2d(3.5, 7.5), 6, 0.2, 0.2);
 
 	scene_->AddObject(player_);
 	scene_->AddObject(candlebra);
+	scene_->AddObject(candlebra1);
+	scene_->AddObject(candlebra2);
 
 	is_running_ = true;
 	time_manager_->InitClock();

@@ -23,7 +23,7 @@ class TimeManager
 
 	void InitClock();
 	void CalculateDeltaTime();
-	void SleepForHz(int hz);
+	void SleepForHz(double hz);
 
 	double GetDeltaTime();
 	double GetFramePerSecond();

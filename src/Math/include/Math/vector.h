@@ -55,8 +55,9 @@ struct vector2d
 
 	vector2d Cross(const vector2d& v) const;
 	double Dot(const vector2d& v) const;
-	void Norm();
 	double Magnitude() const;
+	double Determinant(const vector2d& v) const;
+	void Norm();
 };
 
 // To convert vector2d to vector2i
@@ -71,6 +72,18 @@ std::ostream& operator<<(std::ostream& out, const vector2i& v);
 // ostream operator for vector2i
 std::ostream& operator<<(std::ostream& out, const vector2d& v);
 
+// SumRadian calculates the sum of two radian values
+double SumRadian(const double radian1, const double radian2);
+
+// SubRadian calculates the subtraction of two radian values
+double SubRadian(const double radian1, const double radian2);
+
+// SumDegree calculates the sum of two degree values
+double SumDegree(const double degree1, const double degree2);
+
+// SubDegree calculates the subtraction of two degree values
+double SubDegree(const double degree1, const double degree2);
+
 // ToRadians converts degree to radians
 double ToRadians(const double degree);
 
@@ -82,6 +95,17 @@ double Distance(const vector2d& v1, const vector2d& v2);
 
 // Distance calculates the distance between two points
 double Distance(const vector2i& v1, const vector2i& v2);
+
+// CalculateAngleBetweenTwoVectors calculates the angle between two vectors
+double CalculateAngleBetweenTwoVectors(const vector2d& v1, const vector2d& v2);
+
+// CalculateAngleBetweenTwoVectorsSigned calculates the signed angle between two vectors
+double CalculateAngleBetweenTwoVectorsSigned(const vector2d& v1,
+											 const vector2d& v2);
+
+double CalculateAngleBetweenThreeVectorsSigned(const vector2d& v1,
+											   const vector2d& v2,
+											   const vector2d& v3);
 
 }  // namespace wolfenstein
 

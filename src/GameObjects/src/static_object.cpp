@@ -4,7 +4,7 @@
 namespace wolfenstein {
 
 StaticObject::StaticObject(const vector2d& pose_, const int texture_id_,
-						   const int width_, const int height_)
+						   const double width_, const double height_)
 	: pose(pose_), texture_id(texture_id_), width(width_), height(height_) {}
 
 StaticObject::~StaticObject() {}
@@ -33,10 +33,10 @@ vector2d StaticObject::GetPose() const {
 int StaticObject::GetTextureId() const {
 	return texture_id;
 }
-int StaticObject::GetWidth() const {
+double StaticObject::GetWidth() const {
 	return width;
 }
-int StaticObject::GetHeight() const {
+double StaticObject::GetHeight() const {
 	return height;
 }
 

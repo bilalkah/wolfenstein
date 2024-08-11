@@ -13,7 +13,7 @@ void TimeManager::CalculateDeltaTime() {
 	previos_time_point = current_time_point;
 }
 
-void TimeManager::SleepForHz(int hz) {
+void TimeManager::SleepForHz(double hz) {
 	if (hz == 0) {
 		return;
 	}

@@ -16,6 +16,7 @@
 #include <Camera/ray.h>
 #include <Characters/character.h>
 #include <GameObjects/game_object.h>
+#include <GameObjects/static_object.h>
 #include <Map/map.h>
 #include <memory>
 
@@ -39,10 +40,12 @@ class Camera2D
 	std::shared_ptr<RayVector> GetRays() const;
 	std::shared_ptr<Ray> GetCrosshairRay() const;
 	Position2D GetPosition() const;
-	double GetFov() const { return config_.fov; }
-	double GetDeltaAngle() const { return config_.fov / config_.width; }
+	double GetFov() const;
+	double GetDeltaAngle() const;
 
 	void SetPosition(const Position2D& position);
+
+	Ray CalculateObjectRay(const std::shared_ptr<IGameObject>& object) const;
 
   private:
 	void InitRays();

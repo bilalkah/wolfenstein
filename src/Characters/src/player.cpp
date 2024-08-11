@@ -1,5 +1,6 @@
 #include "Characters/player.h"
 #include "CollisionManager/collision_manager.h"
+#include "Math/vector.h"
 #include <SDL2/SDL.h>
 
 namespace wolfenstein {
@@ -52,14 +53,14 @@ void Player::Move(double delta_time) {
 	}
 	if (keystate[SDL_SCANCODE_A]) {
 		delta_movement.first += speed_sin;
-		delta_movement.second += -speed_cos;
+		delta_movement.second -= speed_cos;
 	}
 	if (keystate[SDL_SCANCODE_S]) {
-		delta_movement.first += -speed_cos;
-		delta_movement.second += -speed_sin;
+		delta_movement.first -= speed_cos;
+		delta_movement.second -= speed_sin;
 	}
 	if (keystate[SDL_SCANCODE_D]) {
-		delta_movement.first += -speed_sin;
+		delta_movement.first -= speed_sin;
 		delta_movement.second += speed_cos;
 	}
 	if (!CollisionManager::GetInstance().CheckWallCollision(
@@ -76,9 +77,8 @@ void Player::Rotate(double delta_time) {
 	if (SDL_ShowCursor(SDL_QUERY) == SDL_DISABLE) {
 		int x, y;
 		SDL_GetMouseState(&x, &y);
-		position_.theta += (x - 400) * 0.001;
+		position_.theta = SumRadian(position_.theta, (x - 400) * 0.001);
 		SDL_WarpMouseInWindow(nullptr, 400, 300);
-		position_.theta = std::fmod(position_.theta, (M_PI * 2));
 	}
 }
 

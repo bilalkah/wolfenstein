@@ -1,5 +1,6 @@
 #include "TextureManager/texture_manager.h"
 #include <SDL2/SDL_image.h>
+#include <string>
 
 namespace wolfenstein {
 
@@ -24,6 +25,9 @@ void TextureManager::InitManager(SDL_Renderer* renderer) {
 	LoadTexture(5, texture_path + "5.png");
 	LoadTexture(6, texture_path + "candlebra.png");
 	LoadTexture(7, texture_path + "solid_black.png");
+
+	std::string sprite_path = std::string(RESOURCE_DIR) + "sprites/";
+	LoadTexture(8, sprite_path + "npc/caco_demon/pain/0.png");
 }
 
 void TextureManager::LoadTexture(uint16_t texture_id,

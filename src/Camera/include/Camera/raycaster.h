@@ -23,7 +23,7 @@ namespace wolfenstein {
 class RayCaster
 {
   public:
-	RayCaster(const int width, const double fov, const double depth);
+	RayCaster(const int num_ray, const double fov, const double depth);
 	~RayCaster();
 
 	void Update(const std::shared_ptr<Map>& map_ptr, const Position2D& position,
@@ -31,13 +31,14 @@ class RayCaster
 
 	Ray Cast(const std::shared_ptr<Map>& map_ptr, const Position2D& position,
 			 const double ray_theta);
+	double GetDeltaTheta() const;
 
   private:
 	void PrepareRay(const Position2D& position, const double ray_angle,
 					Ray& ray, vector2d& ray_unit_step, vector2d& ray_length_1d,
 					vector2i& step, vector2i& map_check);
 
-	int width_;
+	int num_ray_;
 	double fov_;
 	double depth_;
 	double delta_theta_;
