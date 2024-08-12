@@ -24,6 +24,8 @@
 
 namespace wolfenstein {
 
+enum class RenderType { TEXTURE, LINE };
+
 struct GeneralConfig
 {
 	int screen_width;
@@ -58,6 +60,7 @@ class Game
 
 	GeneralConfig config_;
 	bool is_running_;
+	RenderType render_type_;
 };
 
 }  // namespace wolfenstein

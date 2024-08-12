@@ -1,11 +1,13 @@
 #include "Core/game.h"
 #include "Graphics/renderer.h"
 #include "Math/vector.h"
+#include <SDL2/SDL_video.h>
 #include <functional>
 
 namespace wolfenstein {
 
-Game::Game(GeneralConfig& config) : config_(config) {
+Game::Game(GeneralConfig& config)
+	: config_(config), is_running_(false), render_type_(RenderType::TEXTURE) {
 	Init();
 	// Hide cursor
 	SDL_ShowCursor(SDL_DISABLE);
@@ -79,6 +81,18 @@ void Game::CheckEvent() {
 				SDL_WarpMouseInWindow(nullptr, 400, 300);
 			}
 		}
+
+		// When user press a key
+		if (event.type == SDL_KEYDOWN) {
+			if (event.key.keysym.sym == SDLK_p &&
+				render_type_ == RenderType::TEXTURE) {
+				render_type_ = RenderType::LINE;
+			}
+			else if (event.key.keysym.sym == SDLK_p &&
+					 render_type_ == RenderType::LINE) {
+				render_type_ = RenderType::TEXTURE;
+			}
+		}
 	}
 }
 
@@ -87,7 +101,14 @@ void Game::Run() {
 		CheckEvent();
 		time_manager_->CalculateDeltaTime();
 		scene_->Update(time_manager_->GetDeltaTime());
-		renderer_->RenderScene(scene_, camera_);
+		switch (render_type_) {
+			case RenderType::TEXTURE:
+				renderer_->RenderScene(scene_, camera_);
+				break;
+			case RenderType::LINE:
+				renderer_->RenderScene2D(scene_, camera_);
+				break;
+		}
 	}
 }
 

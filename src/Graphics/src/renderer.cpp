@@ -118,7 +118,9 @@ void Renderer::RenderIfRayHit(const int horizontal_slice, const Ray& ray,
 	hit_point = std::fmod(hit_point, 1.0);
 	const auto texture_height =
 		TextureManager::GetInstance().GetTexture(ray.wall_id).height;
-	int texture_point = static_cast<int>(hit_point * texture_height);
+	const auto texture_width =
+		TextureManager::GetInstance().GetTexture(ray.wall_id).width;
+	int texture_point = static_cast<int>(hit_point * texture_width);
 
 	SDL_Rect src_rect = {texture_point, 0, 2, texture_height};
 	SDL_Rect dest_rect = {horizontal_slice, draw_start, 2, line_height};
@@ -234,18 +236,18 @@ void Renderer::RenderObjects(
 			const auto position = player->GetPosition();
 			const auto crosshair_ray = camera_ptr->GetCrosshairRay();
 
-			SetDrawColor({0xFF, 0xA5, 0, 255});
-			const auto rays = camera_ptr->GetRays();
-			const auto first_ray = rays->front();
-			const auto start = ToVector2i(position.pose * config_.scale);
-			const auto end = ToVector2i((first_ray.hit_point) * config_.scale);
-			DrawLine(start, end);
+			SetDrawColor({00, 0xA5, 0, 1});
+			const auto rays = *camera_ptr->GetRays();
+			for (int i = 0; i < rays.size(); i++) {
+				if (!rays[i].is_hit || i % 3 != 0) {
+					continue;
+				}
+				const auto start = ToVector2i(position.pose * config_.scale);
+				const auto end =
+					ToVector2i((rays[i].hit_point) * config_.scale);
+				DrawLine(start, end);
+			}
 
-			const auto last_ray = rays->back();
-			const auto start_last = ToVector2i(position.pose * config_.scale);
-			const auto end_last =
-				ToVector2i((last_ray.hit_point) * config_.scale);
-			DrawLine(start_last, end_last);
 			SetDrawColor({255, 0, 0, 255});
 			const auto circle_points = GenerateCirclePoints(
 				ToVector2i(position.pose * config_.scale), 10, 20);
@@ -305,9 +307,18 @@ void Renderer::RenderObjects(
 					 ToVector2i(right_vertex * config_.scale));
 			const auto left_point = GenerateCirclePoints(
 				ToVector2i(left_vertex * config_.scale), 5, 20);
+			SetDrawColor({0xFF, 0, 0, 255});
 			for (unsigned int i = 0; i < left_point.size(); i++) {
 				SDL_RenderDrawPoint(renderer_, left_point[i].x,
 									left_point[i].y);
+			}
+
+			const auto right_point = GenerateCirclePoints(
+				ToVector2i(right_vertex * config_.scale), 5, 20);
+			SetDrawColor({0, 0xFF, 0, 255});
+			for (unsigned int i = 0; i < right_point.size(); i++) {
+				SDL_RenderDrawPoint(renderer_, right_point[i].x,
+									right_point[i].y);
 			}
 		}
 	}
