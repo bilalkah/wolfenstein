@@ -91,7 +91,6 @@ void Renderer::RenderBackground() {
 void Renderer::RenderWalls(const std::shared_ptr<Map>& map_ptr,
 						   const std::shared_ptr<Camera2D>& camera_ptr,
 						   RenderQueue& render_queue) {
-	camera_ptr->Update(map_ptr);
 	const auto rays = camera_ptr->GetRays();
 
 	int horizontal_slice = 0;
@@ -219,7 +218,6 @@ void Renderer::ClearScreen() {
 
 void Renderer::RenderScene2D(const std::shared_ptr<Scene>& scene_ptr,
 							 const std::shared_ptr<Camera2D>& camera_ptr) {
-	camera_ptr->Update(scene_ptr->GetMap());
 	ClearScreen();
 	RenderMap(scene_ptr->GetMap());
 	RenderObjects(scene_ptr->GetObjects(), camera_ptr);
