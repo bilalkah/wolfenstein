@@ -101,6 +101,7 @@ void Game::Run() {
 		CheckEvent();
 		time_manager_->CalculateDeltaTime();
 		scene_->Update(time_manager_->GetDeltaTime());
+		camera_->Update(map_);
 		switch (render_type_) {
 			case RenderType::TEXTURE:
 				renderer_->RenderScene(scene_, camera_);
