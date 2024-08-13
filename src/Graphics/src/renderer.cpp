@@ -236,7 +236,7 @@ void Renderer::RenderObjects(
 
 			SetDrawColor({00, 0xA5, 0, 1});
 			const auto rays = *camera_ptr->GetRays();
-			for (int i = 0; i < rays.size(); i++) {
+			for (unsigned int i = 0; i < rays.size(); i++) {
 				if (!rays[i].is_hit || i % 3 != 0) {
 					continue;
 				}

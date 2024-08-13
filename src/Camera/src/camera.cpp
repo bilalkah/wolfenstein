@@ -22,9 +22,11 @@ Camera2D::Camera2D(const Camera2DConfig& config)
 	InitRays();
 }
 
-void Camera2D::Update(const std::shared_ptr<Map>& map_ptr) {
-	ray_cast_->Update(map_ptr, position_, rays_);
+void Camera2D::Update(const std::shared_ptr<Scene>& scene) {
+	ray_cast_->Update(scene->GetMap(), position_, rays_);
 	crosshair_ray_ = std::make_shared<Ray>(rays_->at(config_.width / 4));
+
+	// Update object rays
 }
 
 std::shared_ptr<RayVector> Camera2D::GetRays() const {
