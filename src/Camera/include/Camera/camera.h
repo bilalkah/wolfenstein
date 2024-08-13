@@ -13,6 +13,7 @@
 #define CAMERA_CAMERA_H
 
 #include "Camera/raycaster.h"
+#include "Graphics/scene.h"
 #include <Camera/ray.h>
 #include <Characters/character.h>
 #include <GameObjects/game_object.h>
@@ -35,7 +36,7 @@ class Camera2D
 	explicit Camera2D(const Camera2DConfig& config);
 	~Camera2D() = default;
 
-	void Update(const std::shared_ptr<Map>& map);
+	void Update(const std::shared_ptr<Scene>& scene);
 
 	std::shared_ptr<RayVector> GetRays() const;
 	std::shared_ptr<Ray> GetCrosshairRay() const;
