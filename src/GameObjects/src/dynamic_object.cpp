@@ -3,7 +3,9 @@
 namespace wolfenstein {
 
 DynamicObject::DynamicObject(const vector2d& pose_, std::string texture_path_)
-	: pose(pose_), texture_path(texture_path_) {}
+	: pose(pose_), texture_path(texture_path_) {
+	id = UuidGenerator::GetInstance().GenerateUuid().bytes();
+}
 
 DynamicObject::~DynamicObject() {}
 
@@ -22,6 +24,10 @@ ObjectType DynamicObject::GetObjectType() const {
 
 vector2d DynamicObject::GetPose() const {
 	return pose;
+}
+
+std::string DynamicObject::GetId() const {
+	return id;
 }
 
 }  // namespace wolfenstein

@@ -13,6 +13,7 @@
 #define CHARACTERS_PLAYER_H
 
 #include "character.h"
+#include <Utility/uuid_generator.h>
 #include <functional>
 
 namespace wolfenstein {
@@ -31,6 +32,7 @@ class Player : public ICharacter, public IGameObject
 	vector2d GetPose() const override;
 	void SetPosition(Position2D position) override;
 	Position2D GetPosition() const override;
+	std::string GetId() const override;
 
 	void SetCameraPositionUpdator(std::function<void(Position2D)> updator);
 
@@ -41,6 +43,7 @@ class Player : public ICharacter, public IGameObject
 	Position2D position_;
 	double rotation_speed_;
 	double translation_speed_;
+	std::string id_;
 	std::function<void(Position2D)> camera_position_updator_;
 };
 

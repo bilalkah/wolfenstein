@@ -89,7 +89,7 @@ class Renderer
 	void RenderObjects(const std::vector<std::shared_ptr<IGameObject>>& objects,
 					   const std::shared_ptr<Camera2D>& camera_ptr,
 					   RenderQueue& render_queue);
-	int CalculateHorizontalSlice(const Ray& ray,
+	int CalculateHorizontalSlice(const double& angle,
 								 const std::shared_ptr<Camera2D> camera_ptr);
 	std::tuple<int, int, int> CalculateVerticalSlice(const double& distance);
 	void RenderTextures(RenderQueue& render_queue);

@@ -57,6 +57,7 @@ struct vector2d
 	double Dot(const vector2d& v) const;
 	double Magnitude() const;
 	double Determinant(const vector2d& v) const;
+	double Distance(const vector2d& v) const;
 	void Norm();
 };
 

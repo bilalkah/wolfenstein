@@ -13,12 +13,14 @@
 #define CHARACTERS_ENEMY_H_
 
 #include "character.h"
+#include <Utility/uuid_generator.h>
 
 namespace wolfenstein {
 
 class Enemy : public ICharacter, public IGameObject
 {
   public:
+	explicit Enemy();
 	~Enemy() = default;
 
 	void Update(double delta_time) override;
@@ -28,11 +30,13 @@ class Enemy : public ICharacter, public IGameObject
 	vector2d GetPose() const override;
 	void SetPosition(Position2D position) override;
 	Position2D GetPosition() const override;
+	std::string GetId() const override;
 
   private:
 	void Move(double delta_time);
 
 	Position2D position_;
+	std::string id_;
 };
 
 }  // namespace wolfenstein

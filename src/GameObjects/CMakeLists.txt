@@ -1,6 +1,7 @@
 link_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}
 )
 
 # Game object library
@@ -15,6 +16,7 @@ add_library(
 target_include_directories(game_object PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}
 )
 
 target_link_libraries(
@@ -22,4 +24,5 @@ target_link_libraries(
     PUBLIC
     vector
     character
+    uuid_generator
 )

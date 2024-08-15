@@ -2,6 +2,10 @@
 
 namespace wolfenstein {
 
+Enemy::Enemy() {
+	id_ = UuidGenerator::GetInstance().GenerateUuid().bytes();
+}
+
 void Enemy::Update(double delta_time) {
 	Move(delta_time);
 }
@@ -24,6 +28,10 @@ void Enemy::SetPosition(Position2D position) {
 
 Position2D Enemy::GetPosition() const {
 	return position_;
+}
+
+std::string Enemy::GetId() const {
+	return id_;
 }
 
 void Enemy::Move(double delta_time) {
