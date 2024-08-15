@@ -14,7 +14,9 @@
 
 #include "GameObjects/game_object.h"
 #include "Math/vector.h"
+#include "third-party/uuid_v4/uuid_v4.h"
 #include <Characters/character.h>
+#include <Utility/uuid_generator.h>
 
 namespace wolfenstein {
 
@@ -32,6 +34,7 @@ class StaticObject : public IGameObject
 
 	ObjectType GetObjectType() const override;
 	vector2d GetPose() const override;
+	std::string GetId() const override;
 
 	int GetTextureId() const;
 	double GetWidth() const;
@@ -42,6 +45,7 @@ class StaticObject : public IGameObject
 	int texture_id;
 	double width;
 	double height;
+	std::string id;
 };
 
 }  // namespace wolfenstein
