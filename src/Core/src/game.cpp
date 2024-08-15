@@ -36,7 +36,7 @@ void Game::Init() {
 									config_.view_distance};
 	camera_ = std::make_shared<Camera2D>(camera_config);
 
-	CharacterConfig player_config = {Position2D({3, 1.5}, 1.50), 2.0, 5.5};
+	CharacterConfig player_config = {Position2D({3, 1.5}, 1.50), 2.0, 0.4};
 	player_ = std::make_shared<Player>(player_config);
 
 	auto camera_position_updator = [this](Position2D position) {
@@ -48,7 +48,7 @@ void Game::Init() {
 	const auto candlebra =
 		std::make_shared<StaticObject>(vector2d(3.5, 1.5), 6, 0.2, 0.2);
 	const auto candlebra1 =
-		std::make_shared<StaticObject>(vector2d(12.5, 9.5), 8, 0.2, 0.2);
+		std::make_shared<StaticObject>(vector2d(12.5, 9.5), 8, 0.4, 0.8);
 	const auto candlebra2 =
 		std::make_shared<StaticObject>(vector2d(3.5, 7.5), 6, 0.2, 0.2);
 

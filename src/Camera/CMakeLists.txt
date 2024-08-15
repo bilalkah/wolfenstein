@@ -1,6 +1,7 @@
 link_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}
 )
 
 
@@ -14,6 +15,7 @@ add_library(
 target_include_directories(ray PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}
 )
 
 target_link_libraries(
@@ -34,6 +36,7 @@ add_library(
 target_include_directories(camera PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}
 )
 
 
@@ -46,4 +49,5 @@ target_link_libraries(
     vector
     map
     scene
+    texture_manager
 )
