@@ -8,7 +8,9 @@ namespace wolfenstein {
 Player::Player(CharacterConfig& config)
 	: position_(config.initial_position),
 	  rotation_speed_(config.rotation_speed),
-	  translation_speed_(config.translation_speed) {}
+	  translation_speed_(config.translation_speed) {
+	id_ = UuidGenerator::GetInstance().GenerateUuid().bytes();
+}
 
 void Player::Update(double delta_time) {
 	Move(delta_time);
@@ -34,6 +36,10 @@ void Player::SetPosition(Position2D position) {
 
 Position2D Player::GetPosition() const {
 	return position_;
+}
+
+std::string Player::GetId() const {
+	return id_;
 }
 
 void Player::SetCameraPositionUpdator(std::function<void(Position2D)> updator) {
@@ -77,7 +83,14 @@ void Player::Rotate(double delta_time) {
 	if (SDL_ShowCursor(SDL_QUERY) == SDL_DISABLE) {
 		int x, y;
 		SDL_GetMouseState(&x, &y);
-		position_.theta = SumRadian(position_.theta, (x - 400) * 0.001);
+		position_.theta = SumRadian(position_.theta,
+									(x - 400) * rotation_speed_ * delta_time);
+		if (position_.theta > M_PI) {
+			position_.theta -= 2 * M_PI;
+		}
+		else if (position_.theta < -M_PI) {
+			position_.theta += 2 * M_PI;
+		}
 		SDL_WarpMouseInWindow(nullptr, 400, 300);
 	}
 }

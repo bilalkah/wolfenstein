@@ -13,6 +13,7 @@
 #define GAME_OBJECTS_GAME_OBJECT_H
 
 #include <Math/vector.h>
+#include <string>
 
 namespace wolfenstein {
 
@@ -33,6 +34,7 @@ class IGameObject
 	virtual void SetPose(const vector2d& pose) = 0;
 	virtual ObjectType GetObjectType() const = 0;
 	virtual vector2d GetPose() const = 0;
+	virtual std::string GetId() const = 0;
 };
 }  // namespace wolfenstein
 

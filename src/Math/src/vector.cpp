@@ -121,6 +121,10 @@ double vector2d::Determinant(const vector2d& v) const {
 	return x * v.y - y * v.x;
 }
 
+double vector2d::Distance(const vector2d& v) const {
+	return std::sqrt(std::pow(x - v.x, 2) + std::pow(y - v.y, 2));
+}
+
 void vector2d::Norm() {
 	double size = std::sqrt(x * x + y * y);
 	x /= size;
