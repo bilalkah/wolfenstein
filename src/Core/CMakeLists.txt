@@ -28,7 +28,6 @@ target_link_libraries(
     game_object
     map
     vector
-    utilities
     renderer
     SDL2
 )

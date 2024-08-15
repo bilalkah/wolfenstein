@@ -10,10 +10,20 @@
  */
 
 #include "Camera/camera.h"
+#include "Camera/ray.h"
 #include "Math/vector.h"
+#include <TextureManager/texture_manager.h>
 #include <cmath>
+#include <string>
 
 namespace wolfenstein {
+
+void Camera2D::InitRays() {
+	rays_ = std::make_shared<RayVector>();
+	for (int i = 0; i < config_.width / 2; i++) {
+		rays_->emplace_back(Ray());
+	}
+}
 
 Camera2D::Camera2D(const Camera2DConfig& config)
 	: config_(config),
@@ -27,10 +37,23 @@ void Camera2D::Update(const std::shared_ptr<Scene>& scene) {
 	crosshair_ray_ = std::make_shared<Ray>(rays_->at(config_.width / 4));
 
 	// Update object rays
+	objects_.clear();
+	for (const auto& object : scene->GetObjects()) {
+		if (object->GetObjectType() == ObjectType::STATIC_OBJECT) {
+			Calculate(object);
+		}
+	}
 }
 
 std::shared_ptr<RayVector> Camera2D::GetRays() const {
 	return rays_;
+}
+
+std::optional<RayPair> Camera2D::GetObjectRay(std::string id) {
+	if (objects_.find(id) != objects_.end()) {
+		return objects_[id];
+	}
+	return std::nullopt;
 }
 
 std::shared_ptr<Ray> Camera2D::GetCrosshairRay() const {
@@ -52,44 +75,77 @@ void Camera2D::SetPosition(const Position2D& position) {
 	position_ = position;
 }
 
-Ray Camera2D::CalculateObjectRay(
-	const std::shared_ptr<IGameObject>& object) const {
-	Ray object_ray{};
-	auto static_object = std::dynamic_pointer_cast<StaticObject>(object);
-	const auto object_pose = static_object->GetPose();
-	const auto w = static_object->GetWidth();
+void Camera2D::Calculate(const std::shared_ptr<IGameObject>& object) {
+	if (object->GetObjectType() == ObjectType::STATIC_OBJECT) {
 
-	// check if object is in the camera view
-	auto object_distance = Distance(object_pose, position_.pose);
-	if (object_distance > config_.depth) {
-		return object_ray;
+		auto static_object = std::dynamic_pointer_cast<StaticObject>(object);
+		const auto object_pose = static_object->GetPose();
+		const auto width = static_object->GetWidth();
+
+		// check if object is in the camera view
+		auto object_distance = object_pose.Distance(position_.pose);
+		if (object_distance > config_.depth) {
+			return;
+		}
+
+		// Object center angle
+		const auto object_center_angle = std::atan2(
+			object_pose.y - position_.pose.y, object_pose.x - position_.pose.x);
+
+		// Object left edge point and angle
+		auto object_left_edge_angle =
+			SubRadian(object_center_angle, ToRadians(90.0));
+		const auto left_edge_point =
+			object_pose +
+			vector2d{width / 2 * std::cos(object_left_edge_angle),
+					 width / 2 * std::sin(object_left_edge_angle)};
+		const auto left_edge_angle =
+			std::atan2(left_edge_point.y - position_.pose.y,
+					   left_edge_point.x - position_.pose.x);
+		const auto camera_angle_left = WorldAngleToCameraAngle(left_edge_angle);
+
+		// Object right edge point and angle
+		auto object_right_edge_angle =
+			SumRadian(object_center_angle, ToRadians(90.0));
+		const auto right_edge_point =
+			object_pose +
+			vector2d{width / 2 * std::cos(object_right_edge_angle),
+					 width / 2 * std::sin(object_right_edge_angle)};
+		const auto right_edge_angle =
+			std::atan2(right_edge_point.y - position_.pose.y,
+					   right_edge_point.x - position_.pose.x);
+		const auto camera_angle_right =
+			WorldAngleToCameraAngle(right_edge_angle);
+
+		// Check if object is in the camera view
+		if (camera_angle_right < -config_.fov / 2 ||
+			camera_angle_left > config_.fov / 2) {
+			return;
+		}
+		const auto texture_id = static_object->GetTextureId();
+
+		// Calculate object raypair
+		RayPair object_ray_pair;
+		object_ray_pair.first.Reset(position_.pose, camera_angle_left);
+		object_ray_pair.first.is_hit = true;
+		object_ray_pair.first.perpendicular_distance = object_distance;
+		object_ray_pair.first.wall_id = texture_id;
+
+		object_ray_pair.second.Reset(position_.pose, camera_angle_right);
+		object_ray_pair.second.is_hit = true;
+		object_ray_pair.second.perpendicular_distance = object_distance;
+		object_ray_pair.second.wall_id = texture_id;
+
+		objects_[object->GetId()] = object_ray_pair;
 	}
-
-	const auto object_center_angle = std::atan2(
-		object_pose.y - position_.pose.y, object_pose.x - position_.pose.x);
-
-	auto object_left_edge_angle =
-		SubRadian(object_center_angle, ToRadians(90.0));
-	const auto left_edge_point =
-		object_pose + vector2d{w * std::cos(object_left_edge_angle),
-							   w * std::sin(object_left_edge_angle)};
-	const auto left_edge_angle =
-		std::atan2(left_edge_point.y - position_.pose.y,
-				   left_edge_point.x - position_.pose.x);
-	object_ray.theta =
-		left_edge_angle > 0 ? left_edge_angle : 2 * M_PI + left_edge_angle;
-	object_ray.is_hit = true;
-	object_ray.perpendicular_distance = object_distance;
-	object_ray.wall_id = static_object->GetTextureId();
-
-	return object_ray;
 }
 
-void Camera2D::InitRays() {
-	rays_ = std::make_shared<RayVector>();
-	for (int i = 0; i < config_.width / 2; i++) {
-		rays_->emplace_back(Ray());
-	}
+double Camera2D::WorldAngleToCameraAngle(double angle) const {
+	const auto vector_of_crosshair = crosshair_ray_->direction;
+	const auto vector_of_ray = vector2d{std::cos(angle), std::sin(angle)};
+	const auto angle_between = CalculateAngleBetweenTwoVectorsSigned(
+		vector_of_ray, vector_of_crosshair);
+	return angle_between;
 }
 
 }  // namespace wolfenstein
