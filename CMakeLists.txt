@@ -16,6 +16,7 @@ add_definitions(
 set(CMAKE_BUILD_TYPE Debug)
 # set(CMAKE_BUILD_TYPE Release)
 
+# internal libraries
 add_subdirectory(app)
 add_subdirectory(src/Camera)
 add_subdirectory(src/CollisionManager)
@@ -27,22 +28,24 @@ add_subdirectory(src/Map)
 add_subdirectory(src/Math)
 add_subdirectory(src/TextureManager)
 add_subdirectory(src/TimeManager)
-add_subdirectory(src/Utilities)
+add_subdirectory(src/Utility)
+
+# external libraries
+add_subdirectory(third-party/uuid_v4)
 
 find_package(SDL2 REQUIRED)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}
-    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/third-party
     ${SDL2_INCLUDE_DIRS}
 )
 
 link_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${PROJECT_SOURCE_DIR}
-    ${PROJECT_SOURCE_DIR}/include
-    ${SDL2_INCLUDE_DIRS}
+    ${PROJECT_SOURCE_DIR}/third-party
 )
 set(LIBRARIES
     ${SDL2_LIBRARIES}
