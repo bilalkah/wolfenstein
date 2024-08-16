@@ -9,10 +9,11 @@
  * 
  */
 
-#include "Camera/camera.h"
-#include "Camera/ray.h"
-#include "Math/vector.h"
+#include <Camera/camera.h>
+#include <Camera/ray.h>
+#include <Math/vector.h>
 #include <TextureManager/texture_manager.h>
+
 #include <cmath>
 #include <string>
 
@@ -39,7 +40,7 @@ void Camera2D::Update(const std::shared_ptr<Scene>& scene) {
 	// Update object rays
 	objects_.clear();
 	for (const auto& object : scene->GetObjects()) {
-		if (object->GetObjectType() == ObjectType::STATIC_OBJECT) {
+		if (object->GetObjectType() != ObjectType::CHARACTER_PLAYER) {
 			Calculate(object);
 		}
 	}
@@ -49,7 +50,7 @@ std::shared_ptr<RayVector> Camera2D::GetRays() const {
 	return rays_;
 }
 
-std::optional<RayPair> Camera2D::GetObjectRay(std::string id) {
+std::optional<RayPair> Camera2D::GetObjectRay(const std::string id) {
 	if (objects_.find(id) != objects_.end()) {
 		return objects_[id];
 	}

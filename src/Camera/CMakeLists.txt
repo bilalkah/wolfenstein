@@ -4,42 +4,35 @@ link_directories(
     ${PROJECT_SOURCE_DIR}
 )
 
-
+# Ray library
 add_library(
     ray
     STATIC
     src/ray.cpp
 )
-
-# Specify include directories for this library
 target_include_directories(ray PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}
 )
-
 target_link_libraries(
     ray
     PUBLIC
     vector
 )
 
-# Game object library
+# camera library
 add_library(
     camera
     STATIC
     src/camera.cpp
     src/raycaster.cpp
 )
-
-# Specify include directories for this library
 target_include_directories(camera PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}
 )
-
-
 target_link_libraries(
     camera
     PUBLIC

@@ -1,4 +1,5 @@
-#include "Camera/raycaster.h"
+#include <Camera/raycaster.h>
+
 #include <cmath>
 #include <vector>
 
@@ -9,8 +10,6 @@ RayCaster::RayCaster(const int num_ray, const double fov, const double depth)
 	  fov_(fov),
 	  depth_(depth),
 	  delta_theta_(fov_ / num_ray) {}
-
-RayCaster::~RayCaster() {}
 
 void RayCaster::Update(const std::shared_ptr<Map>& map_ptr,
 					   const Position2D& position,
