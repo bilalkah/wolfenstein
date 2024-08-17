@@ -9,13 +9,14 @@
  * 
  */
 
-#ifndef CAMERA_INCLUDE_RAYCASTER_H_
-#define CAMERA_INCLUDE_RAYCASTER_H_
+#ifndef CAMERA_INCLUDE_CAMERA_RAYCASTER_H_
+#define CAMERA_INCLUDE_CAMERA_RAYCASTER_H_
 
-#include "Camera/ray.h"
+#include <Camera/ray.h>
 #include <Characters/character.h>
 #include <Map/map.h>
 #include <Math/vector.h>
+
 #include <memory>
 
 namespace wolfenstein {
@@ -24,7 +25,7 @@ class RayCaster
 {
   public:
 	RayCaster(const int num_ray, const double fov, const double depth);
-	~RayCaster();
+	~RayCaster() = default;
 
 	void Update(const std::shared_ptr<Map>& map_ptr, const Position2D& position,
 				const std::shared_ptr<RayVector>& rays);
@@ -46,4 +47,4 @@ class RayCaster
 
 }  // namespace wolfenstein
 
-#endif	// CAMERA_INCLUDE_RAYCASTER_H_
+#endif	// CAMERA_INCLUDE_CAMERA_RAYCASTER_H_

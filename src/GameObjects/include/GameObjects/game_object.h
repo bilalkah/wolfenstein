@@ -9,8 +9,8 @@
  * 
  */
 
-#ifndef GAME_OBJECTS_GAME_OBJECT_H
-#define GAME_OBJECTS_GAME_OBJECT_H
+#ifndef GAME_OBJECTS_INCLUDE_GAME_OBJECT_H
+#define GAME_OBJECTS_INCLUDE_GAME_OBJECT_H
 
 #include <Math/vector.h>
 #include <string>
@@ -38,4 +38,4 @@ class IGameObject
 };
 }  // namespace wolfenstein
 
-#endif	// GAME_OBJECTS_GAME_OBJECT_H
+#endif	// GAME_OBJECTS_INCLUDE_GAME_OBJECT_H

@@ -1,9 +1,9 @@
-#include "Graphics/renderer.h"
-#include "Camera/ray.h"
-#include "GameObjects/static_object.h"
-#include "Map/map.h"
-#include "Math/vector.h"
+#include <Camera/ray.h>
 #include <Characters/player.h>
+#include <GameObjects/static_object.h>
+#include <Graphics/renderer.h>
+#include <Map/map.h>
+#include <Math/vector.h>
 #include <SDL2/SDL_rect.h>
 #include <SDL2/SDL_render.h>
 #include <TextureManager/texture_manager.h>

@@ -1,4 +1,5 @@
-#include "Characters/enemy.h"
+#include <Characters/enemy.h>
+#include <Utility/uuid_generator.h>
 
 namespace wolfenstein {
 
@@ -36,7 +37,6 @@ std::string Enemy::GetId() const {
 
 void Enemy::Move(double delta_time) {
 	(void)delta_time;
-	// Move enemy
 }
 
 }  // namespace wolfenstein

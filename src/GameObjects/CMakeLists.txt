@@ -4,7 +4,6 @@ link_directories(
     ${PROJECT_SOURCE_DIR}
 )
 
-# Game object library
 add_library(
     game_object
     STATIC
@@ -12,7 +11,6 @@ add_library(
     src/dynamic_object.cpp
 )
 
-# Specify include directories for this library
 target_include_directories(game_object PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include

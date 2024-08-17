@@ -12,8 +12,7 @@
 #ifndef CHARACTERS_PLAYER_H
 #define CHARACTERS_PLAYER_H
 
-#include "character.h"
-#include <Utility/uuid_generator.h>
+#include <Characters/character.h>
 #include <functional>
 
 namespace wolfenstein {

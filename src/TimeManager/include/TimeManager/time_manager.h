@@ -9,8 +9,8 @@
  * 
  */
 
-#ifndef TIME_MANAGER_TIME_MANAGER_H_
-#define TIME_MANAGER_TIME_MANAGER_H_
+#ifndef TIME_MANAGER_INCLUDE_TIME_MANAGER_H_
+#define TIME_MANAGER_INCLUDE_TIME_MANAGER_H_
 
 #include <chrono>
 
@@ -37,4 +37,4 @@ class TimeManager
 
 }  // namespace wolfenstein
 
-#endif	// TIME_MANAGER_TIME_MANAGER_H_
+#endif	// TIME_MANAGER_INCLUDE_TIME_MANAGER_H_

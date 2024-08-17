@@ -1,6 +1,6 @@
-#include "Core/game.h"
-#include "Graphics/renderer.h"
-#include "Math/vector.h"
+#include <Core/game.h>
+#include <Graphics/renderer.h>
+#include <Math/vector.h>
 #include <SDL2/SDL_video.h>
 #include <functional>
 

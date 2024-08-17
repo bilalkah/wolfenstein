@@ -9,19 +9,19 @@
  * 
  */
 
-#ifndef CAMERA_CAMERA_H
-#define CAMERA_CAMERA_H
+#ifndef CAMERA_INCLUDE_CAMERA_H
+#define CAMERA_INCLUDE_CAMERA_H
 
-#include "Camera/raycaster.h"
-#include "Graphics/scene.h"
 #include <Camera/ray.h>
+#include <Camera/raycaster.h>
 #include <Characters/character.h>
 #include <GameObjects/game_object.h>
 #include <GameObjects/static_object.h>
+#include <Graphics/scene.h>
 #include <Map/map.h>
+
 #include <memory>
 #include <optional>
-#include <third-party/uuid_v4/uuid_v4.h>
 #include <unordered_map>
 
 namespace wolfenstein {
@@ -44,8 +44,8 @@ class Camera2D
 	void Update(const std::shared_ptr<Scene>& scene);
 
 	std::shared_ptr<RayVector> GetRays() const;
-	std::optional<RayPair> GetObjectRay(std::string id);
 	std::shared_ptr<Ray> GetCrosshairRay() const;
+	std::optional<RayPair> GetObjectRay(const std::string id);
 	Position2D GetPosition() const;
 	double GetFov() const;
 	double GetDeltaAngle() const;
@@ -56,14 +56,15 @@ class Camera2D
 	void InitRays();
 	void Calculate(const std::shared_ptr<IGameObject>& object);
 	double WorldAngleToCameraAngle(double angle) const;
+
 	Camera2DConfig config_;
-	std::shared_ptr<RayVector> rays_;
-	std::unordered_map<std::string, RayPair> objects_;
-	std::shared_ptr<RayCaster> ray_cast_;
-	std::shared_ptr<Ray> crosshair_ray_;
 	Position2D position_;
+	std::shared_ptr<RayCaster> ray_cast_;
+	std::shared_ptr<RayVector> rays_;
+	std::shared_ptr<Ray> crosshair_ray_;
+	std::unordered_map<std::string, RayPair> objects_;
 };
 
 }  // namespace wolfenstein
 
-#endif	// CAMERA_CAMERA_H
+#endif	// CAMERA_INCLUDE_CAMERA_H
