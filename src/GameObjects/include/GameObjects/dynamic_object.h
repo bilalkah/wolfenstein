@@ -9,8 +9,8 @@
  * 
  */
 
-#ifndef GAME_OBJECTS_DYNAMIC_OBJECT_H
-#define GAME_OBJECTS_DYNAMIC_OBJECT_H
+#ifndef GAME_OBJECTS_INCLUDE_DYNAMIC_OBJECT_H
+#define GAME_OBJECTS_INCLUDE_DYNAMIC_OBJECT_H
 
 #include "GameObjects/game_object.h"
 #include <Utility/uuid_generator.h>
@@ -31,11 +31,10 @@ class DynamicObject : public IGameObject
 	std::string GetId() const override;
 
   protected:
-	// Dynamic object specific data
 	vector2d pose;
 	std::string texture_path;
 	std::string id;
 };
 }  // namespace wolfenstein
 
-#endif	// GAME_OBJECTS_DYNAMIC_OBJECT_H
+#endif	// GAME_OBJECTS_INCLUDE_DYNAMIC_OBJECT_H

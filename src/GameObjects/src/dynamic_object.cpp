@@ -11,7 +11,6 @@ DynamicObject::~DynamicObject() {}
 
 void DynamicObject::Update(double delta_time) {
 	(void)delta_time;
-	// Update dynamic object specific data
 }
 
 void DynamicObject::SetPose(const vector2d& pose) {
