@@ -9,8 +9,8 @@
  * 
  */
 
-#ifndef CORE_GAME_H_
-#define CORE_GAME_H_
+#ifndef CORE_INCLUDE_CORE_GAME_H_
+#define CORE_INCLUDE_CORE_GAME_H_
 
 #include <Camera/camera.h>
 #include <Characters/player.h>
@@ -65,4 +65,4 @@ class Game
 
 }  // namespace wolfenstein
 
-#endif	// CORE_GAME_H_
+#endif	// CORE_INCLUDE_CORE_GAME_H_

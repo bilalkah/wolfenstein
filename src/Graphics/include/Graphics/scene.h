@@ -9,14 +9,14 @@
  * 
  */
 
-#ifndef GRAPHICS_SCENE_H_
-#define GRAPHICS_SCENE_H_
+#ifndef GRAPHICS_INCLUDE_GRAPHICS_SCENE_H_
+#define GRAPHICS_INCLUDE_GRAPHICS_SCENE_H_
 
 #include <memory>
 #include <vector>
 
-#include "GameObjects/game_object.h"
-#include "Map/map.h"
+#include <GameObjects/game_object.h>
+#include <Map/map.h>
 
 namespace wolfenstein {
 
@@ -40,4 +40,4 @@ class Scene
 
 }  // namespace wolfenstein
 
-#endif	// GRAPHICS_SCENE_H_
+#endif	// GRAPHICS_INCLUDE_GRAPHICS_SCENE_H_
