@@ -9,9 +9,8 @@
  * 
  */
 
-#ifndef UTILITIES_LOGGER_H
-#define UTILITIES_LOGGER_H
-
+#ifndef UTILITIES_INCLUDE_UTILITIES_LOGGER_H
+#define UTILITIES_INCLUDE_UTILITIES_LOGGER_H
 
 // Debug macro
 #ifdef DEBUG
@@ -52,4 +51,4 @@
 		}                      \
 	} while (0)
 
-#endif	// UTILITIES_LOGGER_H
+#endif	// UTILITIES_INCLUDE_UTILITIES_LOGGER_H

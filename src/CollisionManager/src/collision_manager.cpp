@@ -1,4 +1,4 @@
-#include "CollisionManager/collision_manager.h"
+#include <CollisionManager/collision_manager.h>
 #include <cassert>
 
 namespace wolfenstein {
