@@ -1,5 +1,6 @@
-#include "GameObjects/static_object.h"
-#include "GameObjects/game_object.h"
+#include <GameObjects/game_object.h>
+#include <GameObjects/static_object.h>
+#include <Utility/uuid_generator.h>
 
 namespace wolfenstein {
 
@@ -13,11 +14,6 @@ StaticObject::~StaticObject() {}
 
 void StaticObject::Update(double delta_time) {
 	(void)delta_time;
-}
-
-void StaticObject::Render(Position2D camera_position) {
-	(void)camera_position;
-	// Render static object
 }
 
 void StaticObject::SetPose(const vector2d& pose) {

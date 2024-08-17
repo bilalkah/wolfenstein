@@ -9,14 +9,12 @@
  * 
  */
 
-#ifndef GAME_OBJECTS_STATIC_OBJECT_H
-#define GAME_OBJECTS_STATIC_OBJECT_H
+#ifndef GAME_OBJECTS_INCLUDE_STATIC_OBJECT_H
+#define GAME_OBJECTS_INCLUDE_STATIC_OBJECT_H
 
-#include "GameObjects/game_object.h"
-#include "Math/vector.h"
-#include "third-party/uuid_v4/uuid_v4.h"
 #include <Characters/character.h>
-#include <Utility/uuid_generator.h>
+#include <GameObjects/game_object.h>
+#include <Math/vector.h>
 
 namespace wolfenstein {
 
@@ -28,7 +26,6 @@ class StaticObject : public IGameObject
 	~StaticObject();
 
 	void Update(double delta_time) override;
-	void Render(Position2D camera_position);
 
 	void SetPose(const vector2d& pose) override;
 
@@ -50,4 +47,4 @@ class StaticObject : public IGameObject
 
 }  // namespace wolfenstein
 
-#endif	// GAME_OBJECTS_STATIC_OBJECT_H
+#endif	// GAME_OBJECTS_INCLUDE_STATIC_OBJECT_H

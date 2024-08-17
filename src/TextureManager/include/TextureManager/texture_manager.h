@@ -9,13 +9,12 @@
  * 
  */
 
-#ifndef TEXTURE_MANAGER_TEXTURE_MANAGER_H
-#define TEXTURE_MANAGER_TEXTURE_MANAGER_H
-
-#include <string>
-#include <unordered_map>
+#ifndef TEXTURE_MANAGER_INCLUDE_TEXTURE_MANAGER_H
+#define TEXTURE_MANAGER_INCLUDE_TEXTURE_MANAGER_H
 
 #include <SDL2/SDL.h>
+#include <string>
+#include <unordered_map>
 
 namespace wolfenstein {
 
@@ -51,4 +50,4 @@ class TextureManager
 
 }  // namespace wolfenstein
 
-#endif	// TEXTURE_MANAGER_TEXTURE_MANAGER_H
+#endif	// TEXTURE_MANAGER_INCLUDE_TEXTURE_MANAGER_H

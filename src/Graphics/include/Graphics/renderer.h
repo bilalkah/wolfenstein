@@ -9,12 +9,12 @@
  * 
  */
 
-#ifndef GRAPHICS_RENDERER_H_
-#define GRAPHICS_RENDERER_H_
+#ifndef GRAPHICS_INCLUDE_GRAPHICS_RENDERER_H_
+#define GRAPHICS_INCLUDE_GRAPHICS_RENDERER_H_
 
-#include "GameObjects/game_object.h"
-#include "scene.h"
 #include <Camera/camera.h>
+#include <GameObjects/game_object.h>
+#include <Graphics/scene.h>
 #include <SDL2/SDL.h>
 #include <memory>
 #include <queue>
@@ -109,4 +109,4 @@ class Renderer
 };
 
 }  // namespace wolfenstein
-#endif	// GRAPHICS_RENDERER_H_
+#endif	// GRAPHICS_INCLUDE_GRAPHICS_RENDERER_H_
