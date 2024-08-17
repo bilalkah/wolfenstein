@@ -9,11 +9,11 @@
  * 
  */
 
-#ifndef COLLISION_MANAGER_COLLISION_MANAGER_H
-#define COLLISION_MANAGER_COLLISION_MANAGER_H
+#ifndef COLLISION_MANAGER_INCLUDE_COLLISION_MANAGER_H
+#define COLLISION_MANAGER_INCLUDE_COLLISION_MANAGER_H
 
-#include "Map/map.h"
 #include <GameObjects/game_object.h>
+#include <Map/map.h>
 #include <Math/vector.h>
 #include <memory>
 
@@ -44,4 +44,4 @@ class CollisionManager
 };
 }  // namespace wolfenstein
 
-#endif	// COLLISION_MANAGER_COLLISION_MANAGER_H
+#endif	// COLLISION_MANAGER_INCLUDE_COLLISION_MANAGER_H

@@ -9,8 +9,8 @@
  * 
  */
 
-#ifndef MATH_INCLUDE_VECTOR_H_
-#define MATH_INCLUDE_VECTOR_H_
+#ifndef MATH_INCLUDE_MATH_VECTOR_H_
+#define MATH_INCLUDE_MATH_VECTOR_H_
 
 #include <iostream>
 
@@ -110,4 +110,4 @@ double CalculateAngleBetweenThreeVectorsSigned(const vector2d& v1,
 
 }  // namespace wolfenstein
 
-#endif	// MATH_INCLUDE_VECTOR_H_
+#endif	// MATH_INCLUDE_MATH_VECTOR_H_

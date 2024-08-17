@@ -1,4 +1,4 @@
-#include "Math/vector.h"
+#include <Math/vector.h>
 #include <cmath>
 
 namespace wolfenstein {
@@ -150,19 +150,47 @@ std::ostream& operator<<(std::ostream& out, const vector2d& v) {
 }
 
 double SumRadian(const double radian1, const double radian2) {
-	return std::fmod(radian1 + radian2, (M_PI * 2));
+	auto angle = std::fmod(radian1 + radian2, (M_PI * 2));
+	if (angle > M_PI) {
+		angle -= 2 * M_PI;
+	}
+	else if (angle < -M_PI) {
+		angle += 2 * M_PI;
+	}
+	return angle;
 }
 
 double SubRadian(const double degree1, const double degree2) {
-	return std::fmod(degree1 - degree2, (M_PI * 2));
+	auto angle = std::fmod(degree1 - degree2, (M_PI * 2));
+	if (angle > M_PI) {
+		angle -= 2 * M_PI;
+	}
+	else if (angle < -M_PI) {
+		angle += 2 * M_PI;
+	}
+	return angle;
 }
 
 double SumDegree(const double degree1, const double degree2) {
-	return std::fmod(degree1 + degree2, 360.0);
+	auto angle = std::fmod(degree1 + degree2, 360.0);
+	if (angle > 180.0) {
+		angle -= 2 * 180.0;
+	}
+	else if (angle < -180.0) {
+		angle += 2 * 180.0;
+	}
+	return angle;
 }
 
 double SubDegree(const double degree1, const double degree2) {
-	return std::fmod(degree1 - degree2, 360.0);
+	auto angle = std::fmod(degree1 - degree2, 360.0);
+	if (angle > 180.0) {
+		angle -= 2 * 180.0;
+	}
+	else if (angle < -180.0) {
+		angle += 2 * 180.0;
+	}
+	return angle;
 }
 
 double ToRadians(const double degree) {
@@ -188,7 +216,7 @@ double CalculateAngleBetweenTwoVectors(const vector2d& v1, const vector2d& v3) {
 double CalculateAngleBetweenTwoVectorsSigned(const vector2d& v1,
 											 const vector2d& v3) {
 	auto angle = std::acos(v1.Dot(v3) / (v1.Magnitude() * v3.Magnitude()));
-	// if v1 is on the left side of v2, then angle is negative
+
 	const vector2d v2;
 	double orientation_val =
 		(v2.y - v1.y) * (v3.x - v2.x) - (v2.x - v1.x) * (v3.y - v2.y);
@@ -205,7 +233,7 @@ double CalculateAngleBetweenThreeVectorsSigned(const vector2d& v1,
 	const auto v3_base = v3 - v2;
 	auto angle = std::acos(v1_base.Dot(v3_base) /
 						   (v1_base.Magnitude() * v3_base.Magnitude()));
-	// if v1 is on the left side of v2, then angle is negative
+
 	double orientation_val =
 		(v2.y - v1.y) * (v3.x - v2.x) - (v2.x - v1.x) * (v3.y - v2.y);
 	if (orientation_val > 0.0) {

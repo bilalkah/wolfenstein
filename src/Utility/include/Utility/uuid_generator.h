@@ -9,8 +9,8 @@
  * 
  */
 
-#ifndef UTILITY_UUID_GENERATOR_H
-#define UTILITY_UUID_GENERATOR_H
+#ifndef UTILITY_INCLUDE_UTILITY_UUID_GENERATOR_H
+#define UTILITY_INCLUDE_UTILITY_UUID_GENERATOR_H
 
 #include <third-party/uuid_v4/uuid_v4.h>
 
@@ -34,4 +34,4 @@ class UuidGenerator
 
 }  // namespace wolfenstein
 
-#endif	// UTILITY_UUID_GENERATOR_H
+#endif	// UTILITY_INCLUDE_UTILITY_UUID_GENERATOR_H
