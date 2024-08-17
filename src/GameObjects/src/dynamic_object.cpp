@@ -1,4 +1,5 @@
-#include "GameObjects/dynamic_object.h"
+#include <GameObjects/dynamic_object.h>
+#include <Utility/uuid_generator.h>
 
 namespace wolfenstein {
 

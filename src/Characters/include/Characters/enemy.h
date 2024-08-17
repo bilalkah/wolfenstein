@@ -9,11 +9,10 @@
  * 
  */
 
-#ifndef CHARACTERS_ENEMY_H_
-#define CHARACTERS_ENEMY_H_
+#ifndef CHARACTERS_INCLUDE_ENEMY_H_
+#define CHARACTERS_INCLUDE_ENEMY_H_
 
-#include "character.h"
-#include <Utility/uuid_generator.h>
+#include <Characters/character.h>
 
 namespace wolfenstein {
 
@@ -26,9 +25,10 @@ class Enemy : public ICharacter, public IGameObject
 	void Update(double delta_time) override;
 
 	void SetPose(const vector2d& pose) override;
+	void SetPosition(Position2D position) override;
+
 	ObjectType GetObjectType() const override;
 	vector2d GetPose() const override;
-	void SetPosition(Position2D position) override;
 	Position2D GetPosition() const override;
 	std::string GetId() const override;
 
@@ -41,4 +41,4 @@ class Enemy : public ICharacter, public IGameObject
 
 }  // namespace wolfenstein
 
-#endif	// CHARACTERS_ENEMY_H_
+#endif	// CHARACTERS_INCLUDE_ENEMY_H_
