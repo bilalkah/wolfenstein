@@ -12,7 +12,7 @@
 #ifndef GAME_OBJECTS_INCLUDE_DYNAMIC_OBJECT_H
 #define GAME_OBJECTS_INCLUDE_DYNAMIC_OBJECT_H
 
-#include "GameObjects/game_object.h"
+#include <GameObjects/game_object.h>
 #include <Utility/uuid_generator.h>
 
 namespace wolfenstein {

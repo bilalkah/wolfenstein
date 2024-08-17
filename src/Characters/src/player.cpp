@@ -1,7 +1,8 @@
-#include "Characters/player.h"
-#include "CollisionManager/collision_manager.h"
-#include "Math/vector.h"
+#include <Characters/player.h>
+#include <CollisionManager/collision_manager.h>
+#include <Math/vector.h>
 #include <SDL2/SDL.h>
+#include <Utility/uuid_generator.h>
 
 namespace wolfenstein {
 

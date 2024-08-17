@@ -9,8 +9,8 @@
  * 
  */
 
-#ifndef CHARACTERS_CHARACTER_H
-#define CHARACTERS_CHARACTER_H
+#ifndef CHARACTERS_INCLUDE_CHARACTER_H
+#define CHARACTERS_INCLUDE_CHARACTER_H
 
 #include <GameObjects/game_object.h>
 
@@ -34,7 +34,6 @@ struct CharacterConfig
 	double rotation_speed;
 };
 
-// Character.h
 class ICharacter
 {
   public:
@@ -43,9 +42,7 @@ class ICharacter
 	virtual void SetPosition(Position2D position) = 0;
 	virtual Position2D GetPosition() const = 0;
 
-  private:
-	// Character specific data
 };
 }  // namespace wolfenstein
 
-#endif	// CHARACTERS_CHARACTER_H
+#endif	// CHARACTERS_INCLUDE_CHARACTER_H

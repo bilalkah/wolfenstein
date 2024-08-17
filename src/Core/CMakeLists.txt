@@ -24,7 +24,6 @@ target_link_libraries(
     texture_manager
     camera
     character
-    player
     game_object
     map
     vector
