@@ -141,40 +141,42 @@ void Renderer::RenderObjects(
 	const std::vector<std::shared_ptr<IGameObject>>& objects,
 	const std::shared_ptr<Camera2D>& camera_ptr, RenderQueue& render_queue) {
 	for (const auto& object : objects) {
-		if (object->GetObjectType() == ObjectType::STATIC_OBJECT) {
-			const auto static_object =
-				std::dynamic_pointer_cast<StaticObject>(object);
 
-			const auto ray_pair = camera_ptr->GetObjectRay(object->GetId());
-			if (!ray_pair.has_value()) {
-				continue;
-			}
+		const auto static_object =
+			std::dynamic_pointer_cast<StaticObject>(object);
 
-			const auto first = ray_pair.value().first;
-			const auto last = ray_pair.value().second;
-
-			const auto [line_height, draw_start, draw_end] =
-				CalculateVerticalSlice(first.perpendicular_distance);
-
-			const auto texture_height =
-				TextureManager::GetInstance().GetTexture(first.wall_id).height;
-			const auto texture_width =
-				TextureManager::GetInstance().GetTexture(first.wall_id).width;
-
-			const auto first_slice =
-				CalculateHorizontalSlice(first.theta, camera_ptr);
-
-			const auto last_slice =
-				CalculateHorizontalSlice(last.theta, camera_ptr);
-
-			SDL_Rect src_rect = {0, 0, texture_width, texture_height};
-
-			SDL_Rect dest_rect = {first_slice, draw_start,
-								  last_slice - first_slice, line_height};
-
-			render_queue.push({first.wall_id, src_rect, dest_rect,
-							   first.perpendicular_distance});
+		const auto ray_pair = camera_ptr->GetObjectRay(object->GetId());
+		if (!ray_pair.has_value()) {
+			continue;
 		}
+
+		const auto first = ray_pair.value().first;
+		const auto last = ray_pair.value().second;
+
+		auto [line_height, draw_start, draw_end] =
+			CalculateVerticalSlice(first.perpendicular_distance);
+		const auto height = static_object->GetHeight();
+		line_height = line_height * height;
+		draw_start = draw_end - line_height;
+
+		const auto texture_height =
+			TextureManager::GetInstance().GetTexture(first.wall_id).height;
+		const auto texture_width =
+			TextureManager::GetInstance().GetTexture(first.wall_id).width;
+
+		const auto first_slice =
+			CalculateHorizontalSlice(first.theta, camera_ptr);
+
+		const auto last_slice =
+			CalculateHorizontalSlice(last.theta, camera_ptr);
+
+		SDL_Rect src_rect = {0, 0, texture_width, texture_height};
+
+		SDL_Rect dest_rect = {first_slice, draw_start, last_slice - first_slice,
+							  line_height};
+
+		render_queue.push(
+			{first.wall_id, src_rect, dest_rect, first.perpendicular_distance});
 	}
 }
 
@@ -216,8 +218,38 @@ void Renderer::RenderScene2D(const std::shared_ptr<Scene>& scene_ptr,
 							 const std::shared_ptr<Camera2D>& camera_ptr) {
 	ClearScreen();
 	RenderMap(scene_ptr->GetMap());
+	RenderPlayer(scene_ptr->GetPlayer(), camera_ptr);
 	RenderObjects(scene_ptr->GetObjects(), camera_ptr);
 	SDL_RenderPresent(renderer_);
+}
+
+void Renderer::RenderPlayer(const std::shared_ptr<Player> player_ptr,
+							const std::shared_ptr<Camera2D> camera_ptr) {
+
+	const auto position = player_ptr->GetPosition();
+	const auto crosshair_ray = camera_ptr->GetCrosshairRay();
+
+	SetDrawColor({00, 0xA5, 0, 1});
+	const auto rays = *camera_ptr->GetRays();
+	for (unsigned int i = 0; i < rays.size(); i++) {
+		if (!rays[i].is_hit || i % 3 != 0) {
+			continue;
+		}
+		const auto start = ToVector2i(position.pose * config_.scale);
+		const auto end = ToVector2i((rays[i].hit_point) * config_.scale);
+		DrawLine(start, end);
+	}
+
+	SetDrawColor({255, 0, 0, 255});
+	const auto circle_points =
+		GenerateCirclePoints(ToVector2i(position.pose * config_.scale), 10, 20);
+	for (unsigned int i = 0; i < circle_points.size(); i++) {
+		SDL_RenderDrawPoint(renderer_, circle_points[i].x, circle_points[i].y);
+	}
+	DrawLine(
+		ToVector2i(position.pose * config_.scale),
+		ToVector2i((crosshair_ray->origin + crosshair_ray->direction * 10) *
+				   config_.scale));
 }
 
 void Renderer::RenderObjects(
@@ -225,81 +257,45 @@ void Renderer::RenderObjects(
 	const std::shared_ptr<Camera2D> camera_ptr) {
 
 	for (const auto& object : objects) {
-		if (object->GetObjectType() == ObjectType::CHARACTER_PLAYER) {
-			auto player = std::dynamic_pointer_cast<Player>(object);
-			const auto position = player->GetPosition();
-			const auto crosshair_ray = camera_ptr->GetCrosshairRay();
 
-			SetDrawColor({00, 0xA5, 0, 1});
-			const auto rays = *camera_ptr->GetRays();
-			for (unsigned int i = 0; i < rays.size(); i++) {
-				if (!rays[i].is_hit || i % 3 != 0) {
-					continue;
-				}
-				const auto start = ToVector2i(position.pose * config_.scale);
-				const auto end =
-					ToVector2i((rays[i].hit_point) * config_.scale);
-				DrawLine(start, end);
-			}
+		auto static_object = std::dynamic_pointer_cast<StaticObject>(object);
+		SetDrawColor({0xFF, 0xA5, 0, 255});
+		const auto object_pose = static_object->GetPose();
+		const auto w = static_object->GetWidth();
 
-			SetDrawColor({255, 0, 0, 255});
-			const auto circle_points = GenerateCirclePoints(
-				ToVector2i(position.pose * config_.scale), 10, 20);
-			for (unsigned int i = 0; i < circle_points.size(); i++) {
-				SDL_RenderDrawPoint(renderer_, circle_points[i].x,
-									circle_points[i].y);
-			}
-			DrawLine(ToVector2i(position.pose * config_.scale),
-					 ToVector2i((crosshair_ray->origin +
-								 crosshair_ray->direction * 10) *
-								config_.scale));
+		const auto object_points = GenerateCirclePoints(
+			ToVector2i(object_pose * config_.scale), config_.scale * w / 2, 20);
+		for (unsigned int i = 0; i < object_points.size(); i++) {
+			SDL_RenderDrawPoint(renderer_, object_points[i].x,
+								object_points[i].y);
 		}
 
-		if (object->GetObjectType() == ObjectType::STATIC_OBJECT) {
+		const auto object_angle =
+			std::atan2(object_pose.y - camera_ptr->GetPosition().pose.y,
+					   object_pose.x - camera_ptr->GetPosition().pose.x);
 
-			auto static_object =
-				std::dynamic_pointer_cast<StaticObject>(object);
-			SetDrawColor({0xFF, 0xA5, 0, 255});
-			const auto object_pose = static_object->GetPose();
-			const auto w = static_object->GetWidth();
+		const auto to_left = SubRadian(object_angle, ToRadians(90.0));
+		const auto to_right = SumRadian(object_angle, ToRadians(90.0));
+		const auto left_vertex =
+			object_pose +
+			vector2d{w / 2 * std::cos(to_left), w / 2 * std::sin(to_left)};
+		const auto right_vertex =
+			object_pose +
+			vector2d{w / 2 * std::cos(to_right), w / 2 * std::sin(to_right)};
+		DrawLine(ToVector2i(left_vertex * config_.scale),
+				 ToVector2i(right_vertex * config_.scale));
+		const auto left_point = GenerateCirclePoints(
+			ToVector2i(left_vertex * config_.scale), 1, 20);
+		SetDrawColor({0xFF, 0, 0, 255});
+		for (unsigned int i = 0; i < left_point.size(); i++) {
+			SDL_RenderDrawPoint(renderer_, left_point[i].x, left_point[i].y);
+		}
 
-			const auto object_points =
-				GenerateCirclePoints(ToVector2i(object_pose * config_.scale),
-									 config_.scale * w / 2, 20);
-			for (unsigned int i = 0; i < object_points.size(); i++) {
-				SDL_RenderDrawPoint(renderer_, object_points[i].x,
-									object_points[i].y);
-			}
-
-			const auto object_angle =
-				std::atan2(object_pose.y - camera_ptr->GetPosition().pose.y,
-						   object_pose.x - camera_ptr->GetPosition().pose.x);
-
-			const auto to_left = SubRadian(object_angle, ToRadians(90.0));
-			const auto to_right = SumRadian(object_angle, ToRadians(90.0));
-			const auto left_vertex =
-				object_pose +
-				vector2d{w / 2 * std::cos(to_left), w / 2 * std::sin(to_left)};
-			const auto right_vertex =
-				object_pose + vector2d{w / 2 * std::cos(to_right),
-									   w / 2 * std::sin(to_right)};
-			DrawLine(ToVector2i(left_vertex * config_.scale),
-					 ToVector2i(right_vertex * config_.scale));
-			const auto left_point = GenerateCirclePoints(
-				ToVector2i(left_vertex * config_.scale), 1, 20);
-			SetDrawColor({0xFF, 0, 0, 255});
-			for (unsigned int i = 0; i < left_point.size(); i++) {
-				SDL_RenderDrawPoint(renderer_, left_point[i].x,
-									left_point[i].y);
-			}
-
-			const auto right_point = GenerateCirclePoints(
-				ToVector2i(right_vertex * config_.scale), 1, 20);
-			SetDrawColor({0, 0xFF, 0, 255});
-			for (unsigned int i = 0; i < right_point.size(); i++) {
-				SDL_RenderDrawPoint(renderer_, right_point[i].x,
-									right_point[i].y);
-			}
+		const auto right_point = GenerateCirclePoints(
+			ToVector2i(right_vertex * config_.scale), 1, 20);
+		SetDrawColor({0, 0xFF, 0, 255});
+		for (unsigned int i = 0; i < right_point.size(); i++) {
+			SDL_RenderDrawPoint(renderer_, right_point[i].x, right_point[i].y);
 		}
 	}
 }
