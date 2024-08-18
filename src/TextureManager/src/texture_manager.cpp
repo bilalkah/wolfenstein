@@ -28,6 +28,11 @@ void TextureManager::InitManager(SDL_Renderer* renderer) {
 
 	std::string sprite_path = std::string(RESOURCE_DIR) + "sprites/";
 	LoadTexture(8, sprite_path + "npc/caco_demon/pain/0.png");
+	LoadTexture(9, sprite_path + "animated_sprites/green_light/0.png");
+	LoadTexture(10, sprite_path + "animated_sprites/green_light/1.png");
+	LoadTexture(11, sprite_path + "animated_sprites/green_light/2.png");
+	LoadTexture(12, sprite_path + "animated_sprites/green_light/3.png");
+	LoadTexture(13, sprite_path + "bilal_pasha.png");
 }
 
 void TextureManager::LoadTexture(uint16_t texture_id,

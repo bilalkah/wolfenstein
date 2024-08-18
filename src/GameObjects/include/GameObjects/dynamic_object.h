@@ -20,7 +20,9 @@ namespace wolfenstein {
 class DynamicObject : public IGameObject
 {
   public:
-	explicit DynamicObject(const vector2d& pose_, std::string texture_path_);
+	explicit DynamicObject(const vector2d& pose_,
+						   const std::vector<int> textures_id_,
+						   const double width_, const double height_);
 	~DynamicObject();
 
 	void Update(double delta_time) override;
@@ -29,11 +31,18 @@ class DynamicObject : public IGameObject
 	ObjectType GetObjectType() const override;
 	vector2d GetPose() const override;
 	std::string GetId() const override;
+	int GetTextureId() const override;
+	double GetWidth() const override;
+	double GetHeight() const override;
 
   protected:
 	vector2d pose;
-	std::string texture_path;
 	std::string id;
+	int texture_index;
+	const std::vector<int> textures_id;
+	double width;
+	double height;
+	double counter;
 };
 }  // namespace wolfenstein
 

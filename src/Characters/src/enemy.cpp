@@ -39,4 +39,15 @@ void Enemy::Move(double delta_time) {
 	(void)delta_time;
 }
 
+int Enemy::GetTextureId() const {
+	return texture_id;
+}
+
+double Enemy::GetWidth() const {
+	return width;
+}
+double Enemy::GetHeight() const {
+	return height;
+}
+
 }  // namespace wolfenstein

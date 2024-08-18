@@ -33,9 +33,9 @@ class StaticObject : public IGameObject
 	vector2d GetPose() const override;
 	std::string GetId() const override;
 
-	int GetTextureId() const;
-	double GetWidth() const;
-	double GetHeight() const;
+	int GetTextureId() const override;
+	double GetWidth() const override;
+	double GetHeight() const override;
 
   protected:
 	vector2d pose;

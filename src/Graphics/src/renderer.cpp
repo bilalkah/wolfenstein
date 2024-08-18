@@ -142,9 +142,6 @@ void Renderer::RenderObjects(
 	const std::shared_ptr<Camera2D>& camera_ptr, RenderQueue& render_queue) {
 	for (const auto& object : objects) {
 
-		const auto static_object =
-			std::dynamic_pointer_cast<StaticObject>(object);
-
 		const auto ray_pair = camera_ptr->GetObjectRay(object->GetId());
 		if (!ray_pair.has_value()) {
 			continue;
@@ -155,7 +152,7 @@ void Renderer::RenderObjects(
 
 		auto [line_height, draw_start, draw_end] =
 			CalculateVerticalSlice(first.perpendicular_distance);
-		const auto height = static_object->GetHeight();
+		const auto height = object->GetHeight();
 		line_height = line_height * height;
 		draw_start = draw_end - line_height;
 
@@ -258,10 +255,9 @@ void Renderer::RenderObjects(
 
 	for (const auto& object : objects) {
 
-		auto static_object = std::dynamic_pointer_cast<StaticObject>(object);
 		SetDrawColor({0xFF, 0xA5, 0, 255});
-		const auto object_pose = static_object->GetPose();
-		const auto w = static_object->GetWidth();
+		const auto object_pose = object->GetPose();
+		const auto w = object->GetWidth();
 
 		const auto object_points = GenerateCirclePoints(
 			ToVector2i(object_pose * config_.scale), config_.scale * w / 2, 20);
