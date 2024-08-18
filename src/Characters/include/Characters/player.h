@@ -32,7 +32,9 @@ class Player : public ICharacter, public IGameObject
 	void SetPosition(Position2D position) override;
 	Position2D GetPosition() const override;
 	std::string GetId() const override;
-
+	int GetTextureId() const override { return -1; }
+	double GetWidth() const override { return -1; }
+	double GetHeight() const override { return -1; }
 	void SetCameraPositionUpdator(std::function<void(Position2D)> updator);
 
   private:

@@ -23,4 +23,5 @@ target_link_libraries(
     vector
     character
     uuid_generator
+    animation
 )

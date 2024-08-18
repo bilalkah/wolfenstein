@@ -39,6 +39,7 @@ endif()
 
 # internal libraries
 add_subdirectory(app)
+add_subdirectory(src/Animation)
 add_subdirectory(src/Camera)
 add_subdirectory(src/CollisionManager)
 add_subdirectory(src/Core)

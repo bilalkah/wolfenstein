@@ -17,6 +17,7 @@ void Player::Update(double delta_time) {
 	Move(delta_time);
 	Rotate(delta_time);
 	camera_position_updator_(position_);
+	std::cout << "Player position: " << position_.pose << std::endl;
 }
 
 void Player::SetPose(const vector2d& pose) {
