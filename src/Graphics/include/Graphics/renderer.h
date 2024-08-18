@@ -99,6 +99,8 @@ class Renderer
 	void SetDrawColor(SDL_Color color);
 	void DrawFilledRectangle(vector2i start, vector2i end);
 	void RenderMap(const std::shared_ptr<Map> map_ptr);
+	void RenderPlayer(const std::shared_ptr<Player> player_ptr,
+					  const std::shared_ptr<Camera2D> camera_ptr);
 	void RenderObjects(const std::vector<std::shared_ptr<IGameObject>>& objects,
 					   const std::shared_ptr<Camera2D> camera_ptr);
 	void DrawLine(vector2i start, vector2i end);
