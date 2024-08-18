@@ -48,21 +48,21 @@ void Game::Init() {
 
 	player_->SetCameraPositionUpdator(
 		std::bind(camera_position_updator, std::placeholders::_1));
-	const auto candlebra =
-		std::make_shared<StaticObject>(vector2d(3.5, 1.5), 6, 0.2, 0.5);
-	const auto candlebra1 =
-		std::make_shared<StaticObject>(vector2d(12.5, 9.5), 8, 0.4, 0.8);
-	const auto candlebra2 =
-		std::make_shared<StaticObject>(vector2d(3.5, 7.5), 6, 0.2, 0.5);
+
 	std::vector<int> tex_ids = {9, 10, 11, 12};
 	const auto green_light =
 		std::make_shared<DynamicObject>(vector2d(3.5, 1.9), tex_ids, 0.2, 0.9);
-
+	std::vector<int> tex_ids2 = {86, 87, 88, 89};
 	scene_->SetPlayer(player_);
-	scene_->AddObject(candlebra);
-	scene_->AddObject(candlebra1);
-	scene_->AddObject(candlebra2);
-	scene_->AddObject(green_light);
+	scene_->AddObject(
+		std::make_shared<StaticObject>(vector2d(3.5, 1.5), 8, 0.2, 0.5));
+	scene_->AddObject(std::make_shared<DynamicObject>(vector2d(12.5, 9.5),
+													  tex_ids2, 0.4, 1.2));
+	scene_->AddObject(
+		std::make_shared<StaticObject>(vector2d(3.5, 7.5), 8, 0.2, 0.5));
+	scene_->AddObject(
+		std::make_shared<DynamicObject>(vector2d(3.5, 1.9), tex_ids, 0.2, 0.9));
+
 	scene_->AddObject(std::make_shared<DynamicObject>(vector2d(12.1, 8.15),
 													  tex_ids, 0.2, 0.9));
 	scene_->AddObject(std::make_shared<DynamicObject>(vector2d(10.9, 8.15),
