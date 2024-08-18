@@ -15,6 +15,7 @@
 #include <memory>
 #include <vector>
 
+#include <Characters/player.h>
 #include <GameObjects/game_object.h>
 #include <Map/map.h>
 
@@ -27,15 +28,18 @@ class Scene
 
 	void AddObject(std::shared_ptr<IGameObject> object);
 	void SetMap(std::shared_ptr<Map> map);
+	void SetPlayer(std::shared_ptr<Player> player);
 
 	void Update(double delta_time);
 
 	std::vector<std::shared_ptr<IGameObject>> GetObjects() const;
 	std::shared_ptr<Map> GetMap() const;
+	std::shared_ptr<Player> GetPlayer() const;
 
   private:
 	std::vector<std::shared_ptr<IGameObject>> objects;
 	std::shared_ptr<Map> map;
+	std::shared_ptr<Player> player;
 };
 
 }  // namespace wolfenstein

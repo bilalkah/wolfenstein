@@ -46,13 +46,13 @@ void Game::Init() {
 	player_->SetCameraPositionUpdator(
 		std::bind(camera_position_updator, std::placeholders::_1));
 	const auto candlebra =
-		std::make_shared<StaticObject>(vector2d(3.5, 1.5), 6, 0.2, 0.2);
+		std::make_shared<StaticObject>(vector2d(3.5, 1.5), 6, 0.2, 0.5);
 	const auto candlebra1 =
 		std::make_shared<StaticObject>(vector2d(12.5, 9.5), 8, 0.4, 0.8);
 	const auto candlebra2 =
-		std::make_shared<StaticObject>(vector2d(3.5, 7.5), 6, 0.2, 0.2);
+		std::make_shared<StaticObject>(vector2d(3.5, 7.5), 6, 0.2, 0.5);
 
-	scene_->AddObject(player_);
+	scene_->SetPlayer(player_);
 	scene_->AddObject(candlebra);
 	scene_->AddObject(candlebra1);
 	scene_->AddObject(candlebra2);
