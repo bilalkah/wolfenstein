@@ -50,23 +50,27 @@ void Game::Init() {
 		std::bind(camera_position_updator, std::placeholders::_1));
 
 	std::vector<int> tex_ids = {9, 10, 11, 12};
-	const auto green_light =
-		std::make_shared<DynamicObject>(vector2d(3.5, 1.9), tex_ids, 0.2, 0.9);
+	const auto animation_green_light =
+		std::make_shared<Animation>(tex_ids, 0.2);
+	std::vector<int> tex_ids_2 = {13, 14, 15, 16};
+	const auto animation_red_light =
+		std::make_shared<Animation>(tex_ids_2, 0.2);
+
 	std::vector<int> tex_ids2 = {86, 87, 88, 89};
 	scene_->SetPlayer(player_);
 	scene_->AddObject(
 		std::make_shared<StaticObject>(vector2d(3.5, 1.5), 8, 0.2, 0.5));
-	scene_->AddObject(std::make_shared<DynamicObject>(vector2d(12.5, 9.5),
-													  tex_ids2, 0.4, 1.2));
 	scene_->AddObject(
 		std::make_shared<StaticObject>(vector2d(3.5, 7.5), 8, 0.2, 0.5));
-	scene_->AddObject(
-		std::make_shared<DynamicObject>(vector2d(3.5, 1.9), tex_ids, 0.2, 0.9));
 
-	scene_->AddObject(std::make_shared<DynamicObject>(vector2d(12.1, 8.15),
-													  tex_ids, 0.2, 0.9));
-	scene_->AddObject(std::make_shared<DynamicObject>(vector2d(10.9, 8.15),
-													  tex_ids, 0.2, 0.9));
+	scene_->AddObject(std::make_shared<DynamicObject>(
+		vector2d(3.5, 1.9), animation_green_light, 0.2, 0.9));
+	scene_->AddObject(std::make_shared<DynamicObject>(
+		vector2d(12.1, 8.15), animation_green_light, 0.2, 0.9));
+	scene_->AddObject(std::make_shared<DynamicObject>(
+		vector2d(10.9, 8.15), animation_red_light, 0.2, 0.9));
+	scene_->AddObject(std::make_shared<DynamicObject>(
+		vector2d(12.5, 9.5), animation_red_light, 0.2, 0.5));
 	is_running_ = true;
 	time_manager_->InitClock();
 }

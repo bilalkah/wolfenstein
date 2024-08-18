@@ -12,8 +12,10 @@
 #ifndef GAME_OBJECTS_INCLUDE_DYNAMIC_OBJECT_H
 #define GAME_OBJECTS_INCLUDE_DYNAMIC_OBJECT_H
 
+#include <Animation/animation.h>
 #include <GameObjects/game_object.h>
 #include <Utility/uuid_generator.h>
+#include <memory>
 
 namespace wolfenstein {
 
@@ -21,7 +23,7 @@ class DynamicObject : public IGameObject
 {
   public:
 	explicit DynamicObject(const vector2d& pose_,
-						   const std::vector<int> textures_id_,
+						   const std::shared_ptr<Animation>& animation_,
 						   const double width_, const double height_);
 	~DynamicObject();
 
@@ -37,12 +39,10 @@ class DynamicObject : public IGameObject
 
   protected:
 	vector2d pose;
-	std::string id;
-	int texture_index;
-	const std::vector<int> textures_id;
+	std::shared_ptr<Animation> animation;
 	double width;
 	double height;
-	double counter;
+	std::string id;
 };
 }  // namespace wolfenstein
 
