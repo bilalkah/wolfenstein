@@ -31,12 +31,18 @@ class Enemy : public ICharacter, public IGameObject
 	vector2d GetPose() const override;
 	Position2D GetPosition() const override;
 	std::string GetId() const override;
+	int GetTextureId() const override;
+	double GetWidth() const override;
+	double GetHeight() const override;
 
   private:
 	void Move(double delta_time);
 
 	Position2D position_;
 	std::string id_;
+	int texture_id;
+	double width;
+	double height;
 };
 
 }  // namespace wolfenstein
