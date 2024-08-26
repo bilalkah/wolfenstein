@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)  
+cmake_minimum_required(VERSION 3.5)  
 project(wolfenstein VERSION 1.0 LANGUAGES CXX)
 add_definitions("-Wall" "-g")
 
@@ -37,6 +37,10 @@ if(NOT EXISTS "${PROJECT_SOURCE_DIR}/third-party/uuid_v4/CMakeLists.txt")
     message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
 endif()
 
+if(NOT EXISTS "${PROJECT_SOURCE_DIR}/third-party/path-planning/CMakeLists.txt")
+    message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
+endif()
+
 # internal libraries
 add_subdirectory(app)
 add_subdirectory(src/Animation)
@@ -48,12 +52,14 @@ add_subdirectory(src/GameObjects)
 add_subdirectory(src/Graphics)
 add_subdirectory(src/Map)
 add_subdirectory(src/Math)
+add_subdirectory(src/NavigationManager)
 add_subdirectory(src/TextureManager)
 add_subdirectory(src/TimeManager)
 add_subdirectory(src/Utility)
 
 # external libraries
 add_subdirectory(third-party/uuid_v4)
+add_subdirectory(third-party/path-planning)
 
 find_package(SDL2 REQUIRED)
 

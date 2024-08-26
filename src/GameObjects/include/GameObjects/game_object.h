@@ -12,7 +12,7 @@
 #ifndef GAME_OBJECTS_INCLUDE_GAME_OBJECT_H
 #define GAME_OBJECTS_INCLUDE_GAME_OBJECT_H
 
-#include <Math/vector.h>
+#include "Math/vector.h"
 #include <string>
 
 namespace wolfenstein {

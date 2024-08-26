@@ -19,6 +19,7 @@ target_link_libraries(
     PUBLIC
     game_object
     map
+    navigation_manager
 )
 
 add_library(
@@ -37,4 +38,5 @@ target_link_libraries(
     PUBLIC
     camera
     texture_manager
+    navigation_manager
 )

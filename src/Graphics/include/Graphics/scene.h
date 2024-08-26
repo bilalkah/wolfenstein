@@ -15,9 +15,10 @@
 #include <memory>
 #include <vector>
 
-#include <Characters/player.h>
-#include <GameObjects/game_object.h>
-#include <Map/map.h>
+#include "Characters/enemy.h"
+#include "Characters/player.h"
+#include "GameObjects/game_object.h"
+#include "Map/map.h"
 
 namespace wolfenstein {
 
@@ -33,6 +34,7 @@ class Scene
 	void Update(double delta_time);
 
 	std::vector<std::shared_ptr<IGameObject>> GetObjects() const;
+	std::vector<std::shared_ptr<Enemy>> GetEnemies() const;
 	std::shared_ptr<Map> GetMap() const;
 	std::shared_ptr<Player> GetPlayer() const;
 
@@ -40,6 +42,7 @@ class Scene
 	std::vector<std::shared_ptr<IGameObject>> objects;
 	std::shared_ptr<Map> map;
 	std::shared_ptr<Player> player;
+	std::vector<std::shared_ptr<Enemy>> enemies;
 };
 
 }  // namespace wolfenstein

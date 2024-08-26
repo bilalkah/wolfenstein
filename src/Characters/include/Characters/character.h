@@ -12,7 +12,7 @@
 #ifndef CHARACTERS_INCLUDE_CHARACTER_H
 #define CHARACTERS_INCLUDE_CHARACTER_H
 
-#include <GameObjects/game_object.h>
+#include "GameObjects/game_object.h"
 
 namespace wolfenstein {
 

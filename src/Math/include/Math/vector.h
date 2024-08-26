@@ -34,6 +34,7 @@ struct vector2i
 	vector2i& operator/=(const int scalar);
 	vector2i& operator+=(const vector2i& v);
 	vector2i& operator-=(const vector2i& v);
+	bool operator==(const vector2i& v) const;
 };
 
 struct vector2d
@@ -52,6 +53,7 @@ struct vector2d
 	vector2d& operator/=(const double scalar);
 	vector2d& operator+=(const vector2d& v);
 	vector2d& operator-=(const vector2d& v);
+	bool operator==(const vector2d& v) const;
 
 	vector2d Cross(const vector2d& v) const;
 	double Dot(const vector2d& v) const;

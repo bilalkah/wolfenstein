@@ -12,7 +12,7 @@
 #ifndef UTILITY_INCLUDE_UTILITY_UUID_GENERATOR_H
 #define UTILITY_INCLUDE_UTILITY_UUID_GENERATOR_H
 
-#include <third-party/uuid_v4/uuid_v4.h>
+#include "uuid_v4/uuid_v4.h"
 
 namespace wolfenstein {
 
