@@ -1,11 +1,10 @@
-#include <GameObjects/dynamic_object.h>
-#include <Utility/uuid_generator.h>
-#include <vector>
+#include "GameObjects/dynamic_object.h"
+#include "Utility/uuid_generator.h"
 
 namespace wolfenstein {
 
 DynamicObject::DynamicObject(const vector2d& pose_,
-							 const std::shared_ptr<Animation>& animation_,
+							 const std::shared_ptr<IAnimation> animation_,
 							 const double width_, const double height_)
 	: pose(pose_), animation(animation_), width(width_), height(height_) {
 	id = UuidGenerator::GetInstance().GenerateUuid().bytes();

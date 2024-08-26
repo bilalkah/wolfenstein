@@ -6,7 +6,8 @@ link_directories(
 add_library(
     animation
     STATIC
-    src/animation.cpp
+    src/time_based_single_animation.cpp
+    src/walk_animation.cpp
 )
 
 target_include_directories(animation PUBLIC

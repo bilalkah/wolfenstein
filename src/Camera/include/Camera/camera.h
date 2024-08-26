@@ -12,13 +12,13 @@
 #ifndef CAMERA_INCLUDE_CAMERA_H
 #define CAMERA_INCLUDE_CAMERA_H
 
-#include <Camera/ray.h>
-#include <Camera/raycaster.h>
-#include <Characters/character.h>
-#include <GameObjects/game_object.h>
-#include <GameObjects/static_object.h>
-#include <Graphics/scene.h>
-#include <Map/map.h>
+#include "Camera/ray.h"
+#include "Camera/raycaster.h"
+#include "Characters/character.h"
+#include "GameObjects/game_object.h"
+#include "GameObjects/static_object.h"
+#include "Graphics/scene.h"
+#include "Map/map.h"
 
 #include <memory>
 #include <optional>

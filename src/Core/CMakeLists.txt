@@ -19,14 +19,15 @@ target_link_libraries(
     game
     PUBLIC
     scene
-    time_manager
-    collision_manager
-    texture_manager
     camera
     character
     game_object
     map
     vector
     renderer
+    time_manager
+    collision_manager
+    texture_manager
+    navigation_manager
     SDL2
 )

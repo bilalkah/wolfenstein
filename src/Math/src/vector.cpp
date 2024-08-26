@@ -1,4 +1,4 @@
-#include <Math/vector.h>
+#include "Math/vector.h"
 #include <cmath>
 
 namespace wolfenstein {
@@ -53,6 +53,10 @@ vector2i& vector2i::operator-=(const vector2i& v) {
 	return *this;
 }
 
+bool vector2i::operator==(const vector2i& v) const {
+	return x == v.x && y == v.y;
+}
+
 // vector2d --------------------------------------------------------------------
 
 vector2d::vector2d() : x(0), y(0) {}
@@ -103,6 +107,10 @@ vector2d& vector2d::operator-=(const vector2d& v) {
 	x -= v.x;
 	y -= v.y;
 	return *this;
+}
+
+bool vector2d::operator==(const vector2d& v) const {
+	return x == v.x && y == v.y;
 }
 
 vector2d vector2d::Cross(const vector2d& v) const {

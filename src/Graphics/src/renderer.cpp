@@ -1,12 +1,13 @@
-#include <Camera/ray.h>
-#include <Characters/player.h>
-#include <GameObjects/static_object.h>
-#include <Graphics/renderer.h>
-#include <Map/map.h>
-#include <Math/vector.h>
+#include "Graphics/renderer.h"
+#include "Camera/ray.h"
+#include "Characters/player.h"
+#include "GameObjects/static_object.h"
+#include "Map/map.h"
+#include "Math/vector.h"
+#include "NavigationManager/navigation_manager.h"
+#include "TextureManager/texture_manager.h"
 #include <SDL2/SDL_rect.h>
 #include <SDL2/SDL_render.h>
-#include <TextureManager/texture_manager.h>
 #include <cmath>
 #include <cstdlib>
 #include <memory>
@@ -217,6 +218,7 @@ void Renderer::RenderScene2D(const std::shared_ptr<Scene>& scene_ptr,
 	RenderMap(scene_ptr->GetMap());
 	RenderPlayer(scene_ptr->GetPlayer(), camera_ptr);
 	RenderObjects(scene_ptr->GetObjects(), camera_ptr);
+	RenderPaths(scene_ptr->GetEnemies());
 	SDL_RenderPresent(renderer_);
 }
 
@@ -292,6 +294,18 @@ void Renderer::RenderObjects(
 		SetDrawColor({0, 0xFF, 0, 255});
 		for (unsigned int i = 0; i < right_point.size(); i++) {
 			SDL_RenderDrawPoint(renderer_, right_point[i].x, right_point[i].y);
+		}
+	}
+}
+
+void Renderer::RenderPaths(const std::vector<std::shared_ptr<Enemy>>& enemies) {
+	SetDrawColor({0, 0, 255, 255});
+	for (const auto& enemy : enemies) {
+		const auto path =
+			NavigationManager::GetInstance().GetPath(enemy->GetId());
+		for (unsigned int i = 0; i < path.size() - 1; i++) {
+			DrawLine(ToVector2i(path[i] * config_.scale),
+					 ToVector2i(path[i + 1] * config_.scale));
 		}
 	}
 }

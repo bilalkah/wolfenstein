@@ -12,14 +12,17 @@
 #ifndef CHARACTERS_INCLUDE_ENEMY_H_
 #define CHARACTERS_INCLUDE_ENEMY_H_
 
-#include <Characters/character.h>
+#include "Animation/walk_animation.h"
+#include "Characters/character.h"
+#include "Math/vector.h"
 
 namespace wolfenstein {
 
 class Enemy : public ICharacter, public IGameObject
 {
   public:
-	explicit Enemy();
+	explicit Enemy(CharacterConfig config, double width, double height,
+				   WalkAnimation animation);
 	~Enemy() = default;
 
 	void Update(double delta_time) override;
@@ -35,14 +38,19 @@ class Enemy : public ICharacter, public IGameObject
 	double GetWidth() const override;
 	double GetHeight() const override;
 
+	void SetNextPose(vector2d pose);
+
   private:
 	void Move(double delta_time);
 
 	Position2D position_;
+	double rotation_speed_;
+	double translation_speed_;
 	std::string id_;
-	int texture_id;
 	double width;
 	double height;
+	vector2d next_pose;
+	WalkAnimation animation;
 };
 
 }  // namespace wolfenstein
