@@ -41,7 +41,6 @@ class ICharacter
 
 	virtual void SetPosition(Position2D position) = 0;
 	virtual Position2D GetPosition() const = 0;
-
 };
 }  // namespace wolfenstein
 

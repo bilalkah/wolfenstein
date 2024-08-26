@@ -32,7 +32,7 @@ class IGameObject
 	virtual void Update(double delta_time) = 0;
 
 	virtual void SetPose(const vector2d& pose) = 0;
-	
+
 	virtual ObjectType GetObjectType() const = 0;
 	virtual vector2d GetPose() const = 0;
 	virtual std::string GetId() const = 0;

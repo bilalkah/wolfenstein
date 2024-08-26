@@ -105,7 +105,7 @@ class Renderer
 	void RenderObjects(const std::vector<std::shared_ptr<IGameObject>>& objects,
 					   const std::shared_ptr<Camera2D> camera_ptr);
 	void RenderPaths(const std::vector<std::shared_ptr<Enemy>>& enemies);
-	
+
 	void DrawLine(vector2i start, vector2i end);
 
 	SDL_Renderer* renderer_;
