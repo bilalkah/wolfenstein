@@ -1,12 +1,12 @@
-#include <Animation/animation.h>
+#include "Animation/time_based_single_animation.h"
 
 namespace wolfenstein {
 
-Animation::Animation(const std::vector<int>& tex_ids,
-					 const double animation_speed)
+TBSAnimation::TBSAnimation(const std::vector<int>& tex_ids,
+						   const double animation_speed)
 	: tex_ids(tex_ids), current_frame(0), animation_speed(animation_speed) {}
 
-void Animation::Update(const double& delta_time) {
+void TBSAnimation::Update(const double& delta_time) {
 	counter += delta_time;
 	if (counter > animation_speed) {
 		current_frame = (current_frame + 1) % tex_ids.size();
@@ -14,12 +14,12 @@ void Animation::Update(const double& delta_time) {
 	}
 }
 
-void Animation::Reset() {
+void TBSAnimation::Reset() {
 	current_frame = 0;
 	counter = 0;
 }
 
-int Animation::GetCurrentFrame() const {
+int TBSAnimation::GetCurrentFrame() const {
 	return tex_ids[current_frame];
 }
 

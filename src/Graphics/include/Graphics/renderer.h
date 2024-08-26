@@ -12,9 +12,10 @@
 #ifndef GRAPHICS_INCLUDE_GRAPHICS_RENDERER_H_
 #define GRAPHICS_INCLUDE_GRAPHICS_RENDERER_H_
 
-#include <Camera/camera.h>
-#include <GameObjects/game_object.h>
-#include <Graphics/scene.h>
+#include "Camera/camera.h"
+#include "Characters/enemy.h"
+#include "GameObjects/game_object.h"
+#include "Graphics/scene.h"
 #include <SDL2/SDL.h>
 #include <memory>
 #include <queue>
@@ -103,6 +104,8 @@ class Renderer
 					  const std::shared_ptr<Camera2D> camera_ptr);
 	void RenderObjects(const std::vector<std::shared_ptr<IGameObject>>& objects,
 					   const std::shared_ptr<Camera2D> camera_ptr);
+	void RenderPaths(const std::vector<std::shared_ptr<Enemy>>& enemies);
+
 	void DrawLine(vector2i start, vector2i end);
 
 	SDL_Renderer* renderer_;

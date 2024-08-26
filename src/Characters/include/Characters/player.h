@@ -12,7 +12,7 @@
 #ifndef CHARACTERS_PLAYER_H
 #define CHARACTERS_PLAYER_H
 
-#include <Characters/character.h>
+#include "Characters/character.h"
 #include <functional>
 
 namespace wolfenstein {
@@ -35,7 +35,7 @@ class Player : public ICharacter, public IGameObject
 	int GetTextureId() const override { return -1; }
 	double GetWidth() const override { return -1; }
 	double GetHeight() const override { return -1; }
-	void SetCameraPositionUpdator(std::function<void(Position2D)> updator);
+	void SubscribeToPlayerPosition(std::function<void(Position2D)> subscriber);
 
   private:
 	void Move(double delta_time);
@@ -45,7 +45,7 @@ class Player : public ICharacter, public IGameObject
 	double rotation_speed_;
 	double translation_speed_;
 	std::string id_;
-	std::function<void(Position2D)> camera_position_updator_;
+	std::vector<std::function<void(Position2D)>> player_position_subscribers_;
 };
 
 }  // namespace wolfenstein

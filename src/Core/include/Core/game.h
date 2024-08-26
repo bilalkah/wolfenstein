@@ -12,15 +12,15 @@
 #ifndef CORE_INCLUDE_CORE_GAME_H_
 #define CORE_INCLUDE_CORE_GAME_H_
 
-#include <Camera/camera.h>
-#include <Characters/player.h>
-#include <CollisionManager/collision_manager.h>
-#include <Graphics/renderer.h>
-#include <Graphics/scene.h>
-#include <Map/map.h>
-#include <Math/vector.h>
-#include <TextureManager/texture_manager.h>
-#include <TimeManager/time_manager.h>
+#include "Camera/camera.h"
+#include "Characters/player.h"
+#include "CollisionManager/collision_manager.h"
+#include "Graphics/renderer.h"
+#include "Graphics/scene.h"
+#include "Map/map.h"
+#include "Math/vector.h"
+#include "TextureManager/texture_manager.h"
+#include "TimeManager/time_manager.h"
 
 namespace wolfenstein {
 
@@ -35,6 +35,7 @@ struct GeneralConfig
 	int fps;
 	double view_distance;
 	double fov;
+	bool fullscreen;
 };
 
 class Game

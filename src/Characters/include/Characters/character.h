@@ -12,7 +12,7 @@
 #ifndef CHARACTERS_INCLUDE_CHARACTER_H
 #define CHARACTERS_INCLUDE_CHARACTER_H
 
-#include <GameObjects/game_object.h>
+#include "GameObjects/game_object.h"
 
 namespace wolfenstein {
 
@@ -41,7 +41,6 @@ class ICharacter
 
 	virtual void SetPosition(Position2D position) = 0;
 	virtual Position2D GetPosition() const = 0;
-
 };
 }  // namespace wolfenstein
 

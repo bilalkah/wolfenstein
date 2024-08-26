@@ -1,3 +1,6 @@
 [submodule "third-party/uuid_v4"]
 	path = third-party/uuid_v4
 	url = https://github.com/crashoz/uuid_v4.git
+[submodule "third-party/path-planning"]
+	path = third-party/path-planning
+	url = https://github.com/bilalkah/path-planning.git

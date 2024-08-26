@@ -1,5 +1,5 @@
+#include "TextureManager/texture_manager.h"
 #include <SDL2/SDL_image.h>
-#include <TextureManager/texture_manager.h>
 #include <string>
 
 namespace wolfenstein {

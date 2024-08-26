@@ -1,8 +1,8 @@
-#include <Characters/player.h>
-#include <CollisionManager/collision_manager.h>
-#include <Math/vector.h>
+#include "Characters/player.h"
+#include "CollisionManager/collision_manager.h"
+#include "Math/vector.h"
+#include "Utility/uuid_generator.h"
 #include <SDL2/SDL.h>
-#include <Utility/uuid_generator.h>
 
 namespace wolfenstein {
 
@@ -16,8 +16,9 @@ Player::Player(CharacterConfig& config)
 void Player::Update(double delta_time) {
 	Move(delta_time);
 	Rotate(delta_time);
-	camera_position_updator_(position_);
-	std::cout << "Player position: " << position_.pose << std::endl;
+	for (auto& subscriber : player_position_subscribers_) {
+		subscriber(position_);
+	}
 }
 
 void Player::SetPose(const vector2d& pose) {
@@ -44,8 +45,9 @@ std::string Player::GetId() const {
 	return id_;
 }
 
-void Player::SetCameraPositionUpdator(std::function<void(Position2D)> updator) {
-	camera_position_updator_ = updator;
+void Player::SubscribeToPlayerPosition(
+	std::function<void(Position2D)> updator) {
+	player_position_subscribers_.push_back(updator);
 }
 
 void Player::Move(double delta_time) {

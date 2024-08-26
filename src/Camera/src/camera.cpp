@@ -9,10 +9,10 @@
  * 
  */
 
-#include <Camera/camera.h>
-#include <Camera/ray.h>
-#include <Math/vector.h>
-#include <TextureManager/texture_manager.h>
+#include "Camera/camera.h"
+#include "Camera/ray.h"
+#include "Math/vector.h"
+#include "TextureManager/texture_manager.h"
 
 #include <cmath>
 #include <string>
