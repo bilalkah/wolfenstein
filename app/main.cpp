@@ -9,7 +9,7 @@
  *
  */
 
-#include <Core/game.h>
+#include "Core/game.h"
 
 int main() {
 	using namespace wolfenstein;

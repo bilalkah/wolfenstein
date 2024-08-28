@@ -4,17 +4,9 @@ add_library(
     src/player.cpp
     src/enemy.cpp
 )
-
 target_include_directories(character PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
-
-target_link_directories(character PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
 target_link_libraries(
     character
     PUBLIC
@@ -22,5 +14,6 @@ target_link_libraries(
     vector
     collision_manager
     animation
+    SDL2
 )
 
