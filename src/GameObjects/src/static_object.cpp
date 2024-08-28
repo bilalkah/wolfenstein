@@ -1,5 +1,4 @@
 #include "GameObjects/static_object.h"
-#include "GameObjects/game_object.h"
 #include "Utility/uuid_generator.h"
 
 namespace wolfenstein {

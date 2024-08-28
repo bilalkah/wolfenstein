@@ -12,9 +12,8 @@
 #ifndef GAME_OBJECTS_INCLUDE_DYNAMIC_OBJECT_H
 #define GAME_OBJECTS_INCLUDE_DYNAMIC_OBJECT_H
 
-#include "Animation/time_based_single_animation.h"
+#include "Animation/animation.h"
 #include "GameObjects/game_object.h"
-#include "Utility/uuid_generator.h"
 #include <memory>
 
 namespace wolfenstein {

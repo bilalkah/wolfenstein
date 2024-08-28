@@ -1,20 +1,11 @@
-link_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
-
 add_library(
     game
     STATIC
     src/game.cpp
 )
-
 target_include_directories(game PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
-
 target_link_libraries(
     game
     PUBLIC
@@ -30,4 +21,6 @@ target_link_libraries(
     texture_manager
     navigation_manager
     SDL2
+    SDL2_image
+    SDL2_ttf
 )
