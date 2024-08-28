@@ -12,7 +12,6 @@
 #ifndef GAME_OBJECTS_INCLUDE_STATIC_OBJECT_H
 #define GAME_OBJECTS_INCLUDE_STATIC_OBJECT_H
 
-#include "Characters/character.h"
 #include "GameObjects/game_object.h"
 #include "Math/vector.h"
 

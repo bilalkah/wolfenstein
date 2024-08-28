@@ -1,26 +1,32 @@
 cmake_minimum_required(VERSION 3.5)  
-project(wolfenstein VERSION 1.0 LANGUAGES CXX)
+project(wolfenstein VERSION 1.0 LANGUAGES CXX C)
 add_definitions("-Wall" "-g")
+add_definitions("-Wno-dev")
 
+# Set the C++ standard to C++20
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Set the output directory for the build executables and libraries
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+# Set the executable name
 set(EXECUTABLE wolfenstein)
 set(PROJECT WOLFENSTEIN)
-set(RESOURCE_DIR ${PROJECT_SOURCE_DIR}/assets/)
 
+# Set the resource directory
+set(RESOURCE_DIR ${PROJECT_SOURCE_DIR}/assets/)
 add_definitions(
     -DRESOURCE_DIR="${RESOURCE_DIR}"
 )
-# define debug mode
-set(CMAKE_BUILD_TYPE Debug)
-# set(CMAKE_BUILD_TYPE Release)
 
-
+# Find Git
 find_package(Git QUIET)
+find_package(SDL2 REQUIRED)
 
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
-# Update submodules as needed
+# Update submodules if any
     option(GIT_SUBMODULE "Check submodules during build" ON)
     if(GIT_SUBMODULE)
         message(STATUS "Submodule update")
@@ -41,7 +47,7 @@ if(NOT EXISTS "${PROJECT_SOURCE_DIR}/third-party/path-planning/CMakeLists.txt")
     message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
 endif()
 
-# internal libraries
+# internal libraries/modules
 add_subdirectory(app)
 add_subdirectory(src/Animation)
 add_subdirectory(src/Camera)
@@ -57,27 +63,6 @@ add_subdirectory(src/TextureManager)
 add_subdirectory(src/TimeManager)
 add_subdirectory(src/Utility)
 
-# external libraries
+# external libraries/modules
 add_subdirectory(third-party/uuid_v4)
 add_subdirectory(third-party/path-planning)
-
-find_package(SDL2 REQUIRED)
-
-include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${PROJECT_SOURCE_DIR}
-    ${PROJECT_SOURCE_DIR}/third-party
-    ${SDL2_INCLUDE_DIRS}
-)
-
-link_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${PROJECT_SOURCE_DIR}
-    ${PROJECT_SOURCE_DIR}/third-party
-)
-set(LIBRARIES
-    ${SDL2_LIBRARIES}
-    SDL2_ttf
-    SDL2_image
-)
-
