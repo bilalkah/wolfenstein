@@ -13,7 +13,10 @@
 #define CHARACTERS_PLAYER_H
 
 #include "Characters/character.h"
+#include "GameObjects/game_object.h"
+#include "Strike/shotgun.h"
 #include <functional>
+#include <memory>
 
 namespace wolfenstein {
 
@@ -32,7 +35,7 @@ class Player : public ICharacter, public IGameObject
 	void SetPosition(Position2D position) override;
 	Position2D GetPosition() const override;
 	std::string GetId() const override;
-	int GetTextureId() const override { return -1; }
+	int GetTextureId() const override { return shotgun_->GetTextureId(); }
 	double GetWidth() const override { return -1; }
 	double GetHeight() const override { return -1; }
 	void SubscribeToPlayerPosition(std::function<void(Position2D)> subscriber);
@@ -40,11 +43,13 @@ class Player : public ICharacter, public IGameObject
   private:
 	void Move(double delta_time);
 	void Rotate(double delta_time);
+	void Shoot();
 
 	Position2D position_;
 	double rotation_speed_;
 	double translation_speed_;
 	std::string id_;
+	std::shared_ptr<Shotgun> shotgun_;
 	std::vector<std::function<void(Position2D)>> player_position_subscribers_;
 };
 

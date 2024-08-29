@@ -7,6 +7,7 @@
 #include "Graphics/renderer.h"
 #include "Math/vector.h"
 #include "NavigationManager/navigation_manager.h"
+#include "TimeManager/time_manager.h"
 #include <SDL2/SDL_video.h>
 #include <functional>
 #include <vector>
@@ -31,8 +32,6 @@ void Game::Init() {
 
 	scene_ = std::make_shared<Scene>();
 	scene_->SetMap(map_);
-
-	time_manager_ = std::make_shared<TimeManager>();
 
 	RenderConfig render_config = {config_.screen_width, config_.screen_height,
 								  config_.padding,		config_.scale,
@@ -89,7 +88,7 @@ void Game::Init() {
 		vector2d(12.1, 10.9),
 		std::make_shared<TBSAnimation>(animation_green_light), 0.2, 0.9));
 	is_running_ = true;
-	time_manager_->InitClock();
+	TimeManager::GetInstance().InitClock();
 }
 
 void Game::CheckEvent() {
@@ -130,8 +129,8 @@ void Game::CheckEvent() {
 void Game::Run() {
 	while (is_running_) {
 		CheckEvent();
-		time_manager_->CalculateDeltaTime();
-		scene_->Update(time_manager_->GetDeltaTime());
+		TimeManager::GetInstance().CalculateDeltaTime();
+		scene_->Update(TimeManager::GetInstance().GetDeltaTime());
 		camera_->Update(scene_);
 		switch (render_type_) {
 			case RenderType::TEXTURE:

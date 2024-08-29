@@ -54,7 +54,6 @@ class Game
 
 	std::shared_ptr<Renderer> renderer_;
 	std::shared_ptr<Scene> scene_;
-	std::shared_ptr<TimeManager> time_manager_;
 	std::shared_ptr<Camera2D> camera_;
 	std::shared_ptr<Player> player_;
 	std::shared_ptr<Map> map_;

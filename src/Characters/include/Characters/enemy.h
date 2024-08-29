@@ -14,6 +14,7 @@
 
 #include "Animation/walk_animation.h"
 #include "Characters/character.h"
+#include "GameObjects/game_object.h"
 #include "Math/vector.h"
 
 namespace wolfenstein {

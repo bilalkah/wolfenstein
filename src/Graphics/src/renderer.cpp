@@ -72,6 +72,7 @@ void Renderer::RenderScene(const std::shared_ptr<Scene>& scene_ptr,
 	RenderBackground();
 	RenderWalls(scene_ptr->GetMap(), camera_ptr, render_queue);
 	RenderObjects(scene_ptr->GetObjects(), camera_ptr, render_queue);
+	RenderWeapon(scene_ptr->GetPlayer(), render_queue);
 	RenderTextures(render_queue);
 	SDL_RenderPresent(renderer_);
 }
@@ -194,6 +195,22 @@ std::tuple<int, int, int> Renderer::CalculateVerticalSlice(
 	int draw_start = -line_height / 2 + config_.height / 2;
 	int draw_end = line_height / 2 + config_.height / 2;
 	return std::make_tuple(line_height, draw_start, draw_end);
+}
+
+void Renderer::RenderWeapon(const std::shared_ptr<Player>& player_ptr,
+							RenderQueue& render_queue) {
+
+	auto texture_id = player_ptr->GetTextureId();
+	const auto texture_height =
+		TextureManager::GetInstance().GetTexture(texture_id).height;
+	const auto texture_width =
+		TextureManager::GetInstance().GetTexture(texture_id).width;
+	const auto width_slice = config_.width / 6;
+	const auto height_slice = config_.height / 3;
+	SDL_Rect src_rect{0, 0, texture_width, texture_height};
+	SDL_Rect dest_rect{3 * width_slice - width_slice / 2, 2 * height_slice,
+					   width_slice, height_slice};
+	render_queue.push({texture_id, src_rect, dest_rect, 0.0});
 }
 
 void Renderer::RenderTextures(RenderQueue& render_queue) {

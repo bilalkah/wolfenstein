@@ -93,6 +93,8 @@ class Renderer
 	int CalculateHorizontalSlice(const double& angle,
 								 const std::shared_ptr<Camera2D> camera_ptr);
 	std::tuple<int, int, int> CalculateVerticalSlice(const double& distance);
+	void RenderWeapon(const std::shared_ptr<Player>& player_ptr,
+					  RenderQueue& render_queue);
 	void RenderTextures(RenderQueue& render_queue);
 
 	// Render 2D
