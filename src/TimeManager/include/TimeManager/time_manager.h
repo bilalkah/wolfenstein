@@ -13,13 +13,18 @@
 #define TIME_MANAGER_INCLUDE_TIME_MANAGER_H_
 
 #include <chrono>
+#include <string>
 
 namespace wolfenstein {
 
 class TimeManager
 {
   public:
-	TimeManager() = default;
+	static TimeManager& GetInstance();
+
+	TimeManager(const TimeManager&) = delete;
+	TimeManager& operator=(const TimeManager&) = delete;
+	~TimeManager() = default;
 
 	void InitClock();
 	void CalculateDeltaTime();
@@ -29,10 +34,17 @@ class TimeManager
 	double GetFramePerSecond();
 	double GetCurrentTime();
 
+	std::string GetTime();
+
   private:
+	TimeManager() = default;
+	static TimeManager* instance_;
+
 	std::chrono::duration<double> delta_time;
 	std::chrono::time_point<std::chrono::high_resolution_clock>
 		previos_time_point;
+	std::chrono::time_point<std::chrono::high_resolution_clock>
+		initial_time_point;
 };
 
 }  // namespace wolfenstein

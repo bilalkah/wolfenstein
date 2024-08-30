@@ -11,9 +11,11 @@ Player::Player(CharacterConfig& config)
 	  rotation_speed_(config.rotation_speed),
 	  translation_speed_(config.translation_speed) {
 	id_ = UuidGenerator::GetInstance().GenerateUuid().bytes();
+	shotgun_ = std::make_shared<Shotgun>();
 }
 
 void Player::Update(double delta_time) {
+	Shoot();
 	Move(delta_time);
 	Rotate(delta_time);
 	for (auto& subscriber : player_position_subscribers_) {
@@ -96,6 +98,12 @@ void Player::Rotate(double delta_time) {
 			position_.theta += 2 * M_PI;
 		}
 		SDL_WarpMouseInWindow(nullptr, 400, 300);
+	}
+}
+
+void Player::Shoot() {
+	if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_LMASK) {
+		shotgun_->Attack();
 	}
 }
 

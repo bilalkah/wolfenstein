@@ -1,4 +1,21 @@
 add_library(
+    scene
+    STATIC
+    src/scene.cpp
+)
+target_include_directories(scene PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(
+    scene
+    PUBLIC
+    game_object
+    map
+    navigation_manager
+    collision_manager
+)
+
+add_library(
     game
     STATIC
     src/game.cpp

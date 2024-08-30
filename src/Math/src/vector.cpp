@@ -250,4 +250,9 @@ double CalculateAngleBetweenThreeVectorsSigned(const vector2d& v1,
 	return angle;
 }
 
+vector2d CalculateCartesianFromPolar(const double angle,
+									 const double distance) {
+	const auto angle_rad = ToRadians(angle);
+	return {distance * std::cos(angle_rad), distance * std::sin(angle_rad)};
+}
 }  // namespace wolfenstein

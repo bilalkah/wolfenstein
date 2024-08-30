@@ -2,9 +2,12 @@
 
 namespace wolfenstein {
 
-TBSAnimation::TBSAnimation(const std::vector<int>& tex_ids,
+TBSAnimation::TBSAnimation(const std::vector<uint16_t>& tex_ids,
 						   const double animation_speed)
-	: tex_ids(tex_ids), current_frame(0), animation_speed(animation_speed) {}
+	: tex_ids(tex_ids),
+	  current_frame(0),
+	  animation_speed(animation_speed),
+	  counter(0) {}
 
 void TBSAnimation::Update(const double& delta_time) {
 	counter += delta_time;

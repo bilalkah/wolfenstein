@@ -13,6 +13,7 @@
 #define ANIMATION_INCLUDE_ANIMATION_TIME_BASED_SINGLE_ANIMATION_H_
 
 #include "Animation/animation.h"
+#include <cstdint>
 #include <vector>
 
 namespace wolfenstein {
@@ -20,7 +21,7 @@ namespace wolfenstein {
 class TBSAnimation : public IAnimation
 {
   public:
-	TBSAnimation(const std::vector<int>& tex_ids, const double animation_speed);
+	TBSAnimation(const std::vector<uint16_t>& tex_ids, const double animation_speed);
 	~TBSAnimation() = default;
 
 	void Update(const double& delta_time) override;
@@ -29,7 +30,7 @@ class TBSAnimation : public IAnimation
 	int GetCurrentFrame() const override;
 
   private:
-	std::vector<int> tex_ids;
+	std::vector<uint16_t> tex_ids;
 	int current_frame;
 	double animation_speed;
 	double counter;

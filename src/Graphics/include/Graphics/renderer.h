@@ -15,7 +15,7 @@
 #include "Camera/camera.h"
 #include "Characters/enemy.h"
 #include "GameObjects/game_object.h"
-#include "Graphics/scene.h"
+#include "Core/scene.h"
 #include <SDL2/SDL.h>
 #include <memory>
 #include <queue>
@@ -93,6 +93,8 @@ class Renderer
 	int CalculateHorizontalSlice(const double& angle,
 								 const std::shared_ptr<Camera2D> camera_ptr);
 	std::tuple<int, int, int> CalculateVerticalSlice(const double& distance);
+	void RenderWeapon(const std::shared_ptr<Player>& player_ptr,
+					  RenderQueue& render_queue);
 	void RenderTextures(RenderQueue& render_queue);
 
 	// Render 2D

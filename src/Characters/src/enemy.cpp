@@ -1,4 +1,6 @@
 #include "Characters/enemy.h"
+#include "CollisionManager/collision_manager.h"
+#include "Math/vector.h"
 #include "Utility/uuid_generator.h"
 
 namespace wolfenstein {
@@ -51,9 +53,15 @@ std::string Enemy::GetId() const {
 void Enemy::Move(double delta_time) {
 	vector2d direction = next_pose - position_.pose;
 	direction.Norm();
-	vector2d new_pose =
-		position_.pose + direction * translation_speed_ * delta_time;
-	position_.pose = new_pose;
+	vector2d delta_movement = direction * translation_speed_ * delta_time;
+	if (!CollisionManager::GetInstance().CheckWallCollision(
+			position_.pose, {delta_movement.x, 0})) {
+		position_.pose.x += delta_movement.x;
+	}
+	if (!CollisionManager::GetInstance().CheckWallCollision(
+			position_.pose, {0, delta_movement.y})) {
+		position_.pose.y += delta_movement.y;
+	}
 }
 
 void Enemy::SetNextPose(vector2d pose) {

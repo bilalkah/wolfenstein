@@ -72,6 +72,7 @@ void Renderer::RenderScene(const std::shared_ptr<Scene>& scene_ptr,
 	RenderBackground();
 	RenderWalls(scene_ptr->GetMap(), camera_ptr, render_queue);
 	RenderObjects(scene_ptr->GetObjects(), camera_ptr, render_queue);
+	RenderWeapon(scene_ptr->GetPlayer(), render_queue);
 	RenderTextures(render_queue);
 	SDL_RenderPresent(renderer_);
 }
@@ -196,6 +197,30 @@ std::tuple<int, int, int> Renderer::CalculateVerticalSlice(
 	return std::make_tuple(line_height, draw_start, draw_end);
 }
 
+void Renderer::RenderWeapon(const std::shared_ptr<Player>& player_ptr,
+							RenderQueue& render_queue) {
+	// Render crosshair
+	auto crosshair_texture = TextureManager::GetInstance().GetTexture(6);
+	const auto crosshair_height = crosshair_texture.height;
+	const auto crosshair_width = crosshair_texture.width;
+	SDL_Rect crosshair_src_rect{0, 0, crosshair_width, crosshair_height};
+	SDL_Rect crosshair_dest_rect{config_.width / 2 - 20,
+								 config_.height / 2 - 20, 40, 40};
+	render_queue.push({6, crosshair_src_rect, crosshair_dest_rect, 0.0});
+
+	auto texture_id = player_ptr->GetTextureId();
+	const auto texture_height =
+		TextureManager::GetInstance().GetTexture(texture_id).height;
+	const auto texture_width =
+		TextureManager::GetInstance().GetTexture(texture_id).width;
+	const auto width_slice = config_.width / 6;
+	const auto height_slice = config_.height / 3;
+	SDL_Rect src_rect{0, 0, texture_width, texture_height};
+	SDL_Rect dest_rect{3 * width_slice - width_slice / 2, 2 * height_slice,
+					   width_slice, height_slice};
+	render_queue.push({texture_id, src_rect, dest_rect, 0.0});
+}
+
 void Renderer::RenderTextures(RenderQueue& render_queue) {
 	while (!render_queue.empty()) {
 		auto renderable_texture = render_queue.top();
@@ -241,7 +266,8 @@ void Renderer::RenderPlayer(const std::shared_ptr<Player> player_ptr,
 
 	SetDrawColor({255, 0, 0, 255});
 	const auto circle_points =
-		GenerateCirclePoints(ToVector2i(position.pose * config_.scale), 10, 20);
+		GenerateCirclePoints(ToVector2i(position.pose * config_.scale),
+							 config_.scale * player_ptr->GetWidth() / 2, 20);
 	for (unsigned int i = 0; i < circle_points.size(); i++) {
 		SDL_RenderDrawPoint(renderer_, circle_points[i].x, circle_points[i].y);
 	}
@@ -303,6 +329,9 @@ void Renderer::RenderPaths(const std::vector<std::shared_ptr<Enemy>>& enemies) {
 	for (const auto& enemy : enemies) {
 		const auto path =
 			NavigationManager::GetInstance().GetPath(enemy->GetId());
+		if (path.size() < 2) {
+			continue;
+		}
 		for (unsigned int i = 0; i < path.size() - 1; i++) {
 			DrawLine(ToVector2i(path[i] * config_.scale),
 					 ToVector2i(path[i + 1] * config_.scale));

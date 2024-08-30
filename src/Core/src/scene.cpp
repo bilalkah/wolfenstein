@@ -1,4 +1,5 @@
-#include "Graphics/scene.h"
+#include "Core/scene.h"
+#include "CollisionManager/collision_manager.h"
 #include "NavigationManager/navigation_manager.h"
 
 namespace wolfenstein {
