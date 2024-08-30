@@ -3,8 +3,18 @@
 
 namespace wolfenstein {
 
+TimeManager* TimeManager::instance_ = nullptr;
+
+TimeManager& TimeManager::GetInstance() {
+	if (instance_ == nullptr) {
+		instance_ = new TimeManager();
+	}
+	return *instance_;
+}
+
 void TimeManager::InitClock() {
 	previos_time_point = std::chrono::high_resolution_clock::now();
+	initial_time_point = previos_time_point;
 }
 
 void TimeManager::CalculateDeltaTime() {
@@ -43,6 +53,17 @@ double TimeManager::GetCurrentTime() {
 	std::chrono::duration<double> current_time =
 		current_time_point.time_since_epoch();
 	return current_time.count();
+}
+
+std::string TimeManager::GetTime() {
+	auto time_passed =
+		std::chrono::high_resolution_clock::now() - initial_time_point;
+	auto time_passed_seconds =
+		std::chrono::duration_cast<std::chrono::seconds>(time_passed);
+	auto time_passed_milliseconds =
+		std::chrono::duration_cast<std::chrono::milliseconds>(time_passed);
+	return std::to_string(time_passed_seconds.count()) + "." +
+		   std::to_string(time_passed_milliseconds.count() % 1000) + "s";
 }
 
 }  // namespace wolfenstein

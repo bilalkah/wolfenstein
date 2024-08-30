@@ -7,6 +7,8 @@
 #include "Graphics/renderer.h"
 #include "Math/vector.h"
 #include "NavigationManager/navigation_manager.h"
+#include "TextureManager/texture_manager.h"
+#include "TimeManager/time_manager.h"
 #include <SDL2/SDL_video.h>
 #include <functional>
 #include <vector>
@@ -32,8 +34,6 @@ void Game::Init() {
 	scene_ = std::make_shared<Scene>();
 	scene_->SetMap(map_);
 
-	time_manager_ = std::make_shared<TimeManager>();
-
 	RenderConfig render_config = {config_.screen_width, config_.screen_height,
 								  config_.padding,		config_.scale,
 								  config_.fps,			config_.view_distance,
@@ -51,45 +51,14 @@ void Game::Init() {
 		[this](Position2D position) { camera_->SetPosition(position); },
 		std::placeholders::_1));
 
-	std::vector<int> caco_walk_tex_ids = {38, 39, 40};
-	const WalkAnimation walk_animation(caco_walk_tex_ids, 0.2);
-	auto enemy = std::make_shared<Enemy>(
-		CharacterConfig(Position2D({8, 7}, 1.50), 0.8, 0.4), 0.4, 0.8,
-		walk_animation);
-
-	std::vector<int> tex_ids = {9, 10, 11, 12};
-	const auto animation_green_light = TBSAnimation(tex_ids, 0.1);
-	std::vector<int> tex_ids_2 = {13, 14, 15, 16};
-	const auto animation_red_light = TBSAnimation(tex_ids_2, 0.1);
-
-	std::vector<int> tex_ids2 = {86, 87, 88, 89};
 	scene_->SetPlayer(player_);
-	scene_->AddObject(enemy);
 
-	scene_->AddObject(
-		std::make_shared<StaticObject>(vector2d(14.5, 9), 8, 0.2, 0.5));
+	// PrepareEnemies();
+	PrepareDynamicObjects();
+	PrepareStaticObjects();
 
-	scene_->AddObject(std::make_shared<DynamicObject>(
-		vector2d(12.1, 8.15),
-		std::make_shared<TBSAnimation>(animation_red_light), 0.2, 0.9));
-	scene_->AddObject(std::make_shared<DynamicObject>(
-		vector2d(10.9, 8.15),
-		std::make_shared<TBSAnimation>(animation_red_light), 0.2, 0.9));
-
-	scene_->AddObject(std::make_shared<DynamicObject>(
-		vector2d(9.9, 10.9),
-		std::make_shared<TBSAnimation>(animation_green_light), 0.2, 0.9));
-	scene_->AddObject(std::make_shared<DynamicObject>(
-		vector2d(9.9, 13.10),
-		std::make_shared<TBSAnimation>(animation_green_light), 0.2, 0.9));
-	scene_->AddObject(std::make_shared<DynamicObject>(
-		vector2d(12.1, 13.1),
-		std::make_shared<TBSAnimation>(animation_green_light), 0.2, 0.9));
-	scene_->AddObject(std::make_shared<DynamicObject>(
-		vector2d(12.1, 10.9),
-		std::make_shared<TBSAnimation>(animation_green_light), 0.2, 0.9));
 	is_running_ = true;
-	time_manager_->InitClock();
+	TimeManager::GetInstance().InitClock();
 }
 
 void Game::CheckEvent() {
@@ -130,8 +99,8 @@ void Game::CheckEvent() {
 void Game::Run() {
 	while (is_running_) {
 		CheckEvent();
-		time_manager_->CalculateDeltaTime();
-		scene_->Update(time_manager_->GetDeltaTime());
+		TimeManager::GetInstance().CalculateDeltaTime();
+		scene_->Update(TimeManager::GetInstance().GetDeltaTime());
 		camera_->Update(scene_);
 		switch (render_type_) {
 			case RenderType::TEXTURE:
@@ -142,6 +111,67 @@ void Game::Run() {
 				break;
 		}
 	}
+}
+
+void Game::PrepareEnemies() {
+	auto caco_demon = std::make_shared<Enemy>(
+		CharacterConfig(Position2D({8, 7}, 1.50), 0.8, 0.4), 0.4, 0.8,
+		WalkAnimation(TextureManager::GetInstance().GetTextureCollection(
+						  "caco_demon_walk"),
+					  0.2));
+	auto soldier = std::make_shared<Enemy>(
+		CharacterConfig(Position2D({9, 7}, 1.50), 0.8, 0.4), 0.3, 0.6,
+		WalkAnimation(
+			TextureManager::GetInstance().GetTextureCollection("soldier_walk"),
+			0.2));
+	auto cyber_demon = std::make_shared<Enemy>(
+		CharacterConfig(Position2D({23.0, 4}, 1.50), 0.8, 0.4), 0.5, 1.0,
+		WalkAnimation(TextureManager::GetInstance().GetTextureCollection(
+						  "cyber_demon_walk"),
+					  0.2));
+	scene_->AddObject(caco_demon);
+	scene_->AddObject(soldier);
+	scene_->AddObject(cyber_demon);
+}
+
+void Game::PrepareDynamicObjects() {
+	const auto animation_green_light = TBSAnimation(
+		TextureManager::GetInstance().GetTextureCollection("green_light"), 0.1);
+	const auto animation_red_light = TBSAnimation(
+		TextureManager::GetInstance().GetTextureCollection("red_light"), 0.1);
+	const auto animation_flame = TBSAnimation(
+		TextureManager::GetInstance().GetTextureCollection("flame"), 0.1);
+
+	scene_->AddObject(std::make_shared<DynamicObject>(
+		vector2d(12.1, 8.15),
+		std::make_shared<TBSAnimation>(animation_red_light), 0.2, 0.9));
+	scene_->AddObject(std::make_shared<DynamicObject>(
+		vector2d(10.9, 8.15),
+		std::make_shared<TBSAnimation>(animation_red_light), 0.2, 0.9));
+
+	scene_->AddObject(std::make_shared<DynamicObject>(
+		vector2d(9.9, 10.9),
+		std::make_shared<TBSAnimation>(animation_green_light), 0.2, 0.9));
+	scene_->AddObject(std::make_shared<DynamicObject>(
+		vector2d(9.9, 13.10),
+		std::make_shared<TBSAnimation>(animation_green_light), 0.2, 0.9));
+	scene_->AddObject(std::make_shared<DynamicObject>(
+		vector2d(12.1, 13.1),
+		std::make_shared<TBSAnimation>(animation_green_light), 0.2, 0.9));
+	scene_->AddObject(std::make_shared<DynamicObject>(
+		vector2d(12.1, 10.9),
+		std::make_shared<TBSAnimation>(animation_green_light), 0.2, 0.9));
+	scene_->AddObject(std::make_shared<DynamicObject>(
+		vector2d(14.0, 1.5),
+		std::make_shared<TBSAnimation>(animation_flame), 0.2, 0.9));
+}
+
+void Game::PrepareStaticObjects()
+{
+	scene_->AddObject(
+		std::make_shared<StaticObject>(vector2d(14.5, 9), 8, 0.2, 0.5));
+	scene_->AddObject(
+		std::make_shared<StaticObject>(vector2d(14.5, 10), 96, 0.2, 0.8));
 }
 
 }  // namespace wolfenstein

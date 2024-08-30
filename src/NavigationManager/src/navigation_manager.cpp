@@ -29,9 +29,10 @@ vector2d NavigationManager::FindPath(Position2D start, Position2D end,
 		paths_[id] = {start.pose};
 		return start.pose;
 	}
+	const auto res = map_->GetResolution();
 
-	planning::Node start_node = FromVector2d(start.pose / 0.1);
-	planning::Node end_node = FromVector2d(end.pose / 0.1);
+	planning::Node start_node = FromVector2d(start.pose / res);
+	planning::Node end_node = FromVector2d(end.pose / res);
 	planning::Path path =
 		path_planner_->FindPath(start_node, end_node, map_->GetPathFinderMap());
 	if (path.empty()) {
@@ -41,7 +42,7 @@ vector2d NavigationManager::FindPath(Position2D start, Position2D end,
 	std::vector<vector2d> path_vector;
 	path.erase(path.begin());
 	for (auto node : path) {
-		path_vector.push_back(FromNode(node) * 0.1);
+		path_vector.push_back(FromNode(node) * res);
 	}
 	paths_[id] = path_vector;
 
@@ -49,7 +50,6 @@ vector2d NavigationManager::FindPath(Position2D start, Position2D end,
 		return start.pose;
 	}
 	auto next = path_vector.front();
-	std::cout << "Next: " << next << std::endl;
 	path_vector.erase(path_vector.begin());
 	return next;
 }
