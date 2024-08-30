@@ -13,6 +13,7 @@
 #define ANIMATION_INCLUDE_ANIMATION_STATE_BASED_ANIMATION_H_
 
 #include "Animation/animation.h"
+#include <cstdint>
 #include <vector>
 
 namespace wolfenstein {
@@ -20,7 +21,7 @@ namespace wolfenstein {
 class WalkAnimation : public IAnimation
 {
   public:
-	WalkAnimation(const std::vector<int>& tex_ids, const double step_size);
+	WalkAnimation(const std::vector<uint16_t>& tex_ids, const double step_size);
 	~WalkAnimation() = default;
 
 	void Update(const double& delta_time) override;
@@ -29,7 +30,7 @@ class WalkAnimation : public IAnimation
 	int GetCurrentFrame() const override;
 
   private:
-	std::vector<int> tex_ids;
+	std::vector<uint16_t> tex_ids;
 	int current_frame;
 	double step_size;
 	double counter;

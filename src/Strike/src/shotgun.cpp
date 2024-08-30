@@ -1,12 +1,14 @@
 #include "Strike/shotgun.h"
+#include "TextureManager/texture_manager.h"
 #include "TimeManager/time_manager.h"
 #include <iostream>
 #include <thread>
 
 namespace wolfenstein {
 
-Shotgun::Shotgun() : attack_speed_(0.6), attack_damage_(10) {
-	std::vector<int> tex_ids{90, 91, 92, 93, 94, 95};
+Shotgun::Shotgun() : attack_speed_(0.7), attack_damage_(10) {
+	auto tex_ids =
+		TextureManager::GetInstance().GetTextureCollection("shotgun");
 	animation_ =
 		std::make_shared<TBSAnimation>(tex_ids, attack_speed_ / tex_ids.size());
 	cooldown_ = false;

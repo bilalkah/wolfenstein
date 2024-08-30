@@ -15,6 +15,7 @@
 #include <SDL2/SDL.h>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace wolfenstein {
 
@@ -39,12 +40,15 @@ class TextureManager
 
 	void LoadTexture(uint16_t texture_id, const std::string& texture_path);
 	Texture GetTexture(uint16_t texture_id);
+	std::vector<uint16_t> GetTextureCollection(
+		const std::string& collection_name);
 
   private:
 	TextureManager() = default;
 
 	static TextureManager* instance_;
 	std::unordered_map<uint16_t, Texture> textures_;
+	std::unordered_map<std::string, std::vector<uint16_t>> texture_collections_;
 	SDL_Renderer* renderer_;
 };
 

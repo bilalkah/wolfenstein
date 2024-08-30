@@ -11,5 +11,6 @@ target_link_libraries(
     PUBLIC
     animation
     time_manager
+    texture_manager
 )
 

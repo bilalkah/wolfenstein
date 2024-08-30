@@ -199,6 +199,14 @@ std::tuple<int, int, int> Renderer::CalculateVerticalSlice(
 
 void Renderer::RenderWeapon(const std::shared_ptr<Player>& player_ptr,
 							RenderQueue& render_queue) {
+	// Render crosshair
+	auto crosshair_texture = TextureManager::GetInstance().GetTexture(6);
+	const auto crosshair_height = crosshair_texture.height;
+	const auto crosshair_width = crosshair_texture.width;
+	SDL_Rect crosshair_src_rect{0, 0, crosshair_width, crosshair_height};
+	SDL_Rect crosshair_dest_rect{config_.width / 2 - 20,
+								 config_.height / 2 - 20, 40, 40};
+	render_queue.push({6, crosshair_src_rect, crosshair_dest_rect, 0.0});
 
 	auto texture_id = player_ptr->GetTextureId();
 	const auto texture_height =
@@ -258,7 +266,8 @@ void Renderer::RenderPlayer(const std::shared_ptr<Player> player_ptr,
 
 	SetDrawColor({255, 0, 0, 255});
 	const auto circle_points =
-		GenerateCirclePoints(ToVector2i(position.pose * config_.scale), 10, 20);
+		GenerateCirclePoints(ToVector2i(position.pose * config_.scale),
+							 config_.scale * player_ptr->GetWidth() / 2, 20);
 	for (unsigned int i = 0; i < circle_points.size(); i++) {
 		SDL_RenderDrawPoint(renderer_, circle_points[i].x, circle_points[i].y);
 	}
@@ -320,6 +329,9 @@ void Renderer::RenderPaths(const std::vector<std::shared_ptr<Enemy>>& enemies) {
 	for (const auto& enemy : enemies) {
 		const auto path =
 			NavigationManager::GetInstance().GetPath(enemy->GetId());
+		if (path.size() < 2) {
+			continue;
+		}
 		for (unsigned int i = 0; i < path.size() - 1; i++) {
 			DrawLine(ToVector2i(path[i] * config_.scale),
 					 ToVector2i(path[i + 1] * config_.scale));

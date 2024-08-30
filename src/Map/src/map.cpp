@@ -32,8 +32,6 @@ std::string simple_map{
 	"3000000000001003"
 	"3000000000001003"
 	"3333333333333333"};
-
-constexpr double res{0.1};
 }  // namespace
 
 Map::Map() : size_x_(26), size_y_(16) {
@@ -104,6 +102,10 @@ uint16_t Map::GetSizeX() {
 }
 uint16_t Map::GetSizeY() {
 	return size_y_;
+}
+
+double Map::GetResolution() {
+	return res;
 }
 
 }  // namespace wolfenstein

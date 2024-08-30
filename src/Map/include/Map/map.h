@@ -27,6 +27,7 @@ class Map
 	std::shared_ptr<planning::Map> GetPathFinderMap();
 	uint16_t GetSizeX();
 	uint16_t GetSizeY();
+	double GetResolution();
 
   private:
 	void LoadMap();
@@ -36,6 +37,7 @@ class Map
 	uint16_t size_y_;
 	std::shared_ptr<planning::Map> path_finder_map_;
 	std::vector<std::vector<uint16_t>> map_;
+	double res{0.5};
 };
 
 }  // namespace wolfenstein

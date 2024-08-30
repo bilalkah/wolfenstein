@@ -16,7 +16,7 @@
 #include "Characters/player.h"
 #include "CollisionManager/collision_manager.h"
 #include "Graphics/renderer.h"
-#include "Graphics/scene.h"
+#include "Core/scene.h"
 #include "Map/map.h"
 #include "Math/vector.h"
 #include "TextureManager/texture_manager.h"
@@ -51,6 +51,9 @@ class Game
 	void CheckEvent();
 	void Update();
 	void Render();
+	void PrepareEnemies();
+	void PrepareDynamicObjects();
+	void PrepareStaticObjects();
 
 	std::shared_ptr<Renderer> renderer_;
 	std::shared_ptr<Scene> scene_;

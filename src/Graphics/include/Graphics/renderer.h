@@ -15,7 +15,7 @@
 #include "Camera/camera.h"
 #include "Characters/enemy.h"
 #include "GameObjects/game_object.h"
-#include "Graphics/scene.h"
+#include "Core/scene.h"
 #include <SDL2/SDL.h>
 #include <memory>
 #include <queue>

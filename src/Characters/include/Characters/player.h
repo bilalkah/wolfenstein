@@ -36,8 +36,8 @@ class Player : public ICharacter, public IGameObject
 	Position2D GetPosition() const override;
 	std::string GetId() const override;
 	int GetTextureId() const override { return shotgun_->GetTextureId(); }
-	double GetWidth() const override { return -1; }
-	double GetHeight() const override { return -1; }
+	double GetWidth() const override { return width_; }
+	double GetHeight() const override { return height_; }
 	void SubscribeToPlayerPosition(std::function<void(Position2D)> subscriber);
 
   private:
@@ -48,6 +48,8 @@ class Player : public ICharacter, public IGameObject
 	Position2D position_;
 	double rotation_speed_;
 	double translation_speed_;
+	double width_{0.4};
+	double height_{1.0};
 	std::string id_;
 	std::shared_ptr<Shotgun> shotgun_;
 	std::vector<std::function<void(Position2D)>> player_position_subscribers_;

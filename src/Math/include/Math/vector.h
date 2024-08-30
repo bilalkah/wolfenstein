@@ -110,6 +110,9 @@ double CalculateAngleBetweenThreeVectorsSigned(const vector2d& v1,
 											   const vector2d& v2,
 											   const vector2d& v3);
 
+// CalculateartesianFromPolar calculates the x and y values from polar coordinates
+vector2d CalculateCartesianFromPolar(const double angle, const double distance);
+
 }  // namespace wolfenstein
 
 #endif	// MATH_INCLUDE_MATH_VECTOR_H_

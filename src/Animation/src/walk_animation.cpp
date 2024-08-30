@@ -2,7 +2,7 @@
 
 namespace wolfenstein {
 
-WalkAnimation::WalkAnimation(const std::vector<int>& tex_ids,
+WalkAnimation::WalkAnimation(const std::vector<uint16_t>& tex_ids,
 							 const double step_size)
 	: tex_ids(tex_ids), current_frame(1), step_size(step_size), counter(0) {}
 
