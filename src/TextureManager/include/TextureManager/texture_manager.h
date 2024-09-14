@@ -13,6 +13,7 @@
 #define TEXTURE_MANAGER_INCLUDE_TEXTURE_MANAGER_H
 
 #include <SDL2/SDL.h>
+#include <cstddef>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -45,11 +46,16 @@ class TextureManager
 
   private:
 	TextureManager() = default;
+	void LoadStaticTextures();
+	void LoadSpriteTextures();
+	void LoadNpcTextures();
+	void LoadWeaponTextures();
 
 	static TextureManager* instance_;
 	std::unordered_map<uint16_t, Texture> textures_;
 	std::unordered_map<std::string, std::vector<uint16_t>> texture_collections_;
 	SDL_Renderer* renderer_;
+	size_t texture_count_;
 };
 
 }  // namespace wolfenstein

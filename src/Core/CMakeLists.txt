@@ -40,4 +40,5 @@ target_link_libraries(
     SDL2
     SDL2_image
     SDL2_ttf
+    enemy_state
 )

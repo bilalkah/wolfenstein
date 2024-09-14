@@ -204,8 +204,13 @@ void Renderer::RenderWeapon(const std::shared_ptr<Player>& player_ptr,
 	const auto crosshair_height = crosshair_texture.height;
 	const auto crosshair_width = crosshair_texture.width;
 	SDL_Rect crosshair_src_rect{0, 0, crosshair_width, crosshair_height};
-	SDL_Rect crosshair_dest_rect{config_.width / 2 - 20,
-								 config_.height / 2 - 20, 40, 40};
+	const double crosshair_ratio =
+		static_cast<double>(crosshair_height) / crosshair_width;
+	const int crosshair_width_slice = config_.width / 40;
+	const int crosshair_height_slice = crosshair_width_slice * crosshair_ratio;
+	SDL_Rect crosshair_dest_rect{config_.width / 2 - crosshair_width_slice / 2,
+								 config_.height / 2 - crosshair_height_slice / 2,
+								 crosshair_width_slice, crosshair_height_slice};
 	render_queue.push({6, crosshair_src_rect, crosshair_dest_rect, 0.0});
 
 	auto texture_id = player_ptr->GetTextureId();
@@ -213,11 +218,13 @@ void Renderer::RenderWeapon(const std::shared_ptr<Player>& player_ptr,
 		TextureManager::GetInstance().GetTexture(texture_id).height;
 	const auto texture_width =
 		TextureManager::GetInstance().GetTexture(texture_id).width;
-	const auto width_slice = config_.width / 6;
-	const auto height_slice = config_.height / 3;
+	const double ratio = static_cast<double>(texture_height) / texture_width;
+	const int width_slice = config_.width / 1.3;
+	const int height_slice = width_slice * ratio;
 	SDL_Rect src_rect{0, 0, texture_width, texture_height};
-	SDL_Rect dest_rect{3 * width_slice - width_slice / 2, 2 * height_slice,
-					   width_slice, height_slice};
+	SDL_Rect dest_rect{config_.width / 2 - width_slice / 2 + 100,
+					   config_.height - height_slice, width_slice,
+					   height_slice};
 	render_queue.push({texture_id, src_rect, dest_rect, 0.0});
 }
 

@@ -12,21 +12,25 @@
 #ifndef CHARACTERS_INCLUDE_ENEMY_H_
 #define CHARACTERS_INCLUDE_ENEMY_H_
 
-#include "Animation/walk_animation.h"
 #include "Characters/character.h"
 #include "GameObjects/game_object.h"
 #include "Math/vector.h"
+#include "State/enemy_state.h"
+#include <memory>
 
 namespace wolfenstein {
 
-class Enemy : public ICharacter, public IGameObject
+class Enemy : public ICharacter,
+			  public IGameObject,
+			  public std::enable_shared_from_this<Enemy>
 {
   public:
-	explicit Enemy(CharacterConfig config, double width, double height,
-				   WalkAnimation animation);
+	explicit Enemy(CharacterConfig config, std::shared_ptr<State<Enemy>> state,
+				   double width, double height);
 	~Enemy() = default;
-
+	void Init();
 	void Update(double delta_time) override;
+	void TransitionTo(std::shared_ptr<State<Enemy>> state);
 
 	void SetPose(const vector2d& pose) override;
 	void SetPosition(Position2D position) override;
@@ -42,16 +46,17 @@ class Enemy : public ICharacter, public IGameObject
 	void SetNextPose(vector2d pose);
 
   private:
+	Enemy() = default;
 	void Move(double delta_time);
 
 	Position2D position_;
 	double rotation_speed_;
 	double translation_speed_;
-	std::string id_;
+	std::shared_ptr<State<Enemy>> state_;
 	double width;
 	double height;
+	std::string id_;
 	vector2d next_pose;
-	WalkAnimation animation;
 };
 
 }  // namespace wolfenstein
