@@ -15,7 +15,33 @@ TextureManager& TextureManager::GetInstance() {
 
 void TextureManager::InitManager(SDL_Renderer* renderer) {
 	renderer_ = renderer;
+	texture_count_ = 0;
 
+	LoadStaticTextures();
+	LoadSpriteTextures();
+	LoadNpcTextures();
+	LoadWeaponTextures();
+}
+
+void TextureManager::LoadTexture(uint16_t texture_id,
+								 const std::string& texture_path) {
+	Texture texture;
+	texture.texture = IMG_LoadTexture(renderer_, texture_path.c_str());
+	SDL_QueryTexture(texture.texture, nullptr, nullptr, &texture.width,
+					 &texture.height);
+	textures_[texture_id] = texture;
+}
+
+Texture TextureManager::GetTexture(uint16_t texture_id) {
+	return textures_[texture_id];
+}
+
+std::vector<uint16_t> TextureManager::GetTextureCollection(
+	const std::string& collection_name) {
+	return texture_collections_[collection_name];
+}
+
+void TextureManager::LoadStaticTextures() {
 	// Static textures
 	std::string texture_path = std::string(RESOURCE_DIR) + "textures/";
 	LoadTexture(0, texture_path + "sky.png");
@@ -26,8 +52,9 @@ void TextureManager::InitManager(SDL_Renderer* renderer) {
 	LoadTexture(5, texture_path + "5.png");
 	LoadTexture(6, texture_path + "crosshair.png");
 	LoadTexture(7, texture_path + "solid_black.png");
-	LoadTexture(96, texture_path + "col1a0.png");
+}
 
+void TextureManager::LoadSpriteTextures() {
 	// Static sprites
 	std::string sprite_path = std::string(RESOURCE_DIR) + "sprites/";
 	LoadTexture(8, sprite_path + "static_sprites/candlebra.png");
@@ -43,12 +70,9 @@ void TextureManager::InitManager(SDL_Renderer* renderer) {
 	LoadTexture(15, sprite_path + "animated_sprites/red_light/2.png");
 	LoadTexture(16, sprite_path + "animated_sprites/red_light/3.png");
 	texture_collections_["red_light"] = {13, 14, 15, 16};
-	LoadTexture(97, sprite_path + "animated_sprites/flame/0.png");
-	LoadTexture(98, sprite_path + "animated_sprites/flame/1.png");
-	LoadTexture(99, sprite_path + "animated_sprites/flame/2.png");
-	LoadTexture(100, sprite_path + "animated_sprites/flame/3.png");
-	texture_collections_["flame"] = {97, 98, 99, 100};
+}
 
+void TextureManager::LoadNpcTextures() {
 	// Npc sprites
 	std::string npc_path = std::string(RESOURCE_DIR) + "sprites/npc/";
 	// Caco demon Attack
@@ -158,33 +182,45 @@ void TextureManager::InitManager(SDL_Renderer* renderer) {
 	LoadTexture(88, npc_path + "soldier/walk/2.png");
 	LoadTexture(89, npc_path + "soldier/walk/3.png");
 	texture_collections_["soldier_walk"] = {86, 87, 88, 89};
-	// Weapon sprites
-	std::string weapon_path = std::string(RESOURCE_DIR) + "sprites/weapon/";
-	LoadTexture(90, weapon_path + "shotgun/0.png");
-	LoadTexture(91, weapon_path + "shotgun/1.png");
-	LoadTexture(92, weapon_path + "shotgun/2.png");
-	LoadTexture(93, weapon_path + "shotgun/3.png");
-	LoadTexture(94, weapon_path + "shotgun/4.png");
-	LoadTexture(95, weapon_path + "shotgun/5.png");
-	texture_collections_["shotgun"] = {90, 91, 92, 93, 94, 95};
 }
 
-void TextureManager::LoadTexture(uint16_t texture_id,
-								 const std::string& texture_path) {
-	Texture texture;
-	texture.texture = IMG_LoadTexture(renderer_, texture_path.c_str());
-	SDL_QueryTexture(texture.texture, nullptr, nullptr, &texture.width,
-					 &texture.height);
-	textures_[texture_id] = texture;
-}
-
-Texture TextureManager::GetTexture(uint16_t texture_id) {
-	return textures_[texture_id];
-}
-
-std::vector<uint16_t> TextureManager::GetTextureCollection(
-	const std::string& collection_name) {
-	return texture_collections_[collection_name];
+void TextureManager::LoadWeaponTextures() {
+	const auto weapon_path = std::string(RESOURCE_DIR) + "sprites/weapon/";
+	// MP5 sprites
+	// Loaded
+	LoadTexture(90, weapon_path + "/mp5/loaded/" + "0.png");
+	LoadTexture(91, weapon_path + "/mp5/loaded/" + "1.png");
+	LoadTexture(92, weapon_path + "/mp5/loaded/" + "2.png");
+	LoadTexture(93, weapon_path + "/mp5/loaded/" + "3.png");
+	LoadTexture(94, weapon_path + "/mp5/loaded/" + "4.png");
+	LoadTexture(95, weapon_path + "/mp5/loaded/" + "5.png");
+	texture_collections_["mp5_loaded"] = {90, 91, 92, 93, 94, 95};
+	// outofammo
+	LoadTexture(96, weapon_path + "/mp5/outofammo/" + "0.png");
+	LoadTexture(97, weapon_path + "/mp5/outofammo/" + "1.png");
+	LoadTexture(98, weapon_path + "/mp5/outofammo/" + "2.png");
+	LoadTexture(99, weapon_path + "/mp5/outofammo/" + "3.png");
+	texture_collections_["mp5_outofammo"] = {96, 97, 98, 99};
+	// reload
+	LoadTexture(100, weapon_path + "/mp5/reload/" + "0.png");
+	LoadTexture(101, weapon_path + "/mp5/reload/" + "1.png");
+	LoadTexture(102, weapon_path + "/mp5/reload/" + "2.png");
+	LoadTexture(103, weapon_path + "/mp5/reload/" + "3.png");
+	LoadTexture(104, weapon_path + "/mp5/reload/" + "4.png");
+	LoadTexture(105, weapon_path + "/mp5/reload/" + "5.png");
+	LoadTexture(106, weapon_path + "/mp5/reload/" + "6.png");
+	LoadTexture(107, weapon_path + "/mp5/reload/" + "7.png");
+	LoadTexture(108, weapon_path + "/mp5/reload/" + "8.png");
+	LoadTexture(109, weapon_path + "/mp5/reload/" + "9.png");
+	LoadTexture(110, weapon_path + "/mp5/reload/" + "10.png");
+	LoadTexture(111, weapon_path + "/mp5/reload/" + "11.png");
+	LoadTexture(112, weapon_path + "/mp5/reload/" + "12.png");
+	LoadTexture(113, weapon_path + "/mp5/reload/" + "13.png");
+	LoadTexture(114, weapon_path + "/mp5/reload/" + "14.png");
+	LoadTexture(115, weapon_path + "/mp5/reload/" + "15.png");
+	texture_collections_["mp5_reload"] = {100, 101, 102, 103, 104, 105,
+										  106, 107, 108, 109, 110, 111,
+										  112, 113, 114, 115};
 }
 
 }  // namespace wolfenstein

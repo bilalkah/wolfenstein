@@ -11,11 +11,12 @@ Player::Player(CharacterConfig& config)
 	  rotation_speed_(config.rotation_speed),
 	  translation_speed_(config.translation_speed) {
 	id_ = UuidGenerator::GetInstance().GenerateUuid().bytes();
-	shotgun_ = std::make_shared<Shotgun>();
+	weapon_ = std::make_shared<Weapon>("mp5");
+	weapon_->Init();
 }
 
 void Player::Update(double delta_time) {
-	Shoot();
+	ShootAndReload();
 	Move(delta_time);
 	Rotate(delta_time);
 	for (auto& subscriber : player_position_subscribers_) {
@@ -45,6 +46,16 @@ Position2D Player::GetPosition() const {
 
 std::string Player::GetId() const {
 	return id_;
+}
+
+int Player::GetTextureId() const {
+	return weapon_->GetTextureId();
+}
+double Player::GetWidth() const {
+	return width_;
+}
+double Player::GetHeight() const {
+	return height_;
 }
 
 void Player::SubscribeToPlayerPosition(
@@ -101,9 +112,14 @@ void Player::Rotate(double delta_time) {
 	}
 }
 
-void Player::Shoot() {
+void Player::ShootAndReload() {
 	if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_LMASK) {
-		shotgun_->Attack();
+		weapon_->Attack();
+	}
+	// If R is pressed, reload
+	const Uint8* keystate = SDL_GetKeyboardState(NULL);
+	if (keystate[SDL_SCANCODE_R]) {
+		weapon_->Reload();
 	}
 }
 

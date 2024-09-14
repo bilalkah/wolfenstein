@@ -16,7 +16,7 @@ NavigationManager& NavigationManager::GetInstance() {
 
 void NavigationManager::InitManager(std::shared_ptr<Map> map) {
 	map_ = map;
-	path_planner_ = std::make_shared<planning::grid_base::AStar>(0.6, 8);
+	path_planner_ = std::make_shared<planning::grid_base::AStar>(0.6, 4);
 }
 
 //@Note apply caching mechanism later
@@ -42,15 +42,16 @@ vector2d NavigationManager::FindPath(Position2D start, Position2D end,
 	std::vector<vector2d> path_vector;
 	path.erase(path.begin());
 	for (auto node : path) {
-		path_vector.push_back(FromNode(node) * res);
+		path_vector.push_back(FromNode(node) * res + vector2d{0.25, 0.25});
 	}
 	paths_[id] = path_vector;
 
 	if (path_vector.empty()) {
 		return start.pose;
 	}
-	auto next = path_vector.front();
 	path_vector.erase(path_vector.begin());
+	auto next = path_vector.front();
+	
 	return next;
 }
 
