@@ -2,27 +2,33 @@
 #include "CollisionManager/collision_manager.h"
 #include "Math/vector.h"
 #include "Utility/uuid_generator.h"
+#include <memory>
 
 namespace wolfenstein {
 
-Enemy::Enemy(CharacterConfig config, double width, double height,
-			 WalkAnimation animation)
+Enemy::Enemy(CharacterConfig config, std::shared_ptr<State<Enemy>> state,
+			 double width, double height)
 	: position_(config.initial_position),
 	  rotation_speed_(config.rotation_speed),
 	  translation_speed_(config.translation_speed),
+	  state_(state),
 	  width(width),
 	  height(height),
-	  animation(animation) {
-	id_ = UuidGenerator::GetInstance().GenerateUuid().bytes();
+	  id_(UuidGenerator::GetInstance().GenerateUuid().bytes()) {}
+
+void Enemy::Init() {
+	state_->SetContext(shared_from_this());
+}
+
+void Enemy::TransitionTo(std::shared_ptr<State<Enemy>> state) {
+	state_ = state;
+	state_->SetContext(shared_from_this());
 }
 
 void Enemy::Update(double delta_time) {
+	state_->Update(delta_time);
 	if (next_pose != position_.pose) {
 		Move(delta_time);
-		animation.Update(delta_time);
-	}
-	else {
-		animation.Reset();
 	}
 }
 
@@ -69,7 +75,7 @@ void Enemy::SetNextPose(vector2d pose) {
 }
 
 int Enemy::GetTextureId() const {
-	return animation.GetCurrentFrame();
+	return state_->GetCurrentFrame();
 }
 
 double Enemy::GetWidth() const {

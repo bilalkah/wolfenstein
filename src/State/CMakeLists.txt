@@ -1,0 +1,33 @@
+add_library(
+    enemy_state
+    STATIC
+    src/enemy_state.cpp
+)
+target_include_directories(
+    enemy_state 
+    PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(
+    enemy_state 
+    PUBLIC
+    character
+    texture_manager
+)
+
+add_library(
+    weapon_state
+    STATIC
+    src/weapon_state.cpp
+)
+target_include_directories(
+    weapon_state 
+    PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(
+    weapon_state 
+    PUBLIC
+    weapon
+    texture_manager
+)

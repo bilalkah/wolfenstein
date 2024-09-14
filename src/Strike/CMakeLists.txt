@@ -1,16 +1,17 @@
 add_library(
-    shotgun
+    weapon
     STATIC
-    src/shotgun.cpp
+    src/weapon.cpp
 )
-target_include_directories(shotgun PUBLIC
+target_include_directories(weapon PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 target_link_libraries(
-    shotgun
+    weapon
     PUBLIC
     animation
     time_manager
     texture_manager
+    weapon_state
 )
 

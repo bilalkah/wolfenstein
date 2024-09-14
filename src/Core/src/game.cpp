@@ -1,16 +1,18 @@
 #include "Core/game.h"
+// #include "Animation/animator.h"
 #include "Animation/time_based_single_animation.h"
-#include "Animation/walk_animation.h"
 #include "Characters/enemy.h"
 #include "GameObjects/dynamic_object.h"
 #include "GameObjects/static_object.h"
 #include "Graphics/renderer.h"
 #include "Math/vector.h"
 #include "NavigationManager/navigation_manager.h"
+#include "State/enemy_state.h"
 #include "TextureManager/texture_manager.h"
 #include "TimeManager/time_manager.h"
 #include <SDL2/SDL_video.h>
 #include <functional>
+#include <memory>
 #include <vector>
 
 namespace wolfenstein {
@@ -53,7 +55,7 @@ void Game::Init() {
 
 	scene_->SetPlayer(player_);
 
-	// PrepareEnemies();
+	PrepareEnemies();
 	PrepareDynamicObjects();
 	PrepareStaticObjects();
 
@@ -115,20 +117,15 @@ void Game::Run() {
 
 void Game::PrepareEnemies() {
 	auto caco_demon = std::make_shared<Enemy>(
-		CharacterConfig(Position2D({8, 7}, 1.50), 0.8, 0.4), 0.4, 0.8,
-		WalkAnimation(TextureManager::GetInstance().GetTextureCollection(
-						  "caco_demon_walk"),
-					  0.2));
+		CharacterConfig(Position2D({13.5, 2.5}, 1.50), 0.8, 0.4),
+		std::make_shared<IdleState>("caco_demon"), 0.4, 0.8);
+
 	auto soldier = std::make_shared<Enemy>(
-		CharacterConfig(Position2D({9, 7}, 1.50), 0.8, 0.4), 0.3, 0.6,
-		WalkAnimation(
-			TextureManager::GetInstance().GetTextureCollection("soldier_walk"),
-			0.2));
+		CharacterConfig(Position2D({9, 7}, 1.50), 0.8, 0.4),
+		std::make_shared<IdleState>("soldier"), 0.3, 0.6);
 	auto cyber_demon = std::make_shared<Enemy>(
-		CharacterConfig(Position2D({23.0, 4}, 1.50), 0.8, 0.4), 0.5, 1.0,
-		WalkAnimation(TextureManager::GetInstance().GetTextureCollection(
-						  "cyber_demon_walk"),
-					  0.2));
+		CharacterConfig(Position2D({23.0, 4}, 1.50), 0.8, 0.4),
+		std::make_shared<IdleState>("cyber_demon"), 0.5, 1.0);
 	scene_->AddObject(caco_demon);
 	scene_->AddObject(soldier);
 	scene_->AddObject(cyber_demon);
@@ -139,8 +136,6 @@ void Game::PrepareDynamicObjects() {
 		TextureManager::GetInstance().GetTextureCollection("green_light"), 0.1);
 	const auto animation_red_light = TBSAnimation(
 		TextureManager::GetInstance().GetTextureCollection("red_light"), 0.1);
-	const auto animation_flame = TBSAnimation(
-		TextureManager::GetInstance().GetTextureCollection("flame"), 0.1);
 
 	scene_->AddObject(std::make_shared<DynamicObject>(
 		vector2d(12.1, 8.15),
@@ -161,17 +156,11 @@ void Game::PrepareDynamicObjects() {
 	scene_->AddObject(std::make_shared<DynamicObject>(
 		vector2d(12.1, 10.9),
 		std::make_shared<TBSAnimation>(animation_green_light), 0.2, 0.9));
-	scene_->AddObject(std::make_shared<DynamicObject>(
-		vector2d(14.0, 1.5),
-		std::make_shared<TBSAnimation>(animation_flame), 0.2, 0.9));
 }
 
-void Game::PrepareStaticObjects()
-{
+void Game::PrepareStaticObjects() {
 	scene_->AddObject(
 		std::make_shared<StaticObject>(vector2d(14.5, 9), 8, 0.2, 0.5));
-	scene_->AddObject(
-		std::make_shared<StaticObject>(vector2d(14.5, 10), 96, 0.2, 0.8));
 }
 
 }  // namespace wolfenstein

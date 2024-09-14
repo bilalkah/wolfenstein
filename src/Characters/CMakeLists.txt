@@ -15,6 +15,7 @@ target_link_libraries(
     collision_manager
     animation
     SDL2
-    shotgun
+    weapon
+    enemy_state
 )
 

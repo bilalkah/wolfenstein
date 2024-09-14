@@ -14,7 +14,7 @@
 
 #include "Characters/character.h"
 #include "GameObjects/game_object.h"
-#include "Strike/shotgun.h"
+#include "Strike/weapon.h"
 #include <functional>
 #include <memory>
 
@@ -35,15 +35,15 @@ class Player : public ICharacter, public IGameObject
 	void SetPosition(Position2D position) override;
 	Position2D GetPosition() const override;
 	std::string GetId() const override;
-	int GetTextureId() const override { return shotgun_->GetTextureId(); }
-	double GetWidth() const override { return width_; }
-	double GetHeight() const override { return height_; }
+	int GetTextureId() const override;
+	double GetWidth() const override;
+	double GetHeight() const override;
 	void SubscribeToPlayerPosition(std::function<void(Position2D)> subscriber);
 
   private:
 	void Move(double delta_time);
 	void Rotate(double delta_time);
-	void Shoot();
+	void ShootAndReload();
 
 	Position2D position_;
 	double rotation_speed_;
@@ -51,7 +51,7 @@ class Player : public ICharacter, public IGameObject
 	double width_{0.4};
 	double height_{1.0};
 	std::string id_;
-	std::shared_ptr<Shotgun> shotgun_;
+	std::shared_ptr<Weapon> weapon_;
 	std::vector<std::function<void(Position2D)>> player_position_subscribers_;
 };
 

@@ -7,7 +7,9 @@ namespace wolfenstein {
 void Scene::AddObject(std::shared_ptr<IGameObject> object) {
 	objects.push_back(object);
 	if (object->GetObjectType() == ObjectType::CHARACTER_ENEMY) {
-		enemies.push_back(std::dynamic_pointer_cast<Enemy>(object));
+		auto enemy = std::dynamic_pointer_cast<Enemy>(object);
+		enemy->Init();
+		enemies.push_back(enemy);
 	}
 }
 
