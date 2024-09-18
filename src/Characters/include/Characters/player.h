@@ -43,7 +43,7 @@ class Player : public ICharacter, public IGameObject
   private:
 	void Move(double delta_time);
 	void Rotate(double delta_time);
-	void ShootAndReload();
+	void ShootOrReload();
 
 	Position2D position_;
 	double rotation_speed_;

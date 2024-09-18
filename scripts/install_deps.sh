@@ -1,3 +1,6 @@
+# install build-essential
+sudo apt install build-essential cmake g++ gcc -y;
+
 #install sdl2
 sudo apt install libsdl2-dev libsdl2-2.0-0 -y;
 

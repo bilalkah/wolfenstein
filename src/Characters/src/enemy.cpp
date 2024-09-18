@@ -6,7 +6,7 @@
 
 namespace wolfenstein {
 
-Enemy::Enemy(CharacterConfig config, std::shared_ptr<State<Enemy>> state,
+Enemy::Enemy(CharacterConfig config, EnemyStatePtr state,
 			 double width, double height)
 	: position_(config.initial_position),
 	  rotation_speed_(config.rotation_speed),
@@ -20,7 +20,7 @@ void Enemy::Init() {
 	state_->SetContext(shared_from_this());
 }
 
-void Enemy::TransitionTo(std::shared_ptr<State<Enemy>> state) {
+void Enemy::TransitionTo(EnemyStatePtr state) {
 	state_ = state;
 	state_->SetContext(shared_from_this());
 }

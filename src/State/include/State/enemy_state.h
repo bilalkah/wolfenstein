@@ -13,10 +13,19 @@
 #define STATE_INCLUDE_STATE_ENEMY_STATE_H_
 
 #include "State/state.h"
+#include <vector>
 
 namespace wolfenstein {
 
 class Enemy;
+typedef std::shared_ptr<State<Enemy>> EnemyStatePtr;
+
+template <>
+struct StateType<Enemy>
+{
+	enum class Type { Idle, Walk, Attack, Pain, Death };
+};
+typedef StateType<Enemy>::Type EnemyStateType;
 
 class IdleState : public State<Enemy>
 {
@@ -27,6 +36,7 @@ class IdleState : public State<Enemy>
 	void Update(const double& delta_time) override;
 	void Reset() override;
 	int GetCurrentFrame() const override;
+	EnemyStateType GetType() const override;
 
   private:
 	std::string bot_name_;
@@ -46,6 +56,7 @@ class WalkState : public State<Enemy>
 	void Update(const double& delta_time) override;
 	void Reset() override;
 	int GetCurrentFrame() const override;
+	EnemyStateType GetType() const override;
 
   private:
 	std::string bot_name_;
@@ -65,6 +76,7 @@ class AttackState : public State<Enemy>
 	void Update(const double& delta_time) override;
 	void Reset() override;
 	int GetCurrentFrame() const override;
+	EnemyStateType GetType() const override;
 
   private:
 	std::string bot_name_;
@@ -84,6 +96,7 @@ class PainState : public State<Enemy>
 	void Update(const double& delta_time) override;
 	void Reset() override;
 	int GetCurrentFrame() const override;
+	EnemyStateType GetType() const override;
 
   private:
 	std::string bot_name_;
@@ -103,6 +116,7 @@ class DeathState : public State<Enemy>
 	void Update(const double& delta_time) override;
 	void Reset() override;
 	int GetCurrentFrame() const override;
+	EnemyStateType GetType() const override;
 
   private:
 	std::string bot_name_;

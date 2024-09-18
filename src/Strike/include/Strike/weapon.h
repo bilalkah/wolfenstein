@@ -21,33 +21,43 @@ namespace wolfenstein {
 struct WeaponConfig
 {
 	std::string weapon_name;
-	double attack_speed;
-	double attack_damage;
 	size_t ammo_capacity;
+	double attack_damage;
+	double attack_range;
+	double attack_speed;
+	double reload_speed;
 };
 
 class Weapon : public IStrike, public std::enable_shared_from_this<Weapon>
 {
   public:
+	enum class StateType { Loaded, OutOfAmmo, Reloading };
 	Weapon(std::string weapon_name);
 	~Weapon();
 	void Init();
 
 	void Attack() override;
-	int GetTextureId() const;
-	void TransitionTo(std::shared_ptr<State<Weapon>> state);
-	void decreaseAmmo();
-	size_t getAmmo() const;
-	std::string getWeaponName() const;
+	void Charge();
 	void Reload();
-	void reloadFinished();
+	void TransitionTo(WeaponStatePtr& state);
+
+	void IncreaseAmmo();
+	void IncreaseAmmo(size_t amount);
+	void DecreaseAmmo();
+	void DecreaseAmmo(size_t amount);
+	size_t GetAmmo() const;
+	size_t GetAmmoCapacity() const;
+	double GetAttackDamage() const;
+	double GetAttackRange() const;
+	double GetAttackSpeed() const;
+	double GetReloadSpeed() const;
+	std::string GetWeaponName() const;
+	int GetTextureId() const;
 
   private:
-	WeaponConfig weapon_config_;
-
-	bool cooldown_;
-	bool reloading_;
-	std::shared_ptr<State<Weapon>> state_;
+	WeaponConfig weapon_properties_;
+	size_t ammo_;
+	WeaponStatePtr state_;
 };
 
 }  // namespace wolfenstein
