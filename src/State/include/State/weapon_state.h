@@ -19,6 +19,14 @@
 namespace wolfenstein {
 
 class Weapon;
+typedef std::shared_ptr<State<Weapon>> WeaponStatePtr;
+
+template <>
+struct StateType<Weapon>
+{
+	enum class Type { Loaded, OutOfAmmo, Reloading };
+};
+typedef StateType<Weapon>::Type WeaponStateType;
 
 class LoadedState : public State<Weapon>
 {
@@ -26,16 +34,22 @@ class LoadedState : public State<Weapon>
 	LoadedState(const std::string weapon_name);
 	~LoadedState();
 
-	void Update(const double& delta_time) override;
+	void Update(const double&) override;
 	void Reset() override;
+	void OnContextSet() override;
+	void TransitionRequest(std::shared_ptr<State<Weapon>>& state) override;
 	int GetCurrentFrame() const override;
+	WeaponStateType GetType() const override;
 
   private:
 	void AttackAnimation();
 	std::string weapon_name_;
+	double last_attack_time_;
 	double animation_speed_;
 	bool cooldown_;
-	double last_attack_time_;
+	bool interrupt_;
+	bool destroyed_;
+	WeaponStatePtr requested_state_;
 	std::shared_ptr<TBSAnimation> animation_;
 };
 
@@ -45,16 +59,22 @@ class OutOfAmmoState : public State<Weapon>
 	OutOfAmmoState(const std::string weapon_name);
 	~OutOfAmmoState();
 
-	void Update(const double& delta_time) override;
+	void Update(const double&) override;
 	void Reset() override;
+	void OnContextSet() override;
+	void TransitionRequest(std::shared_ptr<State<Weapon>>& state) override;
 	int GetCurrentFrame() const override;
+	WeaponStateType GetType() const override;
 
   private:
 	void NoAttackAnimation();
 	std::string weapon_name_;
+	double last_attack_time_;
 	double animation_speed_;
 	bool cooldown_;
-	double last_attack_time_;
+	bool interrupt_;
+	bool destroyed_;
+	WeaponStatePtr requested_state_;
 	std::shared_ptr<TBSAnimation> animation_;
 };
 
@@ -64,16 +84,20 @@ class ReloadingState : public State<Weapon>
 	ReloadingState(const std::string weapon_name);
 	~ReloadingState();
 
-	void Update(const double& delta_time) override;
+	void Update(const double&) override;
 	void Reset() override;
+	void OnContextSet() override;
 	int GetCurrentFrame() const override;
+	WeaponStateType GetType() const override;
 
   private:
 	void ReloadAnimation();
 	std::string weapon_name_;
+	double last_attack_time_;
 	double animation_speed_;
 	bool cooldown_;
-	double last_attack_time_;
+	bool interrupt_;
+	bool destroyed_;
 	std::shared_ptr<TBSAnimation> animation_;
 };
 
