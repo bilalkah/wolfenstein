@@ -1,6 +1,7 @@
 #include "Characters/player.h"
 #include "CollisionManager/collision_manager.h"
 #include "Math/vector.h"
+#include "State/weapon_state.h"
 #include "Utility/uuid_generator.h"
 #include <SDL2/SDL.h>
 
@@ -12,11 +13,12 @@ Player::Player(CharacterConfig& config)
 	  translation_speed_(config.translation_speed) {
 	id_ = UuidGenerator::GetInstance().GenerateUuid().bytes();
 	weapon_ = std::make_shared<Weapon>("mp5");
-	weapon_->Init();
+	WeaponStatePtr loaded_state = std::make_shared<LoadedState>("mp5");
+	weapon_->TransitionTo(loaded_state);
 }
 
 void Player::Update(double delta_time) {
-	ShootAndReload();
+	ShootOrReload();
 	Move(delta_time);
 	Rotate(delta_time);
 	for (auto& subscriber : player_position_subscribers_) {
@@ -112,14 +114,16 @@ void Player::Rotate(double delta_time) {
 	}
 }
 
-void Player::ShootAndReload() {
-	if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_LMASK) {
-		weapon_->Attack();
-	}
+void Player::ShootOrReload() {
 	// If R is pressed, reload
 	const Uint8* keystate = SDL_GetKeyboardState(NULL);
 	if (keystate[SDL_SCANCODE_R]) {
 		weapon_->Reload();
+	}
+
+	// If left mouse button is pressed, attack
+	if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_LMASK) {
+		weapon_->Attack();
 	}
 }
 

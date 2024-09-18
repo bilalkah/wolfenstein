@@ -1,25 +1,25 @@
 #include "Strike/weapon.h"
 #include "State/weapon_state.h"
-#include <exception>
-
+#include <cstddef>
+#include <stdexcept>
+#include <string>
 namespace wolfenstein {
 
 namespace {
 auto GetWeaponConfig = [](const std::string& weapon_name) -> WeaponConfig {
 	if (weapon_name == "mp5") {
-		return {"mp5", 0.2, 10, 10};
+		return {"mp5", 10, 10, 10, 0.3, 1.5};
 	}
 	else {
-		return {"Doesn't exist", -1, -1, 0};
+		throw std::invalid_argument("Invalid weapon name");
 	}
 };
 }  // namespace
 
 Weapon::Weapon(std::string weapon_name)
-	: weapon_config_(GetWeaponConfig(weapon_name)),
-	  cooldown_(false),
-	  reloading_(false) {
-	state_ = std::make_shared<LoadedState>(weapon_config_.weapon_name);
+	: weapon_properties_(GetWeaponConfig(weapon_name)),
+	  ammo_(weapon_properties_.ammo_capacity) {
+	state_ = std::make_shared<LoadedState>(weapon_properties_.weapon_name);
 }
 
 Weapon::~Weapon() {}
@@ -32,39 +32,70 @@ void Weapon::Attack() {
 	state_->Update(0.0);
 }
 
-int Weapon::GetTextureId() const {
-	return state_->GetCurrentFrame();
-}
-
-void Weapon::TransitionTo(std::shared_ptr<State<Weapon>> state) {
-	state_ = state;
-	state_->SetContext(shared_from_this());
-}
-
-void Weapon::decreaseAmmo() {
-	weapon_config_.ammo_capacity--;
-}
-
-size_t Weapon::getAmmo() const {
-	return weapon_config_.ammo_capacity;
-}
-
-std::string Weapon::getWeaponName() const {
-	return weapon_config_.weapon_name;
+void Weapon::Charge() {
+	ammo_ = weapon_properties_.ammo_capacity;
 }
 
 void Weapon::Reload() {
-	if (!reloading_) {
-		reloading_ = true;
-		TransitionTo(
-			std::make_shared<ReloadingState>(weapon_config_.weapon_name));
+	WeaponStatePtr reloading_state =
+		std::make_shared<ReloadingState>(weapon_properties_.weapon_name);
+	state_->TransitionRequest(reloading_state);
+}
+
+void Weapon::TransitionTo(WeaponStatePtr& state) {
+	state_ = state;
+	state_->SetContext(shared_from_this());
+	if (state->GetType() == WeaponStateType::Reloading) {
 		state_->Update(0.0);
 	}
 }
 
-void Weapon::reloadFinished() {
-	reloading_ = false;
-	weapon_config_.ammo_capacity = 10;
+void Weapon::IncreaseAmmo() {
+	ammo_++;
+}
+
+void Weapon::IncreaseAmmo(size_t amount) {
+	ammo_ += amount;
+}
+
+void Weapon::DecreaseAmmo() {
+	ammo_--;
+}
+
+void Weapon::DecreaseAmmo(size_t amount) {
+	ammo_ -= amount;
+}
+
+size_t Weapon::GetAmmo() const {
+	return ammo_;
+}
+
+size_t Weapon::GetAmmoCapacity() const {
+	return weapon_properties_.ammo_capacity;
+}
+
+double Weapon::GetAttackDamage() const {
+	return weapon_properties_.attack_damage;
+}
+
+double Weapon::GetAttackRange() const {
+	return weapon_properties_.attack_range;
+}
+
+double Weapon::GetAttackSpeed() const {
+	return weapon_properties_.attack_speed;
+}
+
+double Weapon::GetReloadSpeed() const {
+	return weapon_properties_.reload_speed;
+}
+
+std::string Weapon::GetWeaponName() const {
+	return weapon_properties_.weapon_name;
+}
+
+int Weapon::GetTextureId() const {
+	return state_->GetCurrentFrame();
 }
 
 }  // namespace wolfenstein

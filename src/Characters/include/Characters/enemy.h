@@ -25,12 +25,12 @@ class Enemy : public ICharacter,
 			  public std::enable_shared_from_this<Enemy>
 {
   public:
-	explicit Enemy(CharacterConfig config, std::shared_ptr<State<Enemy>> state,
-				   double width, double height);
+	explicit Enemy(CharacterConfig config, EnemyStatePtr state, double width,
+				   double height);
 	~Enemy() = default;
 	void Init();
 	void Update(double delta_time) override;
-	void TransitionTo(std::shared_ptr<State<Enemy>> state);
+	void TransitionTo(EnemyStatePtr state);
 
 	void SetPose(const vector2d& pose) override;
 	void SetPosition(Position2D position) override;
@@ -52,7 +52,7 @@ class Enemy : public ICharacter,
 	Position2D position_;
 	double rotation_speed_;
 	double translation_speed_;
-	std::shared_ptr<State<Enemy>> state_;
+	EnemyStatePtr state_;
 	double width;
 	double height;
 	std::string id_;
