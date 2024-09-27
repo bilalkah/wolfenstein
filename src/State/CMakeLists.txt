@@ -19,15 +19,20 @@ add_library(
     weapon_state
     STATIC
     src/weapon_state.cpp
+    src/WeaponState/loaded_state.cpp
+    src/WeaponState/reloading_state.cpp
+    src/WeaponState/out_of_ammo_state.cpp
 )
 target_include_directories(
     weapon_state 
     PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/WeaponState
 )
 target_link_libraries(
     weapon_state 
     PUBLIC
+    animation
+    time_manager
     weapon
-    texture_manager
 )

@@ -1,235 +1,105 @@
+/**
+ * @file weapon_state.cpp
+ * @author Bilal Kahraman (kahramannbilal@gmail.com)
+ * @brief 
+ * @version 0.1
+ * @date 2024-09-27
+ * 
+ * @copyright Copyright (c) 2024
+ * 
+ */
+
 #include "State/weapon_state.h"
-#include "State/state.h"
-#include "Strike/weapon.h"
-#include "TextureManager/texture_manager.h"
-#include "TimeManager/time_manager.h"
-#include <SDL2/SDL.h>
-#include <memory>
-#include <thread>
-#include <unordered_map>
+#include "State/WeaponState/loaded_state.h"
+#include "State/WeaponState/out_of_ammo_state.h"
+#include "State/WeaponState/reloading_state.h"
 
 namespace wolfenstein {
 
-namespace {
+class WeaponStateImpl
+{
+  public:
+	WeaponStateImpl() : currentState(std::make_shared<LoadedState>()) {}
+	~WeaponStateImpl() = default;
 
-const std::unordered_map<std::string,
-						 std::unordered_map<std::string, std::string>>
-	weapon_data_{{"mp5",
-				  {{"loaded", "mp5_loaded"},
-				   {"outofammo", "mp5_outofammo"},
-				   {"reload", "mp5_reload"}}}};
+	void Update(const double& delta_time) { currentState->Update(delta_time); }
+	void Reset() { currentState->Reset(); }
+	void SetContext(std::shared_ptr<Weapon> context) {
+		currentState->SetContext(context);
+	}
+	void OnContextSet() { currentState->OnContextSet(); }
+	void TransitionRequest(std::shared_ptr<State<Weapon>> state) {
+		currentState->TransitionRequest(state);
+	}
+	void operator=(const WeaponStatePtr& state) { currentState = state; }
+	int GetCurrentFrame() const { return currentState->GetCurrentFrame(); }
+	WeaponStateType GetType() const { return currentState->GetType(); }
 
+  private:
+	WeaponStatePtr currentState;
+
+};	// class WeaponStateImpl
+
+WeaponState::WeaponState() : pImpl(std::make_unique<WeaponStateImpl>()) {}
+WeaponState::~WeaponState() = default;
+
+void WeaponState::Update(const double& delta_time) {
+	pImpl->Update(delta_time);
+}
+void WeaponState::Reset() {
+	pImpl->Reset();
 }
 
-// ########################################### LoadedState ###########################################
-LoadedState::LoadedState(const std::string weapon_name)
-	: weapon_name_(weapon_name),
-	  last_attack_time_(0),
-	  cooldown_(false),
-	  interrupt_(false),
-	  destroyed_(false) {}
-
-LoadedState::~LoadedState() {
-	destroyed_ = true;
+void WeaponState::SetContext(std::shared_ptr<Weapon> context) {
+	pImpl->SetContext(context);
 }
 
-void LoadedState::Update(const double&) {
-	if (!cooldown_) {
-		cooldown_ = true;
-		last_attack_time_ = TimeManager::GetInstance().GetCurrentTime();
-		std::thread attack_thread(&LoadedState::AttackAnimation, this);
-		attack_thread.detach();
+void WeaponState::OnContextSet() {
+	pImpl->OnContextSet();
+}
+void WeaponState::TransitionRequest(WeaponStateType state_type) {
+	switch (state_type) {
+		case WeaponStateType::Loaded:
+			pImpl->TransitionRequest(std::make_shared<LoadedState>());
+			break;
+		case WeaponStateType::OutOfAmmo:
+			pImpl->TransitionRequest(std::make_shared<OutOfAmmoState>());
+			break;
+		case WeaponStateType::Reloading:
+			pImpl->TransitionRequest(std::make_shared<ReloadingState>());
+			break;
+		default:
+			break;
 	}
 }
 
-WeaponStateType LoadedState::GetType() const {
-	return WeaponStateType::Loaded;
+void WeaponState::operator=(const WeaponStatePtr& state) {
+	pImpl->operator=(state);
 }
 
-void LoadedState::AttackAnimation() {
-	auto attack_time = last_attack_time_;
-	auto current_time = TimeManager::GetInstance().GetCurrentTime();
-	while (current_time - last_attack_time_ < animation_speed_ && !interrupt_ &&
-		   !destroyed_) {
-		auto time_elapsed = current_time - attack_time;
-		animation_->Update(time_elapsed);
-		attack_time = current_time;
-		current_time = TimeManager::GetInstance().GetCurrentTime();
+void WeaponState::operator=(const WeaponStateType state) {
+	WeaponStatePtr state_ptr;
+	switch (state) {
+		case WeaponStateType::Loaded:
+			state_ptr = std::make_shared<LoadedState>();
+			break;
+		case WeaponStateType::OutOfAmmo:
+			state_ptr = std::make_shared<OutOfAmmoState>();
+			break;
+		case WeaponStateType::Reloading:
+			state_ptr = std::make_shared<ReloadingState>();
+			break;
+		default:
+			break;
 	}
-	if (destroyed_) {
-		return;
-	}
-	animation_->Reset();
-	context_->DecreaseAmmo();
-	if (interrupt_) {
-		context_->TransitionTo(requested_state_);
-	}
-	if (context_->GetAmmo() == 0) {
-		std::shared_ptr<State<Weapon>> out_of_ammo_state =
-			std::make_shared<OutOfAmmoState>(weapon_name_);
-		context_->TransitionTo(out_of_ammo_state);
-	}
-	cooldown_ = false;
+	pImpl->operator=(state_ptr);
 }
 
-void LoadedState::Reset() {
-	animation_->Reset();
+int WeaponState::GetCurrentFrame() const {
+	return pImpl->GetCurrentFrame();
 }
-
-void LoadedState::OnContextSet() {
-	animation_speed_ = context_->GetAttackSpeed();
-	auto textures = TextureManager::GetInstance().GetTextureCollection(
-		weapon_data_.at(weapon_name_).at("loaded"));
-	animation_ = std::make_shared<TBSAnimation>(
-		textures, animation_speed_ / textures.size());
-}
-
-void LoadedState::TransitionRequest(std::shared_ptr<State<Weapon>>& state) {
-	if (!cooldown_) {
-		context_->TransitionTo(state);
-	}
-	if (interrupt_) {
-		return;
-	}
-	interrupt_ = true;
-	requested_state_ = state;
-}
-
-int LoadedState::GetCurrentFrame() const {
-	return animation_->GetCurrentFrame();
-}
-
-// ########################################### OutOfAmmoState ###########################################
-OutOfAmmoState::OutOfAmmoState(const std::string weapon_name)
-	: weapon_name_(weapon_name),
-	  last_attack_time_(0),
-	  cooldown_(false),
-	  interrupt_(false),
-	  destroyed_(false) {}
-
-OutOfAmmoState::~OutOfAmmoState() {
-	destroyed_ = true;
-}
-
-void OutOfAmmoState::Update(const double&) {
-
-	if (!cooldown_) {
-		cooldown_ = true;
-		last_attack_time_ = TimeManager::GetInstance().GetCurrentTime();
-		std::thread attack_thread(&OutOfAmmoState::NoAttackAnimation, this);
-		attack_thread.detach();
-	}
-}
-
-WeaponStateType OutOfAmmoState::GetType() const {
-	return WeaponStateType::OutOfAmmo;
-}
-
-void OutOfAmmoState::NoAttackAnimation() {
-	auto attack_time = last_attack_time_;
-	auto current_time = TimeManager::GetInstance().GetCurrentTime();
-	while (current_time - last_attack_time_ < animation_speed_ && !interrupt_ &&
-		   !destroyed_) {
-		auto time_elapsed = current_time - attack_time;
-		animation_->Update(time_elapsed);
-		attack_time = current_time;
-		current_time = TimeManager::GetInstance().GetCurrentTime();
-	}
-	if (destroyed_) {
-		return;
-	}
-	if (interrupt_) {
-		context_->TransitionTo(requested_state_);
-	}
-	animation_->Reset();
-	cooldown_ = false;
-}
-
-void OutOfAmmoState::Reset() {
-	animation_->Reset();
-}
-
-void OutOfAmmoState::OnContextSet() {
-	animation_speed_ = context_->GetAttackSpeed();
-	auto textures = TextureManager::GetInstance().GetTextureCollection(
-		weapon_data_.at(weapon_name_).at("outofammo"));
-	animation_ = std::make_shared<TBSAnimation>(
-		textures, animation_speed_ / textures.size());
-}
-
-void OutOfAmmoState::TransitionRequest(std::shared_ptr<State<Weapon>>& state) {
-	if (!cooldown_) {
-		context_->TransitionTo(state);
-	}
-	if (interrupt_) {
-		return;
-	}
-	interrupt_ = true;
-	requested_state_ = state;
-}
-
-int OutOfAmmoState::GetCurrentFrame() const {
-	return animation_->GetCurrentFrame();
-}
-
-// ########################################### ReloadingState ###########################################
-ReloadingState::ReloadingState(const std::string weapon_name)
-	: weapon_name_(weapon_name),
-	  last_attack_time_(0),
-	  cooldown_(false),
-	  interrupt_(false),
-	  destroyed_(false) {}
-
-ReloadingState::~ReloadingState() {
-	destroyed_ = true;
-}
-
-void ReloadingState::Update(const double&) {
-	if (!cooldown_) {
-		cooldown_ = true;
-		last_attack_time_ = TimeManager::GetInstance().GetCurrentTime();
-		std::thread attack_thread(&ReloadingState::ReloadAnimation, this);
-		attack_thread.detach();
-	}
-}
-
-WeaponStateType ReloadingState::GetType() const {
-	return WeaponStateType::Reloading;
-}
-
-void ReloadingState::ReloadAnimation() {
-	auto attack_time = last_attack_time_;
-	auto current_time = TimeManager::GetInstance().GetCurrentTime();
-	while (current_time - last_attack_time_ < animation_speed_ && !interrupt_ &&
-		   !destroyed_) {
-		auto time_elapsed = current_time - attack_time;
-		animation_->Update(time_elapsed);
-		attack_time = current_time;
-		current_time = TimeManager::GetInstance().GetCurrentTime();
-	}
-	if (destroyed_) {
-		return;
-	}
-	context_->Charge();
-	std::shared_ptr<State<Weapon>> loaded_state =
-		std::make_shared<LoadedState>(weapon_name_);
-	context_->TransitionTo(loaded_state);
-}
-
-void ReloadingState::Reset() {
-	animation_->Reset();
-}
-
-void ReloadingState::OnContextSet() {
-	animation_speed_ = context_->GetReloadSpeed();
-	auto textures = TextureManager::GetInstance().GetTextureCollection(
-		weapon_data_.at(weapon_name_).at("reload"));
-	animation_ = std::make_shared<TBSAnimation>(
-		textures, animation_speed_ / textures.size());
-}
-
-int ReloadingState::GetCurrentFrame() const {
-	return animation_->GetCurrentFrame();
+WeaponStateType WeaponState::GetType() const {
+	return pImpl->GetType();
 }
 
 }  // namespace wolfenstein

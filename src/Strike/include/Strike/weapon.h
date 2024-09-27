@@ -40,6 +40,7 @@ class Weapon : public IStrike, public std::enable_shared_from_this<Weapon>
 	void Charge();
 	void Reload();
 	void TransitionTo(WeaponStatePtr& state);
+	void TransitionTo(WeaponStateType state_type);
 
 	void IncreaseAmmo();
 	void IncreaseAmmo(size_t amount);
@@ -57,7 +58,7 @@ class Weapon : public IStrike, public std::enable_shared_from_this<Weapon>
   private:
 	WeaponConfig weapon_properties_;
 	size_t ammo_;
-	WeaponStatePtr state_;
+	WeaponStateImplPtr state_;
 };
 
 }  // namespace wolfenstein

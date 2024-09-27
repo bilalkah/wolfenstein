@@ -13,8 +13,7 @@ Player::Player(CharacterConfig& config)
 	  translation_speed_(config.translation_speed) {
 	id_ = UuidGenerator::GetInstance().GenerateUuid().bytes();
 	weapon_ = std::make_shared<Weapon>("mp5");
-	WeaponStatePtr loaded_state = std::make_shared<LoadedState>("mp5");
-	weapon_->TransitionTo(loaded_state);
+	weapon_->TransitionTo(WeaponStateType::Loaded);
 }
 
 void Player::Update(double delta_time) {
