@@ -12,8 +12,9 @@ Player::Player(CharacterConfig& config)
 	  rotation_speed_(config.rotation_speed),
 	  translation_speed_(config.translation_speed) {
 	id_ = UuidGenerator::GetInstance().GenerateUuid().bytes();
+
 	weapon_ = std::make_shared<Weapon>("mp5");
-	WeaponStatePtr loaded_state = std::make_shared<LoadedState>("mp5");
+	WeaponStatePtr loaded_state = std::make_shared<LoadedState>();
 	weapon_->TransitionTo(loaded_state);
 }
 
@@ -40,6 +41,18 @@ ObjectType Player::GetObjectType() const {
 
 void Player::SetPosition(Position2D position) {
 	position_ = position;
+}
+
+void Player::IncreaseHealth(double amount) {
+	health_ += amount;
+}
+
+void Player::DecreaseHealth(double amount) {
+	health_ -= amount;
+}
+
+double Player::GetHealth() const {
+	return health_;
 }
 
 Position2D Player::GetPosition() const {

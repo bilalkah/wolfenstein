@@ -10,12 +10,12 @@ target_include_directories(character PUBLIC
 target_link_libraries(
     character
     PUBLIC
-    game_object
-    vector
-    collision_manager
     animation
-    SDL2
-    weapon
+    collision_manager
     enemy_state
+    game_object
+    SDL2
+    vector
+    weapon
 )
 

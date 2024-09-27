@@ -17,6 +17,10 @@
 
 namespace wolfenstein {
 
+namespace {
+constexpr double kIdlePatrolDistance = 0.5;
+}  // namespace
+
 class Enemy;
 typedef std::shared_ptr<State<Enemy>> EnemyStatePtr;
 
@@ -27,39 +31,42 @@ struct StateType<Enemy>
 };
 typedef StateType<Enemy>::Type EnemyStateType;
 
+// ########################################### IdleState ###########################################
 class IdleState : public State<Enemy>
 {
   public:
-	IdleState(const std::string bot_name);
+	IdleState();
 	~IdleState();
 
 	void Update(const double& delta_time) override;
 	void Reset() override;
+	void OnContextSet() override;
 	int GetCurrentFrame() const override;
 	EnemyStateType GetType() const override;
 
   private:
-	std::string bot_name_;
 	int current_frame;
 	double counter;
 	double interval;
 	double animation_speed_;
+	double patrol_distance{0.25};
 	std::vector<uint16_t> textures;
 };
 
+// ########################################### WalkState ###########################################
 class WalkState : public State<Enemy>
 {
   public:
-	WalkState(const std::string bot_name);
+	WalkState();
 	~WalkState();
 
 	void Update(const double& delta_time) override;
 	void Reset() override;
+	void OnContextSet() override;
 	int GetCurrentFrame() const override;
 	EnemyStateType GetType() const override;
 
   private:
-	std::string bot_name_;
 	int current_frame;
 	double counter;
 	double interval;
@@ -67,19 +74,20 @@ class WalkState : public State<Enemy>
 	std::vector<uint16_t> textures;
 };
 
+// ########################################### AttackState ###########################################
 class AttackState : public State<Enemy>
 {
   public:
-	AttackState(const std::string bot_name);
+	AttackState();
 	~AttackState();
 
 	void Update(const double& delta_time) override;
 	void Reset() override;
+	void OnContextSet() override;
 	int GetCurrentFrame() const override;
 	EnemyStateType GetType() const override;
 
   private:
-	std::string bot_name_;
 	int current_frame;
 	double counter;
 	double interval;
@@ -87,19 +95,20 @@ class AttackState : public State<Enemy>
 	std::vector<uint16_t> textures;
 };
 
+// ########################################### PainState ###########################################
 class PainState : public State<Enemy>
 {
   public:
-	PainState(const std::string bot_name);
+	PainState();
 	~PainState();
 
 	void Update(const double& delta_time) override;
 	void Reset() override;
+	void OnContextSet() override;
 	int GetCurrentFrame() const override;
 	EnemyStateType GetType() const override;
 
   private:
-	std::string bot_name_;
 	int current_frame;
 	double counter;
 	double interval;
@@ -107,19 +116,20 @@ class PainState : public State<Enemy>
 	std::vector<uint16_t> textures;
 };
 
+// ########################################### DeathState ###########################################
 class DeathState : public State<Enemy>
 {
   public:
-	DeathState(const std::string bot_name);
+	DeathState();
 	~DeathState();
 
 	void Update(const double& delta_time) override;
 	void Reset() override;
+	void OnContextSet() override;
 	int GetCurrentFrame() const override;
 	EnemyStateType GetType() const override;
 
   private:
-	std::string bot_name_;
 	int current_frame;
 	double counter;
 	double interval;

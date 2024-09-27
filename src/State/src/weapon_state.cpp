@@ -1,30 +1,16 @@
 #include "State/weapon_state.h"
+#include "Animation/time_based_single_animation.h"
 #include "State/state.h"
 #include "Strike/weapon.h"
-#include "TextureManager/texture_manager.h"
 #include "TimeManager/time_manager.h"
-#include <SDL2/SDL.h>
 #include <memory>
 #include <thread>
-#include <unordered_map>
 
 namespace wolfenstein {
 
-namespace {
-
-const std::unordered_map<std::string,
-						 std::unordered_map<std::string, std::string>>
-	weapon_data_{{"mp5",
-				  {{"loaded", "mp5_loaded"},
-				   {"outofammo", "mp5_outofammo"},
-				   {"reload", "mp5_reload"}}}};
-
-}
-
 // ########################################### LoadedState ###########################################
-LoadedState::LoadedState(const std::string weapon_name)
-	: weapon_name_(weapon_name),
-	  last_attack_time_(0),
+LoadedState::LoadedState()
+	: last_attack_time_(0),
 	  cooldown_(false),
 	  interrupt_(false),
 	  destroyed_(false) {}
@@ -66,7 +52,7 @@ void LoadedState::AttackAnimation() {
 	}
 	if (context_->GetAmmo() == 0) {
 		std::shared_ptr<State<Weapon>> out_of_ammo_state =
-			std::make_shared<OutOfAmmoState>(weapon_name_);
+			std::make_shared<OutOfAmmoState>();
 		context_->TransitionTo(out_of_ammo_state);
 	}
 	cooldown_ = false;
@@ -78,10 +64,8 @@ void LoadedState::Reset() {
 
 void LoadedState::OnContextSet() {
 	animation_speed_ = context_->GetAttackSpeed();
-	auto textures = TextureManager::GetInstance().GetTextureCollection(
-		weapon_data_.at(weapon_name_).at("loaded"));
-	animation_ = std::make_shared<TBSAnimation>(
-		textures, animation_speed_ / textures.size());
+	animation_ = std::make_unique<TBSAnimation>(
+		context_->GetWeaponName() + "_loaded", context_->GetAttackSpeed());
 }
 
 void LoadedState::TransitionRequest(std::shared_ptr<State<Weapon>>& state) {
@@ -100,9 +84,8 @@ int LoadedState::GetCurrentFrame() const {
 }
 
 // ########################################### OutOfAmmoState ###########################################
-OutOfAmmoState::OutOfAmmoState(const std::string weapon_name)
-	: weapon_name_(weapon_name),
-	  last_attack_time_(0),
+OutOfAmmoState::OutOfAmmoState()
+	: last_attack_time_(0),
 	  cooldown_(false),
 	  interrupt_(false),
 	  destroyed_(false) {}
@@ -151,10 +134,8 @@ void OutOfAmmoState::Reset() {
 
 void OutOfAmmoState::OnContextSet() {
 	animation_speed_ = context_->GetAttackSpeed();
-	auto textures = TextureManager::GetInstance().GetTextureCollection(
-		weapon_data_.at(weapon_name_).at("outofammo"));
-	animation_ = std::make_shared<TBSAnimation>(
-		textures, animation_speed_ / textures.size());
+	animation_ = std::make_unique<TBSAnimation>(
+		context_->GetWeaponName() + "_outofammo", context_->GetAttackSpeed());
 }
 
 void OutOfAmmoState::TransitionRequest(std::shared_ptr<State<Weapon>>& state) {
@@ -173,9 +154,8 @@ int OutOfAmmoState::GetCurrentFrame() const {
 }
 
 // ########################################### ReloadingState ###########################################
-ReloadingState::ReloadingState(const std::string weapon_name)
-	: weapon_name_(weapon_name),
-	  last_attack_time_(0),
+ReloadingState::ReloadingState()
+	: last_attack_time_(0),
 	  cooldown_(false),
 	  interrupt_(false),
 	  destroyed_(false) {}
@@ -212,7 +192,7 @@ void ReloadingState::ReloadAnimation() {
 	}
 	context_->Charge();
 	std::shared_ptr<State<Weapon>> loaded_state =
-		std::make_shared<LoadedState>(weapon_name_);
+		std::make_shared<LoadedState>();
 	context_->TransitionTo(loaded_state);
 }
 
@@ -222,10 +202,8 @@ void ReloadingState::Reset() {
 
 void ReloadingState::OnContextSet() {
 	animation_speed_ = context_->GetReloadSpeed();
-	auto textures = TextureManager::GetInstance().GetTextureCollection(
-		weapon_data_.at(weapon_name_).at("reload"));
-	animation_ = std::make_shared<TBSAnimation>(
-		textures, animation_speed_ / textures.size());
+	animation_ = std::make_unique<TBSAnimation>(
+		context_->GetWeaponName() + "_reload", animation_speed_);
 }
 
 int ReloadingState::GetCurrentFrame() const {

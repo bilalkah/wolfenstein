@@ -6,19 +6,15 @@
 
 namespace wolfenstein {
 
-Enemy::Enemy(CharacterConfig config, EnemyStatePtr state,
-			 double width, double height)
-	: position_(config.initial_position),
+Enemy::Enemy(std::string bot_name, CharacterConfig config)
+	: bot_name_(bot_name),
+	  position_(config.initial_position),
 	  rotation_speed_(config.rotation_speed),
 	  translation_speed_(config.translation_speed),
-	  state_(state),
-	  width(width),
-	  height(height),
-	  id_(UuidGenerator::GetInstance().GenerateUuid().bytes()) {}
-
-void Enemy::Init() {
-	state_->SetContext(shared_from_this());
-}
+	  width(config.width),
+	  height(config.height),
+	  id_(UuidGenerator::GetInstance().GenerateUuid().bytes()),
+	  next_pose(position_.pose) {}
 
 void Enemy::TransitionTo(EnemyStatePtr state) {
 	state_ = state;
@@ -48,12 +44,28 @@ void Enemy::SetPosition(Position2D position) {
 	position_ = position;
 }
 
+void Enemy::IncreaseHealth(double amount) {
+	health_ += amount;
+}
+
+void Enemy::DecreaseHealth(double amount) {
+	health_ -= amount;
+}
+
+double Enemy::GetHealth() const {
+	return health_;
+}
+
 Position2D Enemy::GetPosition() const {
 	return position_;
 }
 
 std::string Enemy::GetId() const {
 	return id_;
+}
+
+std::string Enemy::GetBotName() const {
+	return bot_name_;
 }
 
 void Enemy::Move(double delta_time) {
@@ -83,6 +95,13 @@ double Enemy::GetWidth() const {
 }
 double Enemy::GetHeight() const {
 	return height;
+}
+
+std::shared_ptr<Enemy> EnemyFactory::CreateEnemy(std::string bot_name,
+												 CharacterConfig config) {
+	auto enemy_ptr = std::make_shared<Enemy>(bot_name, config);
+	enemy_ptr->TransitionTo(std::make_shared<IdleState>());
+	return enemy_ptr;
 }
 
 }  // namespace wolfenstein

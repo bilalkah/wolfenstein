@@ -27,9 +27,6 @@ target_link_libraries(
     PUBLIC
     game_object
     ray
-    character
-    vector
-    map
     scene
-    texture_manager
+    vector
 )

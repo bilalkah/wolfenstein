@@ -31,7 +31,6 @@ struct WeaponConfig
 class Weapon : public IStrike, public std::enable_shared_from_this<Weapon>
 {
   public:
-	enum class StateType { Loaded, OutOfAmmo, Reloading };
 	Weapon(std::string weapon_name);
 	~Weapon();
 	void Init();

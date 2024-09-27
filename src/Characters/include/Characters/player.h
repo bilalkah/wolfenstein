@@ -33,6 +33,9 @@ class Player : public ICharacter, public IGameObject
 	ObjectType GetObjectType() const override;
 	vector2d GetPose() const override;
 	void SetPosition(Position2D position) override;
+	void IncreaseHealth(double amount) override;
+	void DecreaseHealth(double amount) override;
+	double GetHealth() const override;
 	Position2D GetPosition() const override;
 	std::string GetId() const override;
 	int GetTextureId() const override;
@@ -50,6 +53,7 @@ class Player : public ICharacter, public IGameObject
 	double translation_speed_;
 	double width_{0.4};
 	double height_{1.0};
+	double health_{100};
 	std::string id_;
 	std::shared_ptr<Weapon> weapon_;
 	std::vector<std::function<void(Position2D)>> player_position_subscribers_;

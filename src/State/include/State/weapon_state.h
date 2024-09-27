@@ -28,10 +28,11 @@ struct StateType<Weapon>
 };
 typedef StateType<Weapon>::Type WeaponStateType;
 
+// ########################################### LoadedState ###########################################
 class LoadedState : public State<Weapon>
 {
   public:
-	LoadedState(const std::string weapon_name);
+	LoadedState();
 	~LoadedState();
 
 	void Update(const double&) override;
@@ -43,20 +44,20 @@ class LoadedState : public State<Weapon>
 
   private:
 	void AttackAnimation();
-	std::string weapon_name_;
 	double last_attack_time_;
 	double animation_speed_;
 	bool cooldown_;
 	bool interrupt_;
 	bool destroyed_;
 	WeaponStatePtr requested_state_;
-	std::shared_ptr<TBSAnimation> animation_;
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
+// ########################################### OutOfAmmoState ###########################################
 class OutOfAmmoState : public State<Weapon>
 {
   public:
-	OutOfAmmoState(const std::string weapon_name);
+	OutOfAmmoState();
 	~OutOfAmmoState();
 
 	void Update(const double&) override;
@@ -68,20 +69,20 @@ class OutOfAmmoState : public State<Weapon>
 
   private:
 	void NoAttackAnimation();
-	std::string weapon_name_;
 	double last_attack_time_;
 	double animation_speed_;
 	bool cooldown_;
 	bool interrupt_;
 	bool destroyed_;
 	WeaponStatePtr requested_state_;
-	std::shared_ptr<TBSAnimation> animation_;
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
+// ########################################### ReloadingState ###########################################
 class ReloadingState : public State<Weapon>
 {
   public:
-	ReloadingState(const std::string weapon_name);
+	ReloadingState();
 	~ReloadingState();
 
 	void Update(const double&) override;
@@ -92,13 +93,12 @@ class ReloadingState : public State<Weapon>
 
   private:
 	void ReloadAnimation();
-	std::string weapon_name_;
 	double last_attack_time_;
 	double animation_speed_;
 	bool cooldown_;
 	bool interrupt_;
 	bool destroyed_;
-	std::shared_ptr<TBSAnimation> animation_;
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
 }  // namespace wolfenstein

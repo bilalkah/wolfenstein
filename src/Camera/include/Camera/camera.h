@@ -14,11 +14,8 @@
 
 #include "Camera/ray.h"
 #include "Camera/raycaster.h"
-#include "Characters/character.h"
 #include "Core/scene.h"
 #include "GameObjects/game_object.h"
-#include "GameObjects/static_object.h"
-#include "Map/map.h"
 
 #include <memory>
 #include <optional>
