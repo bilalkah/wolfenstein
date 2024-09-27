@@ -8,7 +8,6 @@ void Scene::AddObject(std::shared_ptr<IGameObject> object) {
 	objects.push_back(object);
 	if (object->GetObjectType() == ObjectType::CHARACTER_ENEMY) {
 		auto enemy = std::dynamic_pointer_cast<Enemy>(object);
-		enemy->Init();
 		enemies.push_back(enemy);
 	}
 }
@@ -23,10 +22,10 @@ void Scene::SetPlayer(std::shared_ptr<Player> player) {
 
 void Scene::Update(double delta_time) {
 	player->Update(delta_time);
-	for (auto& enemy : enemies) {
-		enemy->SetNextPose(NavigationManager::GetInstance().FindPath(
-			enemy->GetPosition(), player->GetPosition(), enemy->GetId()));
-	}
+	// for (auto& enemy : enemies) {
+	// 	enemy->SetNextPose(NavigationManager::GetInstance().FindPath(
+	// 		enemy->GetPosition(), player->GetPosition(), enemy->GetId()));
+	// }
 	for (auto& object : objects) {
 		object->Update(delta_time);
 	}

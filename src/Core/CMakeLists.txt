@@ -13,6 +13,7 @@ target_link_libraries(
     map
     navigation_manager
     collision_manager
+    character
 )
 
 add_library(

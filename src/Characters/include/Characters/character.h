@@ -32,6 +32,8 @@ struct CharacterConfig
 	Position2D initial_position;
 	double translation_speed;
 	double rotation_speed;
+	double width;
+	double height;
 };
 
 class ICharacter
@@ -41,6 +43,9 @@ class ICharacter
 
 	virtual void SetPosition(Position2D position) = 0;
 	virtual Position2D GetPosition() const = 0;
+	virtual void IncreaseHealth(double amount) = 0;
+	virtual void DecreaseHealth(double amount) = 0;
+	virtual double GetHealth() const = 0;
 };
 }  // namespace wolfenstein
 

@@ -19,7 +19,7 @@ auto GetWeaponConfig = [](const std::string& weapon_name) -> WeaponConfig {
 Weapon::Weapon(std::string weapon_name)
 	: weapon_properties_(GetWeaponConfig(weapon_name)),
 	  ammo_(weapon_properties_.ammo_capacity) {
-	state_ = std::make_shared<LoadedState>(weapon_properties_.weapon_name);
+	state_ = std::make_shared<LoadedState>();
 }
 
 Weapon::~Weapon() {}
@@ -37,8 +37,7 @@ void Weapon::Charge() {
 }
 
 void Weapon::Reload() {
-	WeaponStatePtr reloading_state =
-		std::make_shared<ReloadingState>(weapon_properties_.weapon_name);
+	WeaponStatePtr reloading_state = std::make_shared<ReloadingState>();
 	state_->TransitionRequest(reloading_state);
 }
 
