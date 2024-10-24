@@ -35,6 +35,7 @@ class TBSAnimation : public IAnimation
 
   private:
 	std::vector<uint16_t> textures;
+	int textures_size;
 	int current_frame;
 	double animation_speed;
 	double counter;

@@ -20,6 +20,7 @@ Player::Player(CharacterConfig& config)
 
 void Player::Update(double delta_time) {
 	ShootOrReload();
+	weapon_->Update(delta_time);
 	Move(delta_time);
 	Rotate(delta_time);
 	for (auto& subscriber : player_position_subscribers_) {
