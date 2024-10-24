@@ -1,6 +1,8 @@
 #include "Strike/weapon.h"
 #include "State/weapon_state.h"
+#include "TimeManager/time_manager.h"
 #include <cstddef>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 namespace wolfenstein {
@@ -17,9 +19,9 @@ auto GetWeaponConfig = [](const std::string& weapon_name) -> WeaponConfig {
 }  // namespace
 
 Weapon::Weapon(std::string weapon_name)
-	: weapon_properties_(GetWeaponConfig(weapon_name)),
-	  ammo_(weapon_properties_.ammo_capacity) {
-	state_ = std::make_shared<LoadedState>(weapon_properties_.weapon_name);
+	: weapon_properties_(GetWeaponConfig(weapon_name)) {
+	ammo_ = weapon_properties_.ammo_capacity;
+	state_ = std::make_shared<LoadedState>();
 }
 
 Weapon::~Weapon() {}
@@ -29,7 +31,11 @@ void Weapon::Init() {
 }
 
 void Weapon::Attack() {
-	state_->Update(0.0);
+	state_->PullTrigger();
+}
+
+void Weapon::Update(double delta_time) {
+	state_->Update(delta_time);
 }
 
 void Weapon::Charge() {
@@ -37,9 +43,8 @@ void Weapon::Charge() {
 }
 
 void Weapon::Reload() {
-	WeaponStatePtr reloading_state =
-		std::make_shared<ReloadingState>(weapon_properties_.weapon_name);
-	state_->TransitionRequest(reloading_state);
+	WeaponStatePtr reloading_state = std::make_shared<ReloadingState>();
+	TransitionTo(reloading_state);
 }
 
 void Weapon::TransitionTo(WeaponStatePtr& state) {
@@ -48,6 +53,10 @@ void Weapon::TransitionTo(WeaponStatePtr& state) {
 	if (state->GetType() == WeaponStateType::Reloading) {
 		state_->Update(0.0);
 	}
+}
+
+void Weapon::SetAmmo(size_t ammo) {
+	ammo_ = ammo;
 }
 
 void Weapon::IncreaseAmmo() {

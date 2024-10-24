@@ -46,7 +46,8 @@ void Game::Init() {
 									config_.view_distance};
 	camera_ = std::make_shared<Camera2D>(camera_config);
 
-	CharacterConfig player_config = {Position2D({3, 1.5}, 1.50), 2.0, 0.4};
+	CharacterConfig player_config = {Position2D({3, 1.5}, 1.50), 2.0, 0.4, 0.4,
+									 1.0};
 	player_ = std::make_shared<Player>(player_config);
 
 	player_->SubscribeToPlayerPosition(std::bind(
@@ -116,16 +117,18 @@ void Game::Run() {
 }
 
 void Game::PrepareEnemies() {
-	auto caco_demon = std::make_shared<Enemy>(
-		CharacterConfig(Position2D({13.5, 2.5}, 1.50), 0.8, 0.4),
-		std::make_shared<IdleState>("caco_demon"), 0.4, 0.8);
+	auto caco_demon = EnemyFactory::CreateEnemy(
+		"caco_demon",
+		CharacterConfig(Position2D({13.5, 2.5}, 1.50), 0.8, 0.4, 0.4, 0.8));
 
-	auto soldier = std::make_shared<Enemy>(
-		CharacterConfig(Position2D({9, 7}, 1.50), 0.8, 0.4),
-		std::make_shared<IdleState>("soldier"), 0.3, 0.6);
-	auto cyber_demon = std::make_shared<Enemy>(
-		CharacterConfig(Position2D({23.0, 4}, 1.50), 0.8, 0.4),
-		std::make_shared<IdleState>("cyber_demon"), 0.5, 1.0);
+	auto soldier = EnemyFactory::CreateEnemy(
+		"soldier",
+		CharacterConfig(Position2D({9, 7}, 1.50), 0.8, 0.4, 0.3, 0.6));
+		
+	auto cyber_demon = EnemyFactory::CreateEnemy(
+		"cyber_demon",
+		CharacterConfig(Position2D({23.0, 4}, 1.50), 0.8, 0.4, 0.5, 1.0));
+
 	scene_->AddObject(caco_demon);
 	scene_->AddObject(soldier);
 	scene_->AddObject(cyber_demon);

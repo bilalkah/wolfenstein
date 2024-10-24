@@ -19,7 +19,6 @@
 namespace wolfenstein {
 
 class Weapon;
-typedef std::shared_ptr<State<Weapon>> WeaponStatePtr;
 
 template <>
 struct StateType<Weapon>
@@ -28,60 +27,64 @@ struct StateType<Weapon>
 };
 typedef StateType<Weapon>::Type WeaponStateType;
 
-class LoadedState : public State<Weapon>
+class WeaponState : public State<Weapon>
 {
   public:
-	LoadedState(const std::string weapon_name);
+	virtual ~WeaponState() = default;
+	virtual void PullTrigger() {};
+};
+
+typedef std::shared_ptr<WeaponState> WeaponStatePtr;
+
+// ########################################### LoadedState ###########################################
+class LoadedState : public WeaponState
+{
+  public:
+	LoadedState();
 	~LoadedState();
 
 	void Update(const double&) override;
 	void Reset() override;
 	void OnContextSet() override;
-	void TransitionRequest(std::shared_ptr<State<Weapon>>& state) override;
 	int GetCurrentFrame() const override;
 	WeaponStateType GetType() const override;
 
+	void PullTrigger() override;
+
   private:
-	void AttackAnimation();
-	std::string weapon_name_;
-	double last_attack_time_;
-	double animation_speed_;
-	bool cooldown_;
-	bool interrupt_;
-	bool destroyed_;
-	WeaponStatePtr requested_state_;
-	std::shared_ptr<TBSAnimation> animation_;
+	bool trigger_pulled_;
+	double trigger_pull_time_;
+	double fire_rate_;
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
-class OutOfAmmoState : public State<Weapon>
+// ########################################### OutOfAmmoState ###########################################
+class OutOfAmmoState : public WeaponState
 {
   public:
-	OutOfAmmoState(const std::string weapon_name);
+	OutOfAmmoState();
 	~OutOfAmmoState();
 
 	void Update(const double&) override;
 	void Reset() override;
 	void OnContextSet() override;
-	void TransitionRequest(std::shared_ptr<State<Weapon>>& state) override;
 	int GetCurrentFrame() const override;
 	WeaponStateType GetType() const override;
 
+	void PullTrigger() override;
+
   private:
-	void NoAttackAnimation();
-	std::string weapon_name_;
-	double last_attack_time_;
-	double animation_speed_;
-	bool cooldown_;
-	bool interrupt_;
-	bool destroyed_;
-	WeaponStatePtr requested_state_;
-	std::shared_ptr<TBSAnimation> animation_;
+	bool trigger_pulled_;
+	double trigger_pull_time_;
+	double fire_rate_;
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
-class ReloadingState : public State<Weapon>
+// ########################################### ReloadingState ###########################################
+class ReloadingState : public WeaponState
 {
   public:
-	ReloadingState(const std::string weapon_name);
+	ReloadingState();
 	~ReloadingState();
 
 	void Update(const double&) override;
@@ -91,14 +94,9 @@ class ReloadingState : public State<Weapon>
 	WeaponStateType GetType() const override;
 
   private:
-	void ReloadAnimation();
-	std::string weapon_name_;
-	double last_attack_time_;
-	double animation_speed_;
-	bool cooldown_;
-	bool interrupt_;
-	bool destroyed_;
-	std::shared_ptr<TBSAnimation> animation_;
+	double reload_time_;
+	double reload_speed_;
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
 }  // namespace wolfenstein
