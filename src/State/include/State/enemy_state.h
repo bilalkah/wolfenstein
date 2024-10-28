@@ -22,7 +22,6 @@ constexpr double kIdlePatrolDistance = 0.5;
 }  // namespace
 
 class Enemy;
-typedef std::shared_ptr<State<Enemy>> EnemyStatePtr;
 
 template <>
 struct StateType<Enemy>
@@ -31,8 +30,16 @@ struct StateType<Enemy>
 };
 typedef StateType<Enemy>::Type EnemyStateType;
 
+class EnemyState : public State<Enemy>
+{
+  public:
+	virtual ~EnemyState() = default;
+};
+
+typedef std::shared_ptr<EnemyState> EnemyStatePtr;
+
 // ########################################### IdleState ###########################################
-class IdleState : public State<Enemy>
+class IdleState : public EnemyState
 {
   public:
 	IdleState();
@@ -54,7 +61,7 @@ class IdleState : public State<Enemy>
 };
 
 // ########################################### WalkState ###########################################
-class WalkState : public State<Enemy>
+class WalkState : public EnemyState
 {
   public:
 	WalkState();
@@ -75,7 +82,7 @@ class WalkState : public State<Enemy>
 };
 
 // ########################################### AttackState ###########################################
-class AttackState : public State<Enemy>
+class AttackState : public EnemyState
 {
   public:
 	AttackState();
@@ -96,7 +103,7 @@ class AttackState : public State<Enemy>
 };
 
 // ########################################### PainState ###########################################
-class PainState : public State<Enemy>
+class PainState : public EnemyState
 {
   public:
 	PainState();
@@ -117,7 +124,7 @@ class PainState : public State<Enemy>
 };
 
 // ########################################### DeathState ###########################################
-class DeathState : public State<Enemy>
+class DeathState : public EnemyState
 {
   public:
 	DeathState();

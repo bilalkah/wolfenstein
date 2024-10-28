@@ -16,9 +16,9 @@ void IdleState::Update(const double& delta_time) {
 		counter = 0;
 	}
 	interval += delta_time;
-	if (interval > 5) {
-		context_->TransitionTo(std::make_shared<WalkState>());
-	}
+	// if (interval > 5) {
+	// 	context_->TransitionTo(std::make_shared<WalkState>());
+	// }
 }
 
 void IdleState::Reset() {
