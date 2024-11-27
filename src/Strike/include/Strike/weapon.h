@@ -20,6 +20,15 @@ namespace wolfenstein {
 
 struct WeaponConfig
 {
+	WeaponConfig(std::string weapon_name, size_t ammo_capacity,
+				 double attack_damage, double attack_range, double attack_speed,
+				 double reload_speed)
+		: weapon_name(weapon_name),
+		  ammo_capacity(ammo_capacity),
+		  attack_damage(attack_damage),
+		  attack_range(attack_range),
+		  attack_speed(attack_speed),
+		  reload_speed(reload_speed) {}
 	std::string weapon_name;
 	size_t ammo_capacity;
 	double attack_damage;

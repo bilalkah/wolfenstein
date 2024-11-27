@@ -12,14 +12,12 @@
 #ifndef STATE_INCLUDE_STATE_ENEMY_STATE_H_
 #define STATE_INCLUDE_STATE_ENEMY_STATE_H_
 
+#include "Animation/time_based_single_animation.h"
 #include "State/state.h"
+#include <memory>
 #include <vector>
 
 namespace wolfenstein {
-
-namespace {
-constexpr double kIdlePatrolDistance = 0.5;
-}  // namespace
 
 class Enemy;
 
@@ -52,12 +50,9 @@ class IdleState : public EnemyState
 	EnemyStateType GetType() const override;
 
   private:
-	int current_frame;
-	double counter;
-	double interval;
 	double animation_speed_;
-	double patrol_distance{0.25};
-	std::vector<uint16_t> textures;
+	double range_;
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
 // ########################################### WalkState ###########################################
@@ -74,11 +69,14 @@ class WalkState : public EnemyState
 	EnemyStateType GetType() const override;
 
   private:
-	int current_frame;
-	double counter;
-	double interval;
 	double animation_speed_;
-	std::vector<uint16_t> textures;
+	double range_max_;
+	double range_min_;
+	double attack_range_;
+	double attack_rate_;
+	double attack_counter_;
+	bool is_attacked_;
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
 // ########################################### AttackState ###########################################
@@ -95,11 +93,9 @@ class AttackState : public EnemyState
 	EnemyStateType GetType() const override;
 
   private:
-	int current_frame;
-	double counter;
-	double interval;
 	double animation_speed_;
-	std::vector<uint16_t> textures;
+	double attack_counter_;
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
 // ########################################### PainState ###########################################
@@ -116,11 +112,9 @@ class PainState : public EnemyState
 	EnemyStateType GetType() const override;
 
   private:
-	int current_frame;
-	double counter;
-	double interval;
 	double animation_speed_;
-	std::vector<uint16_t> textures;
+	double counter;
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
 // ########################################### DeathState ###########################################
@@ -137,11 +131,9 @@ class DeathState : public EnemyState
 	EnemyStateType GetType() const override;
 
   private:
-	int current_frame;
-	double counter;
-	double interval;
 	double animation_speed_;
-	std::vector<uint16_t> textures;
+	double counter;
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
 }  // namespace wolfenstein

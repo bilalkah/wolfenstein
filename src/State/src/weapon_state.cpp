@@ -3,6 +3,7 @@
 #include "State/state.h"
 #include "Strike/weapon.h"
 #include <memory>
+#include "ShootingManager/shooting_manager.h"
 
 namespace wolfenstein {
 
@@ -53,6 +54,7 @@ void LoadedState::PullTrigger() {
 	trigger_pulled_ = true;
 	trigger_pull_time_ = 0;
 	context_->DecreaseAmmo();
+	ShootingManager::GetInstance().PlayerShoot();
 }
 
 // ########################################### OutOfAmmoState ###########################################
