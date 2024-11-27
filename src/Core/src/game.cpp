@@ -1,12 +1,13 @@
 #include "Core/game.h"
-// #include "Animation/animator.h"
 #include "Animation/time_based_single_animation.h"
+#include "Camera/single_raycaster.h"
 #include "Characters/enemy.h"
 #include "GameObjects/dynamic_object.h"
 #include "GameObjects/static_object.h"
 #include "Graphics/renderer.h"
 #include "Math/vector.h"
 #include "NavigationManager/navigation_manager.h"
+#include "ShootingManager/shooting_manager.h"
 #include "State/enemy_state.h"
 #include "TextureManager/texture_manager.h"
 #include "TimeManager/time_manager.h"
@@ -32,25 +33,39 @@ void Game::Init() {
 
 	CollisionManager::GetInstance().InitManager(map_);
 	NavigationManager::GetInstance().InitManager(map_);
-
+	SingleRayCasterService::GetInstance().InitService(map_);
 	scene_ = std::make_shared<Scene>();
 	scene_->SetMap(map_);
+
+	Camera2DConfig camera_config = {config_.screen_width, config_.fov,
+									config_.view_distance};
+	auto camera_ = std::make_shared<Camera2D>(camera_config, scene_);
 
 	RenderConfig render_config = {config_.screen_width, config_.screen_height,
 								  config_.padding,		config_.scale,
 								  config_.fps,			config_.view_distance,
 								  config_.fov,			config_.fullscreen};
-	renderer_ = std::make_shared<Renderer>("Wolfenstein", render_config);
+	renderer_ =
+		std::make_shared<Renderer>("Wolfenstein", render_config, camera_);
 
-	Camera2DConfig camera_config = {config_.screen_width, config_.fov,
-									config_.view_distance};
-	camera_ = std::make_shared<Camera2D>(camera_config);
-
-	CharacterConfig player_config = {Position2D({3, 1.5}, 1.50), 2.0, 0.4};
-	player_ = std::make_shared<Player>(player_config);
+	CharacterConfig player_config = {Position2D({3, 1.5}, 1.50), 2.0, 0.4, 0.4,
+									 1.0};
+	player_ = std::make_shared<Player>(player_config, camera_);
 
 	player_->SubscribeToPlayerPosition(std::bind(
-		[this](Position2D position) { camera_->SetPosition(position); },
+		[camera_](Position2D position) { camera_->SetPosition(position); },
+		std::placeholders::_1));
+	player_->SubscribeToPlayerPosition(std::bind(
+		[](Position2D position) {
+			NavigationManager::GetInstance().SubscribePlayerPosition(position);
+		},
+		std::placeholders::_1));
+
+	player_->SubscribeToPlayerPosition(std::bind(
+		[](Position2D position) {
+			SingleRayCasterService::GetInstance().SubscribePlayerPose(
+				position.pose);
+		},
 		std::placeholders::_1));
 
 	scene_->SetPlayer(player_);
@@ -58,6 +73,9 @@ void Game::Init() {
 	PrepareEnemies();
 	PrepareDynamicObjects();
 	PrepareStaticObjects();
+
+	ShootingManager::GetInstance().InitManager(map_, player_,
+											   scene_->GetEnemies());
 
 	is_running_ = true;
 	TimeManager::GetInstance().InitClock();
@@ -103,31 +121,37 @@ void Game::Run() {
 		CheckEvent();
 		TimeManager::GetInstance().CalculateDeltaTime();
 		scene_->Update(TimeManager::GetInstance().GetDeltaTime());
-		camera_->Update(scene_);
 		switch (render_type_) {
 			case RenderType::TEXTURE:
-				renderer_->RenderScene(scene_, camera_);
+				renderer_->RenderScene(scene_);
 				break;
 			case RenderType::LINE:
-				renderer_->RenderScene2D(scene_, camera_);
+				renderer_->RenderScene2D(scene_);
 				break;
 		}
 	}
 }
 
 void Game::PrepareEnemies() {
-	auto caco_demon = std::make_shared<Enemy>(
-		CharacterConfig(Position2D({13.5, 2.5}, 1.50), 0.8, 0.4),
-		std::make_shared<IdleState>("caco_demon"), 0.4, 0.8);
+	auto caco_demon = EnemyFactory::CreateEnemy(
+		"caco_demon",
+		CharacterConfig(Position2D({13.5, 2.5}, 1.50), 0.8, 0.4, 0.4, 0.8));
 
-	auto soldier = std::make_shared<Enemy>(
-		CharacterConfig(Position2D({9, 7}, 1.50), 0.8, 0.4),
-		std::make_shared<IdleState>("soldier"), 0.3, 0.6);
-	auto cyber_demon = std::make_shared<Enemy>(
-		CharacterConfig(Position2D({23.0, 4}, 1.50), 0.8, 0.4),
-		std::make_shared<IdleState>("cyber_demon"), 0.5, 1.0);
+	auto soldier = EnemyFactory::CreateEnemy(
+		"soldier",
+		CharacterConfig(Position2D({9, 7}, 1.50), 0.8, 0.4, 0.3, 0.6));
+
+	auto soldier_2 = EnemyFactory::CreateEnemy(
+		"soldier",
+		CharacterConfig(Position2D({9, 8}, 1.50), 0.8, 0.4, 0.3, 0.6));
+
+	auto cyber_demon = EnemyFactory::CreateEnemy(
+		"cyber_demon",
+		CharacterConfig(Position2D({23.0, 4}, 1.50), 0.8, 0.4, 0.5, 1.0));
+
 	scene_->AddObject(caco_demon);
 	scene_->AddObject(soldier);
+	scene_->AddObject(soldier_2);
 	scene_->AddObject(cyber_demon);
 }
 

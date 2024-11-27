@@ -1,6 +1,7 @@
 #include "NavigationManager/navigation_manager.h"
 #include "Math/vector.h"
 #include "NavigationManager/navigation_helper.h"
+#include <string>
 #include <vector>
 
 namespace wolfenstein {
@@ -22,14 +23,11 @@ void NavigationManager::InitManager(std::shared_ptr<Map> map) {
 //@Note apply caching mechanism later
 vector2d NavigationManager::FindPath(Position2D start, Position2D end,
 									 std::string id) {
-	if (start.pose.Distance(end.pose) < 0.1) {
-		return start.pose;
-	}
-	if (start.pose.Distance(end.pose) > 5) {
+	const auto res = map_->GetResolution();
+	if (start.pose.Distance(end.pose) < (res * 0.9)) {
 		paths_[id] = {start.pose};
 		return start.pose;
 	}
-	const auto res = map_->GetResolution();
 
 	planning::Node start_node = FromVector2d(start.pose / res);
 	planning::Node end_node = FromVector2d(end.pose / res);
@@ -51,12 +49,34 @@ vector2d NavigationManager::FindPath(Position2D start, Position2D end,
 	}
 	path_vector.erase(path_vector.begin());
 	auto next = path_vector.front();
-	
+
 	return next;
+}
+
+vector2d NavigationManager::FindPathToPlayer(Position2D start, std::string id) {
+	return FindPath(start, player_position_, id);
 }
 
 std::vector<vector2d> NavigationManager::GetPath(std::string id) {
 	return paths_[id];
+}
+
+void NavigationManager::ResetPath(std::string id) {
+	paths_[id].clear();
+}
+
+void NavigationManager::SubscribePlayerPosition(const Position2D& position) {
+	player_position_ = position;
+}
+
+double NavigationManager::EuclideanDistanceToPlayer(
+	const Position2D& position) {
+	return player_position_.pose.Distance(position.pose);
+}
+
+double NavigationManager::ManhattanDistanceToPlayer(
+	const Position2D& position) {
+	return player_position_.pose.MDistance(position.pose);
 }
 
 }  // namespace wolfenstein

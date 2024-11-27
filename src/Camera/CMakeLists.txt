@@ -27,9 +27,22 @@ target_link_libraries(
     PUBLIC
     game_object
     ray
-    character
+    scene
+    vector
+)
+
+add_library(
+    single_raycaster
+    STATIC
+    src/single_raycaster.cpp
+)
+target_include_directories(single_raycaster PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(
+    single_raycaster
+    PUBLIC
+    ray
     vector
     map
-    scene
-    texture_manager
 )

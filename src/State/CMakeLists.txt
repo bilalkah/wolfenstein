@@ -12,6 +12,8 @@ target_link_libraries(
     enemy_state 
     PUBLIC
     character
+    animation
+    navigation_manager
     texture_manager
 )
 
@@ -30,4 +32,5 @@ target_link_libraries(
     PUBLIC
     weapon
     texture_manager
+    shooting_manager
 )

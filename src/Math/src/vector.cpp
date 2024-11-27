@@ -133,6 +133,10 @@ double vector2d::Distance(const vector2d& v) const {
 	return std::sqrt(std::pow(x - v.x, 2) + std::pow(y - v.y, 2));
 }
 
+double vector2d::MDistance(const vector2d& v) const {
+	return std::abs(x - v.x) + std::abs(y - v.y);
+}
+
 void vector2d::Norm() {
 	double size = std::sqrt(x * x + y * y);
 	x /= size;

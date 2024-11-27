@@ -14,6 +14,7 @@
 
 #include "Animation/animation.h"
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace wolfenstein {
@@ -23,18 +24,23 @@ class TBSAnimation : public IAnimation
   public:
 	TBSAnimation(const std::vector<uint16_t>& textures,
 				 const double animation_speed);
+	TBSAnimation(const std::string collection_name,
+				 const double animation_speed);
 	~TBSAnimation() = default;
 
 	void Update(const double& delta_time) override;
 	void Reset() override;
 
 	int GetCurrentFrame() const override;
+	bool IsAnimationFinishedOnce() const override;
 
   private:
 	std::vector<uint16_t> textures;
+	int textures_size;
 	int current_frame;
 	double animation_speed;
 	double counter;
+	bool is_animation_finished_once;
 };
 
 }  // namespace wolfenstein

@@ -11,10 +11,11 @@
 
 #include "Camera/camera.h"
 #include "Camera/ray.h"
+#include "Core/scene.h"
 #include "Math/vector.h"
-#include "TextureManager/texture_manager.h"
 
 #include <cmath>
+#include <memory>
 #include <string>
 
 namespace wolfenstein {
@@ -26,23 +27,24 @@ void Camera2D::InitRays() {
 	}
 }
 
-Camera2D::Camera2D(const Camera2DConfig& config)
+Camera2D::Camera2D(const Camera2DConfig& config,
+				   const std::shared_ptr<Scene>& scene)
 	: config_(config),
+	  scene_(scene),
 	  ray_cast_(std::make_shared<RayCaster>(config.width / 2, config.fov,
 											config.depth)) {
 	InitRays();
 }
 
-void Camera2D::Update(const std::shared_ptr<Scene>& scene) {
-	ray_cast_->Update(scene->GetMap(), position_, rays_);
+void Camera2D::Update() {
+	ray_cast_->Update(scene_->GetMap(), position_, rays_);
 	crosshair_ray_ = std::make_shared<Ray>(rays_->at(config_.width / 4));
+	crosshair_ray_->is_hit = false;
 
 	// Update object rays
 	objects_.clear();
-	for (const auto& object : scene->GetObjects()) {
-		if (object->GetObjectType() != ObjectType::CHARACTER_PLAYER) {
-			Calculate(object);
-		}
+	for (const auto& object : scene_->GetObjects()) {
+		Calculate(object);
 	}
 }
 
@@ -135,6 +137,15 @@ void Camera2D::Calculate(const std::shared_ptr<IGameObject>& object) {
 	object_ray_pair.second.wall_id = texture_id;
 
 	objects_[object->GetId()] = object_ray_pair;
+
+	// Calculate if the object is in the crosshair
+	if (object_distance < crosshair_ray_->perpendicular_distance &&
+		camera_angle_left <= 0 && camera_angle_right >= 0) {
+		crosshair_ray_->is_hit = true;
+		crosshair_ray_->perpendicular_distance = object_distance;
+		crosshair_ray_->object_id = object->GetId();
+		crosshair_ray_->hit_point = object_pose;
+	}
 }
 
 double Camera2D::WorldAngleToCameraAngle(double angle) const {
