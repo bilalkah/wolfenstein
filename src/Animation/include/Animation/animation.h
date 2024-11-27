@@ -22,6 +22,7 @@ class IAnimation
 	virtual void Update(const double& delta_time) = 0;
 	virtual void Reset() = 0;
 	virtual int GetCurrentFrame() const = 0;
+	virtual bool IsAnimationFinishedOnce() const = 0;
 };
 
 }  // namespace wolfenstein

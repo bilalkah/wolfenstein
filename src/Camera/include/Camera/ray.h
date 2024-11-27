@@ -14,6 +14,7 @@
 
 #include "Math/vector.h"
 
+#include <string>
 #include <vector>
 
 namespace wolfenstein {
@@ -35,6 +36,7 @@ struct Ray
 	double perpendicular_distance;
 
 	int wall_id;
+	std::string object_id;
 
 	bool is_hit;
 	bool is_hit_vertical;

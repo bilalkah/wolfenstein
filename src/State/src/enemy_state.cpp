@@ -1,196 +1,217 @@
 #include "State/enemy_state.h"
 #include "Characters/enemy.h"
+#include "NavigationManager/navigation_manager.h"
+#include "ShootingManager/shooting_manager.h"
 #include "TextureManager/texture_manager.h"
-#include <unordered_map>
+
 namespace wolfenstein {
 
-namespace {
-const std::unordered_map<std::string,
-						 std::unordered_map<std::string, std::string>>
-	enemy_data_{{"soldier",
-				 {{"idle", "soldier_idle"},
-				  {"walk", "soldier_walk"},
-				  {"attack", "soldier_attack"},
-				  {"death", "soldier_death"},
-				  {"pain", "soldier_pain"}}},
-				{"caco_demon",
-				 {{"idle", "caco_demon_idle"},
-				  {"walk", "caco_demon_walk"},
-				  {"attack", "caco_demon_attack"},
-				  {"death", "caco_demon_death"},
-				  {"pain", "caco_demon_pain"}}},
-				{"cyber_demon",
-				 {{"idle", "cyber_demon_idle"},
-				  {"walk", "cyber_demon_walk"},
-				  {"attack", "cyber_demon_attack"},
-				  {"death", "cyber_demon_death"},
-				  {"pain", "cyber_demon_pain"}}}};
-}  // namespace
-
-IdleState::IdleState(const std::string bot_name)
-	: bot_name_(bot_name), current_frame(0), counter(0), interval(0) {
-	animation_speed_ = 0.3;
-	textures = TextureManager::GetInstance().GetTextureCollection(
-		enemy_data_.at(bot_name_).at("idle"));
-}
+// ########################################### IdleState ###########################################
+IdleState::IdleState() {}
 
 IdleState::~IdleState() {}
 
 void IdleState::Update(const double& delta_time) {
-	counter += delta_time;
-	if (counter > animation_speed_) {
-		current_frame = (current_frame + 1) % textures.size();
-		counter = 0;
+	animation_->Update(delta_time);
+
+	if (context_->IsPlayerInShootingRange()) {
+		context_->TransitionTo(std::make_shared<WalkState>());
 	}
-	interval += delta_time;
-	if (interval > 5) {
-		context_->TransitionTo(std::make_shared<WalkState>(bot_name_));
+	if (context_->IsAttacked()) {
+		context_->TransitionTo(std::make_shared<PainState>());
 	}
 }
 
 void IdleState::Reset() {
-	current_frame = 0;
-	counter = 0;
+	animation_->Reset();
+}
+
+void IdleState::OnContextSet() {
+	const auto config = context_->GetStateConfig();
+	animation_speed_ = config.animation_time.idle_animation_speed;
+	range_ = config.follow_range_max;
+	animation_ = std::make_unique<TBSAnimation>(
+		TextureManager::GetInstance().GetTextureCollection(
+			context_->GetBotName() + "_idle"),
+		animation_speed_);
 }
 
 int IdleState::GetCurrentFrame() const {
-	return textures[current_frame];
+	return animation_->GetCurrentFrame();
 }
 
 EnemyStateType IdleState::GetType() const {
 	return EnemyStateType::Idle;
 }
 
-WalkState::WalkState(const std::string bot_name)
-	: bot_name_(bot_name), current_frame(0), counter(0), interval(0) {
-	animation_speed_ = 0.3;
-	textures = TextureManager::GetInstance().GetTextureCollection(
-		enemy_data_.at(bot_name_).at("walk"));
-}
+// ########################################### WalkState ###########################################
+WalkState::WalkState()
+	: animation_speed_(1.2),
+	  range_max_(5.0),
+	  range_min_(1.5),
+	  attack_range_(5.0),
+	  attack_rate_(1.0),
+	  attack_counter_(0.0),
+	  is_attacked_(false) {}
 
 WalkState::~WalkState() {}
 
 void WalkState::Update(const double& delta_time) {
-	counter += delta_time;
-	if (counter > animation_speed_) {
-		current_frame = (current_frame + 1) % textures.size();
-		counter = 0;
+	const auto bot_position = context_->GetPosition();
+	const auto distance =
+		NavigationManager::GetInstance().EuclideanDistanceToPlayer(
+			bot_position);
+	if (context_->IsAttacked()) {
+		NavigationManager::GetInstance().ResetPath(context_->GetId());
+		context_->SetNextPose(bot_position.pose);
+		context_->TransitionTo(std::make_shared<PainState>());
+		return;
 	}
-	interval += delta_time;
-	if (interval > 5) {
-		context_->TransitionTo(std::make_shared<AttackState>(bot_name_));
+	if (!context_->IsPlayerInShootingRange()) {
+		if (distance > range_max_) {
+			NavigationManager::GetInstance().ResetPath(context_->GetId());
+			context_->TransitionTo(std::make_shared<IdleState>());
+			return;
+		}
 	}
+	if (distance <= attack_range_ && context_->IsPlayerInShootingRange()) {
+		attack_counter_ += delta_time;
+		if (attack_counter_ > attack_rate_) {
+			context_->SetNextPose(bot_position.pose);
+			context_->TransitionTo(std::make_shared<AttackState>());
+			return;
+		}
+	}
+	if ((!context_->IsPlayerInShootingRange()) ||
+		((distance > range_min_) && context_->IsPlayerInShootingRange())) {
+		auto next_position = NavigationManager::GetInstance().FindPathToPlayer(
+			bot_position, context_->GetId());
+		context_->SetNextPose(next_position);
+	}
+	else {
+		NavigationManager::GetInstance().ResetPath(context_->GetId());
+		context_->SetNextPose(bot_position.pose);
+	}
+
+	animation_->Update(delta_time);
 }
 
 void WalkState::Reset() {
-	current_frame = 0;
-	counter = 0;
+	animation_->Reset();
+}
+
+void WalkState::OnContextSet() {
+	animation_ = std::make_unique<TBSAnimation>(
+		context_->GetBotName() + "_walk", animation_speed_);
 }
 
 int WalkState::GetCurrentFrame() const {
-	return textures[current_frame];
+	return animation_->GetCurrentFrame();
 }
 
 EnemyStateType WalkState::GetType() const {
 	return EnemyStateType::Walk;
 }
 
-AttackState::AttackState(const std::string bot_name)
-	: bot_name_(bot_name), current_frame(0), counter(0), interval(0) {
-	animation_speed_ = 0.3;
-	textures = TextureManager::GetInstance().GetTextureCollection(
-		enemy_data_.at(bot_name_).at("attack"));
-}
+// ########################################### AttackState ###########################################
+AttackState::AttackState() : animation_speed_(0.5), attack_counter_(0.0) {}
 
 AttackState::~AttackState() {}
 
 void AttackState::Update(const double& delta_time) {
-	counter += delta_time;
-	if (counter > animation_speed_) {
-		current_frame = (current_frame + 1) % textures.size();
-		counter = 0;
+	animation_->Update(delta_time);
+	if (attack_counter_ == 0.0) {
+		ShootingManager::GetInstance().EnemyShoot();
 	}
-	interval += delta_time;
-	if (interval > 5) {
-		context_->TransitionTo(std::make_shared<PainState>(bot_name_));
+	if (context_->IsAttacked()) {
+		context_->TransitionTo(std::make_shared<PainState>());
+		return;
 	}
+	if (attack_counter_ > animation_speed_) {
+		context_->TransitionTo(std::make_shared<WalkState>());
+		return;
+	}
+	attack_counter_ += delta_time;
 }
 
 void AttackState::Reset() {
-	current_frame = 0;
-	counter = 0;
+	animation_->Reset();
+}
+
+void AttackState::OnContextSet() {
+	animation_ = std::make_unique<TBSAnimation>(
+		context_->GetBotName() + "_attack", animation_speed_);
 }
 
 int AttackState::GetCurrentFrame() const {
-	return textures[current_frame];
+	return animation_->GetCurrentFrame();
 }
 
 EnemyStateType AttackState::GetType() const {
 	return EnemyStateType::Attack;
 }
 
-PainState::PainState(const std::string bot_name)
-	: bot_name_(bot_name), current_frame(0), counter(0), interval(0) {
-	animation_speed_ = 0.3;
-	textures = TextureManager::GetInstance().GetTextureCollection(
-		enemy_data_.at(bot_name_).at("pain"));
-}
+// ########################################### PainState ###########################################
+PainState::PainState() : animation_speed_(0.25), counter(0.0) {}
 
 PainState::~PainState() {}
 
 void PainState::Update(const double& delta_time) {
+	animation_->Update(delta_time);
 	counter += delta_time;
 	if (counter > animation_speed_) {
-		current_frame = (current_frame + 1) % textures.size();
-		counter = 0;
-	}
-	interval += delta_time;
-	if (interval > 5) {
-		context_->TransitionTo(std::make_shared<DeathState>(bot_name_));
+		if (context_->GetHealth() <= 0) {
+			context_->TransitionTo(std::make_shared<DeathState>());
+			return;
+		}
+		context_->SetAttacked(false);
+		context_->TransitionTo(std::make_shared<WalkState>());
 	}
 }
 
 void PainState::Reset() {
-	current_frame = 0;
-	counter = 0;
+	animation_->Reset();
+}
+
+void PainState::OnContextSet() {
+	animation_ = std::make_unique<TBSAnimation>(
+		context_->GetBotName() + "_pain", animation_speed_);
 }
 
 int PainState::GetCurrentFrame() const {
-	return textures[current_frame];
+	return animation_->GetCurrentFrame();
 }
 
 EnemyStateType PainState::GetType() const {
 	return EnemyStateType::Pain;
 }
 
-DeathState::DeathState(const std::string bot_name)
-	: bot_name_(bot_name), current_frame(0), counter(0), interval(0) {
-	animation_speed_ = 0.3;
-	textures = TextureManager::GetInstance().GetTextureCollection(
-		enemy_data_.at(bot_name_).at("death"));
-}
+// ########################################### DeathState ###########################################
+DeathState::DeathState() : animation_speed_(1.0) {}
 
 DeathState::~DeathState() {}
 
 void DeathState::Update(const double& delta_time) {
-	counter += delta_time;
-	if (counter > animation_speed_) {
-		current_frame = (current_frame + 1) % textures.size();
-		counter = 0;
+	if (!animation_->IsAnimationFinishedOnce()) {
+		animation_->Update(delta_time);
+		counter += delta_time;
 	}
-	interval += delta_time;
-	if (interval > 5) {
-		context_->TransitionTo(std::make_shared<IdleState>(bot_name_));
+	else {
+		context_->SetDeath();
 	}
 }
 
 void DeathState::Reset() {
-	current_frame = 0;
-	counter = 0;
+	animation_->Reset();
+}
+
+void DeathState::OnContextSet() {
+	animation_ = std::make_unique<TBSAnimation>(
+		context_->GetBotName() + "_death", animation_speed_);
 }
 
 int DeathState::GetCurrentFrame() const {
-	return textures[current_frame];
+	return animation_->GetCurrentFrame();
 }
 
 EnemyStateType DeathState::GetType() const {

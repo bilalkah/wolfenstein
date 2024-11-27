@@ -50,12 +50,13 @@ class TextureManager
 	void LoadSpriteTextures();
 	void LoadNpcTextures();
 	void LoadWeaponTextures();
+	void FillAscendingIds(std::string key, uint16_t begin, uint16_t end);
 
 	static TextureManager* instance_;
 	std::unordered_map<uint16_t, Texture> textures_;
 	std::unordered_map<std::string, std::vector<uint16_t>> texture_collections_;
 	SDL_Renderer* renderer_;
-	size_t texture_count_;
+	uint16_t t_count_;
 };
 
 }  // namespace wolfenstein

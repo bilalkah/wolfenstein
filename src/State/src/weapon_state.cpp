@@ -1,44 +1,31 @@
 #include "State/weapon_state.h"
+#include "Animation/time_based_single_animation.h"
 #include "State/state.h"
 #include "Strike/weapon.h"
-#include "TextureManager/texture_manager.h"
-#include "TimeManager/time_manager.h"
-#include <SDL2/SDL.h>
 #include <memory>
-#include <thread>
-#include <unordered_map>
+#include "ShootingManager/shooting_manager.h"
 
 namespace wolfenstein {
 
-namespace {
-
-const std::unordered_map<std::string,
-						 std::unordered_map<std::string, std::string>>
-	weapon_data_{{"mp5",
-				  {{"loaded", "mp5_loaded"},
-				   {"outofammo", "mp5_outofammo"},
-				   {"reload", "mp5_reload"}}}};
-
-}
-
 // ########################################### LoadedState ###########################################
-LoadedState::LoadedState(const std::string weapon_name)
-	: weapon_name_(weapon_name),
-	  last_attack_time_(0),
-	  cooldown_(false),
-	  interrupt_(false),
-	  destroyed_(false) {}
+LoadedState::LoadedState()
+	: trigger_pulled_(false), trigger_pull_time_(0.0), fire_rate_(0.0) {}
 
-LoadedState::~LoadedState() {
-	destroyed_ = true;
-}
+LoadedState::~LoadedState() {}
 
-void LoadedState::Update(const double&) {
-	if (!cooldown_) {
-		cooldown_ = true;
-		last_attack_time_ = TimeManager::GetInstance().GetCurrentTime();
-		std::thread attack_thread(&LoadedState::AttackAnimation, this);
-		attack_thread.detach();
+void LoadedState::Update(const double& delta_time) {
+	if (trigger_pulled_) {
+		animation_->Update(delta_time);
+		trigger_pull_time_ += delta_time;
+		if (trigger_pull_time_ >= fire_rate_) {
+			trigger_pulled_ = false;
+			animation_->Reset();
+			if (context_->GetAmmo() == 0) {
+				WeaponStatePtr out_of_ammo_state =
+					std::make_shared<OutOfAmmoState>();
+				context_->TransitionTo(out_of_ammo_state);
+			}
+		}
 	}
 }
 
@@ -46,78 +33,44 @@ WeaponStateType LoadedState::GetType() const {
 	return WeaponStateType::Loaded;
 }
 
-void LoadedState::AttackAnimation() {
-	auto attack_time = last_attack_time_;
-	auto current_time = TimeManager::GetInstance().GetCurrentTime();
-	while (current_time - last_attack_time_ < animation_speed_ && !interrupt_ &&
-		   !destroyed_) {
-		auto time_elapsed = current_time - attack_time;
-		animation_->Update(time_elapsed);
-		attack_time = current_time;
-		current_time = TimeManager::GetInstance().GetCurrentTime();
-	}
-	if (destroyed_) {
-		return;
-	}
-	animation_->Reset();
-	context_->DecreaseAmmo();
-	if (interrupt_) {
-		context_->TransitionTo(requested_state_);
-	}
-	if (context_->GetAmmo() == 0) {
-		std::shared_ptr<State<Weapon>> out_of_ammo_state =
-			std::make_shared<OutOfAmmoState>(weapon_name_);
-		context_->TransitionTo(out_of_ammo_state);
-	}
-	cooldown_ = false;
-}
-
 void LoadedState::Reset() {
 	animation_->Reset();
 }
 
 void LoadedState::OnContextSet() {
-	animation_speed_ = context_->GetAttackSpeed();
-	auto textures = TextureManager::GetInstance().GetTextureCollection(
-		weapon_data_.at(weapon_name_).at("loaded"));
-	animation_ = std::make_shared<TBSAnimation>(
-		textures, animation_speed_ / textures.size());
-}
-
-void LoadedState::TransitionRequest(std::shared_ptr<State<Weapon>>& state) {
-	if (!cooldown_) {
-		context_->TransitionTo(state);
-	}
-	if (interrupt_) {
-		return;
-	}
-	interrupt_ = true;
-	requested_state_ = state;
+	fire_rate_ = context_->GetAttackSpeed();
+	animation_ = std::make_unique<TBSAnimation>(
+		context_->GetWeaponName() + "_loaded", fire_rate_);
 }
 
 int LoadedState::GetCurrentFrame() const {
 	return animation_->GetCurrentFrame();
 }
 
-// ########################################### OutOfAmmoState ###########################################
-OutOfAmmoState::OutOfAmmoState(const std::string weapon_name)
-	: weapon_name_(weapon_name),
-	  last_attack_time_(0),
-	  cooldown_(false),
-	  interrupt_(false),
-	  destroyed_(false) {}
-
-OutOfAmmoState::~OutOfAmmoState() {
-	destroyed_ = true;
+void LoadedState::PullTrigger() {
+	if (trigger_pulled_) {
+		return;
+	}
+	trigger_pulled_ = true;
+	trigger_pull_time_ = 0;
+	context_->DecreaseAmmo();
+	ShootingManager::GetInstance().PlayerShoot();
 }
 
-void OutOfAmmoState::Update(const double&) {
+// ########################################### OutOfAmmoState ###########################################
+OutOfAmmoState::OutOfAmmoState()
+	: trigger_pulled_(false), trigger_pull_time_(0.0), fire_rate_(0.0) {}
 
-	if (!cooldown_) {
-		cooldown_ = true;
-		last_attack_time_ = TimeManager::GetInstance().GetCurrentTime();
-		std::thread attack_thread(&OutOfAmmoState::NoAttackAnimation, this);
-		attack_thread.detach();
+OutOfAmmoState::~OutOfAmmoState() {}
+
+void OutOfAmmoState::Update(const double& delta_time) {
+	if (trigger_pulled_) {
+		animation_->Update(delta_time);
+		trigger_pull_time_ += delta_time;
+		if (trigger_pull_time_ >= fire_rate_) {
+			trigger_pulled_ = false;
+			animation_->Reset();
+		}
 	}
 }
 
@@ -125,71 +78,41 @@ WeaponStateType OutOfAmmoState::GetType() const {
 	return WeaponStateType::OutOfAmmo;
 }
 
-void OutOfAmmoState::NoAttackAnimation() {
-	auto attack_time = last_attack_time_;
-	auto current_time = TimeManager::GetInstance().GetCurrentTime();
-	while (current_time - last_attack_time_ < animation_speed_ && !interrupt_ &&
-		   !destroyed_) {
-		auto time_elapsed = current_time - attack_time;
-		animation_->Update(time_elapsed);
-		attack_time = current_time;
-		current_time = TimeManager::GetInstance().GetCurrentTime();
-	}
-	if (destroyed_) {
-		return;
-	}
-	if (interrupt_) {
-		context_->TransitionTo(requested_state_);
-	}
-	animation_->Reset();
-	cooldown_ = false;
-}
-
 void OutOfAmmoState::Reset() {
 	animation_->Reset();
 }
 
 void OutOfAmmoState::OnContextSet() {
-	animation_speed_ = context_->GetAttackSpeed();
-	auto textures = TextureManager::GetInstance().GetTextureCollection(
-		weapon_data_.at(weapon_name_).at("outofammo"));
-	animation_ = std::make_shared<TBSAnimation>(
-		textures, animation_speed_ / textures.size());
-}
-
-void OutOfAmmoState::TransitionRequest(std::shared_ptr<State<Weapon>>& state) {
-	if (!cooldown_) {
-		context_->TransitionTo(state);
-	}
-	if (interrupt_) {
-		return;
-	}
-	interrupt_ = true;
-	requested_state_ = state;
+	fire_rate_ = context_->GetAttackSpeed();
+	animation_ = std::make_unique<TBSAnimation>(
+		context_->GetWeaponName() + "_outofammo", fire_rate_);
 }
 
 int OutOfAmmoState::GetCurrentFrame() const {
 	return animation_->GetCurrentFrame();
 }
 
-// ########################################### ReloadingState ###########################################
-ReloadingState::ReloadingState(const std::string weapon_name)
-	: weapon_name_(weapon_name),
-	  last_attack_time_(0),
-	  cooldown_(false),
-	  interrupt_(false),
-	  destroyed_(false) {}
-
-ReloadingState::~ReloadingState() {
-	destroyed_ = true;
+void OutOfAmmoState::PullTrigger() {
+	if (trigger_pulled_) {
+		return;
+	}
+	trigger_pulled_ = true;
+	trigger_pull_time_ = 0;
 }
 
-void ReloadingState::Update(const double&) {
-	if (!cooldown_) {
-		cooldown_ = true;
-		last_attack_time_ = TimeManager::GetInstance().GetCurrentTime();
-		std::thread attack_thread(&ReloadingState::ReloadAnimation, this);
-		attack_thread.detach();
+// ########################################### ReloadingState ###########################################
+ReloadingState::ReloadingState() : reload_time_(0.0) {}
+
+ReloadingState::~ReloadingState() {}
+
+void ReloadingState::Update(const double& delta_time) {
+	animation_->Update(delta_time);
+	reload_time_ += delta_time;
+	if (reload_time_ >= reload_speed_) {
+		animation_->Reset();
+		context_->SetAmmo(context_->GetAmmoCapacity());
+		WeaponStatePtr loaded_state = std::make_shared<LoadedState>();
+		context_->TransitionTo(loaded_state);
 	}
 }
 
@@ -197,35 +120,14 @@ WeaponStateType ReloadingState::GetType() const {
 	return WeaponStateType::Reloading;
 }
 
-void ReloadingState::ReloadAnimation() {
-	auto attack_time = last_attack_time_;
-	auto current_time = TimeManager::GetInstance().GetCurrentTime();
-	while (current_time - last_attack_time_ < animation_speed_ && !interrupt_ &&
-		   !destroyed_) {
-		auto time_elapsed = current_time - attack_time;
-		animation_->Update(time_elapsed);
-		attack_time = current_time;
-		current_time = TimeManager::GetInstance().GetCurrentTime();
-	}
-	if (destroyed_) {
-		return;
-	}
-	context_->Charge();
-	std::shared_ptr<State<Weapon>> loaded_state =
-		std::make_shared<LoadedState>(weapon_name_);
-	context_->TransitionTo(loaded_state);
-}
-
 void ReloadingState::Reset() {
 	animation_->Reset();
 }
 
 void ReloadingState::OnContextSet() {
-	animation_speed_ = context_->GetReloadSpeed();
-	auto textures = TextureManager::GetInstance().GetTextureCollection(
-		weapon_data_.at(weapon_name_).at("reload"));
-	animation_ = std::make_shared<TBSAnimation>(
-		textures, animation_speed_ / textures.size());
+	reload_speed_ = context_->GetReloadSpeed();
+	animation_ = std::make_unique<TBSAnimation>(
+		context_->GetWeaponName() + "_reload", reload_speed_);
 }
 
 int ReloadingState::GetCurrentFrame() const {

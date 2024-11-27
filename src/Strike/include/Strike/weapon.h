@@ -20,6 +20,15 @@ namespace wolfenstein {
 
 struct WeaponConfig
 {
+	WeaponConfig(std::string weapon_name, size_t ammo_capacity,
+				 double attack_damage, double attack_range, double attack_speed,
+				 double reload_speed)
+		: weapon_name(weapon_name),
+		  ammo_capacity(ammo_capacity),
+		  attack_damage(attack_damage),
+		  attack_range(attack_range),
+		  attack_speed(attack_speed),
+		  reload_speed(reload_speed) {}
 	std::string weapon_name;
 	size_t ammo_capacity;
 	double attack_damage;
@@ -31,16 +40,17 @@ struct WeaponConfig
 class Weapon : public IStrike, public std::enable_shared_from_this<Weapon>
 {
   public:
-	enum class StateType { Loaded, OutOfAmmo, Reloading };
 	Weapon(std::string weapon_name);
 	~Weapon();
 	void Init();
 
 	void Attack() override;
+	void Update(double delta_time);
 	void Charge();
 	void Reload();
 	void TransitionTo(WeaponStatePtr& state);
 
+	void SetAmmo(size_t ammo);
 	void IncreaseAmmo();
 	void IncreaseAmmo(size_t amount);
 	void DecreaseAmmo();
@@ -58,6 +68,8 @@ class Weapon : public IStrike, public std::enable_shared_from_this<Weapon>
 	WeaponConfig weapon_properties_;
 	size_t ammo_;
 	WeaponStatePtr state_;
+	bool cooldown_;
+	double attack_time_;
 };
 
 }  // namespace wolfenstein

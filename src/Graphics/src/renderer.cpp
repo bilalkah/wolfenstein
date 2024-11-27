@@ -1,5 +1,6 @@
 #include "Graphics/renderer.h"
 #include "Camera/ray.h"
+#include "Camera/single_raycaster.h"
 #include "Characters/player.h"
 #include "GameObjects/static_object.h"
 #include "Map/map.h"
@@ -31,8 +32,9 @@ std::vector<vector2i> GenerateCirclePoints(vector2i center, int radius,
 
 }  // namespace
 
-Renderer::Renderer(const std::string& window_name, const RenderConfig& config)
-	: config_(config) {
+Renderer::Renderer(const std::string& window_name, const RenderConfig& config,
+				   std::shared_ptr<Camera2D>& camera)
+	: config_(config), camera_ptr(camera) {
 	if (SDL_Init(SDL_INIT_VIDEO) != 0) {
 		SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
 		exit(EXIT_FAILURE);
@@ -65,13 +67,12 @@ Renderer::~Renderer() {
 	SDL_Quit();
 }
 
-void Renderer::RenderScene(const std::shared_ptr<Scene>& scene_ptr,
-						   const std::shared_ptr<Camera2D>& camera_ptr) {
+void Renderer::RenderScene(const std::shared_ptr<Scene>& scene_ptr) {
 	RenderQueue render_queue(Compare);
 	ClearScreen();
 	RenderBackground();
-	RenderWalls(scene_ptr->GetMap(), camera_ptr, render_queue);
-	RenderObjects(scene_ptr->GetObjects(), camera_ptr, render_queue);
+	RenderWalls(scene_ptr->GetMap(), render_queue);
+	RenderObjects(scene_ptr->GetObjects(), render_queue);
 	RenderWeapon(scene_ptr->GetPlayer(), render_queue);
 	RenderTextures(render_queue);
 	SDL_RenderPresent(renderer_);
@@ -91,7 +92,6 @@ void Renderer::RenderBackground() {
 }
 
 void Renderer::RenderWalls(const std::shared_ptr<Map>& map_ptr,
-						   const std::shared_ptr<Camera2D>& camera_ptr,
 						   RenderQueue& render_queue) {
 	const auto rays = camera_ptr->GetRays();
 
@@ -101,14 +101,13 @@ void Renderer::RenderWalls(const std::shared_ptr<Map>& map_ptr,
 			RenderIfRayHitNot(horizontal_slice, render_queue);
 		}
 		else {
-			RenderIfRayHit(horizontal_slice, ray, camera_ptr, render_queue);
+			RenderIfRayHit(horizontal_slice, ray, render_queue);
 		}
 		horizontal_slice += 2;
 	};
 }
 
 void Renderer::RenderIfRayHit(const int horizontal_slice, const Ray& ray,
-							  const std::shared_ptr<Camera2D>& camera_ptr,
 							  RenderQueue& render_queue) {
 	const auto distance = ray.perpendicular_distance *
 						  std::cos(camera_ptr->GetPosition().theta - ray.theta);
@@ -141,7 +140,7 @@ void Renderer::RenderIfRayHitNot(const int horizontal_slice,
 
 void Renderer::RenderObjects(
 	const std::vector<std::shared_ptr<IGameObject>>& objects,
-	const std::shared_ptr<Camera2D>& camera_ptr, RenderQueue& render_queue) {
+	RenderQueue& render_queue) {
 	for (const auto& object : objects) {
 
 		const auto ray_pair = camera_ptr->GetObjectRay(object->GetId());
@@ -163,11 +162,9 @@ void Renderer::RenderObjects(
 		const auto texture_width =
 			TextureManager::GetInstance().GetTexture(first.wall_id).width;
 
-		const auto first_slice =
-			CalculateHorizontalSlice(first.theta, camera_ptr);
+		const auto first_slice = CalculateHorizontalSlice(first.theta);
 
-		const auto last_slice =
-			CalculateHorizontalSlice(last.theta, camera_ptr);
+		const auto last_slice = CalculateHorizontalSlice(last.theta);
 
 		SDL_Rect src_rect = {0, 0, texture_width, texture_height};
 
@@ -179,8 +176,7 @@ void Renderer::RenderObjects(
 	}
 }
 
-int Renderer::CalculateHorizontalSlice(
-	const double& angle, const std::shared_ptr<Camera2D> camera_ptr) {
+int Renderer::CalculateHorizontalSlice(const double& angle) {
 
 	const auto horizontal_slice =
 		static_cast<int>(angle / camera_ptr->GetDeltaAngle()) * 2 +
@@ -208,9 +204,10 @@ void Renderer::RenderWeapon(const std::shared_ptr<Player>& player_ptr,
 		static_cast<double>(crosshair_height) / crosshair_width;
 	const int crosshair_width_slice = config_.width / 40;
 	const int crosshair_height_slice = crosshair_width_slice * crosshair_ratio;
-	SDL_Rect crosshair_dest_rect{config_.width / 2 - crosshair_width_slice / 2,
-								 config_.height / 2 - crosshair_height_slice / 2,
-								 crosshair_width_slice, crosshair_height_slice};
+	SDL_Rect crosshair_dest_rect{
+		config_.width / 2 - crosshair_width_slice / 2,
+		config_.height / 2 - crosshair_height_slice / 2, crosshair_width_slice,
+		crosshair_height_slice};
 	render_queue.push({6, crosshair_src_rect, crosshair_dest_rect, 0.0});
 
 	auto texture_id = player_ptr->GetTextureId();
@@ -244,18 +241,17 @@ void Renderer::ClearScreen() {
 	SDL_RenderClear(renderer_);
 }
 
-void Renderer::RenderScene2D(const std::shared_ptr<Scene>& scene_ptr,
-							 const std::shared_ptr<Camera2D>& camera_ptr) {
+void Renderer::RenderScene2D(const std::shared_ptr<Scene>& scene_ptr) {
 	ClearScreen();
 	RenderMap(scene_ptr->GetMap());
-	RenderPlayer(scene_ptr->GetPlayer(), camera_ptr);
-	RenderObjects(scene_ptr->GetObjects(), camera_ptr);
+	RenderPlayer(scene_ptr->GetPlayer());
+	RenderObjects(scene_ptr->GetObjects());
 	RenderPaths(scene_ptr->GetEnemies());
+	RenderCrosshair(scene_ptr->GetEnemies());
 	SDL_RenderPresent(renderer_);
 }
 
-void Renderer::RenderPlayer(const std::shared_ptr<Player> player_ptr,
-							const std::shared_ptr<Camera2D> camera_ptr) {
+void Renderer::RenderPlayer(const std::shared_ptr<Player> player_ptr) {
 
 	const auto position = player_ptr->GetPosition();
 	const auto crosshair_ray = camera_ptr->GetCrosshairRay();
@@ -278,15 +274,12 @@ void Renderer::RenderPlayer(const std::shared_ptr<Player> player_ptr,
 	for (unsigned int i = 0; i < circle_points.size(); i++) {
 		SDL_RenderDrawPoint(renderer_, circle_points[i].x, circle_points[i].y);
 	}
-	DrawLine(
-		ToVector2i(position.pose * config_.scale),
-		ToVector2i((crosshair_ray->origin + crosshair_ray->direction * 10) *
-				   config_.scale));
+	DrawLine(ToVector2i(crosshair_ray->origin * config_.scale),
+			 ToVector2i(crosshair_ray->hit_point * config_.scale));
 }
 
 void Renderer::RenderObjects(
-	const std::vector<std::shared_ptr<IGameObject>>& objects,
-	const std::shared_ptr<Camera2D> camera_ptr) {
+	const std::vector<std::shared_ptr<IGameObject>>& objects) {
 
 	for (const auto& object : objects) {
 
@@ -343,6 +336,19 @@ void Renderer::RenderPaths(const std::vector<std::shared_ptr<Enemy>>& enemies) {
 			DrawLine(ToVector2i(path[i] * config_.scale),
 					 ToVector2i(path[i + 1] * config_.scale));
 		}
+	}
+}
+
+void Renderer::RenderCrosshair(
+	const std::vector<std::shared_ptr<Enemy>>& enemies) {
+	SetDrawColor({255, 0, 255, 255});
+	for (const auto& enemy : enemies) {
+		const auto crosshair_ray = enemy->GetCrosshairRay();
+		if (!crosshair_ray.is_hit) {
+			continue;
+		}
+		DrawLine(ToVector2i(enemy->GetPose() * config_.scale),
+				 ToVector2i((crosshair_ray.hit_point) * config_.scale));
 	}
 }
 

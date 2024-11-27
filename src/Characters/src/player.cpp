@@ -1,29 +1,34 @@
 #include "Characters/player.h"
+#include "Camera/camera.h"
 #include "CollisionManager/collision_manager.h"
 #include "Math/vector.h"
 #include "State/weapon_state.h"
 #include "Utility/uuid_generator.h"
 #include <SDL2/SDL.h>
+#include <memory>
 
 namespace wolfenstein {
 
-Player::Player(CharacterConfig& config)
+Player::Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera)
 	: position_(config.initial_position),
 	  rotation_speed_(config.rotation_speed),
 	  translation_speed_(config.translation_speed) {
 	id_ = UuidGenerator::GetInstance().GenerateUuid().bytes();
+	camera_ = camera;
 	weapon_ = std::make_shared<Weapon>("mp5");
-	WeaponStatePtr loaded_state = std::make_shared<LoadedState>("mp5");
+	WeaponStatePtr loaded_state = std::make_shared<LoadedState>();
 	weapon_->TransitionTo(loaded_state);
 }
 
 void Player::Update(double delta_time) {
 	ShootOrReload();
+	weapon_->Update(delta_time);
 	Move(delta_time);
 	Rotate(delta_time);
 	for (auto& subscriber : player_position_subscribers_) {
 		subscriber(position_);
 	}
+	camera_->Update();
 }
 
 void Player::SetPose(const vector2d& pose) {
@@ -42,6 +47,18 @@ void Player::SetPosition(Position2D position) {
 	position_ = position;
 }
 
+void Player::IncreaseHealth(double amount) {
+	health_ += amount;
+}
+
+void Player::DecreaseHealth(double amount) {
+	health_ -= amount;
+}
+
+double Player::GetHealth() const {
+	return health_;
+}
+
 Position2D Player::GetPosition() const {
 	return position_;
 }
@@ -58,6 +75,10 @@ double Player::GetWidth() const {
 }
 double Player::GetHeight() const {
 	return height_;
+}
+
+std::shared_ptr<Ray> Player::GetCrosshairRay() const {
+	return camera_->GetCrosshairRay();
 }
 
 void Player::SubscribeToPlayerPosition(

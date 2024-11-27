@@ -60,6 +60,7 @@ struct vector2d
 	double Magnitude() const;
 	double Determinant(const vector2d& v) const;
 	double Distance(const vector2d& v) const;
+	double MDistance(const vector2d& v) const;
 	void Norm();
 };
 

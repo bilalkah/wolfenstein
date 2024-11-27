@@ -12,13 +12,14 @@
 #ifndef STATE_INCLUDE_STATE_ENEMY_STATE_H_
 #define STATE_INCLUDE_STATE_ENEMY_STATE_H_
 
+#include "Animation/time_based_single_animation.h"
 #include "State/state.h"
+#include <memory>
 #include <vector>
 
 namespace wolfenstein {
 
 class Enemy;
-typedef std::shared_ptr<State<Enemy>> EnemyStatePtr;
 
 template <>
 struct StateType<Enemy>
@@ -27,104 +28,112 @@ struct StateType<Enemy>
 };
 typedef StateType<Enemy>::Type EnemyStateType;
 
-class IdleState : public State<Enemy>
+class EnemyState : public State<Enemy>
 {
   public:
-	IdleState(const std::string bot_name);
+	virtual ~EnemyState() = default;
+};
+
+typedef std::shared_ptr<EnemyState> EnemyStatePtr;
+
+// ########################################### IdleState ###########################################
+class IdleState : public EnemyState
+{
+  public:
+	IdleState();
 	~IdleState();
 
 	void Update(const double& delta_time) override;
 	void Reset() override;
+	void OnContextSet() override;
 	int GetCurrentFrame() const override;
 	EnemyStateType GetType() const override;
 
   private:
-	std::string bot_name_;
-	int current_frame;
-	double counter;
-	double interval;
 	double animation_speed_;
-	std::vector<uint16_t> textures;
+	double range_;
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
-class WalkState : public State<Enemy>
+// ########################################### WalkState ###########################################
+class WalkState : public EnemyState
 {
   public:
-	WalkState(const std::string bot_name);
+	WalkState();
 	~WalkState();
 
 	void Update(const double& delta_time) override;
 	void Reset() override;
+	void OnContextSet() override;
 	int GetCurrentFrame() const override;
 	EnemyStateType GetType() const override;
 
   private:
-	std::string bot_name_;
-	int current_frame;
-	double counter;
-	double interval;
 	double animation_speed_;
-	std::vector<uint16_t> textures;
+	double range_max_;
+	double range_min_;
+	double attack_range_;
+	double attack_rate_;
+	double attack_counter_;
+	bool is_attacked_;
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
-class AttackState : public State<Enemy>
+// ########################################### AttackState ###########################################
+class AttackState : public EnemyState
 {
   public:
-	AttackState(const std::string bot_name);
+	AttackState();
 	~AttackState();
 
 	void Update(const double& delta_time) override;
 	void Reset() override;
+	void OnContextSet() override;
 	int GetCurrentFrame() const override;
 	EnemyStateType GetType() const override;
 
   private:
-	std::string bot_name_;
-	int current_frame;
-	double counter;
-	double interval;
 	double animation_speed_;
-	std::vector<uint16_t> textures;
+	double attack_counter_;
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
-class PainState : public State<Enemy>
+// ########################################### PainState ###########################################
+class PainState : public EnemyState
 {
   public:
-	PainState(const std::string bot_name);
+	PainState();
 	~PainState();
 
 	void Update(const double& delta_time) override;
 	void Reset() override;
+	void OnContextSet() override;
 	int GetCurrentFrame() const override;
 	EnemyStateType GetType() const override;
 
   private:
-	std::string bot_name_;
-	int current_frame;
-	double counter;
-	double interval;
 	double animation_speed_;
-	std::vector<uint16_t> textures;
+	double counter;
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
-class DeathState : public State<Enemy>
+// ########################################### DeathState ###########################################
+class DeathState : public EnemyState
 {
   public:
-	DeathState(const std::string bot_name);
+	DeathState();
 	~DeathState();
 
 	void Update(const double& delta_time) override;
 	void Reset() override;
+	void OnContextSet() override;
 	int GetCurrentFrame() const override;
 	EnemyStateType GetType() const override;
 
   private:
-	std::string bot_name_;
-	int current_frame;
-	double counter;
-	double interval;
 	double animation_speed_;
-	std::vector<uint16_t> textures;
+	double counter;
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
 }  // namespace wolfenstein
