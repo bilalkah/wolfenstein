@@ -21,14 +21,11 @@ void Scene::SetPlayer(std::shared_ptr<Player> player) {
 }
 
 void Scene::Update(double delta_time) {
-	player->Update(delta_time);
-	// for (auto& enemy : enemies) {
-	// 	enemy->SetNextPose(NavigationManager::GetInstance().FindPath(
-	// 		enemy->GetPosition(), player->GetPosition(), enemy->GetId()));
-	// }
 	for (auto& object : objects) {
 		object->Update(delta_time);
 	}
+
+	player->Update(delta_time);
 }
 
 std::vector<std::shared_ptr<IGameObject>> Scene::GetObjects() const {

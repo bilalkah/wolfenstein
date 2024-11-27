@@ -28,6 +28,17 @@ enum class RenderType { TEXTURE, LINE };
 
 struct GeneralConfig
 {
+	GeneralConfig(int screen_width, int screen_height, int padding, int scale,
+				  int fps, double view_distance, double fov, bool fullscreen)
+		: screen_width(screen_width),
+		  screen_height(screen_height),
+		  padding(padding),
+		  scale(scale),
+		  fps(fps),
+		  view_distance(view_distance),
+		  fov(fov),
+		  fullscreen(fullscreen) {}
+
 	int screen_width;
 	int screen_height;
 	int padding;
@@ -57,7 +68,6 @@ class Game
 
 	std::shared_ptr<Renderer> renderer_;
 	std::shared_ptr<Scene> scene_;
-	std::shared_ptr<Camera2D> camera_;
 	std::shared_ptr<Player> player_;
 	std::shared_ptr<Map> map_;
 

@@ -29,6 +29,13 @@ struct Position2D
 
 struct CharacterConfig
 {
+	CharacterConfig(Position2D initial_position, double translation_speed,
+					double rotation_speed, double width, double height)
+		: initial_position(initial_position),
+		  translation_speed(translation_speed),
+		  rotation_speed(rotation_speed),
+		  width(width),
+		  height(height) {}
 	Position2D initial_position;
 	double translation_speed;
 	double rotation_speed;

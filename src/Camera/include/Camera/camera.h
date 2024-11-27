@@ -14,7 +14,6 @@
 
 #include "Camera/ray.h"
 #include "Camera/raycaster.h"
-#include "Core/scene.h"
 #include "GameObjects/game_object.h"
 
 #include <memory>
@@ -25,6 +24,9 @@ namespace wolfenstein {
 
 struct Camera2DConfig
 {
+	Camera2DConfig(int width, double fov, double depth)
+		: width(width), fov(fov), depth(depth) {}
+		
 	int width;
 	double fov;
 	double depth;
@@ -32,13 +34,16 @@ struct Camera2DConfig
 
 typedef std::pair<Ray, Ray> RayPair;
 
+class Scene;
 class Camera2D
 {
   public:
-	explicit Camera2D(const Camera2DConfig& config);
+	explicit Camera2D(const Camera2DConfig& config,
+					  const std::shared_ptr<Scene>& scene);
 	~Camera2D() = default;
 
 	void Update(const std::shared_ptr<Scene>& scene);
+	void Update();
 
 	std::shared_ptr<RayVector> GetRays() const;
 	std::shared_ptr<Ray> GetCrosshairRay() const;
@@ -55,6 +60,7 @@ class Camera2D
 	double WorldAngleToCameraAngle(double angle) const;
 
 	Camera2DConfig config_;
+	std::shared_ptr<Scene> scene_;
 	Position2D position_;
 	std::shared_ptr<RayCaster> ray_cast_;
 	std::shared_ptr<RayVector> rays_;

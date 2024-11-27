@@ -36,6 +36,10 @@ void Game::Init() {
 	scene_ = std::make_shared<Scene>();
 	scene_->SetMap(map_);
 
+	Camera2DConfig camera_config = {config_.screen_width, config_.fov,
+									config_.view_distance};
+	auto camera_ = std::make_shared<Camera2D>(camera_config, scene_);
+
 	RenderConfig render_config = {config_.screen_width, config_.screen_height,
 								  config_.padding,		config_.scale,
 								  config_.fps,			config_.view_distance,
@@ -48,10 +52,22 @@ void Game::Init() {
 
 	CharacterConfig player_config = {Position2D({3, 1.5}, 1.50), 2.0, 0.4, 0.4,
 									 1.0};
-	player_ = std::make_shared<Player>(player_config);
+	player_ = std::make_shared<Player>(player_config, camera_);
 
 	player_->SubscribeToPlayerPosition(std::bind(
-		[this](Position2D position) { camera_->SetPosition(position); },
+		[camera_](Position2D position) { camera_->SetPosition(position); },
+		std::placeholders::_1));
+	player_->SubscribeToPlayerPosition(std::bind(
+		[](Position2D position) {
+			NavigationManager::GetInstance().SubscribePlayerPosition(position);
+		},
+		std::placeholders::_1));
+
+	player_->SubscribeToPlayerPosition(std::bind(
+		[](Position2D position) {
+			SingleRayCasterService::GetInstance().SubscribePlayerPose(
+				position.pose);
+		},
 		std::placeholders::_1));
 
 	scene_->SetPlayer(player_);
@@ -104,13 +120,12 @@ void Game::Run() {
 		CheckEvent();
 		TimeManager::GetInstance().CalculateDeltaTime();
 		scene_->Update(TimeManager::GetInstance().GetDeltaTime());
-		camera_->Update(scene_);
 		switch (render_type_) {
 			case RenderType::TEXTURE:
-				renderer_->RenderScene(scene_, camera_);
+				renderer_->RenderScene(scene_);
 				break;
 			case RenderType::LINE:
-				renderer_->RenderScene2D(scene_, camera_);
+				renderer_->RenderScene2D(scene_);
 				break;
 		}
 	}
