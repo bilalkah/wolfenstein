@@ -17,5 +17,7 @@ target_link_libraries(
     SDL2
     vector
     weapon
+    camera
+    single_raycaster
 )
 

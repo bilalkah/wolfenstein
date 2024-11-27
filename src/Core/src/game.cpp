@@ -1,6 +1,6 @@
 #include "Core/game.h"
-// #include "Animation/animator.h"
 #include "Animation/time_based_single_animation.h"
+#include "Camera/single_raycaster.h"
 #include "Characters/enemy.h"
 #include "GameObjects/dynamic_object.h"
 #include "GameObjects/static_object.h"
@@ -32,7 +32,7 @@ void Game::Init() {
 
 	CollisionManager::GetInstance().InitManager(map_);
 	NavigationManager::GetInstance().InitManager(map_);
-
+	SingleRayCasterService::GetInstance().InitService(map_);
 	scene_ = std::make_shared<Scene>();
 	scene_->SetMap(map_);
 
