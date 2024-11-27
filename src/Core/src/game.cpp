@@ -7,6 +7,7 @@
 #include "Graphics/renderer.h"
 #include "Math/vector.h"
 #include "NavigationManager/navigation_manager.h"
+#include "ShootingManager/shooting_manager.h"
 #include "State/enemy_state.h"
 #include "TextureManager/texture_manager.h"
 #include "TimeManager/time_manager.h"
@@ -44,11 +45,8 @@ void Game::Init() {
 								  config_.padding,		config_.scale,
 								  config_.fps,			config_.view_distance,
 								  config_.fov,			config_.fullscreen};
-	renderer_ = std::make_shared<Renderer>("Wolfenstein", render_config);
-
-	Camera2DConfig camera_config = {config_.screen_width, config_.fov,
-									config_.view_distance};
-	camera_ = std::make_shared<Camera2D>(camera_config);
+	renderer_ =
+		std::make_shared<Renderer>("Wolfenstein", render_config, camera_);
 
 	CharacterConfig player_config = {Position2D({3, 1.5}, 1.50), 2.0, 0.4, 0.4,
 									 1.0};
@@ -75,6 +73,9 @@ void Game::Init() {
 	PrepareEnemies();
 	PrepareDynamicObjects();
 	PrepareStaticObjects();
+
+	ShootingManager::GetInstance().InitManager(map_, player_,
+											   scene_->GetEnemies());
 
 	is_running_ = true;
 	TimeManager::GetInstance().InitClock();
@@ -139,13 +140,18 @@ void Game::PrepareEnemies() {
 	auto soldier = EnemyFactory::CreateEnemy(
 		"soldier",
 		CharacterConfig(Position2D({9, 7}, 1.50), 0.8, 0.4, 0.3, 0.6));
-		
+
+	auto soldier_2 = EnemyFactory::CreateEnemy(
+		"soldier",
+		CharacterConfig(Position2D({9, 8}, 1.50), 0.8, 0.4, 0.3, 0.6));
+
 	auto cyber_demon = EnemyFactory::CreateEnemy(
 		"cyber_demon",
 		CharacterConfig(Position2D({23.0, 4}, 1.50), 0.8, 0.4, 0.5, 1.0));
 
 	scene_->AddObject(caco_demon);
 	scene_->AddObject(soldier);
+	scene_->AddObject(soldier_2);
 	scene_->AddObject(cyber_demon);
 }
 

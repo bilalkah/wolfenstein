@@ -12,14 +12,28 @@
 #ifndef CHARACTERS_INCLUDE_ENEMY_H_
 #define CHARACTERS_INCLUDE_ENEMY_H_
 
+#include "Camera/single_raycaster.h"
 #include "Characters/character.h"
 #include "GameObjects/game_object.h"
 #include "Math/vector.h"
 #include "State/enemy_state.h"
 #include <memory>
 #include <string>
-
 namespace wolfenstein {
+
+struct AnimationTime
+{
+	double idle_animation_speed;
+};
+
+struct StateConfig
+{
+	AnimationTime animation_time;
+	double follow_range_max;
+	double follow_range_min;
+	double attack_range;
+	double attack_rate;
+};
 
 class EnemyFactory;
 class Enemy : public ICharacter,
@@ -31,7 +45,12 @@ class Enemy : public ICharacter,
 	~Enemy() = default;
 	void Update(double delta_time) override;
 	void TransitionTo(EnemyStatePtr state);
+	bool IsPlayerInShootingRange() const;
+	bool IsAttacked() const;
 
+	void SetNextPose(vector2d pose);
+	void SetAttacked(bool value);
+	void SetDeath();
 	void SetPose(const vector2d& pose) override;
 	void SetPosition(Position2D position) override;
 	void IncreaseHealth(double amount) override;
@@ -46,8 +65,9 @@ class Enemy : public ICharacter,
 	int GetTextureId() const override;
 	double GetWidth() const override;
 	double GetHeight() const override;
+	StateConfig GetStateConfig() const;
+	Ray GetCrosshairRay() const;
 
-	void SetNextPose(vector2d pose);
 	friend class EnemyFactory;
 
   private:
@@ -64,8 +84,11 @@ class Enemy : public ICharacter,
 	double health_{100};
 	std::string id_;
 	vector2d next_pose;
+	StateConfig state_config_;
 	EnemyStatePtr state_;
-	EnemyStatePtr previous_state_;
+	Ray crosshair_ray;
+	bool is_attacked_;
+	bool is_alive_;
 };
 
 class EnemyFactory

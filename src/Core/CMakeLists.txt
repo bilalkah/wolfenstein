@@ -42,4 +42,5 @@ target_link_libraries(
     SDL2_image
     SDL2_ttf
     enemy_state
+    single_raycaster
 )
