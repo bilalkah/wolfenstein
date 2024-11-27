@@ -32,6 +32,7 @@ class TBSAnimation : public IAnimation
 	void Reset() override;
 
 	int GetCurrentFrame() const override;
+	bool IsAnimationFinishedOnce() const override;
 
   private:
 	std::vector<uint16_t> textures;
@@ -39,6 +40,7 @@ class TBSAnimation : public IAnimation
 	int current_frame;
 	double animation_speed;
 	double counter;
+	bool is_animation_finished_once;
 };
 
 }  // namespace wolfenstein
