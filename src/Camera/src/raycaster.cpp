@@ -15,18 +15,19 @@ void RayCaster::Update(const std::shared_ptr<Map>& map_ptr,
 					   const Position2D& position,
 					   const std::shared_ptr<RayVector>& rays) {
 
+	const auto map_ = map_ptr->GetMap();
+	const auto& row_size = map_ptr->GetSizeX();
+	const auto& col_size = map_ptr->GetSizeY();
 	double ray_theta = position.theta - (fov_ / 2);
 	for (auto& ray : *rays) {
-		ray = Cast(map_ptr, position, ray_theta);
+		ray = Cast(map_, row_size, col_size, position, ray_theta);
 		ray_theta += delta_theta_;
 	}
 }
 
-Ray RayCaster::Cast(const std::shared_ptr<Map>& map_ptr,
+Ray RayCaster::Cast(const std::vector<std::vector<uint16_t>>& map_,
+					const uint16_t row_size, const uint16_t col_size,
 					const Position2D& position, const double ray_theta) {
-	const auto map_ = map_ptr->GetMap();
-	const auto& row_size = map_ptr->GetSizeX();
-	const auto& col_size = map_ptr->GetSizeY();
 	Ray ray;
 	vector2d ray_unit_step, ray_length_1d;
 	vector2i step, map_check;
