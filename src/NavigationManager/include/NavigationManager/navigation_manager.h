@@ -12,7 +12,7 @@
 #ifndef NAVIGATION_MANAGER_INCLUDE_NAVIGATION_MANAGER_NAVIGATION_MANAGER_H
 #define NAVIGATION_MANAGER_INCLUDE_NAVIGATION_MANAGER_NAVIGATION_MANAGER_H
 
-#include "Characters/character.h"
+#include "Characters/enemy.h"
 #include "Map/map.h"
 #include "Math/vector.h"
 #include "path-planning/planning/grid_base/astar/astar.h"
@@ -30,7 +30,8 @@ class NavigationManager
 	NavigationManager& operator=(const NavigationManager&) = delete;
 	~NavigationManager() = default;
 
-	void InitManager(std::shared_ptr<Map> map);
+	void InitManager(std::shared_ptr<Map> map,
+					 std::vector<std::shared_ptr<Enemy>> enemies);
 	vector2d FindPath(Position2D start, Position2D end, std::string id);
 	vector2d FindPathToPlayer(Position2D start, std::string id);
 	std::vector<vector2d> GetPath(std::string id);
@@ -38,6 +39,7 @@ class NavigationManager
 	void SubscribePlayerPosition(const Position2D& position);
 	double EuclideanDistanceToPlayer(const Position2D& position);
 	double ManhattanDistanceToPlayer(const Position2D& position);
+	void ApplyDynamicObjects(std::shared_ptr<planning::Map> path_map);
 
   private:
 	NavigationManager() = default;
@@ -47,6 +49,7 @@ class NavigationManager
 	std::shared_ptr<planning::grid_base::AStar> path_planner_;
 	std::unordered_map<std::string, std::vector<vector2d>> paths_;
 	Position2D player_position_;
+	std::vector<std::shared_ptr<Enemy>> enemies_;
 };
 
 }  // namespace wolfenstein
