@@ -32,7 +32,6 @@ void Game::Init() {
 	map_ = std::make_shared<Map>();
 
 	CollisionManager::GetInstance().InitManager(map_);
-	NavigationManager::GetInstance().InitManager(map_);
 	SingleRayCasterService::GetInstance().InitService(map_);
 	scene_ = std::make_shared<Scene>();
 	scene_->SetMap(map_);
@@ -76,6 +75,7 @@ void Game::Init() {
 
 	ShootingManager::GetInstance().InitManager(map_, player_,
 											   scene_->GetEnemies());
+	NavigationManager::GetInstance().InitManager(map_, scene_->GetEnemies());
 
 	is_running_ = true;
 	TimeManager::GetInstance().InitClock();

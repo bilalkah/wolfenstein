@@ -1,5 +1,9 @@
 #include "ShootingManager/shooting_manager.h"
 #include "Math/vector.h"
+#include "ShootingManager/shooting_helper.h"
+#include "Strike/simple_weapon.h"
+#include "Strike/weapon.h"
+#include <memory>
 
 namespace wolfenstein {
 
@@ -20,13 +24,17 @@ void ShootingManager::InitManager(std::shared_ptr<Map> map,
 	enemies_ = enemies;
 }
 
-void ShootingManager::PlayerShoot() {
+void ShootingManager::PlayerShoot(const std::shared_ptr<Weapon> weapon) {
 	auto enemy = std::find_if(
 		enemies_.begin(), enemies_.end(), [this](const auto& enemy) {
 			return enemy->GetId() == player_->GetCrosshairRay()->object_id;
 		});
 	if (enemy != enemies_.end()) {
-		(*enemy)->DecreaseHealth(CalculateDamage(*enemy));
+		const auto damage = CalculateDamage(weapon);
+		if (damage == 0) {
+			return;
+		}
+		(*enemy)->DecreaseHealth(damage);
 		(*enemy)->SetAttacked(true);
 		std::cout << "Enemy Name: " << (*enemy)->GetBotName()
 				  << " Enemy health: " << (*enemy)->GetHealth() << std::endl;
@@ -38,14 +46,30 @@ void ShootingManager::PlayerShoot() {
 	}
 }
 
-void ShootingManager::EnemyShoot() {
-	std::cout << "Enemy shoot" << std::endl;
-	player_->DecreaseHealth(10);
-	std::cout << "Player health: " << player_->GetHealth() << std::endl;
+void ShootingManager::EnemyShoot(const std::shared_ptr<SimpleWeapon> weapon) {
+	std::cout << "Enemy shoot with " << weapon->GetWeaponName() << std::endl;
+	const auto damage =
+		LinearSlope(weapon->GetAttackDamage(), weapon->GetAttackRange(),
+					weapon->GetCrosshair().distance);
+	player_->DecreaseHealth(damage);
+	std::cout << "Damage dealt: " << damage
+			  << " Player health: " << player_->GetHealth() << std::endl;
 }
 
-double ShootingManager::CalculateDamage(const std::shared_ptr<Enemy> enemy) {
-	return 10;
+double ShootingManager::CalculateDamage(const std::shared_ptr<Weapon> weapon) {
+	if (weapon->GetCrosshair()->distance > weapon->GetAttackRange()) {
+		return 0;
+	}
+	if (weapon->GetWeaponName() == "mp5") {
+		return LinearSlope(weapon->GetAttackDamage(), weapon->GetAttackRange(),
+						   weapon->GetCrosshair()->distance);
+	}
+	if (weapon->GetWeaponName() == "shotgun") {
+		return ExponentialSlope(weapon->GetAttackDamage(),
+								weapon->GetAttackRange(),
+								weapon->GetCrosshair()->distance);
+	}
+	return 0;
 }
 
 }  // namespace wolfenstein

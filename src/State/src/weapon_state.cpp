@@ -54,7 +54,7 @@ void LoadedState::PullTrigger() {
 	trigger_pulled_ = true;
 	trigger_pull_time_ = 0;
 	context_->DecreaseAmmo();
-	ShootingManager::GetInstance().PlayerShoot();
+	ShootingManager::GetInstance().PlayerShoot(context_);
 }
 
 // ########################################### OutOfAmmoState ###########################################

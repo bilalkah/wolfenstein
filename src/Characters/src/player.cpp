@@ -29,6 +29,7 @@ void Player::Update(double delta_time) {
 		subscriber(position_);
 	}
 	camera_->Update();
+	weapon_->SetCrossHair(camera_->GetCrosshairRay());
 }
 
 void Player::SetPose(const vector2d& pose) {
