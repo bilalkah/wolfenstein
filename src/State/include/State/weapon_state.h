@@ -32,6 +32,11 @@ class WeaponState : public State<Weapon>
   public:
 	virtual ~WeaponState() = default;
 	virtual void PullTrigger() {};
+	void Reset() override;
+	int GetCurrentFrame() const override;
+
+  protected:
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
 typedef std::shared_ptr<WeaponState> WeaponStatePtr;
@@ -44,9 +49,7 @@ class LoadedState : public WeaponState
 	~LoadedState();
 
 	void Update(const double&) override;
-	void Reset() override;
 	void OnContextSet() override;
-	int GetCurrentFrame() const override;
 	WeaponStateType GetType() const override;
 
 	void PullTrigger() override;
@@ -55,7 +58,6 @@ class LoadedState : public WeaponState
 	bool trigger_pulled_;
 	double trigger_pull_time_;
 	double fire_rate_;
-	std::unique_ptr<TBSAnimation> animation_;
 };
 
 // ########################################### OutOfAmmoState ###########################################
@@ -66,9 +68,7 @@ class OutOfAmmoState : public WeaponState
 	~OutOfAmmoState();
 
 	void Update(const double&) override;
-	void Reset() override;
 	void OnContextSet() override;
-	int GetCurrentFrame() const override;
 	WeaponStateType GetType() const override;
 
 	void PullTrigger() override;
@@ -77,7 +77,6 @@ class OutOfAmmoState : public WeaponState
 	bool trigger_pulled_;
 	double trigger_pull_time_;
 	double fire_rate_;
-	std::unique_ptr<TBSAnimation> animation_;
 };
 
 // ########################################### ReloadingState ###########################################
@@ -88,15 +87,12 @@ class ReloadingState : public WeaponState
 	~ReloadingState();
 
 	void Update(const double&) override;
-	void Reset() override;
 	void OnContextSet() override;
-	int GetCurrentFrame() const override;
 	WeaponStateType GetType() const override;
 
   private:
 	double reload_time_;
 	double reload_speed_;
-	std::unique_ptr<TBSAnimation> animation_;
 };
 
 }  // namespace wolfenstein
