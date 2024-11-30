@@ -21,6 +21,16 @@ Player::Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera)
 }
 
 void Player::Update(double delta_time) {
+
+	[this](double delta_time) {
+		static double time = 0;
+		time += delta_time;
+		if (time >= 1.0) {
+			time = 0.0;
+			IncreaseHealth(1);
+		}
+	}(delta_time);
+
 	ShootOrReload();
 	weapon_->Update(delta_time);
 	Move(delta_time);
@@ -50,10 +60,12 @@ void Player::SetPosition(Position2D position) {
 
 void Player::IncreaseHealth(double amount) {
 	health_ += amount;
+	health_ = std::min(health_, 100.0);
 }
 
 void Player::DecreaseHealth(double amount) {
 	health_ -= amount;
+	health_ = std::max(health_, 0.0);
 }
 
 double Player::GetHealth() const {

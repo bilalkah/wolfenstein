@@ -32,6 +32,12 @@ class EnemyState : public State<Enemy>
 {
   public:
 	virtual ~EnemyState() = default;
+
+	void Reset() override;
+	int GetCurrentFrame() const override;
+
+  protected:
+	std::unique_ptr<TBSAnimation> animation_;
 };
 
 typedef std::shared_ptr<EnemyState> EnemyStatePtr;
@@ -44,15 +50,12 @@ class IdleState : public EnemyState
 	~IdleState();
 
 	void Update(const double& delta_time) override;
-	void Reset() override;
 	void OnContextSet() override;
-	int GetCurrentFrame() const override;
 	EnemyStateType GetType() const override;
 
   private:
 	double animation_speed_;
 	double range_;
-	std::unique_ptr<TBSAnimation> animation_;
 };
 
 // ########################################### WalkState ###########################################
@@ -63,9 +66,7 @@ class WalkState : public EnemyState
 	~WalkState();
 
 	void Update(const double& delta_time) override;
-	void Reset() override;
 	void OnContextSet() override;
-	int GetCurrentFrame() const override;
 	EnemyStateType GetType() const override;
 
   private:
@@ -76,7 +77,6 @@ class WalkState : public EnemyState
 	double attack_rate_;
 	double attack_counter_;
 	bool is_attacked_;
-	std::unique_ptr<TBSAnimation> animation_;
 };
 
 // ########################################### AttackState ###########################################
@@ -87,15 +87,12 @@ class AttackState : public EnemyState
 	~AttackState();
 
 	void Update(const double& delta_time) override;
-	void Reset() override;
 	void OnContextSet() override;
-	int GetCurrentFrame() const override;
 	EnemyStateType GetType() const override;
 
   private:
 	double animation_speed_;
 	double attack_counter_;
-	std::unique_ptr<TBSAnimation> animation_;
 };
 
 // ########################################### PainState ###########################################
@@ -106,15 +103,12 @@ class PainState : public EnemyState
 	~PainState();
 
 	void Update(const double& delta_time) override;
-	void Reset() override;
 	void OnContextSet() override;
-	int GetCurrentFrame() const override;
 	EnemyStateType GetType() const override;
 
   private:
 	double animation_speed_;
 	double counter;
-	std::unique_ptr<TBSAnimation> animation_;
 };
 
 // ########################################### DeathState ###########################################
@@ -125,15 +119,12 @@ class DeathState : public EnemyState
 	~DeathState();
 
 	void Update(const double& delta_time) override;
-	void Reset() override;
 	void OnContextSet() override;
-	int GetCurrentFrame() const override;
 	EnemyStateType GetType() const override;
 
   private:
 	double animation_speed_;
 	double counter;
-	std::unique_ptr<TBSAnimation> animation_;
 };
 
 }  // namespace wolfenstein

@@ -6,6 +6,14 @@
 
 namespace wolfenstein {
 
+void EnemyState::Reset() {
+	animation_->Reset();
+}
+
+int EnemyState::GetCurrentFrame() const {
+	return animation_->GetCurrentFrame();
+}
+
 // ########################################### IdleState ###########################################
 IdleState::IdleState() {}
 
@@ -22,10 +30,6 @@ void IdleState::Update(const double& delta_time) {
 	}
 }
 
-void IdleState::Reset() {
-	animation_->Reset();
-}
-
 void IdleState::OnContextSet() {
 	const auto config = context_->GetStateConfig();
 	animation_speed_ = config.animation_time.idle_animation_speed;
@@ -34,10 +38,6 @@ void IdleState::OnContextSet() {
 		TextureManager::GetInstance().GetTextureCollection(
 			context_->GetBotName() + "_idle"),
 		animation_speed_);
-}
-
-int IdleState::GetCurrentFrame() const {
-	return animation_->GetCurrentFrame();
 }
 
 EnemyStateType IdleState::GetType() const {
@@ -95,20 +95,11 @@ void WalkState::Update(const double& delta_time) {
 
 	animation_->Update(delta_time);
 }
-
-void WalkState::Reset() {
-	animation_->Reset();
-}
-
 void WalkState::OnContextSet() {
 	attack_rate_ = context_->GetWeapon()->GetAttackRate();
 	attack_range_ = context_->GetWeapon()->GetAttackRange();
 	animation_ = std::make_unique<TBSAnimation>(
 		context_->GetBotName() + "_walk", animation_speed_);
-}
-
-int WalkState::GetCurrentFrame() const {
-	return animation_->GetCurrentFrame();
 }
 
 EnemyStateType WalkState::GetType() const {
@@ -136,18 +127,10 @@ void AttackState::Update(const double& delta_time) {
 	attack_counter_ += delta_time;
 }
 
-void AttackState::Reset() {
-	animation_->Reset();
-}
-
 void AttackState::OnContextSet() {
 	animation_speed_ = context_->GetWeapon()->GetAttackSpeed();
 	animation_ = std::make_unique<TBSAnimation>(
 		context_->GetBotName() + "_attack", animation_speed_);
-}
-
-int AttackState::GetCurrentFrame() const {
-	return animation_->GetCurrentFrame();
 }
 
 EnemyStateType AttackState::GetType() const {
@@ -155,7 +138,7 @@ EnemyStateType AttackState::GetType() const {
 }
 
 // ########################################### PainState ###########################################
-PainState::PainState() : animation_speed_(0.25), counter(0.0) {}
+PainState::PainState() : animation_speed_(0.2), counter(0.0) {}
 
 PainState::~PainState() {}
 
@@ -172,17 +155,9 @@ void PainState::Update(const double& delta_time) {
 	}
 }
 
-void PainState::Reset() {
-	animation_->Reset();
-}
-
 void PainState::OnContextSet() {
 	animation_ = std::make_unique<TBSAnimation>(
 		context_->GetBotName() + "_pain", animation_speed_);
-}
-
-int PainState::GetCurrentFrame() const {
-	return animation_->GetCurrentFrame();
 }
 
 EnemyStateType PainState::GetType() const {
@@ -205,18 +180,12 @@ void DeathState::Update(const double& delta_time) {
 	}
 }
 
-void DeathState::Reset() {
-	animation_->Reset();
-}
 
 void DeathState::OnContextSet() {
 	animation_ = std::make_unique<TBSAnimation>(
 		context_->GetBotName() + "_death", animation_speed_);
 }
 
-int DeathState::GetCurrentFrame() const {
-	return animation_->GetCurrentFrame();
-}
 
 EnemyStateType DeathState::GetType() const {
 	return EnemyStateType::Death;
