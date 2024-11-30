@@ -17,6 +17,8 @@
 #include "GameObjects/game_object.h"
 #include "Math/vector.h"
 #include "State/enemy_state.h"
+#include "Strike/simple_weapon.h"
+#include "Strike/strike.h"
 #include <memory>
 #include <string>
 namespace wolfenstein {
@@ -31,8 +33,6 @@ struct StateConfig
 	AnimationTime animation_time;
 	double follow_range_max;
 	double follow_range_min;
-	double attack_range;
-	double attack_rate;
 };
 
 class EnemyFactory;
@@ -47,6 +47,8 @@ class Enemy : public ICharacter,
 	void TransitionTo(EnemyStatePtr state);
 	bool IsPlayerInShootingRange() const;
 	bool IsAttacked() const;
+	bool IsAlive() const;
+	void Shoot();
 
 	void SetNextPose(vector2d pose);
 	void SetAttacked(bool value);
@@ -67,6 +69,7 @@ class Enemy : public ICharacter,
 	double GetHeight() const override;
 	StateConfig GetStateConfig() const;
 	Ray GetCrosshairRay() const;
+	std::shared_ptr<SimpleWeapon> GetWeapon() const;
 
 	friend class EnemyFactory;
 
@@ -86,6 +89,7 @@ class Enemy : public ICharacter,
 	vector2d next_pose;
 	StateConfig state_config_;
 	EnemyStatePtr state_;
+	std::shared_ptr<SimpleWeapon> weapon_;
 	Ray crosshair_ray;
 	bool is_attacked_;
 	bool is_alive_;

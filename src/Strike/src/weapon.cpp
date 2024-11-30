@@ -3,6 +3,7 @@
 #include "TimeManager/time_manager.h"
 #include <cstddef>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 namespace wolfenstein {
@@ -10,7 +11,10 @@ namespace wolfenstein {
 namespace {
 auto GetWeaponConfig = [](const std::string& weapon_name) -> WeaponConfig {
 	if (weapon_name == "mp5") {
-		return {"mp5", 10, 10, 10, 0.3, 1.5};
+		return {"mp5", 8, 15, 2, 8, 0.5, 1.5};
+	}
+	else if (weapon_name == "shotgun") {
+		return {"shotgun", 2, 60, 2, 7, 0.7, 3.5};
 	}
 	else {
 		throw std::invalid_argument("Invalid weapon name");
@@ -75,6 +79,10 @@ void Weapon::DecreaseAmmo(size_t amount) {
 	ammo_ -= amount;
 }
 
+void Weapon::SetCrossHair(std::shared_ptr<Ray> crosshair) {
+	crosshair_ = crosshair;
+}
+
 size_t Weapon::GetAmmo() const {
 	return ammo_;
 }
@@ -83,7 +91,7 @@ size_t Weapon::GetAmmoCapacity() const {
 	return weapon_properties_.ammo_capacity;
 }
 
-double Weapon::GetAttackDamage() const {
+std::pair<double, double> Weapon::GetAttackDamage() const {
 	return weapon_properties_.attack_damage;
 }
 
@@ -105,6 +113,10 @@ std::string Weapon::GetWeaponName() const {
 
 int Weapon::GetTextureId() const {
 	return state_->GetCurrentFrame();
+}
+
+std::shared_ptr<Ray> Weapon::GetCrosshair() const {
+	return crosshair_;
 }
 
 }  // namespace wolfenstein

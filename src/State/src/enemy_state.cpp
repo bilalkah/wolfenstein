@@ -101,6 +101,8 @@ void WalkState::Reset() {
 }
 
 void WalkState::OnContextSet() {
+	attack_rate_ = context_->GetWeapon()->GetAttackRate();
+	attack_range_ = context_->GetWeapon()->GetAttackRange();
 	animation_ = std::make_unique<TBSAnimation>(
 		context_->GetBotName() + "_walk", animation_speed_);
 }
@@ -121,7 +123,7 @@ AttackState::~AttackState() {}
 void AttackState::Update(const double& delta_time) {
 	animation_->Update(delta_time);
 	if (attack_counter_ == 0.0) {
-		ShootingManager::GetInstance().EnemyShoot();
+		context_->Shoot();
 	}
 	if (context_->IsAttacked()) {
 		context_->TransitionTo(std::make_shared<PainState>());
@@ -139,6 +141,7 @@ void AttackState::Reset() {
 }
 
 void AttackState::OnContextSet() {
+	animation_speed_ = context_->GetWeapon()->GetAttackSpeed();
 	animation_ = std::make_unique<TBSAnimation>(
 		context_->GetBotName() + "_attack", animation_speed_);
 }
@@ -197,6 +200,7 @@ void DeathState::Update(const double& delta_time) {
 		counter += delta_time;
 	}
 	else {
+		NavigationManager::GetInstance().ResetPath(context_->GetId());
 		context_->SetDeath();
 	}
 }
