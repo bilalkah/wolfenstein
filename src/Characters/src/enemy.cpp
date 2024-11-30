@@ -3,6 +3,8 @@
 #include "Camera/single_raycaster.h"
 #include "CollisionManager/collision_manager.h"
 #include "Math/vector.h"
+#include "Strike/simple_weapon.h"
+#include "Strike/strike.h"
 #include "Utility/uuid_generator.h"
 #include <memory>
 
@@ -11,13 +13,29 @@ namespace wolfenstein {
 namespace {
 auto GetBotStateConfig = [](const std::string& bot_name) -> StateConfig {
 	if (bot_name == "soldier") {
-		return {{0.8}, 5.0, 1.0, 5.0, 1.0};
+		return {{0.8}, 5.0, 1.0};
 	}
 	else if (bot_name == "caco_demon") {
-		return {{0.8}, 5.0, 1.0, 5.0, 1.0};
+		return {{0.8}, 5.0, 1.0};
 	}
 	else if (bot_name == "cyber_demon") {
-		return {{0.8}, 5.0, 1.0, 5.0, 1.0};
+		return {{0.8}, 5.0, 1.0};
+	}
+	else {
+		throw std::invalid_argument("Invalid bot name");
+	}
+};
+
+auto GetBotWeapon =
+	[](const std::string& bot_name) -> std::shared_ptr<SimpleWeapon> {
+	if (bot_name == "soldier") {
+		return std::make_shared<Rifle>();
+	}
+	else if (bot_name == "caco_demon") {
+		return std::make_shared<Melee>();
+	}
+	else if (bot_name == "cyber_demon") {
+		return std::make_shared<LaserGun>();
 	}
 	else {
 		throw std::invalid_argument("Invalid bot name");
@@ -35,6 +53,7 @@ Enemy::Enemy(std::string bot_name, CharacterConfig config)
 	  id_(UuidGenerator::GetInstance().GenerateUuid().bytes()),
 	  next_pose(position_.pose),
 	  state_config_(GetBotStateConfig(bot_name)),
+	  weapon_(GetBotWeapon(bot_name)),
 	  crosshair_ray(Ray{}),
 	  is_attacked_(false),
 	  is_alive_(true) {}
@@ -52,11 +71,20 @@ bool Enemy::IsAttacked() const {
 	return is_attacked_;
 }
 
+bool Enemy::IsAlive() const {
+	return is_alive_;
+}
+
+void Enemy::Shoot() {
+	weapon_->Attack();
+}
+
 void Enemy::Update(double delta_time) {
 	if (!is_alive_) {
 		return;
 	}
 	crosshair_ray = SingleRayCasterService::GetInstance().Cast(position_.pose);
+	weapon_->SetCrosshairRay(crosshair_ray);
 	state_->Update(delta_time);
 	if (next_pose != position_.pose) {
 		Move(delta_time);
@@ -147,6 +175,10 @@ StateConfig Enemy::GetStateConfig() const {
 
 Ray Enemy::GetCrosshairRay() const {
 	return crosshair_ray;
+}
+
+std::shared_ptr<SimpleWeapon> Enemy::GetWeapon() const {
+	return weapon_;
 }
 
 std::shared_ptr<Enemy> EnemyFactory::CreateEnemy(std::string bot_name,

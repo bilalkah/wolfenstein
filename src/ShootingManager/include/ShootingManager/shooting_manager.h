@@ -18,6 +18,8 @@
 #include "Characters/player.h"
 #include "Math/vector.h"
 #include "NavigationManager/navigation_manager.h"
+#include "Strike/simple_weapon.h"
+#include "Strike/strike.h"
 #include <memory>
 #include <vector>
 
@@ -33,12 +35,12 @@ class ShootingManager
 
 	void InitManager(std::shared_ptr<Map> map, std::shared_ptr<Player> player,
 					 std::vector<std::shared_ptr<Enemy>> enemies);
-	void PlayerShoot();
-	void EnemyShoot();
+	void PlayerShoot(const std::shared_ptr<Weapon> weapon);
+	void EnemyShoot(const std::shared_ptr<SimpleWeapon> weapon);
 
   private:
 	ShootingManager() = default;
-	double CalculateDamage(const std::shared_ptr<Enemy> enemy);
+	double CalculateDamage(const std::shared_ptr<Weapon> weapon);
 
 	static ShootingManager* instance_;
 	std::shared_ptr<Player> player_;

@@ -19,5 +19,6 @@ target_link_libraries(
     weapon
     camera
     single_raycaster
+    simple_weapon
 )
 

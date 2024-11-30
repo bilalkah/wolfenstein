@@ -11,7 +11,9 @@
 
 #include "Camera/camera.h"
 #include "Camera/ray.h"
+#include "Characters/enemy.h"
 #include "Core/scene.h"
+#include "GameObjects/game_object.h"
 #include "Math/vector.h"
 
 #include <cmath>
@@ -139,12 +141,20 @@ void Camera2D::Calculate(const std::shared_ptr<IGameObject>& object) {
 	objects_[object->GetId()] = object_ray_pair;
 
 	// Calculate if the object is in the crosshair
-	if (object_distance < crosshair_ray_->perpendicular_distance &&
-		camera_angle_left <= 0 && camera_angle_right >= 0) {
-		crosshair_ray_->is_hit = true;
-		crosshair_ray_->perpendicular_distance = object_distance;
-		crosshair_ray_->object_id = object->GetId();
-		crosshair_ray_->hit_point = object_pose;
+	if (object->GetObjectType() == ObjectType::CHARACTER_ENEMY) {
+		const auto bot = std::dynamic_pointer_cast<Enemy>(object);
+		if (object_distance < crosshair_ray_->perpendicular_distance &&
+			camera_angle_left <= 0 && camera_angle_right >= 0 &&
+			bot->IsAlive()) {
+			crosshair_ray_->is_hit = true;
+			crosshair_ray_->perpendicular_distance =
+				(object_ray_pair.first.perpendicular_distance +
+				 object_ray_pair.second.perpendicular_distance) /
+				2;
+			crosshair_ray_->distance = object_distance;
+			crosshair_ray_->object_id = bot->GetId();
+			crosshair_ray_->hit_point = object_pose;
+		}
 	}
 }
 
