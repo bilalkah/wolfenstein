@@ -1,11 +1,19 @@
 #include "State/weapon_state.h"
 #include "Animation/time_based_single_animation.h"
+#include "ShootingManager/shooting_manager.h"
 #include "State/state.h"
 #include "Strike/weapon.h"
 #include <memory>
-#include "ShootingManager/shooting_manager.h"
 
 namespace wolfenstein {
+
+void WeaponState::Reset() {
+	animation_->Reset();
+}
+
+int WeaponState::GetCurrentFrame() const {
+	return animation_->GetCurrentFrame();
+}
 
 // ########################################### LoadedState ###########################################
 LoadedState::LoadedState()
@@ -33,18 +41,10 @@ WeaponStateType LoadedState::GetType() const {
 	return WeaponStateType::Loaded;
 }
 
-void LoadedState::Reset() {
-	animation_->Reset();
-}
-
 void LoadedState::OnContextSet() {
 	fire_rate_ = context_->GetAttackSpeed();
 	animation_ = std::make_unique<TBSAnimation>(
 		context_->GetWeaponName() + "_loaded", fire_rate_);
-}
-
-int LoadedState::GetCurrentFrame() const {
-	return animation_->GetCurrentFrame();
 }
 
 void LoadedState::PullTrigger() {
@@ -78,18 +78,10 @@ WeaponStateType OutOfAmmoState::GetType() const {
 	return WeaponStateType::OutOfAmmo;
 }
 
-void OutOfAmmoState::Reset() {
-	animation_->Reset();
-}
-
 void OutOfAmmoState::OnContextSet() {
 	fire_rate_ = context_->GetAttackSpeed();
 	animation_ = std::make_unique<TBSAnimation>(
 		context_->GetWeaponName() + "_outofammo", fire_rate_);
-}
-
-int OutOfAmmoState::GetCurrentFrame() const {
-	return animation_->GetCurrentFrame();
 }
 
 void OutOfAmmoState::PullTrigger() {
@@ -120,18 +112,10 @@ WeaponStateType ReloadingState::GetType() const {
 	return WeaponStateType::Reloading;
 }
 
-void ReloadingState::Reset() {
-	animation_->Reset();
-}
-
 void ReloadingState::OnContextSet() {
 	reload_speed_ = context_->GetReloadSpeed();
 	animation_ = std::make_unique<TBSAnimation>(
 		context_->GetWeaponName() + "_reload", reload_speed_);
-}
-
-int ReloadingState::GetCurrentFrame() const {
-	return animation_->GetCurrentFrame();
 }
 
 }  // namespace wolfenstein
