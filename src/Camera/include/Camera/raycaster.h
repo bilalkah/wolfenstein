@@ -30,8 +30,9 @@ class RayCaster
 	void Update(const std::shared_ptr<Map>& map_ptr, const Position2D& position,
 				const std::shared_ptr<RayVector>& rays);
 
-	Ray Cast(const std::shared_ptr<Map>& map_ptr, const Position2D& position,
-			 const double ray_theta);
+	Ray Cast(const std::vector<std::vector<uint16_t>>& map_,
+			 const uint16_t row_size, const uint16_t col_size,
+			 const Position2D& position, const double ray_theta);
 	double GetDeltaTheta() const;
 
   private:

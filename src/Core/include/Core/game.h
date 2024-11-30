@@ -16,11 +16,14 @@
 #include "Characters/player.h"
 #include "CollisionManager/collision_manager.h"
 #include "Core/scene.h"
-#include "Graphics/renderer.h"
+#include "Graphics/renderer_2d.h"
+#include "Graphics/renderer_3d.h"
+#include "Graphics/renderer_interface.h"
 #include "Map/map.h"
 #include "Math/vector.h"
 #include "TextureManager/texture_manager.h"
 #include "TimeManager/time_manager.h"
+#include <memory>
 
 namespace wolfenstein {
 
@@ -66,7 +69,8 @@ class Game
 	void PrepareDynamicObjects();
 	void PrepareStaticObjects();
 
-	std::shared_ptr<Renderer> renderer_;
+	std::shared_ptr<IRenderer> renderer_;
+	std::shared_ptr<RendererContext> renderer_context_;
 	std::shared_ptr<Scene> scene_;
 	std::shared_ptr<Player> player_;
 	std::shared_ptr<Map> map_;

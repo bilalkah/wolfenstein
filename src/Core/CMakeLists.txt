@@ -33,7 +33,6 @@ target_link_libraries(
     game_object
     map
     vector
-    renderer
     time_manager
     collision_manager
     texture_manager
@@ -43,4 +42,7 @@ target_link_libraries(
     SDL2_ttf
     enemy_state
     single_raycaster
+    renderer_interface
+    renderer_2d
+    renderer_3d
 )
