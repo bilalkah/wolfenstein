@@ -4,7 +4,6 @@
 #include "Characters/enemy.h"
 #include "GameObjects/dynamic_object.h"
 #include "GameObjects/static_object.h"
-#include "Graphics/renderer.h"
 #include "Math/vector.h"
 #include "NavigationManager/navigation_manager.h"
 #include "ShootingManager/shooting_manager.h"
@@ -44,8 +43,11 @@ void Game::Init() {
 								  config_.padding,		config_.scale,
 								  config_.fps,			config_.view_distance,
 								  config_.fov,			config_.fullscreen};
-	renderer_ =
-		std::make_shared<Renderer>("Wolfenstein", render_config, camera_);
+	
+	renderer_context_ = std::make_shared<RendererContext>(
+		"Wolfenstein", render_config, camera_);
+
+	renderer_ = std::make_shared<Renderer3D>(renderer_context_);
 
 	CharacterConfig player_config = {Position2D({3, 1.5}, 1.50), 2.0, 0.4, 0.4,
 									 1.0};
@@ -107,10 +109,12 @@ void Game::CheckEvent() {
 			if (event.key.keysym.sym == SDLK_p &&
 				render_type_ == RenderType::TEXTURE) {
 				render_type_ = RenderType::LINE;
+				renderer_ = std::make_shared<Renderer2D>(renderer_context_);
 			}
 			else if (event.key.keysym.sym == SDLK_p &&
 					 render_type_ == RenderType::LINE) {
 				render_type_ = RenderType::TEXTURE;
+				renderer_ = std::make_shared<Renderer3D>(renderer_context_);
 			}
 		}
 	}
@@ -121,14 +125,7 @@ void Game::Run() {
 		CheckEvent();
 		TimeManager::GetInstance().CalculateDeltaTime();
 		scene_->Update(TimeManager::GetInstance().GetDeltaTime());
-		switch (render_type_) {
-			case RenderType::TEXTURE:
-				renderer_->RenderScene(scene_);
-				break;
-			case RenderType::LINE:
-				renderer_->RenderScene2D(scene_);
-				break;
-		}
+		renderer_->RenderScene(scene_);
 	}
 }
 
@@ -149,10 +146,15 @@ void Game::PrepareEnemies() {
 		"cyber_demon",
 		CharacterConfig(Position2D({23.0, 4}, 1.50), 0.8, 0.4, 0.5, 1.0));
 
+	auto cyber_demon_2 = EnemyFactory::CreateEnemy(
+		"cyber_demon",
+		CharacterConfig(Position2D({20.0, 4}, 1.50), 0.8, 0.4, 0.5, 1.0));
+
 	scene_->AddObject(caco_demon);
 	scene_->AddObject(soldier);
 	scene_->AddObject(soldier_2);
 	scene_->AddObject(cyber_demon);
+	scene_->AddObject(cyber_demon_2);
 }
 
 void Game::PrepareDynamicObjects() {
