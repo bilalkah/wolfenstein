@@ -15,7 +15,7 @@ Player::Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera)
 	  translation_speed_(config.translation_speed) {
 	id_ = UuidGenerator::GetInstance().GenerateUuid().bytes();
 	camera_ = camera;
-	weapon_ = std::make_shared<Weapon>("mp5");
+	weapon_ = std::make_shared<Weapon>("shotgun");
 	WeaponStatePtr loaded_state = std::make_shared<LoadedState>();
 	weapon_->TransitionTo(loaded_state);
 }

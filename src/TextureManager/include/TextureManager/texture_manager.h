@@ -22,6 +22,9 @@ namespace wolfenstein {
 
 struct Texture
 {
+	Texture() : texture(nullptr), width(0), height(0) {}
+	Texture(SDL_Texture* texture, int width, int height)
+		: texture(texture), width(width), height(height) {}
 	SDL_Texture* texture;
 	int width;
 	int height;

@@ -52,6 +52,21 @@ void TextureManager::LoadStaticTextures() {
 	LoadTexture(t_count_++, texture_path + "5.png");
 	LoadTexture(t_count_++, texture_path + "crosshair.png");
 	LoadTexture(t_count_++, texture_path + "solid_black.png");
+
+	// Digits
+	auto begin = t_count_;
+	LoadTexture(t_count_++, texture_path + "digits/0.png");
+	LoadTexture(t_count_++, texture_path + "digits/1.png");
+	LoadTexture(t_count_++, texture_path + "digits/2.png");
+	LoadTexture(t_count_++, texture_path + "digits/3.png");
+	LoadTexture(t_count_++, texture_path + "digits/4.png");
+	LoadTexture(t_count_++, texture_path + "digits/5.png");
+	LoadTexture(t_count_++, texture_path + "digits/6.png");
+	LoadTexture(t_count_++, texture_path + "digits/7.png");
+	LoadTexture(t_count_++, texture_path + "digits/8.png");
+	LoadTexture(t_count_++, texture_path + "digits/9.png");
+	LoadTexture(t_count_++, texture_path + "digits/10.png");
+	FillAscendingIds("digits", begin, t_count_);
 }
 
 void TextureManager::LoadSpriteTextures() {
@@ -84,6 +99,7 @@ void TextureManager::LoadNpcTextures() {
 	LoadTexture(t_count_++, npc_path + "caco_demon/attack/2.png");
 	LoadTexture(t_count_++, npc_path + "caco_demon/attack/3.png");
 	LoadTexture(t_count_++, npc_path + "caco_demon/attack/4.png");
+	LoadTexture(t_count_++, npc_path + "caco_demon/attack/0.png");
 	FillAscendingIds("caco_demon_attack", begin, t_count_);
 	// Caco demon Death
 	begin = t_count_;
@@ -98,12 +114,16 @@ void TextureManager::LoadNpcTextures() {
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "caco_demon/idle/0.png");
 	LoadTexture(t_count_++, npc_path + "caco_demon/idle/1.png");
-	LoadTexture(t_count_++, npc_path + "caco_demon/idle/2.png");
-	LoadTexture(t_count_++, npc_path + "caco_demon/idle/3.png");
-	LoadTexture(t_count_++, npc_path + "caco_demon/idle/4.png");
-	LoadTexture(t_count_++, npc_path + "caco_demon/idle/5.png");
-	LoadTexture(t_count_++, npc_path + "caco_demon/idle/6.png");
 	LoadTexture(t_count_++, npc_path + "caco_demon/idle/7.png");
+	// LoadTexture(t_count_++, npc_path + "caco_demon/idle/2.png");
+	// LoadTexture(t_count_++, npc_path + "caco_demon/idle/3.png");
+	// LoadTexture(t_count_++, npc_path + "caco_demon/idle/1.png");
+	// LoadTexture(t_count_++, npc_path + "caco_demon/idle/6.png");
+	// LoadTexture(t_count_++, npc_path + "caco_demon/idle/7.png");
+	// LoadTexture(t_count_++, npc_path + "caco_demon/idle/5.png");
+	// LoadTexture(t_count_++, npc_path + "caco_demon/idle/4.png");
+	// LoadTexture(t_count_++, npc_path + "caco_demon/idle/3.png");
+	// LoadTexture(t_count_++, npc_path + "caco_demon/idle/5.png");
 	FillAscendingIds("caco_demon_idle", begin, t_count_);
 	// Caco demon Pain
 	begin = t_count_;
@@ -120,6 +140,7 @@ void TextureManager::LoadNpcTextures() {
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "cyber_demon/attack/0.png");
 	LoadTexture(t_count_++, npc_path + "cyber_demon/attack/1.png");
+	LoadTexture(t_count_++, npc_path + "cyber_demon/attack/0.png");
 	FillAscendingIds("cyber_demon_attack", begin, t_count_);
 	// Cyber demon Death
 	begin = t_count_;
@@ -137,11 +158,11 @@ void TextureManager::LoadNpcTextures() {
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "cyber_demon/idle/0.png");
 	LoadTexture(t_count_++, npc_path + "cyber_demon/idle/1.png");
-	LoadTexture(t_count_++, npc_path + "cyber_demon/idle/2.png");
-	LoadTexture(t_count_++, npc_path + "cyber_demon/idle/3.png");
-	LoadTexture(t_count_++, npc_path + "cyber_demon/idle/4.png");
-	LoadTexture(t_count_++, npc_path + "cyber_demon/idle/5.png");
-	LoadTexture(t_count_++, npc_path + "cyber_demon/idle/6.png");
+	// LoadTexture(t_count_++, npc_path + "cyber_demon/idle/2.png");
+	// LoadTexture(t_count_++, npc_path + "cyber_demon/idle/3.png");
+	// LoadTexture(t_count_++, npc_path + "cyber_demon/idle/4.png");
+	// LoadTexture(t_count_++, npc_path + "cyber_demon/idle/5.png");
+	// LoadTexture(t_count_++, npc_path + "cyber_demon/idle/6.png");
 	LoadTexture(t_count_++, npc_path + "cyber_demon/idle/7.png");
 	FillAscendingIds("cyber_demon_idle", begin, t_count_);
 	// Cyber demon Pain
@@ -161,6 +182,7 @@ void TextureManager::LoadNpcTextures() {
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "soldier/attack/0.png");
 	LoadTexture(t_count_++, npc_path + "soldier/attack/1.png");
+	LoadTexture(t_count_++, npc_path + "soldier/attack/0.png");
 	FillAscendingIds("soldier_attack", begin, t_count_);
 	// Soldier Death
 	begin = t_count_;
@@ -178,11 +200,11 @@ void TextureManager::LoadNpcTextures() {
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "soldier/idle/0.png");
 	LoadTexture(t_count_++, npc_path + "soldier/idle/1.png");
-	LoadTexture(t_count_++, npc_path + "soldier/idle/2.png");
-	LoadTexture(t_count_++, npc_path + "soldier/idle/3.png");
-	LoadTexture(t_count_++, npc_path + "soldier/idle/4.png");
-	LoadTexture(t_count_++, npc_path + "soldier/idle/5.png");
-	LoadTexture(t_count_++, npc_path + "soldier/idle/6.png");
+	// LoadTexture(t_count_++, npc_path + "soldier/idle/2.png");
+	// LoadTexture(t_count_++, npc_path + "soldier/idle/3.png");
+	// LoadTexture(t_count_++, npc_path + "soldier/idle/4.png");
+	// LoadTexture(t_count_++, npc_path + "soldier/idle/5.png");
+	// LoadTexture(t_count_++, npc_path + "soldier/idle/6.png");
 	LoadTexture(t_count_++, npc_path + "soldier/idle/7.png");
 	FillAscendingIds("soldier_idle", begin, t_count_);
 	// Soldier Pain
@@ -236,6 +258,93 @@ void TextureManager::LoadWeaponTextures() {
 	LoadTexture(t_count_++, weapon_path + "/mp5/reload/" + "14.png");
 	LoadTexture(t_count_++, weapon_path + "/mp5/reload/" + "15.png");
 	FillAscendingIds("mp5_reload", begin, t_count_);
+
+	// Shotgun sprites
+	// Loaded
+	begin = t_count_;
+	LoadTexture(t_count_++, weapon_path + "/shotgun/loaded/" + "0.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/loaded/" + "1.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/loaded/" + "2.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/loaded/" + "3.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/loaded/" + "4.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/loaded/" + "5.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/loaded/" + "6.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/loaded/" + "7.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/loaded/" + "8.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/loaded/" + "9.png");
+	FillAscendingIds("shotgun_loaded", begin, t_count_);
+	// outofammo
+	begin = t_count_;
+	LoadTexture(t_count_++, weapon_path + "/shotgun/outofammo/" + "0.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/outofammo/" + "1.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/outofammo/" + "2.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/outofammo/" + "3.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/outofammo/" + "4.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/outofammo/" + "5.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/outofammo/" + "6.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/outofammo/" + "7.png");
+	FillAscendingIds("shotgun_outofammo", begin, t_count_);
+	// reload
+	begin = t_count_;
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "0.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "1.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "2.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "3.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "4.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "5.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "6.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "7.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "8.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "9.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "10.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "11.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "12.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "13.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "14.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "15.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "16.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "17.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "18.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "19.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "20.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "21.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "22.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "23.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "24.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "25.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "26.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "27.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "28.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "29.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "30.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "31.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "32.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "33.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "34.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "35.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "36.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "37.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "38.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "39.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "40.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "41.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "42.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "43.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "44.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "45.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "46.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "47.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "48.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "49.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "50.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "51.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "52.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "53.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "54.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "55.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "56.png");
+	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "57.png");
+	FillAscendingIds("shotgun_reload", begin, t_count_);
 }
 
 void TextureManager::FillAscendingIds(std::string key, uint16_t begin,
