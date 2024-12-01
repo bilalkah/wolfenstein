@@ -45,4 +45,6 @@ target_link_libraries(
     renderer_interface
     renderer_2d
     renderer_3d
+    renderer_menu
+    renderer_result
 )

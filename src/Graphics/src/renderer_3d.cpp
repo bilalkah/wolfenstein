@@ -1,17 +1,18 @@
 #include "Graphics/renderer_3d.h"
 #include "Camera/ray.h"
 #include "TextureManager/texture_manager.h"
-
+#include <list>
 namespace wolfenstein {
 
-void Renderer3D::RenderScene(const std::shared_ptr<Scene>& scene_ptr) {
+void Renderer3D::RenderScene() {
 	RenderQueue render_queue(Compare);
 	ClearScreen();
 	RenderBackground();
-	RenderWalls(scene_ptr->GetMap(), render_queue);
-	RenderObjects(scene_ptr->GetObjects(), render_queue);
-	RenderWeapon(scene_ptr->GetPlayer(), render_queue);
+	RenderWalls(scene_->GetMap(), render_queue);
+	RenderObjects(scene_->GetObjects(), render_queue);
+	RenderWeapon(scene_->GetPlayer(), render_queue);
 	RenderTextures(render_queue);
+	RenderHUD(scene_->GetPlayer());
 	SDL_RenderPresent(context_->GetRenderer());
 }
 
@@ -170,6 +171,20 @@ void Renderer3D::RenderWeapon(const std::shared_ptr<Player>& player_ptr,
 					   config_.height - height_slice, width_slice,
 					   height_slice};
 	render_queue.push({texture_id, src_rect, dest_rect, 0.0});
+
+	// Check if player is damaged
+	const auto damage = player_ptr->IsDamaged();
+	if (damage.first) {
+		auto damage_texture = TextureManager::GetInstance().GetTexture(9);
+		const auto damage_height = damage_texture.height;
+		const auto damage_width = damage_texture.width;
+		// change the alpha value of the texture
+		auto alpha = static_cast<int>(128 - damage.second * 128);
+		SDL_SetTextureAlphaMod(damage_texture.texture, alpha);
+		SDL_Rect damage_src_rect{0, 0, damage_width, damage_height};
+		SDL_Rect damage_dest_rect{0, 0, config_.width, config_.height};
+		render_queue.push({9, damage_src_rect, damage_dest_rect, -1.0});
+	}
 }
 
 void Renderer3D::RenderTextures(RenderQueue& render_queue) {
@@ -182,6 +197,42 @@ void Renderer3D::RenderTextures(RenderQueue& render_queue) {
 		SDL_RenderCopy(renderer_, texture.texture, &renderable_texture.src_rect,
 					   &renderable_texture.dest_rect);
 	}
+}
+
+void Renderer3D::RenderHUD(const std::shared_ptr<Player>& player_ptr) {
+	const auto config_ = context_->GetConfig();
+	auto health = static_cast<int>(player_ptr->GetHealth());
+	const auto number_textures =
+		TextureManager::GetInstance().GetTextureCollection("digits");
+
+	// Split health into digits
+	std::list<int> digits = {10};
+	if (health == 0) {
+		digits.push_front(0);
+	}
+	while (health > 0) {
+		digits.push_front(health % 10);
+		health /= 10;
+	}
+	int stride = 0;
+	// Render health top left
+	for (const auto& d : digits) {
+		auto digit_texture =
+			TextureManager::GetInstance().GetTexture(number_textures[d]);
+		const auto digit_height = digit_texture.height;
+		const auto digit_width = digit_texture.width;
+		const double ratio = static_cast<double>(digit_height) / digit_width;
+		const int width_slice = config_.width / 40;
+		const int height_slice = width_slice * ratio;
+		SDL_Rect src_rect = {0, 0, digit_width, digit_height};
+		SDL_Rect dest_rect = {config_.width / 40 + stride,
+							  config_.height - height_slice - 10, width_slice,
+							  height_slice};
+		SDL_RenderCopy(context_->GetRenderer(), digit_texture.texture,
+					   &src_rect, &dest_rect);
+		stride += width_slice;
+	}
+
 }
 
 }  // namespace wolfenstein

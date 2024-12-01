@@ -15,6 +15,7 @@
 #include "Camera/camera.h"
 #include "Core/scene.h"
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <memory>
 
 namespace wolfenstein {
@@ -49,12 +50,14 @@ class RendererContext
 							 std::shared_ptr<Camera2D>& camera);
 	~RendererContext();
 	SDL_Renderer* GetRenderer() const;
+	TTF_Font* GetFont() const;
 	SDL_Window* GetWindow() const;
 	RenderConfig GetConfig() const;
 	std::shared_ptr<Camera2D> GetCamera() const;
 
   private:
 	SDL_Renderer* renderer_;
+	TTF_Font* font_;
 	SDL_Window* window_;
 	RenderConfig config_;
 	std::shared_ptr<Camera2D> camera_ptr;
@@ -66,14 +69,16 @@ class IRenderer
 	IRenderer(std::shared_ptr<RendererContext> context);
 	virtual ~IRenderer() = default;
 
-	virtual void RenderScene(const std::shared_ptr<Scene>& scene_ptr) = 0;
+	virtual void RenderScene() = 0;
+	void SetScene(const std::shared_ptr<Scene>& scene_ptr);
 
+  protected:
 	void ClearScreen();
 
 	std::shared_ptr<RendererContext> GetContext() const;
 
-  protected:
 	std::shared_ptr<RendererContext> context_;
+	std::shared_ptr<Scene> scene_;
 };
 
 }  // namespace wolfenstein

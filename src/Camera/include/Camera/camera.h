@@ -26,7 +26,7 @@ struct Camera2DConfig
 {
 	Camera2DConfig(int width, double fov, double depth)
 		: width(width), fov(fov), depth(depth) {}
-		
+
 	int width;
 	double fov;
 	double depth;
