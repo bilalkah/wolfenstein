@@ -13,6 +13,12 @@ TextureManager& TextureManager::GetInstance() {
 	return *instance_;
 }
 
+TextureManager::~TextureManager() {
+	for (auto& texture : textures_) {
+		SDL_DestroyTexture(texture.second.texture);
+	}
+}
+
 void TextureManager::InitManager(SDL_Renderer* renderer) {
 	renderer_ = renderer;
 	t_count_ = 0;
@@ -52,7 +58,10 @@ void TextureManager::LoadStaticTextures() {
 	LoadTexture(t_count_++, texture_path + "5.png");
 	LoadTexture(t_count_++, texture_path + "crosshair.png");
 	LoadTexture(t_count_++, texture_path + "solid_black.png");
-
+	LoadTexture(t_count_++, texture_path + "menu_background.png");
+	LoadTexture(t_count_++, texture_path + "damage_taken.png");
+	LoadTexture(t_count_++, texture_path + "game_over.png");
+	LoadTexture(t_count_++, texture_path + "win.png");
 	// Digits
 	auto begin = t_count_;
 	LoadTexture(t_count_++, texture_path + "digits/0.png");

@@ -77,8 +77,8 @@ void Map::MapToPathFinderMap() {
 	for (uint16_t i = 0; i < size_x_; i++) {
 		for (uint16_t j = 0; j < size_y_; j++) {
 			if (map_[i][j] == 0) {
-				for (uint16_t k = 0; k < (1 / res) ; k++) {
-					for (uint16_t l = 0; l < (1 / res) ; l++) {
+				for (uint16_t k = 0; k < (1 / res); k++) {
+					for (uint16_t l = 0; l < (1 / res); l++) {
 						path_finder_map_->SetNodeState(
 							planning::Node(i / res + k, j / res + l),
 							planning::NodeState::kFree);

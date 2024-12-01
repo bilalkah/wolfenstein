@@ -38,7 +38,7 @@ class TextureManager
 
 	TextureManager(const TextureManager&) = delete;
 	TextureManager& operator=(const TextureManager&) = delete;
-	~TextureManager() = default;
+	~TextureManager();
 
 	void InitManager(SDL_Renderer* renderer);
 

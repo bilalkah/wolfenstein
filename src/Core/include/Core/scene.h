@@ -19,7 +19,6 @@
 #include "Characters/player.h"
 #include "GameObjects/game_object.h"
 #include "Map/map.h"
-#include "CollisionManager/collision_manager.h"
 
 namespace wolfenstein {
 
