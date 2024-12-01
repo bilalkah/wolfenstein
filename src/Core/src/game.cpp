@@ -10,6 +10,7 @@
 #include "State/enemy_state.h"
 #include "TextureManager/texture_manager.h"
 #include "TimeManager/time_manager.h"
+#include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_video.h>
 #include <functional>
 #include <memory>
@@ -43,11 +44,14 @@ void Game::Init() {
 								  config_.padding,		config_.scale,
 								  config_.fps,			config_.view_distance,
 								  config_.fov,			config_.fullscreen};
-	
+
 	renderer_context_ = std::make_shared<RendererContext>(
 		"Wolfenstein", render_config, camera_);
 
 	renderer_ = std::make_shared<Renderer3D>(renderer_context_);
+	renderer_->SetScene(scene_);
+
+	menu_ = std::make_shared<Menu>(renderer_context_);
 
 	CharacterConfig player_config = {Position2D({3, 1.5}, 1.50), 2.0, 0.4, 0.4,
 									 1.0};
@@ -78,12 +82,14 @@ void Game::Init() {
 	ShootingManager::GetInstance().InitManager(map_, player_,
 											   scene_->GetEnemies());
 	NavigationManager::GetInstance().InitManager(map_, scene_->GetEnemies());
-
-	is_running_ = true;
 	TimeManager::GetInstance().InitClock();
+	is_running_ = false;
+	is_result_ = false;
+	is_menu_ = true;
 }
 
-void Game::CheckEvent() {
+void Game::CheckMenuEvent() {
+
 	SDL_Event event;
 	while (SDL_PollEvent(&event)) {
 		// When user close the window
@@ -91,6 +97,39 @@ void Game::CheckEvent() {
 			(event.type == SDL_EventType::SDL_KEYDOWN &&
 			 event.key.keysym.sym == SDLK_ESCAPE)) {
 			is_running_ = false;
+			is_menu_ = false;
+		}
+
+		// When user press a key
+		if (event.type == SDL_KEYDOWN) {
+			if (event.key.keysym.sym == SDLK_SPACE) {
+				player_->SetWeapon(menu_->GetSelectedWeapon());
+				is_menu_ = false;
+				is_running_ = true;
+			}
+			// left arrow
+			if (event.key.keysym.sym == SDLK_LEFT) {
+				menu_->ChangeSelection(-1);
+			}
+			// right arrow
+			if (event.key.keysym.sym == SDLK_RIGHT) {
+				menu_->ChangeSelection(1);
+			}
+		}
+	}
+}
+
+void Game::CheckGameEvent() {
+
+	SDL_Event event;
+	while (SDL_PollEvent(&event)) {
+
+		// When user close the window
+		if (event.type == SDL_QUIT ||
+			(event.type == SDL_EventType::SDL_KEYDOWN &&
+			 event.key.keysym.sym == SDLK_ESCAPE)) {
+			is_running_ = false;
+			is_menu_ = false;
 		}
 
 		// When user alt tab the window
@@ -110,22 +149,53 @@ void Game::CheckEvent() {
 				render_type_ == RenderType::TEXTURE) {
 				render_type_ = RenderType::LINE;
 				renderer_ = std::make_shared<Renderer2D>(renderer_context_);
+				renderer_->SetScene(scene_);
 			}
 			else if (event.key.keysym.sym == SDLK_p &&
 					 render_type_ == RenderType::LINE) {
 				render_type_ = RenderType::TEXTURE;
 				renderer_ = std::make_shared<Renderer3D>(renderer_context_);
+				renderer_->SetScene(scene_);
 			}
 		}
 	}
 }
 
 void Game::Run() {
+
+	while (is_menu_) {
+		CheckMenuEvent();
+		TimeManager::GetInstance().CalculateDeltaTime();
+		menu_->Render();
+		SDL_WarpMouseInWindow(nullptr, 400, 300);
+	}
+
 	while (is_running_) {
-		CheckEvent();
+		CheckGameEvent();
 		TimeManager::GetInstance().CalculateDeltaTime();
 		scene_->Update(TimeManager::GetInstance().GetDeltaTime());
-		renderer_->RenderScene(scene_);
+		renderer_->RenderScene();
+		// Check if player is dead
+		if (!player_->IsAlive()) {
+			is_running_ = false;
+			is_result_ = true;
+			renderer_result_ = std::make_shared<RendererResult>(
+				renderer_context_,
+				TextureManager::GetInstance().GetTexture(10));
+		}
+	}
+
+	while (is_result_) {
+		SDL_Event event;
+		SDL_PollEvent(&event);
+		if (event.type == SDL_QUIT ||
+			(event.type == SDL_EventType::SDL_KEYDOWN &&
+			 event.key.keysym.sym == SDLK_ESCAPE)) {
+			is_result_ = false;
+		}
+
+		TimeManager::GetInstance().CalculateDeltaTime();
+		renderer_result_->Render();
 	}
 }
 

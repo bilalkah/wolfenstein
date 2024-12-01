@@ -51,7 +51,7 @@ class Renderer3D : public IRenderer
   public:
 	using IRenderer::IRenderer;
 	~Renderer3D() = default;
-	void RenderScene(const std::shared_ptr<Scene>& scene_ptr) override;
+	void RenderScene() override;
 
   private:
 	void RenderBackground();
@@ -68,6 +68,7 @@ class Renderer3D : public IRenderer
 	void RenderWeapon(const std::shared_ptr<Player>& player_ptr,
 					  RenderQueue& render_queue);
 	void RenderTextures(RenderQueue& render_queue);
+	void RenderHUD(const std::shared_ptr<Player>& player_ptr);
 };	// class Renderer3D
 
 }  // namespace wolfenstein

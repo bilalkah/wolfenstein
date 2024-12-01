@@ -19,6 +19,8 @@
 #include "Graphics/renderer_2d.h"
 #include "Graphics/renderer_3d.h"
 #include "Graphics/renderer_interface.h"
+#include "Graphics/renderer_menu.h"
+#include "Graphics/renderer_result.h"
 #include "Map/map.h"
 #include "Math/vector.h"
 #include "TextureManager/texture_manager.h"
@@ -62,7 +64,8 @@ class Game
 
   private:
 	void Init();
-	void CheckEvent();
+	void CheckGameEvent();
+	void CheckMenuEvent();
 	void Update();
 	void Render();
 	void PrepareEnemies();
@@ -70,13 +73,17 @@ class Game
 	void PrepareStaticObjects();
 
 	std::shared_ptr<IRenderer> renderer_;
+	std::shared_ptr<Menu> menu_;
 	std::shared_ptr<RendererContext> renderer_context_;
+	std::shared_ptr<RendererResult> renderer_result_;
 	std::shared_ptr<Scene> scene_;
 	std::shared_ptr<Player> player_;
 	std::shared_ptr<Map> map_;
 
 	GeneralConfig config_;
 	bool is_running_;
+	bool is_menu_;
+	bool is_result_;
 	RenderType render_type_;
 };
 

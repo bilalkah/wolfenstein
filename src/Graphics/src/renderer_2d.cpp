@@ -21,13 +21,13 @@ std::vector<vector2i> GenerateCirclePoints(vector2i center, int radius,
 
 }  // namespace
 
-void Renderer2D::RenderScene(const std::shared_ptr<Scene>& scene_ptr) {
+void Renderer2D::RenderScene() {
 	ClearScreen();
-	RenderMap(scene_ptr->GetMap());
-	RenderPlayer(scene_ptr->GetPlayer());
-	RenderObjects(scene_ptr->GetObjects());
-	RenderPaths(scene_ptr->GetEnemies());
-	RenderCrosshairs(scene_ptr->GetEnemies());
+	RenderMap(scene_->GetMap());
+	RenderPlayer(scene_->GetPlayer());
+	RenderObjects(scene_->GetObjects());
+	RenderPaths(scene_->GetEnemies());
+	RenderCrosshairs(scene_->GetEnemies());
 	SDL_RenderPresent(context_->GetRenderer());
 }
 

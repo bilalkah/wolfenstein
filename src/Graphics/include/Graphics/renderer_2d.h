@@ -21,7 +21,7 @@ class Renderer2D : public IRenderer
   public:
 	using IRenderer::IRenderer;
 	~Renderer2D() = default;
-	void RenderScene(const std::shared_ptr<Scene>& scene_ptr) override;
+	void RenderScene() override;
 
   private:
 	void RenderMap(const std::shared_ptr<Map> map_ptr);

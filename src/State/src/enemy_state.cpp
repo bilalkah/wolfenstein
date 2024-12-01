@@ -180,12 +180,10 @@ void DeathState::Update(const double& delta_time) {
 	}
 }
 
-
 void DeathState::OnContextSet() {
 	animation_ = std::make_unique<TBSAnimation>(
 		context_->GetBotName() + "_death", animation_speed_);
 }
-
 
 EnemyStateType DeathState::GetType() const {
 	return EnemyStateType::Death;

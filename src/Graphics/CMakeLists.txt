@@ -47,3 +47,33 @@ target_link_libraries(
     PUBLIC
     renderer_interface
 )
+
+add_library(
+    renderer_menu
+    STATIC
+    src/renderer_menu.cpp
+)
+target_include_directories(renderer_menu PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(
+    renderer_menu
+    PUBLIC
+    renderer_interface
+)
+
+add_library(
+    renderer_result
+    STATIC
+    src/renderer_result.cpp
+)
+target_include_directories(renderer_result PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(
+    renderer_result
+    PUBLIC
+    renderer_interface
+)

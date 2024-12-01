@@ -31,6 +31,7 @@ class Player : public ICharacter, public IGameObject
 
 	void Update(double delta_time) override;
 
+	void SetWeapon(std::shared_ptr<Weapon> weapon);
 	void SetPose(const vector2d& pose) override;
 	ObjectType GetObjectType() const override;
 	vector2d GetPose() const override;
@@ -44,6 +45,8 @@ class Player : public ICharacter, public IGameObject
 	double GetWidth() const override;
 	double GetHeight() const override;
 	std::shared_ptr<Ray> GetCrosshairRay() const;
+	std::pair<bool, double> IsDamaged() const;
+	bool IsAlive() const;
 	void SubscribeToPlayerPosition(std::function<void(Position2D)> subscriber);
 
   private:
@@ -51,6 +54,9 @@ class Player : public ICharacter, public IGameObject
 	void Rotate(double delta_time);
 	void ShootOrReload();
 
+	bool is_alive_{true};
+	bool damaged_{false};
+	double damage_counter_{0.0};
 	Position2D position_;
 	double rotation_speed_;
 	double translation_speed_;
