@@ -15,7 +15,7 @@ Player::Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera)
 	  translation_speed_(config.translation_speed) {
 	id_ = UuidGenerator::GetInstance().GenerateUuid().bytes();
 	camera_ = camera;
-	weapon_ = std::make_shared<Weapon>("shotgun");
+	weapon_ = std::make_shared<Weapon>("mp5");
 	WeaponStatePtr loaded_state = std::make_shared<LoadedState>();
 	weapon_->TransitionTo(loaded_state);
 }
@@ -31,6 +31,18 @@ void Player::Update(double delta_time) {
 		}
 	}(delta_time);
 
+	[this](double delta_time) {
+		if (!damaged_) {
+			damage_counter_ = 0;
+		}
+		else {
+			damage_counter_ += delta_time;
+			if (damage_counter_ >= 1.0) {
+				damaged_ = false;
+			}
+		}
+	}(delta_time);
+
 	ShootOrReload();
 	weapon_->Update(delta_time);
 	Move(delta_time);
@@ -40,6 +52,10 @@ void Player::Update(double delta_time) {
 	}
 	camera_->Update();
 	weapon_->SetCrossHair(camera_->GetCrosshairRay());
+}
+
+void Player::SetWeapon(std::shared_ptr<Weapon> weapon) {
+	weapon_ = weapon;
 }
 
 void Player::SetPose(const vector2d& pose) {
@@ -65,7 +81,10 @@ void Player::IncreaseHealth(double amount) {
 
 void Player::DecreaseHealth(double amount) {
 	health_ -= amount;
-	health_ = std::max(health_, 0.0);
+	if (health_ <= 0.0) {
+		is_alive_ = false;
+	}
+	damaged_ = true;
 }
 
 double Player::GetHealth() const {
@@ -92,6 +111,14 @@ double Player::GetHeight() const {
 
 std::shared_ptr<Ray> Player::GetCrosshairRay() const {
 	return camera_->GetCrosshairRay();
+}
+
+std::pair<bool, double> Player::IsDamaged() const {
+	return {damaged_, damage_counter_};
+}
+
+bool Player::IsAlive() const {
+	return is_alive_;
 }
 
 void Player::SubscribeToPlayerPosition(
