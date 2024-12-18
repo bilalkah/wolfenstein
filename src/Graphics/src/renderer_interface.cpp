@@ -73,6 +73,10 @@ const Camera2D& RendererContext::GetCamera() const {
 	return camera_ptr;
 }
 
+Camera2D& RendererContext::GetCamera() {
+	return camera_ptr;
+}
+
 IRenderer::IRenderer(std::shared_ptr<RendererContext> context)
 	: context_(context) {}
 
@@ -83,6 +87,7 @@ void IRenderer::ClearScreen() {
 
 void IRenderer::SetScene(const std::shared_ptr<Scene>& scene_ptr) {
 	scene_ = scene_ptr;
+	context_->GetCamera().SetScene(scene_ptr);
 }
 
 std::shared_ptr<RendererContext> IRenderer::GetContext() const {

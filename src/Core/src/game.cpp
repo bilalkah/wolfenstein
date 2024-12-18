@@ -56,16 +56,11 @@ void Game::Init() {
 
 	scene_ = SceneLoader::GetInstance().Load("level1.json", player_);
 	renderer_->SetScene(scene_);
-	camera_->SetScene(scene_);
 
 	camera_->SetPositionPtr(player_->GetPositionPtr());
 	NavigationManager::GetInstance().SetPositionPtr(player_->GetPositionPtr());
 	SingleRayCasterService::GetInstance().SetDestinationPtr(
 		player_->GetPositionPtr());
-
-	// PrepareEnemies();
-	// PrepareDynamicObjects();
-	// PrepareStaticObjects();
 }
 
 void Game::CheckMenuEvent() {
@@ -155,6 +150,7 @@ void Game::Run() {
 		TimeManager::GetInstance().CalculateDeltaTime();
 		scene_->Update(TimeManager::GetInstance().GetDeltaTime());
 		renderer_->RenderScene();
+
 		// Check if player is dead
 		if (!player_->IsAlive()) {
 			renderer_result_ =
@@ -162,19 +158,28 @@ void Game::Run() {
 		}
 		if (scene_->GetNumberOfAliveEnemies() == 0) {
 			if (scene_->GetNextScene() != "") {
-				*scene_ = *SceneLoader::GetInstance().Load(
-					scene_->GetNextScene(), player_);
+				[this]() {
+					static double time_pass = 0;
+					time_pass += TimeManager::GetInstance().GetDeltaTime();
+					if (time_pass >= 2.0) {
+						const auto next = scene_->GetNextScene();
+						scene_ = SceneLoader::GetInstance().Load(next, player_);
+						renderer_->SetScene(scene_);
+						time_pass = 0;
+					}
+				}();
 			}
 			else {
 				renderer_result_ =
 					std::make_unique<RendererResult>(renderer_context_, 11);
 			}
 		}
+
 		if (renderer_result_) {
 			[this]() {
 				static double time_pass = 0;
 				time_pass += TimeManager::GetInstance().GetDeltaTime();
-				if (time_pass >= 1.0) {
+				if (time_pass >= 2.0) {
 					is_running_ = false;
 					is_result_ = true;
 				}
@@ -196,62 +201,5 @@ void Game::Run() {
 		renderer_result_->Render();
 	}
 }
-
-void Game::PrepareEnemies() {
-	auto caco_demon = EnemyFactory::CreateEnemy(
-		"caco_demon",
-		CharacterConfig(Position2D({13.5, 2.5}, 1.50), 0.8, 0.4, 0.4, 0.8));
-
-	auto soldier = EnemyFactory::CreateEnemy(
-		"soldier",
-		CharacterConfig(Position2D({9, 7}, 1.50), 0.8, 0.4, 0.3, 0.6));
-
-	auto soldier_2 = EnemyFactory::CreateEnemy(
-		"soldier",
-		CharacterConfig(Position2D({9, 8}, 1.50), 0.8, 0.4, 0.3, 0.6));
-
-	auto cyber_demon = EnemyFactory::CreateEnemy(
-		"cyber_demon",
-		CharacterConfig(Position2D({23.0, 4}, 1.50), 0.8, 0.4, 0.5, 1.0));
-
-	auto cyber_demon_2 = EnemyFactory::CreateEnemy(
-		"cyber_demon",
-		CharacterConfig(Position2D({20.0, 4}, 1.50), 0.8, 0.4, 0.5, 1.0));
-
-	scene_->AddObject(caco_demon);
-	scene_->AddObject(soldier);
-	scene_->AddObject(soldier_2);
-	scene_->AddObject(cyber_demon);
-	scene_->AddObject(cyber_demon_2);
-}
-
-void Game::PrepareDynamicObjects() {
-	const auto animation_green_light = LoopedAnimation(
-		TextureManager::GetInstance().GetTextureCollection("green_light"), 0.1);
-	const auto animation_red_light = LoopedAnimation(
-		TextureManager::GetInstance().GetTextureCollection("red_light"), 0.1);
-
-	scene_->AddObject(std::make_shared<DynamicObject>(
-		vector2d(12.1, 8.15),
-		std::make_unique<LoopedAnimation>(animation_red_light), 0.2, 0.9));
-	scene_->AddObject(std::make_shared<DynamicObject>(
-		vector2d(10.9, 8.15),
-		std::make_unique<LoopedAnimation>(animation_red_light), 0.2, 0.9));
-
-	scene_->AddObject(std::make_shared<DynamicObject>(
-		vector2d(9.9, 10.9),
-		std::make_unique<LoopedAnimation>(animation_green_light), 0.2, 0.9));
-	scene_->AddObject(std::make_shared<DynamicObject>(
-		vector2d(9.9, 13.10),
-		std::make_unique<LoopedAnimation>(animation_green_light), 0.2, 0.9));
-	scene_->AddObject(std::make_shared<DynamicObject>(
-		vector2d(12.1, 13.1),
-		std::make_unique<LoopedAnimation>(animation_green_light), 0.2, 0.9));
-	scene_->AddObject(std::make_shared<DynamicObject>(
-		vector2d(12.1, 10.9),
-		std::make_unique<LoopedAnimation>(animation_green_light), 0.2, 0.9));
-}
-
-void Game::PrepareStaticObjects() {}
 
 }  // namespace wolfenstein

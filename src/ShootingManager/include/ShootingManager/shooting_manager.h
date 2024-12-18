@@ -34,7 +34,7 @@ class ShootingManager
 	ShootingManager& operator=(const ShootingManager&) = delete;
 	~ShootingManager();
 
-	void InitManager(std::shared_ptr<Scene> scene);
+	void InitManager(const std::shared_ptr<Scene>& scene);
 	void PlayerShoot(const Weapon& weapon);
 	void EnemyShoot(const SimpleWeapon& weapon);
 

@@ -53,6 +53,7 @@ class RendererContext
 	SDL_Window* GetWindow() const;
 	RenderConfig GetConfig() const;
 	const Camera2D& GetCamera() const;
+	Camera2D& GetCamera();
 
   private:
 	SDL_Renderer* renderer_;

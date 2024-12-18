@@ -56,9 +56,9 @@ class Renderer3D : public IRenderer
   private:
 	void RenderBackground();
 	void RenderWalls(RenderQueue& render_queue);
-	void RenderIfRayHit(const int horizontal_slice, const Ray& ray,
+	void RenderIfRayHit(const int& horizontal_slice, const Ray& ray,
 						RenderQueue& render_queue);
-	void RenderIfRayHitNot(const int horizontal_slice,
+	void RenderIfRayHitNot(const int& horizontal_slice,
 						   RenderQueue& render_queue);
 	void RenderObjects(RenderQueue& render_queue);
 	int CalculateHorizontalSlice(const double& angle);

@@ -48,7 +48,7 @@ void Renderer3D::RenderWalls(RenderQueue& render_queue) {
 	};
 }
 
-void Renderer3D::RenderIfRayHit(const int horizontal_slice, const Ray& ray,
+void Renderer3D::RenderIfRayHit(const int& horizontal_slice, const Ray& ray,
 								RenderQueue& render_queue) {
 	const auto& camera_ptr = context_->GetCamera();
 	const auto distance = ray.perpendicular_distance *
@@ -69,7 +69,7 @@ void Renderer3D::RenderIfRayHit(const int horizontal_slice, const Ray& ray,
 	render_queue.push({ray.wall_id, src_rect, dest_rect, distance});
 }
 
-void Renderer3D::RenderIfRayHitNot(const int horizontal_slice,
+void Renderer3D::RenderIfRayHitNot(const int& horizontal_slice,
 								   RenderQueue& render_queue) {
 	const auto config_ = context_->GetConfig();
 	const auto [line_height, draw_start, draw_end] =
@@ -249,12 +249,12 @@ void Renderer3D::RenderHUD() {
 		std::cerr << "Failed to create texture: " << SDL_GetError()
 				  << std::endl;
 	}
-	SDL_FreeSurface(
-		textSurface);  // Free the surface after creating the texture
-
 	SDL_Rect rect = {0, 0, textSurface->w,
 					 textSurface->h};  // Position and size
 	SDL_RenderCopy(context_->GetRenderer(), textTexture, nullptr, &rect);
+
+	SDL_FreeSurface(
+		textSurface);  // Free the surface after creating the texture
 	SDL_DestroyTexture(textTexture);
 
 	// Ammo Bottom Right

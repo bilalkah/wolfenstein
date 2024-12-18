@@ -61,8 +61,8 @@ std::shared_ptr<Scene> SceneLoader::Load(std::string json_path,
 	PrepareDynamicObjects(*scene, level_data["dynamicObjects"]);
 	PrepareStaticObjects(*scene, level_data["staticObjects"]);
 
-	InitManagers(scene);
 	scene->SetNextScene(level_data["next_level"].get<std::string>());
+	InitManagers(scene);
 	TimeManager::GetInstance().InitClock();
 	return scene;
 }
@@ -73,6 +73,7 @@ void SceneLoader::PreparePlayer(Scene& scene, nlohmann::json& player_data,
 		Position2D({player_data["position"]["x"].get<double>(),
 					player_data["position"]["y"].get<double>()},
 				   player_data["position"]["theta"].get<double>()));
+	player->IncreaseHealth(100);
 	scene.SetPlayer(player);
 }
 
