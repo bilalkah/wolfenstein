@@ -46,6 +46,7 @@ target_link_libraries(
     renderer_3d
     PUBLIC
     renderer_interface
+    time_manager
 )
 
 add_library(
@@ -76,4 +77,5 @@ target_link_libraries(
     renderer_result
     PUBLIC
     renderer_interface
+    animation
 )

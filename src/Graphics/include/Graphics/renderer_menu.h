@@ -30,7 +30,7 @@ class Menu
 
   private:
 	void RenderBackground();
-	void RenderText(const SDL_Color& color);
+	void RenderText();
 	void RenderWeapon();
 	void Animate();
 	void ClearScreen();

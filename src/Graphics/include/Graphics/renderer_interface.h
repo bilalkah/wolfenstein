@@ -46,21 +46,20 @@ class RendererContext
 {
   public:
 	explicit RendererContext(const std::string& window_name,
-							 const RenderConfig& config,
-							 std::shared_ptr<Camera2D>& camera);
+							 const RenderConfig& config, Camera2D& camera);
 	~RendererContext();
 	SDL_Renderer* GetRenderer() const;
 	TTF_Font* GetFont() const;
 	SDL_Window* GetWindow() const;
 	RenderConfig GetConfig() const;
-	std::shared_ptr<Camera2D> GetCamera() const;
+	const Camera2D& GetCamera() const;
 
   private:
 	SDL_Renderer* renderer_;
 	TTF_Font* font_;
 	SDL_Window* window_;
 	RenderConfig config_;
-	std::shared_ptr<Camera2D> camera_ptr;
+	Camera2D& camera_ptr;
 };
 
 class IRenderer
