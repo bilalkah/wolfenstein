@@ -31,7 +31,7 @@ class NavigationManager
 	NavigationManager& operator=(const NavigationManager&) = delete;
 	~NavigationManager();
 
-	void InitManager(std::shared_ptr<Scene> scene);
+	void InitManager(const std::shared_ptr<Scene>& scene);
 	vector2d FindPath(Position2D start, Position2D end, std::string id);
 	vector2d FindPathToPlayer(Position2D start, std::string id);
 	std::vector<vector2d> GetPath(std::string id);

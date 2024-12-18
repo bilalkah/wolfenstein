@@ -24,7 +24,7 @@ NavigationManager::~NavigationManager() {
 	delete instance_;
 }
 
-void NavigationManager::InitManager(std::shared_ptr<Scene> scene) {
+void NavigationManager::InitManager(const std::shared_ptr<Scene>& scene) {
 	scene_ = scene;
 	if (initialized_) {
 		return;
