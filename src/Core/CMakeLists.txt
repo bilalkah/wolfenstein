@@ -17,6 +17,20 @@ target_link_libraries(
 )
 
 add_library(
+    scene_loader
+    STATIC
+    src/scene_loader.cpp
+)
+target_include_directories(scene_loader PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(
+    scene_loader
+    PUBLIC
+    scene
+)
+
+add_library(
     game
     STATIC
     src/game.cpp
@@ -37,6 +51,7 @@ target_link_libraries(
     collision_manager
     texture_manager
     navigation_manager
+    sound_manager
     SDL2
     SDL2_image
     SDL2_ttf
@@ -47,4 +62,5 @@ target_link_libraries(
     renderer_3d
     renderer_menu
     renderer_result
+    scene_loader
 )

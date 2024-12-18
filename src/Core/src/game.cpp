@@ -1,11 +1,14 @@
 #include "Animation/looped_animation.h"
 #include "Camera/single_raycaster.h"
 #include "Characters/enemy.h"
+#include "Core/game.h"
+#include "Core/scene_loader.h"
 #include "GameObjects/dynamic_object.h"
 #include "GameObjects/static_object.h"
 #include "Math/vector.h"
 #include "NavigationManager/navigation_manager.h"
 #include "ShootingManager/shooting_manager.h"
+#include "SoundManager/sound_manager.h"
 #include "State/enemy_state.h"
 #include "TextureManager/texture_manager.h"
 #include "TimeManager/time_manager.h"
@@ -18,7 +21,11 @@
 namespace wolfenstein {
 
 Game::Game(GeneralConfig& config)
-	: config_(config), is_running_(false), render_type_(RenderType::TEXTURE) {
+	: config_(config),
+	  is_running_(false),
+	  is_menu_(true),
+	  is_result_(false),
+	  render_type_(RenderType::TEXTURE) {
 	Init();
 	// Hide cursor
 	SDL_ShowCursor(SDL_DISABLE);
@@ -28,16 +35,9 @@ Game::~Game() {}
 
 void Game::Init() {
 
-	map_ = std::make_shared<Map>();
-
-	CollisionManager::GetInstance().InitManager(map_);
-	SingleRayCasterService::GetInstance().InitService(map_);
-	scene_ = std::make_shared<Scene>();
-	scene_->SetMap(map_);
-
 	Camera2DConfig camera_config = {config_.screen_width, config_.fov,
 									config_.view_distance};
-	auto camera_ = std::make_shared<Camera2D>(camera_config, scene_);
+	auto camera_ = std::make_shared<Camera2D>(camera_config);
 
 	RenderConfig render_config = {config_.screen_width, config_.screen_height,
 								  config_.padding,		config_.scale,
@@ -45,46 +45,27 @@ void Game::Init() {
 								  config_.fov,			config_.fullscreen};
 
 	renderer_context_ = std::make_shared<RendererContext>(
-		"Wolfenstein", render_config, camera_);
+		"Wolfenstein", render_config, *camera_);
 
-	renderer_ = std::make_shared<Renderer3D>(renderer_context_);
-	renderer_->SetScene(scene_);
-
-	menu_ = std::make_shared<Menu>(renderer_context_);
+	renderer_ = std::make_unique<Renderer3D>(renderer_context_);
+	menu_ = std::make_unique<Menu>(renderer_context_);
 
 	CharacterConfig player_config = {Position2D({3, 1.5}, 1.50), 2.0, 0.4, 0.4,
 									 1.0};
 	player_ = std::make_shared<Player>(player_config, camera_);
 
-	player_->SubscribeToPlayerPosition(std::bind(
-		[camera_](Position2D position) { camera_->SetPosition(position); },
-		std::placeholders::_1));
-	player_->SubscribeToPlayerPosition(std::bind(
-		[](Position2D position) {
-			NavigationManager::GetInstance().SubscribePlayerPosition(position);
-		},
-		std::placeholders::_1));
+	scene_ = SceneLoader::GetInstance().Load("level1.json", player_);
+	renderer_->SetScene(scene_);
+	camera_->SetScene(scene_);
 
-	player_->SubscribeToPlayerPosition(std::bind(
-		[](Position2D position) {
-			SingleRayCasterService::GetInstance().SubscribePlayerPose(
-				position.pose);
-		},
-		std::placeholders::_1));
+	camera_->SetPositionPtr(player_->GetPositionPtr());
+	NavigationManager::GetInstance().SetPositionPtr(player_->GetPositionPtr());
+	SingleRayCasterService::GetInstance().SetDestinationPtr(
+		player_->GetPositionPtr());
 
-	scene_->SetPlayer(player_);
-
-	PrepareEnemies();
-	PrepareDynamicObjects();
-	PrepareStaticObjects();
-
-	ShootingManager::GetInstance().InitManager(map_, player_,
-											   scene_->GetEnemies());
-	NavigationManager::GetInstance().InitManager(map_, scene_->GetEnemies());
-	TimeManager::GetInstance().InitClock();
-	is_running_ = false;
-	is_result_ = false;
-	is_menu_ = true;
+	// PrepareEnemies();
+	// PrepareDynamicObjects();
+	// PrepareStaticObjects();
 }
 
 void Game::CheckMenuEvent() {
@@ -147,13 +128,13 @@ void Game::CheckGameEvent() {
 			if (event.key.keysym.sym == SDLK_p &&
 				render_type_ == RenderType::TEXTURE) {
 				render_type_ = RenderType::LINE;
-				renderer_ = std::make_shared<Renderer2D>(renderer_context_);
+				renderer_ = std::make_unique<Renderer2D>(renderer_context_);
 				renderer_->SetScene(scene_);
 			}
 			else if (event.key.keysym.sym == SDLK_p &&
 					 render_type_ == RenderType::LINE) {
 				render_type_ = RenderType::TEXTURE;
-				renderer_ = std::make_shared<Renderer3D>(renderer_context_);
+				renderer_ = std::make_unique<Renderer3D>(renderer_context_);
 				renderer_->SetScene(scene_);
 			}
 		}
@@ -176,12 +157,30 @@ void Game::Run() {
 		renderer_->RenderScene();
 		// Check if player is dead
 		if (!player_->IsAlive()) {
-			is_running_ = false;
-			is_result_ = true;
-			renderer_result_ = std::make_shared<RendererResult>(
-				renderer_context_,
-				TextureManager::GetInstance().GetTexture(10));
+			renderer_result_ =
+				std::make_unique<RendererResult>(renderer_context_, 10);
 		}
+		if (scene_->GetNumberOfAliveEnemies() == 0) {
+			if (scene_->GetNextScene() != "") {
+				*scene_ = *SceneLoader::GetInstance().Load(
+					scene_->GetNextScene(), player_);
+			}
+			else {
+				renderer_result_ =
+					std::make_unique<RendererResult>(renderer_context_, 11);
+			}
+		}
+		if (renderer_result_) {
+			[this]() {
+				static double time_pass = 0;
+				time_pass += TimeManager::GetInstance().GetDeltaTime();
+				if (time_pass >= 1.0) {
+					is_running_ = false;
+					is_result_ = true;
+				}
+			}();
+		}
+		TimeManager::GetInstance().SleepForHz(config_.fps);
 	}
 
 	while (is_result_) {
@@ -253,9 +252,6 @@ void Game::PrepareDynamicObjects() {
 		std::make_unique<LoopedAnimation>(animation_green_light), 0.2, 0.9));
 }
 
-void Game::PrepareStaticObjects() {
-	scene_->AddObject(
-		std::make_shared<StaticObject>(vector2d(14.5, 9), 8, 0.2, 0.5));
-}
+void Game::PrepareStaticObjects() {}
 
 }  // namespace wolfenstein

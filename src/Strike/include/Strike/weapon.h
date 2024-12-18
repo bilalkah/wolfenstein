@@ -50,7 +50,7 @@ class Weapon : public IStrike, public std::enable_shared_from_this<Weapon>
 	void Update(double delta_time);
 	void Charge();
 	void Reload();
-	void TransitionTo(WeaponStatePtr& state);
+	void TransitionTo(WeaponStatePtr state);
 
 	void SetAmmo(size_t ammo);
 	void IncreaseAmmo();
@@ -67,7 +67,7 @@ class Weapon : public IStrike, public std::enable_shared_from_this<Weapon>
 	double GetReloadSpeed() const;
 	std::string GetWeaponName() const;
 	int GetTextureId() const;
-	std::shared_ptr<Ray> GetCrosshair() const;
+	const Ray& GetCrosshair() const;
 
   private:
 	WeaponConfig weapon_properties_;

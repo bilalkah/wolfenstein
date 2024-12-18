@@ -1,5 +1,5 @@
 #include "Camera/single_raycaster.h"
-#include "Math/vector.h"
+#include "Core/scene.h"
 #include <cmath>
 
 namespace wolfenstein {
@@ -13,21 +13,31 @@ SingleRayCasterService& SingleRayCasterService::GetInstance() {
 	return *instance_;
 }
 
-void SingleRayCasterService::InitService(const std::shared_ptr<Map>& map_ptr) {
-	map_ptr_ = map_ptr;
+SingleRayCasterService::~SingleRayCasterService() {
+	delete instance_;
+}
+
+void SingleRayCasterService::InitService(
+	const std::shared_ptr<Scene>& scene_ptr) {
+	scene_ptr_ = scene_ptr;
 }
 
 Ray SingleRayCasterService::Cast(const vector2d& src) {
 
-	auto map_ = map_ptr_->GetMap();
-	const auto& row_size = map_ptr_->GetSizeX();
-	const auto& col_size = map_ptr_->GetSizeY();
+	vector2d dest = dest_ptr_->pose;
+	auto& map_ = scene_ptr_->GetMap().GetRawMap();
+	const auto& row_size = scene_ptr_->GetMap().GetSizeX();
+	const auto& col_size = scene_ptr_->GetMap().GetSizeY();
 	Ray ray;
+	if (map_[src.x][src.y] != 0) {
+		ray.is_hit = false;
+		return ray;
+	}
 	vector2d ray_unit_step, ray_length_1d;
 	vector2i step, map_check, dest_i;
 	PrepareRay(src, ray, ray_unit_step, ray_length_1d, step, map_check);
 	auto depth_ = src.Distance(dest);
-	while (!ray.is_hit && ray.distance < depth_) {
+	while (!ray.is_hit) {
 		if (ray_length_1d.x < ray_length_1d.y) {
 			ray.is_hit_vertical = true;
 			ray.perpendicular_distance = ray_length_1d.x;
@@ -46,6 +56,7 @@ Ray SingleRayCasterService::Cast(const vector2d& src) {
 		if (map_check.x >= 0 && map_check.x < row_size && map_check.y >= 0 &&
 			map_check.y < col_size) {
 			if (map_[map_check.x][map_check.y] != 0) {
+				ray.is_hit = false;
 				break;
 			}
 			else if (ToVector2i(dest) == map_check) {
@@ -61,14 +72,16 @@ Ray SingleRayCasterService::Cast(const vector2d& src) {
 	return ray;
 }
 
-void SingleRayCasterService::SubscribePlayerPose(const vector2d& pose) {
-	dest = pose;
+void SingleRayCasterService::SetDestinationPtr(
+	const std::shared_ptr<Position2D>& position_ptr) {
+	dest_ptr_ = position_ptr;
 }
 
 void SingleRayCasterService::PrepareRay(const vector2d& src, Ray& ray,
 										vector2d& ray_unit_step,
 										vector2d& ray_length_1d, vector2i& step,
 										vector2i& map_check) {
+	const auto dest = dest_ptr_->pose;
 	ray.origin = src;
 	ray.direction = dest - src;
 	ray.direction.Norm();

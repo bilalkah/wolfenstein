@@ -1,6 +1,7 @@
-#include "Animation/looped_animation.h"
 #include "ShootingManager/shooting_manager.h"
+#include "SoundManager/sound_manager.h"
 #include "State/state.h"
+#include "State/weapon_state.h"
 #include "Strike/weapon.h"
 #include <memory>
 
@@ -28,9 +29,8 @@ void LoadedState::Update(const double& delta_time) {
 			trigger_pulled_ = false;
 			animation_->Reset();
 			if (context_->GetAmmo() == 0) {
-				WeaponStatePtr out_of_ammo_state =
-					std::make_shared<OutOfAmmoState>();
-				context_->TransitionTo(out_of_ammo_state);
+				context_->TransitionTo(std::make_shared<OutOfAmmoState>());
+				return;
 			}
 		}
 	}
@@ -50,10 +50,11 @@ void LoadedState::PullTrigger() {
 	if (trigger_pulled_) {
 		return;
 	}
+	SoundManager::GetInstance().PlayEffect("weapon", "shotgun");
 	trigger_pulled_ = true;
 	trigger_pull_time_ = 0;
 	context_->DecreaseAmmo();
-	ShootingManager::GetInstance().PlayerShoot(context_);
+	ShootingManager::GetInstance().PlayerShoot(*context_);
 }
 
 // ########################################### OutOfAmmoState ###########################################
@@ -102,8 +103,8 @@ void ReloadingState::Update(const double& delta_time) {
 	if (reload_time_ >= reload_speed_) {
 		animation_->Reset();
 		context_->SetAmmo(context_->GetAmmoCapacity());
-		WeaponStatePtr loaded_state = std::make_shared<LoadedState>();
-		context_->TransitionTo(loaded_state);
+		context_->TransitionTo(std::make_shared<LoadedState>());
+		return;
 	}
 }
 

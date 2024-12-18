@@ -1,0 +1,35 @@
+{
+    "player_config": {
+        "t_speed": 2.0,
+        "r_speed": 0.4,
+        "width": 0.4,
+        "height": 1.0
+    },
+    "config_enemy": {
+        "soldier": {
+            "t_speed": 0.8,
+            "r_speed": 0.4,
+            "width": 0.3,
+            "height": 0.6
+        },
+        "caco_demon": {
+            "t_speed": 0.8,
+            "r_speed": 0.4,
+            "width": 0.4,
+            "height": 0.8
+        },
+        "cyber_demon": {
+            "t_speed": 0.8,
+            "r_speed": 0.4,
+            "width": 0.5,
+            "height": 1.0
+        }
+    },
+    "config_dynamic": {
+        "light": {
+            "animation_speed": 0.3,
+            "width": 0.2,
+            "height": 0.9
+        }
+    }
+}
