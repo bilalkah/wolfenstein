@@ -1,5 +1,4 @@
-#include "State/weapon_state.h"
-#include "Animation/time_based_single_animation.h"
+#include "Animation/looped_animation.h"
 #include "ShootingManager/shooting_manager.h"
 #include "State/state.h"
 #include "Strike/weapon.h"
@@ -43,7 +42,7 @@ WeaponStateType LoadedState::GetType() const {
 
 void LoadedState::OnContextSet() {
 	fire_rate_ = context_->GetAttackSpeed();
-	animation_ = std::make_unique<TBSAnimation>(
+	animation_ = std::make_unique<LoopedAnimation>(
 		context_->GetWeaponName() + "_loaded", fire_rate_);
 }
 
@@ -80,7 +79,7 @@ WeaponStateType OutOfAmmoState::GetType() const {
 
 void OutOfAmmoState::OnContextSet() {
 	fire_rate_ = context_->GetAttackSpeed();
-	animation_ = std::make_unique<TBSAnimation>(
+	animation_ = std::make_unique<LoopedAnimation>(
 		context_->GetWeaponName() + "_outofammo", fire_rate_);
 }
 
@@ -114,7 +113,7 @@ WeaponStateType ReloadingState::GetType() const {
 
 void ReloadingState::OnContextSet() {
 	reload_speed_ = context_->GetReloadSpeed();
-	animation_ = std::make_unique<TBSAnimation>(
+	animation_ = std::make_unique<LoopedAnimation>(
 		context_->GetWeaponName() + "_reload", reload_speed_);
 }
 

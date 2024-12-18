@@ -34,7 +34,7 @@ void IdleState::OnContextSet() {
 	const auto config = context_->GetStateConfig();
 	animation_speed_ = config.animation_time.idle_animation_speed;
 	range_ = config.follow_range_max;
-	animation_ = std::make_unique<TBSAnimation>(
+	animation_ = std::make_unique<LoopedAnimation>(
 		TextureManager::GetInstance().GetTextureCollection(
 			context_->GetBotName() + "_idle"),
 		animation_speed_);
@@ -98,7 +98,7 @@ void WalkState::Update(const double& delta_time) {
 void WalkState::OnContextSet() {
 	attack_rate_ = context_->GetWeapon()->GetAttackRate();
 	attack_range_ = context_->GetWeapon()->GetAttackRange();
-	animation_ = std::make_unique<TBSAnimation>(
+	animation_ = std::make_unique<LoopedAnimation>(
 		context_->GetBotName() + "_walk", animation_speed_);
 }
 
@@ -129,7 +129,7 @@ void AttackState::Update(const double& delta_time) {
 
 void AttackState::OnContextSet() {
 	animation_speed_ = context_->GetWeapon()->GetAttackSpeed();
-	animation_ = std::make_unique<TBSAnimation>(
+	animation_ = std::make_unique<LoopedAnimation>(
 		context_->GetBotName() + "_attack", animation_speed_);
 }
 
@@ -156,7 +156,7 @@ void PainState::Update(const double& delta_time) {
 }
 
 void PainState::OnContextSet() {
-	animation_ = std::make_unique<TBSAnimation>(
+	animation_ = std::make_unique<LoopedAnimation>(
 		context_->GetBotName() + "_pain", animation_speed_);
 }
 

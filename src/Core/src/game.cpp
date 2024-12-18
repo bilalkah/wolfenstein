@@ -1,5 +1,4 @@
-#include "Core/game.h"
-#include "Animation/time_based_single_animation.h"
+#include "Animation/looped_animation.h"
 #include "Camera/single_raycaster.h"
 #include "Characters/enemy.h"
 #include "GameObjects/dynamic_object.h"
@@ -228,30 +227,30 @@ void Game::PrepareEnemies() {
 }
 
 void Game::PrepareDynamicObjects() {
-	const auto animation_green_light = TBSAnimation(
+	const auto animation_green_light = LoopedAnimation(
 		TextureManager::GetInstance().GetTextureCollection("green_light"), 0.1);
-	const auto animation_red_light = TBSAnimation(
+	const auto animation_red_light = LoopedAnimation(
 		TextureManager::GetInstance().GetTextureCollection("red_light"), 0.1);
 
 	scene_->AddObject(std::make_shared<DynamicObject>(
 		vector2d(12.1, 8.15),
-		std::make_shared<TBSAnimation>(animation_red_light), 0.2, 0.9));
+		std::make_unique<LoopedAnimation>(animation_red_light), 0.2, 0.9));
 	scene_->AddObject(std::make_shared<DynamicObject>(
 		vector2d(10.9, 8.15),
-		std::make_shared<TBSAnimation>(animation_red_light), 0.2, 0.9));
+		std::make_unique<LoopedAnimation>(animation_red_light), 0.2, 0.9));
 
 	scene_->AddObject(std::make_shared<DynamicObject>(
 		vector2d(9.9, 10.9),
-		std::make_shared<TBSAnimation>(animation_green_light), 0.2, 0.9));
+		std::make_unique<LoopedAnimation>(animation_green_light), 0.2, 0.9));
 	scene_->AddObject(std::make_shared<DynamicObject>(
 		vector2d(9.9, 13.10),
-		std::make_shared<TBSAnimation>(animation_green_light), 0.2, 0.9));
+		std::make_unique<LoopedAnimation>(animation_green_light), 0.2, 0.9));
 	scene_->AddObject(std::make_shared<DynamicObject>(
 		vector2d(12.1, 13.1),
-		std::make_shared<TBSAnimation>(animation_green_light), 0.2, 0.9));
+		std::make_unique<LoopedAnimation>(animation_green_light), 0.2, 0.9));
 	scene_->AddObject(std::make_shared<DynamicObject>(
 		vector2d(12.1, 10.9),
-		std::make_shared<TBSAnimation>(animation_green_light), 0.2, 0.9));
+		std::make_unique<LoopedAnimation>(animation_green_light), 0.2, 0.9));
 }
 
 void Game::PrepareStaticObjects() {

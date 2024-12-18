@@ -12,7 +12,7 @@
 #ifndef STATE_INCLUDE_STATE_WEAPON_STATE_H_
 #define STATE_INCLUDE_STATE_WEAPON_STATE_H_
 
-#include "Animation/time_based_single_animation.h"
+#include "Animation/looped_animation.h"
 #include "State/state.h"
 #include <memory>
 
@@ -36,7 +36,7 @@ class WeaponState : public State<Weapon>
 	int GetCurrentFrame() const override;
 
   protected:
-	std::unique_ptr<TBSAnimation> animation_;
+	std::unique_ptr<LoopedAnimation> animation_;
 };
 
 typedef std::shared_ptr<WeaponState> WeaponStatePtr;
