@@ -21,7 +21,7 @@ ShootingManager::~ShootingManager() {
 	delete instance_;
 }
 
-void ShootingManager::InitManager(std::shared_ptr<Scene> scene) {
+void ShootingManager::InitManager(const std::shared_ptr<Scene>& scene) {
 	scene_ = scene;
 }
 

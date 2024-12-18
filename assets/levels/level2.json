@@ -10,7 +10,7 @@
       { "type": "soldier", "position": { "x": 8.5, "y": 22.5, "theta": 0 }},
       { "type": "caco_demon", "position": { "x": 5.9, "y": 22, "theta": 0 }},
       { "type": "caco_demon", "position": { "x": 22.5, "y": 5.5, "theta": 0 }},
-      { "type": "caco_demon", "position": { "x": 13.5, "y": 2.5, "theta": 0 }},
+      { "type": "caco_demon", "position": { "x": 13.5, "y": 4.5, "theta": 0 }},
       { "type": "caco_demon", "position": { "x": 11.5, "y": 18, "theta": 0 }},
       { "type": "caco_demon", "position": { "x": 18, "y": 6, "theta": 0 }},
       { "type": "cyber_demon", "position": { "x": 13.5, "y": 22.5, "theta": 0 }},

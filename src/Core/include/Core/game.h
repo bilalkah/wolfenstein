@@ -66,11 +66,6 @@ class Game
 	void Init();
 	void CheckGameEvent();
 	void CheckMenuEvent();
-	void Update();
-	void Render();
-	void PrepareEnemies();
-	void PrepareDynamicObjects();
-	void PrepareStaticObjects();
 
 	std::unique_ptr<IRenderer> renderer_;
 	std::unique_ptr<Menu> menu_;
