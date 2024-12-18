@@ -54,7 +54,7 @@ class Enemy : public ICharacter,
 	void SetAttacked(bool value);
 	void SetDeath();
 	void SetPose(const vector2d& pose) override;
-	void SetPosition(Position2D position) override;
+	void SetPosition(const Position2D position) override;
 	void IncreaseHealth(double amount) override;
 	void DecreaseHealth(double amount) override;
 	double GetHealth() const override;
@@ -68,8 +68,9 @@ class Enemy : public ICharacter,
 	double GetWidth() const override;
 	double GetHeight() const override;
 	StateConfig GetStateConfig() const;
-	Ray GetCrosshairRay() const;
-	std::shared_ptr<SimpleWeapon> GetWeapon() const;
+	const Ray& GetCrosshairRay() const;
+	const SimpleWeapon& GetWeapon() const;
+	SimpleWeapon& GetWeapon();
 
 	friend class EnemyFactory;
 
@@ -78,21 +79,21 @@ class Enemy : public ICharacter,
 
 	void Move(double delta_time);
 
-	std::string bot_name_;
-	Position2D position_;
+	bool is_attacked_;
+	bool is_alive_;
 	double rotation_speed_;
 	double translation_speed_;
 	double width;
 	double height;
-	double health_{100};
-	std::string id_;
+	double health_;
+	Position2D position_;
 	vector2d next_pose;
 	StateConfig state_config_;
+	std::string bot_name_;
+	std::string id_;
+	Ray crosshair_ray;
 	EnemyStatePtr state_;
 	std::shared_ptr<SimpleWeapon> weapon_;
-	Ray crosshair_ray;
-	bool is_attacked_;
-	bool is_alive_;
 };
 
 class EnemyFactory

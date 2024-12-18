@@ -4,9 +4,10 @@
 namespace wolfenstein {
 
 DynamicObject::DynamicObject(const vector2d& pose_,
-							 const std::shared_ptr<IAnimation> animation_,
+							 std::unique_ptr<IAnimation> animation_,
 							 const double width_, const double height_)
-	: pose(pose_), animation(animation_), width(width_), height(height_) {
+	: pose(pose_), width(width_), height(height_) {
+	animation = std::move(animation_);
 	id = UuidGenerator::GetInstance().GenerateUuid().bytes();
 }
 

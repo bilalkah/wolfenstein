@@ -1,7 +1,8 @@
-#include "State/enemy_state.h"
 #include "Characters/enemy.h"
 #include "NavigationManager/navigation_manager.h"
 #include "ShootingManager/shooting_manager.h"
+#include "SoundManager/sound_manager.h"
+#include "State/enemy_state.h"
 #include "TextureManager/texture_manager.h"
 
 namespace wolfenstein {
@@ -22,11 +23,15 @@ IdleState::~IdleState() {}
 void IdleState::Update(const double& delta_time) {
 	animation_->Update(delta_time);
 
-	if (context_->IsPlayerInShootingRange()) {
+	if (context_->IsPlayerInShootingRange() &&
+		NavigationManager::GetInstance().EuclideanDistanceToPlayer(
+			context_->GetPosition()) <= range_ + 2.0) {
 		context_->TransitionTo(std::make_shared<WalkState>());
+		return;
 	}
 	if (context_->IsAttacked()) {
 		context_->TransitionTo(std::make_shared<PainState>());
+		return;
 	}
 }
 
@@ -34,7 +39,7 @@ void IdleState::OnContextSet() {
 	const auto config = context_->GetStateConfig();
 	animation_speed_ = config.animation_time.idle_animation_speed;
 	range_ = config.follow_range_max;
-	animation_ = std::make_unique<TBSAnimation>(
+	animation_ = std::make_unique<LoopedAnimation>(
 		TextureManager::GetInstance().GetTextureCollection(
 			context_->GetBotName() + "_idle"),
 		animation_speed_);
@@ -96,9 +101,9 @@ void WalkState::Update(const double& delta_time) {
 	animation_->Update(delta_time);
 }
 void WalkState::OnContextSet() {
-	attack_rate_ = context_->GetWeapon()->GetAttackRate();
-	attack_range_ = context_->GetWeapon()->GetAttackRange();
-	animation_ = std::make_unique<TBSAnimation>(
+	attack_rate_ = context_->GetWeapon().GetAttackRate();
+	attack_range_ = context_->GetWeapon().GetAttackRange();
+	animation_ = std::make_unique<LoopedAnimation>(
 		context_->GetBotName() + "_walk", animation_speed_);
 }
 
@@ -128,9 +133,10 @@ void AttackState::Update(const double& delta_time) {
 }
 
 void AttackState::OnContextSet() {
-	animation_speed_ = context_->GetWeapon()->GetAttackSpeed();
-	animation_ = std::make_unique<TBSAnimation>(
+	animation_speed_ = context_->GetWeapon().GetAttackSpeed();
+	animation_ = std::make_unique<LoopedAnimation>(
 		context_->GetBotName() + "_attack", animation_speed_);
+	SoundManager::GetInstance().PlayEffect(context_->GetId(), "npc_attack");
 }
 
 EnemyStateType AttackState::GetType() const {
@@ -147,17 +153,20 @@ void PainState::Update(const double& delta_time) {
 	counter += delta_time;
 	if (counter > animation_speed_) {
 		if (context_->GetHealth() <= 0) {
+			NavigationManager::GetInstance().ResetPath(context_->GetId());
 			context_->TransitionTo(std::make_shared<DeathState>());
 			return;
 		}
 		context_->SetAttacked(false);
 		context_->TransitionTo(std::make_shared<WalkState>());
+		return;
 	}
 }
 
 void PainState::OnContextSet() {
-	animation_ = std::make_unique<TBSAnimation>(
+	animation_ = std::make_unique<LoopedAnimation>(
 		context_->GetBotName() + "_pain", animation_speed_);
+	SoundManager::GetInstance().PlayEffect(context_->GetId(), "npc_pain");
 }
 
 EnemyStateType PainState::GetType() const {
@@ -170,19 +179,20 @@ DeathState::DeathState() : animation_speed_(1.0) {}
 DeathState::~DeathState() {}
 
 void DeathState::Update(const double& delta_time) {
-	if (!animation_->IsAnimationFinishedOnce()) {
-		animation_->Update(delta_time);
-		counter += delta_time;
+	if (animation_->IsAnimationFinishedOnce()) {
+		if (context_->IsAlive()) {
+			context_->SetDeath();
+		}
+		return;
 	}
-	else {
-		NavigationManager::GetInstance().ResetPath(context_->GetId());
-		context_->SetDeath();
-	}
+	animation_->Update(delta_time);
+	counter += delta_time;
 }
 
 void DeathState::OnContextSet() {
-	animation_ = std::make_unique<TBSAnimation>(
+	animation_ = std::make_unique<LoopedAnimation>(
 		context_->GetBotName() + "_death", animation_speed_);
+	SoundManager::GetInstance().PlayEffect(context_->GetId(), "npc_death");
 }
 
 EnemyStateType DeathState::GetType() const {

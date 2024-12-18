@@ -72,13 +72,12 @@ class Game
 	void PrepareDynamicObjects();
 	void PrepareStaticObjects();
 
-	std::shared_ptr<IRenderer> renderer_;
-	std::shared_ptr<Menu> menu_;
+	std::unique_ptr<IRenderer> renderer_;
+	std::unique_ptr<Menu> menu_;
+	std::unique_ptr<RendererResult> renderer_result_;
 	std::shared_ptr<RendererContext> renderer_context_;
-	std::shared_ptr<RendererResult> renderer_result_;
 	std::shared_ptr<Scene> scene_;
 	std::shared_ptr<Player> player_;
-	std::shared_ptr<Map> map_;
 
 	GeneralConfig config_;
 	bool is_running_;

@@ -12,6 +12,7 @@
 #ifndef CHARACTERS_PLAYER_H
 #define CHARACTERS_PLAYER_H
 
+#include "Animation/triggered_single_animation.h"
 #include "Characters/character.h"
 #include "GameObjects/game_object.h"
 #include "Strike/weapon.h"
@@ -35,7 +36,7 @@ class Player : public ICharacter, public IGameObject
 	void SetPose(const vector2d& pose) override;
 	ObjectType GetObjectType() const override;
 	vector2d GetPose() const override;
-	void SetPosition(Position2D position) override;
+	void SetPosition(const Position2D position) override;
 	void IncreaseHealth(double amount) override;
 	void DecreaseHealth(double amount) override;
 	double GetHealth() const override;
@@ -44,10 +45,12 @@ class Player : public ICharacter, public IGameObject
 	int GetTextureId() const override;
 	double GetWidth() const override;
 	double GetHeight() const override;
-	std::shared_ptr<Ray> GetCrosshairRay() const;
-	std::pair<bool, double> IsDamaged() const;
+	const Ray& GetCrosshairRay() const;
+	bool IsDamaged() const;
 	bool IsAlive() const;
-	void SubscribeToPlayerPosition(std::function<void(Position2D)> subscriber);
+	const Weapon& GetWeapon() const;
+	const std::shared_ptr<Position2D>& GetPositionPtr();
+	int GetDamageTextureId() const;
 
   private:
 	void Move(double delta_time);
@@ -56,17 +59,16 @@ class Player : public ICharacter, public IGameObject
 
 	bool is_alive_{true};
 	bool damaged_{false};
-	double damage_counter_{0.0};
-	Position2D position_;
 	double rotation_speed_;
 	double translation_speed_;
-	double width_{0.4};
-	double height_{1.0};
-	double health_{100};
+	double width_;
+	double height_;
+	double health_;
 	std::string id_;
+	std::shared_ptr<Position2D> position_ptr_;
 	std::shared_ptr<Camera2D> camera_;
 	std::shared_ptr<Weapon> weapon_;
-	std::vector<std::function<void(Position2D)>> player_position_subscribers_;
+	std::unique_ptr<TriggeredSingleAnimation> damage_animation_ptr_;
 };
 
 }  // namespace wolfenstein

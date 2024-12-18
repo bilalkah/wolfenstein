@@ -1,4 +1,5 @@
 #include "CollisionManager/collision_manager.h"
+#include "Core/scene.h"
 #include <cassert>
 
 namespace wolfenstein {
@@ -12,14 +13,16 @@ CollisionManager& CollisionManager::GetInstance() {
 	return *instance_;
 }
 
-void CollisionManager::InitManager(std::shared_ptr<Map> map_ptr) {
-	map_ptr_ = map_ptr;
-	map_ = map_ptr->GetMap();
+CollisionManager::~CollisionManager() {
+	delete instance_;
+}
+
+void CollisionManager::InitManager(const std::shared_ptr<Scene>& scene_ptr) {
+	scene_ptr_ = scene_ptr;
 }
 
 bool CollisionManager::CheckWallCollision(const vector2d& pose,
 										  const vector2d& delta_pose) {
-	assert(map_ptr_ != nullptr);
 	auto px = pose.x;
 	auto py = pose.y;
 
@@ -37,7 +40,7 @@ bool CollisionManager::CheckWallCollision(const vector2d& pose,
 		py -= kCollisionDistance;
 	}
 
-	return map_[px][py] != 0;
+	return scene_ptr_->GetMap()[px][py] != 0;
 }
 
 }  // namespace wolfenstein

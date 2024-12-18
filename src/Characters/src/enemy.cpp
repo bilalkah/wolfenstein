@@ -1,6 +1,6 @@
-#include "Characters/enemy.h"
 #include "Camera/ray.h"
 #include "Camera/single_raycaster.h"
+#include "Characters/enemy.h"
 #include "CollisionManager/collision_manager.h"
 #include "Math/vector.h"
 #include "Strike/simple_weapon.h"
@@ -29,13 +29,13 @@ auto GetBotStateConfig = [](const std::string& bot_name) -> StateConfig {
 auto GetBotWeapon =
 	[](const std::string& bot_name) -> std::shared_ptr<SimpleWeapon> {
 	if (bot_name == "soldier") {
-		return std::make_shared<Rifle>();
+		return std::move(std::make_shared<Rifle>());
 	}
 	else if (bot_name == "caco_demon") {
-		return std::make_shared<Melee>();
+		return std::move(std::make_shared<Melee>());
 	}
 	else if (bot_name == "cyber_demon") {
-		return std::make_shared<LaserGun>();
+		return std::move(std::make_shared<LaserGun>());
 	}
 	else {
 		throw std::invalid_argument("Invalid bot name");
@@ -44,19 +44,20 @@ auto GetBotWeapon =
 }  // namespace
 
 Enemy::Enemy(std::string bot_name, CharacterConfig config)
-	: bot_name_(bot_name),
-	  position_(config.initial_position),
+	: is_attacked_(false),
+	  is_alive_(true),
 	  rotation_speed_(config.rotation_speed),
 	  translation_speed_(config.translation_speed),
 	  width(config.width),
 	  height(config.height),
-	  id_(UuidGenerator::GetInstance().GenerateUuid().bytes()),
+	  health_(100),
+	  position_(config.initial_position),
 	  next_pose(position_.pose),
 	  state_config_(GetBotStateConfig(bot_name)),
-	  weapon_(GetBotWeapon(bot_name)),
+	  bot_name_(bot_name),
+	  id_(UuidGenerator::GetInstance().GenerateUuid().bytes()),
 	  crosshair_ray(Ray{}),
-	  is_attacked_(false),
-	  is_alive_(true) {}
+	  weapon_(GetBotWeapon(bot_name)) {}
 
 void Enemy::TransitionTo(EnemyStatePtr state) {
 	state_ = state;
@@ -86,7 +87,7 @@ void Enemy::Update(double delta_time) {
 	crosshair_ray = SingleRayCasterService::GetInstance().Cast(position_.pose);
 	weapon_->SetCrosshairRay(crosshair_ray);
 	state_->Update(delta_time);
-	if (next_pose != position_.pose) {
+	if (!(next_pose == position_.pose)) {
 		Move(delta_time);
 	}
 }
@@ -103,7 +104,7 @@ ObjectType Enemy::GetObjectType() const {
 	return ObjectType::CHARACTER_ENEMY;
 }
 
-void Enemy::SetPosition(Position2D position) {
+void Enemy::SetPosition(const Position2D position) {
 	position_ = position;
 }
 
@@ -173,12 +174,16 @@ StateConfig Enemy::GetStateConfig() const {
 	return state_config_;
 }
 
-Ray Enemy::GetCrosshairRay() const {
+const Ray& Enemy::GetCrosshairRay() const {
 	return crosshair_ray;
 }
 
-std::shared_ptr<SimpleWeapon> Enemy::GetWeapon() const {
-	return weapon_;
+const SimpleWeapon& Enemy::GetWeapon() const {
+	return *weapon_;
+}
+
+SimpleWeapon& Enemy::GetWeapon() {
+	return *weapon_;
 }
 
 std::shared_ptr<Enemy> EnemyFactory::CreateEnemy(std::string bot_name,

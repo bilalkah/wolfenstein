@@ -16,6 +16,7 @@
 #include "Characters/character.h"
 #include "Characters/enemy.h"
 #include "Characters/player.h"
+#include "Core/scene.h"
 #include "Math/vector.h"
 #include "NavigationManager/navigation_manager.h"
 #include "Strike/simple_weapon.h"
@@ -31,21 +32,18 @@ class ShootingManager
 	static ShootingManager& GetInstance();
 	ShootingManager(const ShootingManager&) = delete;
 	ShootingManager& operator=(const ShootingManager&) = delete;
-	~ShootingManager() = default;
+	~ShootingManager();
 
-	void InitManager(std::shared_ptr<Map> map, std::shared_ptr<Player> player,
-					 std::vector<std::shared_ptr<Enemy>> enemies);
-	void PlayerShoot(const std::shared_ptr<Weapon> weapon);
-	void EnemyShoot(const std::shared_ptr<SimpleWeapon> weapon);
+	void InitManager(std::shared_ptr<Scene> scene);
+	void PlayerShoot(const Weapon& weapon);
+	void EnemyShoot(const SimpleWeapon& weapon);
 
   private:
 	ShootingManager() = default;
-	double CalculateDamage(const std::shared_ptr<Weapon> weapon);
+	double CalculateDamage(const Weapon& weapon);
 
 	static ShootingManager* instance_;
-	std::shared_ptr<Player> player_;
-	std::vector<std::shared_ptr<Enemy>> enemies_;
-	std::shared_ptr<Map> map_;
+	std::shared_ptr<Scene> scene_;
 };
 
 }  // namespace wolfenstein

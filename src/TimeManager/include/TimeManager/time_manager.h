@@ -24,7 +24,7 @@ class TimeManager
 
 	TimeManager(const TimeManager&) = delete;
 	TimeManager& operator=(const TimeManager&) = delete;
-	~TimeManager() = default;
+	~TimeManager();
 
 	void InitClock();
 	void CalculateDeltaTime();

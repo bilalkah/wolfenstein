@@ -1,52 +1,25 @@
 #include "Map/map.h"
+#include <iostream>
 #include <string>
 
 namespace wolfenstein {
 
-namespace {
-
-std::string simple_map{
-	"3333333333333333"
-	"3000000000000003"
-	"3000000000000003"
-	"3001111000000003"
-	"3000000002222003"
-	"3001110022000053"
-	"3000000002000053"
-	"3000000002222003"
-	"3000000000000003"
-	"3000000000000003"
-	"3333333300044003"
-	"3000000000044003"
-	"3000333300000003"
-	"3000300000000003"
-	"3000300000000003"
-	"3111111111111003"
-	"3000000100000003"
-	"3000000100000003"
-	"3000000100001013"
-	"3000000100001003"
-	"3111000101101003"
-	"3000000100001003"
-	"3000000000001103"
-	"3000000000001003"
-	"3000000000001003"
-	"3333333333333333"};
-}  // namespace
-
-Map::Map() : size_x_(26), size_y_(16) {
-	LoadMap();
+Map::Map(std::string map_path, double resolution) : res(resolution) {
+	LoadMap(map_path);
 	MapToPathFinderMap();
 }
 
-void Map::LoadMap() {
-	size_x_ = 26;
-	size_y_ = 16;
-	uint16_t it = 0;
-	for (uint16_t i = 0; i < size_x_; i++) {
+void Map::LoadMap(std::string map_path) {
+	std::ifstream infile(map_path);
+	std::string line;
+	std::getline(infile, line);
+	size_x_ = std::stoi(line.substr(std::string("height ").size()));
+	std::getline(infile, line);
+	size_y_ = std::stoi(line.substr(std::string("width ").size()));
+
+	while (std::getline(infile, line)) {
 		std::vector<uint16_t> row;
-		for (uint16_t j = 0; j < size_y_; j++) {
-			auto c = (simple_map[it]);
+		for (auto c : line) {
 			if (c == '0') {
 				row.push_back(0);
 			}
@@ -65,9 +38,8 @@ void Map::LoadMap() {
 			else if (c == '5') {
 				row.push_back(5);
 			}
-			++it;
 		}
-		map_.push_back(row);
+		map_.emplace_back(row);
 	}
 }
 
@@ -89,7 +61,7 @@ void Map::MapToPathFinderMap() {
 	}
 }
 
-std::vector<std::vector<uint16_t>> Map::GetMap() {
+const MapRaw& Map::GetRawMap() const {
 	return map_;
 }
 
@@ -97,15 +69,19 @@ std::shared_ptr<planning::Map> Map::GetPathFinderMap() {
 	return path_finder_map_;
 }
 
-uint16_t Map::GetSizeX() {
+const uint16_t Map::GetSizeX() const {
 	return size_x_;
 }
-uint16_t Map::GetSizeY() {
+const uint16_t Map::GetSizeY() const {
 	return size_y_;
 }
 
 double Map::GetResolution() {
 	return res;
+}
+
+const std::vector<uint16_t>& Map::operator[](size_t i) const {
+	return map_[i];
 }
 
 }  // namespace wolfenstein

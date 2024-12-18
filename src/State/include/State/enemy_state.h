@@ -12,7 +12,7 @@
 #ifndef STATE_INCLUDE_STATE_ENEMY_STATE_H_
 #define STATE_INCLUDE_STATE_ENEMY_STATE_H_
 
-#include "Animation/time_based_single_animation.h"
+#include "Animation/looped_animation.h"
 #include "State/state.h"
 #include <memory>
 #include <vector>
@@ -37,7 +37,7 @@ class EnemyState : public State<Enemy>
 	int GetCurrentFrame() const override;
 
   protected:
-	std::unique_ptr<TBSAnimation> animation_;
+	std::unique_ptr<LoopedAnimation> animation_;
 };
 
 typedef std::shared_ptr<EnemyState> EnemyStatePtr;
