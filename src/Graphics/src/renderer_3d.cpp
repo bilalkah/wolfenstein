@@ -1,6 +1,7 @@
-#include "Graphics/renderer_3d.h"
 #include "Camera/ray.h"
+#include "Graphics/renderer_3d.h"
 #include "TextureManager/texture_manager.h"
+#include "TimeManager/time_manager.h"
 #include <list>
 namespace wolfenstein {
 
@@ -8,11 +9,11 @@ void Renderer3D::RenderScene() {
 	RenderQueue render_queue(Compare);
 	ClearScreen();
 	RenderBackground();
-	RenderWalls(scene_->GetMap(), render_queue);
-	RenderObjects(scene_->GetObjects(), render_queue);
-	RenderWeapon(scene_->GetPlayer(), render_queue);
+	RenderWalls(render_queue);
+	RenderObjects(render_queue);
+	RenderWeapon(render_queue);
 	RenderTextures(render_queue);
-	RenderHUD(scene_->GetPlayer());
+	RenderHUD();
 	SDL_RenderPresent(context_->GetRenderer());
 }
 
@@ -31,13 +32,12 @@ void Renderer3D::RenderBackground() {
 	SDL_RenderFillRect(renderer_, &ground_rect);
 }
 
-void Renderer3D::RenderWalls(const std::shared_ptr<Map>& map_ptr,
-							 RenderQueue& render_queue) {
-	const auto camera_ptr = context_->GetCamera();
-	const auto rays = camera_ptr->GetRays();
+void Renderer3D::RenderWalls(RenderQueue& render_queue) {
+	const auto& camera_ptr = context_->GetCamera();
+	const auto rays = camera_ptr.GetRays();
 
 	int horizontal_slice = 0;
-	for (const auto& ray : *rays) {
+	for (const auto& ray : rays) {
 		if (!ray.is_hit) {
 			RenderIfRayHitNot(horizontal_slice, render_queue);
 		}
@@ -50,9 +50,9 @@ void Renderer3D::RenderWalls(const std::shared_ptr<Map>& map_ptr,
 
 void Renderer3D::RenderIfRayHit(const int horizontal_slice, const Ray& ray,
 								RenderQueue& render_queue) {
-	const auto camera_ptr = context_->GetCamera();
+	const auto& camera_ptr = context_->GetCamera();
 	const auto distance = ray.perpendicular_distance *
-						  std::cos(camera_ptr->GetPosition().theta - ray.theta);
+						  std::cos(camera_ptr.GetPosition().theta - ray.theta);
 	const auto [line_height, draw_start, draw_end] =
 		CalculateVerticalSlice(distance);
 
@@ -81,13 +81,12 @@ void Renderer3D::RenderIfRayHitNot(const int horizontal_slice,
 	render_queue.push({7, src_rect, dest_rect, config_.view_distance});
 }
 
-void Renderer3D::RenderObjects(
-	const std::vector<std::shared_ptr<IGameObject>>& objects,
-	RenderQueue& render_queue) {
-	const auto camera_ptr = context_->GetCamera();
+void Renderer3D::RenderObjects(RenderQueue& render_queue) {
+	const auto& objects = scene_->GetObjects();
+	const auto& camera_ptr = context_->GetCamera();
 	for (const auto& object : objects) {
 
-		const auto ray_pair = camera_ptr->GetObjectRay(object->GetId());
+		const auto ray_pair = camera_ptr.GetObjectRay(object->GetId());
 		if (!ray_pair.has_value()) {
 			continue;
 		}
@@ -121,10 +120,10 @@ void Renderer3D::RenderObjects(
 }
 
 int Renderer3D::CalculateHorizontalSlice(const double& angle) {
-	const auto camera_ptr = context_->GetCamera();
+	const auto& camera_ptr = context_->GetCamera();
 	const auto config_ = context_->GetConfig();
 	const auto horizontal_slice =
-		static_cast<int>(angle / camera_ptr->GetDeltaAngle()) * 2 +
+		static_cast<int>(angle / camera_ptr.GetDeltaAngle()) * 2 +
 		config_.width / 2;
 
 	return horizontal_slice;
@@ -139,8 +138,8 @@ std::tuple<int, int, int> Renderer3D::CalculateVerticalSlice(
 	return std::make_tuple(line_height, draw_start, draw_end);
 }
 
-void Renderer3D::RenderWeapon(const std::shared_ptr<Player>& player_ptr,
-							  RenderQueue& render_queue) {
+void Renderer3D::RenderWeapon(RenderQueue& render_queue) {
+	const auto& player_ptr = scene_->GetPlayer();
 	const auto config_ = context_->GetConfig();
 
 	// Render crosshair
@@ -158,7 +157,7 @@ void Renderer3D::RenderWeapon(const std::shared_ptr<Player>& player_ptr,
 		crosshair_height_slice};
 	render_queue.push({6, crosshair_src_rect, crosshair_dest_rect, 0.0});
 
-	auto texture_id = player_ptr->GetTextureId();
+	auto texture_id = player_ptr.GetTextureId();
 	const auto texture_height =
 		TextureManager::GetInstance().GetTexture(texture_id).height;
 	const auto texture_width =
@@ -173,15 +172,11 @@ void Renderer3D::RenderWeapon(const std::shared_ptr<Player>& player_ptr,
 	render_queue.push({texture_id, src_rect, dest_rect, 0.0});
 
 	// Check if player is damaged
-	const auto damage = player_ptr->IsDamaged();
-	if (damage.first) {
-		auto damage_texture = TextureManager::GetInstance().GetTexture(9);
-		const auto damage_height = damage_texture.height;
-		const auto damage_width = damage_texture.width;
-		// change the alpha value of the texture
-		auto alpha = static_cast<int>(128 - damage.second * 128);
-		SDL_SetTextureAlphaMod(damage_texture.texture, alpha);
-		SDL_Rect damage_src_rect{0, 0, damage_width, damage_height};
+	if (player_ptr.IsDamaged()) {
+		auto& damage_texture = TextureManager::GetInstance().GetTexture(
+			player_ptr.GetDamageTextureId());
+		SDL_Rect damage_src_rect{0, 0, damage_texture.width,
+								 damage_texture.height};
 		SDL_Rect damage_dest_rect{0, 0, config_.width, config_.height};
 		render_queue.push({9, damage_src_rect, damage_dest_rect, -1.0});
 	}
@@ -199,12 +194,14 @@ void Renderer3D::RenderTextures(RenderQueue& render_queue) {
 	}
 }
 
-void Renderer3D::RenderHUD(const std::shared_ptr<Player>& player_ptr) {
+void Renderer3D::RenderHUD() {
+	const auto& player_ptr = scene_->GetPlayer();
 	const auto config_ = context_->GetConfig();
-	auto health = static_cast<int>(player_ptr->GetHealth());
+	auto health = static_cast<int>(player_ptr.GetHealth());
 	const auto number_textures =
 		TextureManager::GetInstance().GetTextureCollection("digits");
 
+	// Health Bottom Left
 	// Split health into digits
 	std::list<int> digits = {10};
 	if (health == 0) {
@@ -233,6 +230,61 @@ void Renderer3D::RenderHUD(const std::shared_ptr<Player>& player_ptr) {
 		stride += width_slice;
 	}
 
+	// FPS Top Left
+	SDL_Color color = {255, 255, 255, 255};	 // White text
+	SDL_Surface* textSurface = TTF_RenderText_Solid(
+		context_->GetFont(),
+		std::to_string(
+			static_cast<int>(TimeManager::GetInstance().GetFramePerSecond()))
+			.c_str(),
+		color);
+	if (!textSurface) {
+		std::cerr << "Failed to create text surface: " << TTF_GetError()
+				  << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	SDL_Texture* textTexture =
+		SDL_CreateTextureFromSurface(context_->GetRenderer(), textSurface);
+	if (!textTexture) {
+		std::cerr << "Failed to create texture: " << SDL_GetError()
+				  << std::endl;
+	}
+	SDL_FreeSurface(
+		textSurface);  // Free the surface after creating the texture
+
+	SDL_Rect rect = {0, 0, textSurface->w,
+					 textSurface->h};  // Position and size
+	SDL_RenderCopy(context_->GetRenderer(), textTexture, nullptr, &rect);
+	SDL_DestroyTexture(textTexture);
+
+	// Ammo Bottom Right
+	digits = {};
+	auto ammo = player_ptr.GetWeapon().GetAmmo();
+	if (ammo == 0) {
+		digits.push_front(0);
+	}
+	while (ammo > 0) {
+		digits.push_back(ammo % 10);
+		ammo /= 10;
+	}
+	stride = 0;
+	// Render health top left
+	for (const auto& d : digits) {
+		auto digit_texture =
+			TextureManager::GetInstance().GetTexture(number_textures[d]);
+		const auto digit_height = digit_texture.height;
+		const auto digit_width = digit_texture.width;
+		const double ratio = static_cast<double>(digit_height) / digit_width;
+		const int width_slice = config_.width / 40;
+		const int height_slice = width_slice * ratio;
+		SDL_Rect src_rect = {0, 0, digit_width, digit_height};
+		SDL_Rect dest_rect = {config_.width - config_.width / 30 - stride,
+							  config_.height - height_slice - 10, width_slice,
+							  height_slice};
+		SDL_RenderCopy(context_->GetRenderer(), digit_texture.texture,
+					   &src_rect, &dest_rect);
+		stride += width_slice;
+	}
 }
 
 }  // namespace wolfenstein

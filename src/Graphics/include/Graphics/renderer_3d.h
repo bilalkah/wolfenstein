@@ -55,20 +55,17 @@ class Renderer3D : public IRenderer
 
   private:
 	void RenderBackground();
-	void RenderWalls(const std::shared_ptr<Map>& map_ptr,
-					 RenderQueue& render_queue);
+	void RenderWalls(RenderQueue& render_queue);
 	void RenderIfRayHit(const int horizontal_slice, const Ray& ray,
 						RenderQueue& render_queue);
 	void RenderIfRayHitNot(const int horizontal_slice,
 						   RenderQueue& render_queue);
-	void RenderObjects(const std::vector<std::shared_ptr<IGameObject>>& objects,
-					   RenderQueue& render_queue);
+	void RenderObjects(RenderQueue& render_queue);
 	int CalculateHorizontalSlice(const double& angle);
 	std::tuple<int, int, int> CalculateVerticalSlice(const double& distance);
-	void RenderWeapon(const std::shared_ptr<Player>& player_ptr,
-					  RenderQueue& render_queue);
+	void RenderWeapon(RenderQueue& render_queue);
 	void RenderTextures(RenderQueue& render_queue);
-	void RenderHUD(const std::shared_ptr<Player>& player_ptr);
+	void RenderHUD();
 };	// class Renderer3D
 
 }  // namespace wolfenstein

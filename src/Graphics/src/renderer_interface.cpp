@@ -4,8 +4,7 @@
 namespace wolfenstein {
 
 RendererContext::RendererContext(const std::string& window_name,
-								 const RenderConfig& config,
-								 std::shared_ptr<Camera2D>& camera)
+								 const RenderConfig& config, Camera2D& camera)
 	: config_(config), camera_ptr(camera) {
 	if (SDL_Init(SDL_INIT_VIDEO) != 0) {
 		SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
@@ -17,8 +16,9 @@ RendererContext::RendererContext(const std::string& window_name,
 		exit(EXIT_FAILURE);
 	}
 
-	const auto font_path = std::string(RESOURCE_DIR) + "font/EternalAncient.ttf";
-	font_ = TTF_OpenFont(font_path.c_str(), 16);  // Font size: 24
+	const auto font_path =
+		std::string(RESOURCE_DIR) + "font/EternalAncient.ttf";
+	font_ = TTF_OpenFont(font_path.c_str(), 30);  // Font size: 24
 	if (!font_) {
 		std::cerr << "Failed to load font: " << TTF_GetError() << std::endl;
 		exit(EXIT_FAILURE);
@@ -69,7 +69,7 @@ RenderConfig RendererContext::GetConfig() const {
 	return config_;
 }
 
-std::shared_ptr<Camera2D> RendererContext::GetCamera() const {
+const Camera2D& RendererContext::GetCamera() const {
 	return camera_ptr;
 }
 

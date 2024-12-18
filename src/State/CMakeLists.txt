@@ -15,6 +15,7 @@ target_link_libraries(
     animation
     navigation_manager
     texture_manager
+    sound_manager
 )
 
 add_library(
@@ -33,4 +34,5 @@ target_link_libraries(
     weapon
     texture_manager
     shooting_manager
+    sound_manager
 )

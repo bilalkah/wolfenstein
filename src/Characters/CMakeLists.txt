@@ -20,5 +20,6 @@ target_link_libraries(
     camera
     single_raycaster
     simple_weapon
+    sound_manager
 )
 

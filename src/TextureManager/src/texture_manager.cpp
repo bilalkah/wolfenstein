@@ -1,5 +1,6 @@
 #include "TextureManager/texture_manager.h"
 #include <SDL2/SDL_image.h>
+#include <iostream>
 #include <string>
 
 namespace wolfenstein {
@@ -17,11 +18,12 @@ TextureManager::~TextureManager() {
 	for (auto& texture : textures_) {
 		SDL_DestroyTexture(texture.second.texture);
 	}
+	delete instance_;
 }
 
 void TextureManager::InitManager(SDL_Renderer* renderer) {
-	renderer_ = renderer;
 	t_count_ = 0;
+	renderer_ = renderer;
 
 	LoadStaticTextures();
 	LoadSpriteTextures();
@@ -38,12 +40,12 @@ void TextureManager::LoadTexture(uint16_t texture_id,
 	textures_[texture_id] = texture;
 }
 
-Texture TextureManager::GetTexture(uint16_t texture_id) {
+Texture& TextureManager::GetTexture(uint16_t texture_id) {
 	return textures_[texture_id];
 }
 
-std::vector<uint16_t> TextureManager::GetTextureCollection(
-	const std::string& collection_name) {
+std::vector<uint16_t>& TextureManager::GetTextureCollection(
+	const std::string collection_name) {
 	return texture_collections_[collection_name];
 }
 

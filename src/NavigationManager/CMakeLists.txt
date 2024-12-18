@@ -13,5 +13,5 @@ target_link_libraries(
     vector
     character
     astar
-    map
+    scene
 )

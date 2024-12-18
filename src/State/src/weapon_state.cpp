@@ -1,7 +1,7 @@
-#include "State/weapon_state.h"
-#include "Animation/time_based_single_animation.h"
 #include "ShootingManager/shooting_manager.h"
+#include "SoundManager/sound_manager.h"
 #include "State/state.h"
+#include "State/weapon_state.h"
 #include "Strike/weapon.h"
 #include <memory>
 
@@ -29,9 +29,8 @@ void LoadedState::Update(const double& delta_time) {
 			trigger_pulled_ = false;
 			animation_->Reset();
 			if (context_->GetAmmo() == 0) {
-				WeaponStatePtr out_of_ammo_state =
-					std::make_shared<OutOfAmmoState>();
-				context_->TransitionTo(out_of_ammo_state);
+				context_->TransitionTo(std::make_shared<OutOfAmmoState>());
+				return;
 			}
 		}
 	}
@@ -43,7 +42,7 @@ WeaponStateType LoadedState::GetType() const {
 
 void LoadedState::OnContextSet() {
 	fire_rate_ = context_->GetAttackSpeed();
-	animation_ = std::make_unique<TBSAnimation>(
+	animation_ = std::make_unique<LoopedAnimation>(
 		context_->GetWeaponName() + "_loaded", fire_rate_);
 }
 
@@ -51,10 +50,11 @@ void LoadedState::PullTrigger() {
 	if (trigger_pulled_) {
 		return;
 	}
+	SoundManager::GetInstance().PlayEffect("weapon", "shotgun");
 	trigger_pulled_ = true;
 	trigger_pull_time_ = 0;
 	context_->DecreaseAmmo();
-	ShootingManager::GetInstance().PlayerShoot(context_);
+	ShootingManager::GetInstance().PlayerShoot(*context_);
 }
 
 // ########################################### OutOfAmmoState ###########################################
@@ -80,7 +80,7 @@ WeaponStateType OutOfAmmoState::GetType() const {
 
 void OutOfAmmoState::OnContextSet() {
 	fire_rate_ = context_->GetAttackSpeed();
-	animation_ = std::make_unique<TBSAnimation>(
+	animation_ = std::make_unique<LoopedAnimation>(
 		context_->GetWeaponName() + "_outofammo", fire_rate_);
 }
 
@@ -103,8 +103,8 @@ void ReloadingState::Update(const double& delta_time) {
 	if (reload_time_ >= reload_speed_) {
 		animation_->Reset();
 		context_->SetAmmo(context_->GetAmmoCapacity());
-		WeaponStatePtr loaded_state = std::make_shared<LoadedState>();
-		context_->TransitionTo(loaded_state);
+		context_->TransitionTo(std::make_shared<LoadedState>());
+		return;
 	}
 }
 
@@ -114,7 +114,7 @@ WeaponStateType ReloadingState::GetType() const {
 
 void ReloadingState::OnContextSet() {
 	reload_speed_ = context_->GetReloadSpeed();
-	animation_ = std::make_unique<TBSAnimation>(
+	animation_ = std::make_unique<LoopedAnimation>(
 		context_->GetWeaponName() + "_reload", reload_speed_);
 }
 

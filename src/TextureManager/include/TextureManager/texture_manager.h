@@ -43,9 +43,9 @@ class TextureManager
 	void InitManager(SDL_Renderer* renderer);
 
 	void LoadTexture(uint16_t texture_id, const std::string& texture_path);
-	Texture GetTexture(uint16_t texture_id);
-	std::vector<uint16_t> GetTextureCollection(
-		const std::string& collection_name);
+	Texture& GetTexture(uint16_t texture_id);
+	std::vector<uint16_t>& GetTextureCollection(
+		const std::string collection_name);
 
   private:
 	TextureManager() = default;
@@ -56,10 +56,10 @@ class TextureManager
 	void FillAscendingIds(std::string key, uint16_t begin, uint16_t end);
 
 	static TextureManager* instance_;
+	uint16_t t_count_;
+	SDL_Renderer* renderer_;
 	std::unordered_map<uint16_t, Texture> textures_;
 	std::unordered_map<std::string, std::vector<uint16_t>> texture_collections_;
-	SDL_Renderer* renderer_;
-	uint16_t t_count_;
 };
 
 }  // namespace wolfenstein

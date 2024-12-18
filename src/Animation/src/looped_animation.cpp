@@ -1,9 +1,9 @@
-#include "Animation/time_based_single_animation.h"
+#include "Animation/looped_animation.h"
 #include "TextureManager/texture_manager.h"
 namespace wolfenstein {
 
-TBSAnimation::TBSAnimation(const std::vector<uint16_t>& textures,
-						   const double animation_speed)
+LoopedAnimation::LoopedAnimation(const std::vector<uint16_t>& textures,
+								 const double animation_speed)
 	: textures(textures),
 	  textures_size(textures.size()),
 	  current_frame(0),
@@ -11,8 +11,8 @@ TBSAnimation::TBSAnimation(const std::vector<uint16_t>& textures,
 	  counter(0),
 	  is_animation_finished_once(false) {}
 
-TBSAnimation::TBSAnimation(const std::string collection_name,
-						   const double animation_speed)
+LoopedAnimation::LoopedAnimation(const std::string collection_name,
+								 const double animation_speed)
 	: textures(
 		  TextureManager::GetInstance().GetTextureCollection(collection_name)),
 	  textures_size(textures.size()),
@@ -21,7 +21,7 @@ TBSAnimation::TBSAnimation(const std::string collection_name,
 	  counter(0),
 	  is_animation_finished_once(false) {}
 
-void TBSAnimation::Update(const double& delta_time) {
+void LoopedAnimation::Update(const double& delta_time) {
 	counter += delta_time;
 	if (counter >= animation_speed) {
 		current_frame = (current_frame + 1) % textures_size;
@@ -32,16 +32,16 @@ void TBSAnimation::Update(const double& delta_time) {
 	}
 }
 
-void TBSAnimation::Reset() {
+void LoopedAnimation::Reset() {
 	current_frame = 0;
 	counter = 0;
 }
 
-int TBSAnimation::GetCurrentFrame() const {
+int LoopedAnimation::GetCurrentFrame() const {
 	return textures[current_frame];
 }
 
-bool TBSAnimation::IsAnimationFinishedOnce() const {
+bool LoopedAnimation::IsAnimationFinishedOnce() const {
 	return is_animation_finished_once;
 }
 

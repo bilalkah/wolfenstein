@@ -45,4 +45,6 @@ target_link_libraries(
     ray
     vector
     map
+    character
+    scene
 )

@@ -6,8 +6,10 @@
 namespace wolfenstein {
 
 RendererResult::RendererResult(std::shared_ptr<RendererContext> context,
-							   Texture texture)
-	: context_(context), texture_(texture) {}
+							   const uint16_t texture_id)
+	: context_(context),
+	  result_animation_(std::make_unique<TriggeredSingleAnimation>(
+		  texture_id, 0.2, 0, 255)) {}
 
 void RendererResult::Render() {
 	ClearScreen();
@@ -16,17 +18,13 @@ void RendererResult::Render() {
 }
 
 void RendererResult::RenderScreen() {
-	fade_counter_ += TimeManager::GetInstance().GetDeltaTime() / 5.0;
-	if (fade_counter_ >= 1.0) {
-		fade_counter_ = 1.0;
-	}
-	SDL_SetTextureAlphaMod(texture_.texture,
-						   static_cast<int>(fade_counter_ * 255));
-	SDL_Rect src_rect = {0, 0, texture_.width, texture_.height};
-	SDL_Rect dest_rect = {0, 0, context_->GetConfig().width,
-						  context_->GetConfig().height};
-	SDL_RenderCopy(context_->GetRenderer(), texture_.texture, &src_rect,
-				   &dest_rect);
+	result_animation_->Update(TimeManager::GetInstance().GetDeltaTime());
+
+	SDL_RenderCopy(context_->GetRenderer(),
+				   TextureManager::GetInstance()
+					   .GetTexture(result_animation_->GetCurrentFrame())
+					   .texture,
+				   nullptr, nullptr);
 }
 
 void RendererResult::ClearScreen() {

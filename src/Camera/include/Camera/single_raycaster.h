@@ -13,6 +13,7 @@
 #define CAMERA_INCLUDE_CAMERA_SINGLE_RAYCASTER_H_
 
 #include "Camera/ray.h"
+#include "Characters/character.h"
 #include "Map/map.h"
 #include "Math/vector.h"
 
@@ -20,18 +21,20 @@
 
 namespace wolfenstein {
 
+class Scene;
+
 class SingleRayCasterService
 {
   public:
 	static SingleRayCasterService& GetInstance();
 	SingleRayCasterService(const SingleRayCasterService&) = delete;
 	SingleRayCasterService& operator=(const SingleRayCasterService&) = delete;
-	~SingleRayCasterService() = default;
+	~SingleRayCasterService();
 
-	void InitService(const std::shared_ptr<Map>& map_ptr);
+	void InitService(const std::shared_ptr<Scene>& scene_ptr);
 	Ray Cast(const vector2d& src);
 
-	void SubscribePlayerPose(const vector2d& pose);
+	void SetDestinationPtr(const std::shared_ptr<Position2D>& position_ptr);
 
   private:
 	SingleRayCasterService() = default;
@@ -40,8 +43,8 @@ class SingleRayCasterService
 					vector2d& ray_length_1d, vector2i& step,
 					vector2i& map_check);
 
-	vector2d dest{0, 0};
-	std::shared_ptr<Map> map_ptr_;
+	std::shared_ptr<Position2D> dest_ptr_;
+	std::shared_ptr<Scene> scene_ptr_;
 	static SingleRayCasterService* instance_;
 };
 

@@ -39,32 +39,32 @@ class Camera2D
 {
   public:
 	explicit Camera2D(const Camera2DConfig& config,
-					  const std::shared_ptr<Scene>& scene);
+					  const std::shared_ptr<Scene> scene = nullptr);
 	~Camera2D() = default;
 
-	void Update(const std::shared_ptr<Scene>& scene);
 	void Update();
 
-	std::shared_ptr<RayVector> GetRays() const;
-	std::shared_ptr<Ray> GetCrosshairRay() const;
-	std::optional<RayPair> GetObjectRay(const std::string id);
+	void SetScene(const std::shared_ptr<Scene>& scene);
+	const RayVector& GetRays() const;
+	const std::shared_ptr<Ray>& GetCrosshairRay() const;
+	const std::optional<RayPair> GetObjectRay(const std::string id) const;
 	Position2D GetPosition() const;
 	double GetFov() const;
 	double GetDeltaAngle() const;
 
-	void SetPosition(const Position2D& position);
+	void SetPositionPtr(const std::shared_ptr<Position2D> position);
 
   private:
 	void InitRays();
-	void Calculate(const std::shared_ptr<IGameObject>& object);
+	void Calculate(const IGameObject& object);
 	double WorldAngleToCameraAngle(double angle) const;
 
 	Camera2DConfig config_;
 	std::shared_ptr<Scene> scene_;
-	Position2D position_;
-	std::shared_ptr<RayCaster> ray_cast_;
-	std::shared_ptr<RayVector> rays_;
+	std::shared_ptr<Position2D> position_;
 	std::shared_ptr<Ray> crosshair_ray_;
+	std::unique_ptr<RayCaster> ray_cast_;
+	std::unique_ptr<RayVector> rays_;
 	std::unordered_map<std::string, RayPair> objects_;
 };
 

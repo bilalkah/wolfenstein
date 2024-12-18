@@ -24,12 +24,11 @@ class Renderer2D : public IRenderer
 	void RenderScene() override;
 
   private:
-	void RenderMap(const std::shared_ptr<Map> map_ptr);
-	void RenderPlayer(const std::shared_ptr<Player> player_ptr);
-	void RenderObjects(
-		const std::vector<std::shared_ptr<IGameObject>>& objects);
-	void RenderPaths(const std::vector<std::shared_ptr<Enemy>>& enemies);
-	void RenderCrosshairs(const std::vector<std::shared_ptr<Enemy>>& enemies);
+	void RenderMap();
+	void RenderPlayer();
+	void RenderObjects();
+	void RenderPaths();
+	void RenderCrosshairs();
 
 	void SetDrawColor(SDL_Color color);
 	void DrawFilledRectangle(vector2i start, vector2i end);

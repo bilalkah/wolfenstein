@@ -22,7 +22,7 @@ class DynamicObject : public IGameObject
 {
   public:
 	explicit DynamicObject(const vector2d& pose_,
-						   const std::shared_ptr<IAnimation> animation_,
+						   std::unique_ptr<IAnimation> animation_,
 						   const double width_, const double height_);
 	~DynamicObject();
 
@@ -38,7 +38,7 @@ class DynamicObject : public IGameObject
 
   protected:
 	vector2d pose;
-	std::shared_ptr<IAnimation> animation;
+	std::unique_ptr<IAnimation> animation;
 	double width;
 	double height;
 	std::string id;

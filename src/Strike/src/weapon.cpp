@@ -1,5 +1,5 @@
-#include "Strike/weapon.h"
 #include "State/weapon_state.h"
+#include "Strike/weapon.h"
 #include "TimeManager/time_manager.h"
 #include <cstddef>
 #include <iostream>
@@ -11,7 +11,7 @@ namespace wolfenstein {
 namespace {
 auto GetWeaponConfig = [](const std::string& weapon_name) -> WeaponConfig {
 	if (weapon_name == "mp5") {
-		return {"mp5", 8, 15, 2, 8, 0.5, 1.5};
+		return {"mp5", 18, 25, 2, 8, 0.5, 1.5};
 	}
 	else if (weapon_name == "shotgun") {
 		return {"shotgun", 2, 60, 2, 7, 0.7, 3.5};
@@ -47,16 +47,14 @@ void Weapon::Charge() {
 }
 
 void Weapon::Reload() {
-	WeaponStatePtr reloading_state = std::make_shared<ReloadingState>();
-	TransitionTo(reloading_state);
+	if (state_->GetType() != WeaponStateType::Reloading) {
+		TransitionTo(std::make_shared<ReloadingState>());
+	}
 }
 
-void Weapon::TransitionTo(WeaponStatePtr& state) {
+void Weapon::TransitionTo(WeaponStatePtr state) {
 	state_ = state;
 	state_->SetContext(shared_from_this());
-	if (state->GetType() == WeaponStateType::Reloading) {
-		state_->Update(0.0);
-	}
 }
 
 void Weapon::SetAmmo(size_t ammo) {
@@ -79,7 +77,7 @@ void Weapon::DecreaseAmmo(size_t amount) {
 	ammo_ -= amount;
 }
 
-void Weapon::SetCrossHair(std::shared_ptr<Ray> crosshair) {
+void Weapon::SetCrossHair(const std::shared_ptr<Ray> crosshair) {
 	crosshair_ = crosshair;
 }
 
@@ -115,8 +113,8 @@ int Weapon::GetTextureId() const {
 	return state_->GetCurrentFrame();
 }
 
-std::shared_ptr<Ray> Weapon::GetCrosshair() const {
-	return crosshair_;
+const Ray& Weapon::GetCrosshair() const {
+	return *crosshair_;
 }
 
 }  // namespace wolfenstein

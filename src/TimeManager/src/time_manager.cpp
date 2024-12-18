@@ -12,6 +12,10 @@ TimeManager& TimeManager::GetInstance() {
 	return *instance_;
 }
 
+TimeManager::~TimeManager() {
+	delete instance_;
+}
+
 void TimeManager::InitClock() {
 	previos_time_point = std::chrono::high_resolution_clock::now();
 	initial_time_point = previos_time_point;
@@ -49,9 +53,10 @@ double TimeManager::GetFramePerSecond() {
 }
 
 double TimeManager::GetCurrentTime() {
-	auto current_time_point = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double> current_time =
-		current_time_point.time_since_epoch();
+	auto time_passed =
+		std::chrono::high_resolution_clock::now() - initial_time_point;
+	auto current_time =
+		std::chrono::duration_cast<std::chrono::seconds>(time_passed);
 	return current_time.count();
 }
 

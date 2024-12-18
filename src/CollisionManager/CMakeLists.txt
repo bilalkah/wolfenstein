@@ -9,7 +9,7 @@ target_include_directories(collision_manager PUBLIC
 target_link_libraries(
     collision_manager
     PUBLIC
-    map
+    scene
     vector
     game_object
 )

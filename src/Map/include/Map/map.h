@@ -19,24 +19,29 @@
 
 namespace wolfenstein {
 
+typedef std::vector<std::vector<uint16_t>> MapRaw;
 class Map
 {
   public:
-	Map();
-	std::vector<std::vector<uint16_t>> GetMap();
+	Map(std::string map_path =
+			"/home/bikahraman/wolfenstein/assets/maps/map1.txt",
+		double resolution = 0.5);
+
+	const MapRaw& GetRawMap() const;
 	std::shared_ptr<planning::Map> GetPathFinderMap();
-	uint16_t GetSizeX();
-	uint16_t GetSizeY();
+	const uint16_t GetSizeX() const;
+	const uint16_t GetSizeY() const;
 	double GetResolution();
+	const std::vector<uint16_t>& operator[](size_t i) const;
 
   private:
-	void LoadMap();
+	void LoadMap(std::string map_path);
 	void MapToPathFinderMap();
 
 	uint16_t size_x_;
 	uint16_t size_y_;
 	std::shared_ptr<planning::Map> path_finder_map_;
-	std::vector<std::vector<uint16_t>> map_;
+	MapRaw map_;
 	double res{0.5};
 };
 

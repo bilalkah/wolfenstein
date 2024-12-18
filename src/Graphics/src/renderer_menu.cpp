@@ -17,9 +17,8 @@ namespace wolfenstein {
 Menu::Menu(std::shared_ptr<RendererContext> context) : context_(context) {
 	std::vector<std::string> weapon_names = {"mp5", "shotgun"};
 	for (const auto& w : weapon_names) {
-		WeaponStatePtr loaded_state = std::make_shared<LoadedState>();
 		weapons_.push_back(std::make_shared<Weapon>(w));
-		weapons_.back()->TransitionTo(loaded_state);
+		weapons_.back()->Init();
 	}
 }
 
@@ -28,15 +27,12 @@ void Menu::Render() {
 	ClearScreen();
 	RenderBackground();
 	RenderWeapon();
-
-	SDL_Color textColor = {255, 255, 255, 255};	 // White text
-
-	RenderText(textColor);
-
+	RenderText();
 	SDL_RenderPresent(context_->GetRenderer());
 }
 
-void Menu::RenderText(const SDL_Color& color) {
+void Menu::RenderText() {
+	SDL_Color color = {255, 255, 255, 255};	 // White text
 	SDL_Surface* textSurface = TTF_RenderText_Solid(
 		context_->GetFont(), "Hello Comrade, Choose your weapon below", color);
 	if (!textSurface) {
@@ -53,7 +49,7 @@ void Menu::RenderText(const SDL_Color& color) {
 	SDL_FreeSurface(
 		textSurface);  // Free the surface after creating the texture
 	const double ratio = static_cast<double>(textSurface->h) / textSurface->w;
-	const int width_slice = context_->GetConfig().width / 2.6;
+	const int width_slice = context_->GetConfig().width / 1.5;
 	const int height_slice = width_slice * ratio;
 	SDL_Rect rect = {(context_->GetConfig().width / 2) + (-width_slice / 2),
 					 (context_->GetConfig().height / 2) +
@@ -79,7 +75,7 @@ void Menu::RenderText(const SDL_Color& color) {
 		textSurface2);	// Free the surface after creating the texture
 	const double ratio_2 =
 		static_cast<double>(textSurface2->h) / textSurface2->w;
-	const int width_slice_2 = context_->GetConfig().width / 2.6;
+	const int width_slice_2 = context_->GetConfig().width / 1.5;
 	const int height_slice_2 = width_slice_2 * ratio_2;
 	SDL_Rect rect2 = {(context_->GetConfig().width / 2) + (-width_slice_2 / 2),
 					  (context_->GetConfig().height / 2) +
@@ -96,7 +92,8 @@ void Menu::RenderWeapon() {
 	const int width_slice = context_->GetConfig().width / 2.6;
 	const int height_slice = width_slice * ratio;
 	SDL_Rect src_rect = {0, 0, width_slice, height_slice};
-	SDL_Rect dest_rect = {context_->GetConfig().width / 2 - width_slice / 2 - context_->GetConfig().width/20,
+	SDL_Rect dest_rect = {context_->GetConfig().width / 2 - width_slice / 2 -
+							  context_->GetConfig().width / 20,
 						  context_->GetConfig().height / 2 - height_slice / 2 -
 							  context_->GetConfig().height / 8,
 						  width_slice, height_slice};
@@ -110,23 +107,23 @@ void Menu::Animate() {
 }
 
 void Menu::ChangeSelection(int direction) {
+	weapons_[selected_weapon_index_]->TransitionTo(
+		std::make_shared<LoadedState>());
 	selected_weapon_index_ += direction;
 	selected_weapon_index_ %= weapons_.size();
 	weapons_[selected_weapon_index_]->Reload();
 }
 
 std::shared_ptr<Weapon> Menu::GetSelectedWeapon() {
-	WeaponStatePtr state = std::make_shared<LoadedState>();
-	weapons_[selected_weapon_index_]->TransitionTo(state);
+	weapons_[selected_weapon_index_]->TransitionTo(
+		std::make_unique<LoadedState>());
 	return weapons_[selected_weapon_index_];
 }
 
 void Menu::RenderBackground() {
-	const auto config = context_->GetConfig();
-	SDL_Texture* backgroundTexture =
-		TextureManager::GetInstance().GetTexture(8).texture;
-	SDL_Rect rect = {0, 0, config.width, config.height};
-	SDL_RenderCopy(context_->GetRenderer(), backgroundTexture, nullptr, &rect);
+	SDL_RenderCopy(context_->GetRenderer(),
+				   TextureManager::GetInstance().GetTexture(8).texture, nullptr,
+				   nullptr);
 }
 
 void Menu::ClearScreen() {

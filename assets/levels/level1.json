@@ -1,0 +1,28 @@
+{
+    "map": "map1.txt",
+    "player": { "position": { "x": 3, "y": 1.5, "theta": 1.5} },
+    "enemies": [
+      { "type": "soldier", "position": { "x": 9, "y": 7, "theta": 0 }},
+      { "type": "soldier", "position": { "x": 9, "y": 8, "theta": 0 }},
+      { "type": "soldier", "position": { "x": 18, "y": 10.5, "theta": 0 }},
+      { "type": "soldier", "position": { "x": 23, "y": 10.5, "theta": 0 }},
+      { "type": "caco_demon", "position": { "x": 13.5, "y": 2.5, "theta": 0 }},
+      { "type": "caco_demon", "position": { "x": 6, "y": 11.5, "theta": 0 }},
+      { "type": "caco_demon", "position": { "x": 21, "y": 14, "theta": 0 }},
+      { "type": "cyber_demon", "position": { "x": 12.5, "y": 14.5, "theta": 0 }},
+      { "type": "cyber_demon", "position": { "x": 23, "y": 4, "theta": 0 }},
+      { "type": "cyber_demon", "position": { "x": 20, "y": 4, "theta": 0 }}
+    ],
+    "dynamicObjects": [
+      { "type": "red_light", "position": { "x": 12.1, "y": 8.15 } },
+      { "type": "red_light", "position": { "x": 10.9, "y": 8.15 } },
+      { "type": "green_light", "position": { "x": 9.9, "y": 10.9 } },
+      { "type": "green_light", "position": { "x": 9.9, "y": 13.1 } },
+      { "type": "green_light", "position": { "x": 12.1, "y": 13.1 } },
+      { "type": "green_light", "position": { "x": 12.1, "y": 10.9 } }
+    ],
+    "staticObjects": [
+      
+    ],
+    "next_level": "level2.json"
+}

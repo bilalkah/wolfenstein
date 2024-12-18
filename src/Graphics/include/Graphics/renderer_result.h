@@ -12,6 +12,7 @@
 #ifndef GRAPHICS_INCLUDE_GRAPHICS_RENDERER_RESULT_H_
 #define GRAPHICS_INCLUDE_GRAPHICS_RENDERER_RESULT_H_
 
+#include "Animation/triggered_single_animation.h"
 #include "Graphics/renderer_interface.h"
 #include "TextureManager/texture_manager.h"
 #include <SDL2/SDL_render.h>
@@ -22,7 +23,8 @@ namespace wolfenstein {
 class RendererResult
 {
   public:
-	RendererResult(std::shared_ptr<RendererContext> context, Texture texture);
+	RendererResult(std::shared_ptr<RendererContext> context,
+				   const uint16_t texture_id);
 	~RendererResult() = default;
 
 	void Render();
@@ -31,8 +33,7 @@ class RendererResult
 	void ClearScreen();
 	void RenderScreen();
 	std::shared_ptr<RendererContext> context_;
-	Texture texture_;
-	double fade_counter_{0.0};
+	std::unique_ptr<TriggeredSingleAnimation> result_animation_;
 };
 
 }  // namespace wolfenstein

@@ -12,4 +12,5 @@ target_link_libraries(
     single_raycaster
     vector
     character
+    scene
 )

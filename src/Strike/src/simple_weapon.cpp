@@ -1,5 +1,5 @@
-#include "Strike/simple_weapon.h"
 #include "ShootingManager/shooting_manager.h"
+#include "Strike/simple_weapon.h"
 
 namespace wolfenstein {
 
@@ -40,7 +40,7 @@ Melee::Melee() {
 }
 
 void Melee::Attack() {
-	ShootingManager::GetInstance().EnemyShoot(shared_from_this());
+	ShootingManager::GetInstance().EnemyShoot(*this);
 }
 
 Rifle::Rifle() {
@@ -52,7 +52,7 @@ Rifle::Rifle() {
 }
 
 void Rifle::Attack() {
-	ShootingManager::GetInstance().EnemyShoot(shared_from_this());
+	ShootingManager::GetInstance().EnemyShoot(*this);
 }
 
 LaserGun::LaserGun() {
@@ -64,7 +64,7 @@ LaserGun::LaserGun() {
 }
 
 void LaserGun::Attack() {
-	ShootingManager::GetInstance().EnemyShoot(shared_from_this());
+	ShootingManager::GetInstance().EnemyShoot(*this);
 }
 
 }  // namespace wolfenstein

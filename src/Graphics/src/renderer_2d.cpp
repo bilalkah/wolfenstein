@@ -23,18 +23,19 @@ std::vector<vector2i> GenerateCirclePoints(vector2i center, int radius,
 
 void Renderer2D::RenderScene() {
 	ClearScreen();
-	RenderMap(scene_->GetMap());
-	RenderPlayer(scene_->GetPlayer());
-	RenderObjects(scene_->GetObjects());
-	RenderPaths(scene_->GetEnemies());
-	RenderCrosshairs(scene_->GetEnemies());
+	RenderMap();
+	RenderPlayer();
+	RenderObjects();
+	RenderPaths();
+	RenderCrosshairs();
 	SDL_RenderPresent(context_->GetRenderer());
 }
 
-void Renderer2D::RenderMap(const std::shared_ptr<Map> map_ptr) {
-	const auto& map = map_ptr->GetMap();
-	const auto& size_x = map_ptr->GetSizeX();
-	const auto& size_y = map_ptr->GetSizeY();
+void Renderer2D::RenderMap() {
+	const auto& map_ptr = scene_->GetMap();
+	const auto& map = map_ptr.GetRawMap();
+	const auto& size_x = map_ptr.GetSizeX();
+	const auto& size_y = map_ptr.GetSizeY();
 	const auto config = context_->GetConfig();
 
 	SetDrawColor({162, 117, 76, 255});
@@ -49,15 +50,16 @@ void Renderer2D::RenderMap(const std::shared_ptr<Map> map_ptr) {
 	}
 }
 
-void Renderer2D::RenderPlayer(const std::shared_ptr<Player> player_ptr) {
+void Renderer2D::RenderPlayer() {
+	const auto& player_ptr = scene_->GetPlayer();
 	const auto config = context_->GetConfig();
-	const auto camera_ptr = context_->GetCamera();
+	const auto& camera_ptr = context_->GetCamera();
 
-	const auto position = player_ptr->GetPosition();
-	const auto crosshair_ray = camera_ptr->GetCrosshairRay();
+	const auto position = player_ptr.GetPosition();
+	const auto crosshair_ray = player_ptr.GetCrosshairRay();
 
 	SetDrawColor({00, 0xA5, 0, 1});
-	const auto rays = *camera_ptr->GetRays();
+	const auto rays = camera_ptr.GetRays();
 	for (unsigned int i = 0; i < rays.size(); i++) {
 		if (!rays[i].is_hit || i % 3 != 0) {
 			continue;
@@ -70,19 +72,19 @@ void Renderer2D::RenderPlayer(const std::shared_ptr<Player> player_ptr) {
 	SetDrawColor({255, 0, 0, 255});
 	const auto circle_points =
 		GenerateCirclePoints(ToVector2i(position.pose * config.scale),
-							 config.scale * player_ptr->GetWidth() / 2, 20);
+							 config.scale * player_ptr.GetWidth() / 2, 20);
 	for (unsigned int i = 0; i < circle_points.size(); i++) {
 		SDL_RenderDrawPoint(context_->GetRenderer(), circle_points[i].x,
 							circle_points[i].y);
 	}
-	DrawLine(ToVector2i(crosshair_ray->origin * config.scale),
-			 ToVector2i(crosshair_ray->hit_point * config.scale));
+	DrawLine(ToVector2i(crosshair_ray.origin * config.scale),
+			 ToVector2i(crosshair_ray.hit_point * config.scale));
 }
 
-void Renderer2D::RenderObjects(
-	const std::vector<std::shared_ptr<IGameObject>>& objects) {
+void Renderer2D::RenderObjects() {
+	const auto& objects = scene_->GetObjects();
 	const auto config = context_->GetConfig();
-	const auto camera_ptr = context_->GetCamera();
+	const auto& camera_ptr = context_->GetCamera();
 	auto renderer_ = context_->GetRenderer();
 
 	for (const auto& object : objects) {
@@ -99,8 +101,8 @@ void Renderer2D::RenderObjects(
 		}
 
 		const auto object_angle =
-			std::atan2(object_pose.y - camera_ptr->GetPosition().pose.y,
-					   object_pose.x - camera_ptr->GetPosition().pose.x);
+			std::atan2(object_pose.y - camera_ptr.GetPosition().pose.y,
+					   object_pose.x - camera_ptr.GetPosition().pose.x);
 
 		const auto to_left = SubRadian(object_angle, ToRadians(90.0));
 		const auto to_right = SumRadian(object_angle, ToRadians(90.0));
@@ -128,8 +130,8 @@ void Renderer2D::RenderObjects(
 	}
 }
 
-void Renderer2D::RenderPaths(
-	const std::vector<std::shared_ptr<Enemy>>& enemies) {
+void Renderer2D::RenderPaths() {
+	const auto& enemies = scene_->GetEnemies();
 	const auto config = context_->GetConfig();
 	SetDrawColor({0, 0, 255, 255});
 	for (const auto& enemy : enemies) {
@@ -145,8 +147,8 @@ void Renderer2D::RenderPaths(
 	}
 }
 
-void Renderer2D::RenderCrosshairs(
-	const std::vector<std::shared_ptr<Enemy>>& enemies) {
+void Renderer2D::RenderCrosshairs() {
+	const auto& enemies = scene_->GetEnemies();
 	const auto config = context_->GetConfig();
 	SetDrawColor({255, 0, 255, 255});
 	for (const auto& enemy : enemies) {
