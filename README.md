@@ -122,6 +122,17 @@ We welcome contributions! Here are a few ways you can help:
 
 ---
 
+## Acknowledgments
+
+Thank you for checking out the first version of my Wolfenstein game! This release represents my learning journey, including experimenting with game design, state management, and spatial data handling. I hope you enjoy playing it as much as I enjoyed creating it.
+
+Additionally, I would also like to share the source of motivation and inspiration for me to do this project. 95% of the assets were obtained from the relevant source.
+
+https://github.com/StanislavPetrovV/DOOM-style-Game  
+https://www.youtube.com/watch?v=ECqUrT7IdqQ
+
+---
+
 ## License
 
 This project is open-source and available under the MIT License. See the `LICENSE` file for details.
