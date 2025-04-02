@@ -42,6 +42,12 @@ Camera2D::Camera2D(const Camera2DConfig& config,
 void Camera2D::Update() {
 	ray_cast_->Update(scene_->GetMap(), *position_, *rays_);
 	*crosshair_ray_ = rays_->at(config_.width / 4);
+	if (!crosshair_ray_->is_hit) {
+		crosshair_ray_->distance = config_.depth;
+		crosshair_ray_->hit_point =
+			position_->pose + crosshair_ray_->direction * config_.depth;
+		crosshair_ray_->perpendicular_distance = config_.depth;
+	}
 	crosshair_ray_->is_hit = false;
 
 	// Update object rays
