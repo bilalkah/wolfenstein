@@ -55,7 +55,7 @@ Enemy::Enemy(std::string bot_name, CharacterConfig config)
 	  next_pose(position_.pose),
 	  state_config_(GetBotStateConfig(bot_name)),
 	  bot_name_(bot_name),
-	  id_(UuidGenerator::GetInstance().GenerateUuid().bytes()),
+	  id_(UuidGenerator::GetInstance().GenerateUuid()),
 	  crosshair_ray(Ray{}),
 	  weapon_(GetBotWeapon(bot_name)) {}
 

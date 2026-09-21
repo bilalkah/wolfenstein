@@ -18,7 +18,28 @@
 #include <memory>
 #include <vector>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 namespace wolfenstein {
+
+namespace {
+
+// In the browser Esc is reserved for releasing the pointer lock, so it must not
+// also close the game there
+bool IsQuitEvent(const SDL_Event& event) {
+	if (event.type == SDL_QUIT) {
+		return true;
+	}
+#ifdef __EMSCRIPTEN__
+	return false;
+#else
+	return event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE;
+#endif
+}
+
+}  // namespace
 
 Game::Game(GeneralConfig& config)
 	: config_(config),
@@ -68,9 +89,7 @@ void Game::CheckMenuEvent() {
 	SDL_Event event;
 	while (SDL_PollEvent(&event)) {
 		// When user close the window
-		if (event.type == SDL_QUIT ||
-			(event.type == SDL_EventType::SDL_KEYDOWN &&
-			 event.key.keysym.sym == SDLK_ESCAPE)) {
+		if (IsQuitEvent(event)) {
 			is_running_ = false;
 			is_menu_ = false;
 		}
@@ -81,6 +100,7 @@ void Game::CheckMenuEvent() {
 				player_->SetWeapon(menu_->GetSelectedWeapon());
 				is_menu_ = false;
 				is_running_ = true;
+				SDL_SetRelativeMouseMode(SDL_TRUE);
 			}
 			// left arrow
 			if (event.key.keysym.sym == SDLK_LEFT) {
@@ -100,22 +120,9 @@ void Game::CheckGameEvent() {
 	while (SDL_PollEvent(&event)) {
 
 		// When user close the window
-		if (event.type == SDL_QUIT ||
-			(event.type == SDL_EventType::SDL_KEYDOWN &&
-			 event.key.keysym.sym == SDLK_ESCAPE)) {
+		if (IsQuitEvent(event)) {
 			is_running_ = false;
 			is_menu_ = false;
-		}
-
-		// When user alt tab the window
-		if (event.type == SDL_WINDOWEVENT) {
-			if (event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
-				SDL_ShowCursor(SDL_ENABLE);
-			}
-			else if (event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) {
-				SDL_ShowCursor(SDL_DISABLE);
-				SDL_WarpMouseInWindow(nullptr, 400, 300);
-			}
 		}
 
 		// When user press a key
@@ -137,69 +144,100 @@ void Game::CheckGameEvent() {
 }
 
 void Game::Run() {
+#ifdef __EMSCRIPTEN__
+	// The browser drives the loop: one Tick per animation frame
+	emscripten_set_main_loop_arg(
+		[](void* game) {
+			if (!static_cast<Game*>(game)->Tick()) {
+				emscripten_cancel_main_loop();
+				// Start over from the menu instead of leaving a frozen canvas
+				emscripten_run_script("location.reload()");
+			}
+		},
+		this, 0, true);
+#else
+	while (Tick()) {}
+#endif
+}
 
-	while (is_menu_) {
-		CheckMenuEvent();
-		TimeManager::GetInstance().CalculateDeltaTime();
-		menu_->Render();
-		SDL_WarpMouseInWindow(nullptr, 400, 300);
+bool Game::Tick() {
+	if (is_menu_) {
+		MenuTick();
 	}
+	else if (is_running_) {
+		GameTick();
+	}
+	else if (is_result_) {
+		ResultTick();
+	}
+	return is_menu_ || is_running_ || is_result_;
+}
 
-	while (is_running_) {
-		CheckGameEvent();
-		TimeManager::GetInstance().CalculateDeltaTime();
-		scene_->Update(TimeManager::GetInstance().GetDeltaTime());
-		renderer_->RenderScene();
+void Game::MenuTick() {
+	CheckMenuEvent();
+	TimeManager::GetInstance().CalculateDeltaTime();
+	menu_->Render();
+}
 
-		// Check if player is dead
-		if (!player_->IsAlive()) {
-			renderer_result_ =
-				std::make_unique<RendererResult>(renderer_context_, 10);
-		}
-		if (scene_->GetNumberOfAliveEnemies() == 0) {
-			if (scene_->GetNextScene() != "") {
-				[this]() {
-					static double time_pass = 0;
-					time_pass += TimeManager::GetInstance().GetDeltaTime();
-					if (time_pass >= 2.0) {
-						const auto next = scene_->GetNextScene();
-						scene_ = SceneLoader::GetInstance().Load(next, player_);
-						renderer_->SetScene(scene_);
-						time_pass = 0;
-					}
-				}();
-			}
-			else {
-				renderer_result_ =
-					std::make_unique<RendererResult>(renderer_context_, 11);
-			}
-		}
+void Game::GameTick() {
+	CheckGameEvent();
+	TimeManager::GetInstance().CalculateDeltaTime();
+	scene_->Update(TimeManager::GetInstance().GetDeltaTime());
+	renderer_->RenderScene();
 
-		if (renderer_result_) {
+	// Check if player is dead
+	if (!player_->IsAlive()) {
+		renderer_result_ =
+			std::make_unique<RendererResult>(renderer_context_, 10);
+	}
+	if (scene_->GetNumberOfAliveEnemies() == 0) {
+		if (scene_->GetNextScene() != "") {
 			[this]() {
 				static double time_pass = 0;
 				time_pass += TimeManager::GetInstance().GetDeltaTime();
 				if (time_pass >= 2.0) {
-					is_running_ = false;
-					is_result_ = true;
+					const auto next = scene_->GetNextScene();
+					scene_ = SceneLoader::GetInstance().Load(next, player_);
+					renderer_->SetScene(scene_);
+					time_pass = 0;
 				}
 			}();
 		}
-		TimeManager::GetInstance().SleepForHz(config_.fps);
+		else {
+			renderer_result_ =
+				std::make_unique<RendererResult>(renderer_context_, 11);
+		}
 	}
 
-	while (is_result_) {
-		SDL_Event event;
-		SDL_PollEvent(&event);
+	if (renderer_result_) {
+		[this]() {
+			static double time_pass = 0;
+			time_pass += TimeManager::GetInstance().GetDeltaTime();
+			if (time_pass >= 2.0) {
+				is_running_ = false;
+				is_result_ = true;
+			}
+		}();
+	}
+#ifndef __EMSCRIPTEN__
+	// In the browser requestAnimationFrame already paces the frames
+	TimeManager::GetInstance().SleepForHz(config_.fps);
+#endif
+}
+
+void Game::ResultTick() {
+	SDL_Event event;
+	while (SDL_PollEvent(&event)) {
 		if (event.type == SDL_QUIT ||
 			(event.type == SDL_EventType::SDL_KEYDOWN &&
-			 event.key.keysym.sym == SDLK_ESCAPE)) {
+			 (event.key.keysym.sym == SDLK_ESCAPE ||
+			  event.key.keysym.sym == SDLK_SPACE))) {
 			is_result_ = false;
 		}
-
-		TimeManager::GetInstance().CalculateDeltaTime();
-		renderer_result_->Render();
 	}
+
+	TimeManager::GetInstance().CalculateDeltaTime();
+	renderer_result_->Render();
 }
 
 }  // namespace wolfenstein

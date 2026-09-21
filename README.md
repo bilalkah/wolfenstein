@@ -49,25 +49,44 @@ Welcome to the Wolfenstein project! This README provides an overview of the game
 
 ## Setup Instructions
 
-### Prerequisites
-1. **C++ Compiler**: Ensure you have a modern C++ compiler (C++17 or higher).
+Clone the repository with its submodule and the assets, which are stored with [Git LFS](https://git-lfs.com):
+```bash
+git lfs install
+git clone https://github.com/bilalkah/wolfenstein --recurse-submodules
+cd wolfenstein
+```
+
+### Play in the Browser (WebAssembly)
+
+The game compiles to WebAssembly with [Emscripten](https://emscripten.org) and runs in any desktop browser.
+
+1. Build it. This uses your local Emscripten SDK if `emcmake` is on your `PATH`, otherwise the `emscripten/emsdk` Docker image:
+   ```bash
+   ./scripts/build_web.sh
+   ```
+2. Serve it and open http://localhost:8000:
+   ```bash
+   ./scripts/run_web.sh
+   ```
+
+The output in `build-web/bin` is a static site (`index.html`, `.js`, `.wasm`, `.data`), so it can also be hosted as is, for example on GitHub Pages.
+
+### Native Build
+
+#### Prerequisites
+1. **C++ Compiler**: Ensure you have a modern C++ compiler (C++20 or higher).
 2. **SDL Library**: Install SDL for rendering, sound, and input handling.
 
-### Build Instructions
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/bilalkah/wolfenstein --recurse-submodules
-   cd wolfenstein
-   ```
-2. Install dependencies:
+#### Build Instructions
+1. Install dependencies:
    ```bash
    ./scripts/install_deps.sh
    ```
-3. Build the project using `cmake` or your preferred build system:
+2. Build the project using `cmake` or your preferred build system:
    ```bash
    ./scripts/compile.sh # or you can your own way to build
    ```
-4. Run the executable:
+3. Run the executable:
    ```bash
    ./build/bin/wolfenstein
    ```
@@ -77,8 +96,12 @@ Welcome to the Wolfenstein project! This README provides an overview of the game
 ## How to Play
 
 - **Movement**: Use `W`, `A`, `S`, `D` to move around.
-- **Attack**: Use `Left Click` to attack enemies.
+- **Turn**: Move the mouse, or use `Left Arrow` and `Right Arrow`.
+- **Attack**: Use `Left Click` or `Left Ctrl` to attack enemies.
+- **Reload**: Press `R`.
 - **Select Weapon**: Use `Left Arrow`, `Right Arrow`, and `Space` to navigate and select your weapon.
+- **Map View**: Press `P` to toggle the top-down view.
+- **Browser**: Click the game to capture the mouse; `Esc` releases it.
 
 ---
 
