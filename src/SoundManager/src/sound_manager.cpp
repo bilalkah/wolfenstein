@@ -1,4 +1,5 @@
 #include "SoundManager/sound_manager.h"
+#include <algorithm>
 #include <iostream>
 #include <string>
 
@@ -20,6 +21,17 @@ SoundManager::~SoundManager() {
 	Mix_FreeMusic(main_theme);
 	Mix_CloseAudio();
 	delete instance_;
+}
+
+void SoundManager::SetMasterVolume(double volume) {
+	constexpr int kMusicVolume = 64;  // the theme's level at full volume
+	const double clamped = std::clamp(volume, 0.0, 1.0);
+	Mix_VolumeMusic(static_cast<int>(kMusicVolume * clamped));
+#if SDL_MIXER_VERSION_ATLEAST(2, 6, 0)
+	Mix_MasterVolume(static_cast<int>(MIX_MAX_VOLUME * clamped));
+#else
+	Mix_Volume(-1, static_cast<int>(MIX_MAX_VOLUME * clamped));
+#endif
 }
 
 void SoundManager::InitManager() {

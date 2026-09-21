@@ -22,7 +22,7 @@
   /* Keep the game's 4:3 frame, scaled to the largest size that fits */
   #canvas {
     display: block;
-    width: min(100vw, calc((100vh - 2.5em) * 4 / 3));
+    width: min(100vw, calc(100vh * 4 / 3));
     aspect-ratio: 4 / 3;
     image-rendering: pixelated;
     outline: none;
@@ -32,28 +32,11 @@
     top: 50%;
     transform: translateY(-50%);
   }
-  #help {
-    height: 2.5em;
-    display: flex;
-    align-items: center;
-    opacity: .7;
-  }
-  kbd {
-    margin: 0 .3em;
-    padding: 0 .35em;
-    border: 1px solid #666;
-    border-radius: 3px;
-  }
 </style>
 </head>
 <body>
 <div id="status">Loading…</div>
 <canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
-<div id="help">
-  Menu: <kbd>←</kbd><kbd>→</kbd> pick weapon, <kbd>Space</kbd> start ·
-  Game: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move, mouse or <kbd>←</kbd><kbd>→</kbd> turn,
-  click or <kbd>Ctrl</kbd> fire, <kbd>R</kbd> reload, <kbd>P</kbd> map view, <kbd>Esc</kbd> release mouse
-</div>
 <script>
   const statusEl = document.getElementById('status');
   const canvas = document.getElementById('canvas');

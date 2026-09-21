@@ -22,5 +22,6 @@ target_link_libraries(
     simple_weapon
     sound_manager
     profiler
+    settings
 )
 

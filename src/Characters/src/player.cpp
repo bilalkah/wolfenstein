@@ -1,5 +1,6 @@
 #include "Camera/camera.h"
 #include "Profiler/profiler.h"
+#include "Settings/settings.h"
 #include "Characters/player.h"
 #include "CollisionManager/collision_manager.h"
 #include "Math/vector.h"
@@ -176,11 +177,13 @@ void Player::Rotate(double delta_time) {
 	}
 
 	// Relative mouse mode reports motion since the last call, which also
-	// works under browser pointer lock (unlike warping the cursor)
+	// works under browser pointer lock (unlike warping the cursor). Mouse
+	// motion is already a distance, so it is not scaled by the frame time.
+	constexpr double kRadiansPerPixel = 0.005;
 	int dx = 0;
 	SDL_GetRelativeMouseState(&dx, nullptr);
 	if (SDL_GetRelativeMouseMode()) {
-		turn += dx * rotation_speed_ * delta_time;
+		turn += dx * kRadiansPerPixel * Settings::Get().mouse_sensitivity;
 	}
 
 	if (turn != 0.0) {
