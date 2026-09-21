@@ -10,5 +10,4 @@ add_library(uuid_generator
 )
 target_include_directories(uuid_generator PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/third-party
 )

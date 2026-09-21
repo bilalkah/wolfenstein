@@ -61,9 +61,14 @@ class Game
 	~Game();
 
 	void Run();
+	// Runs a single frame; returns false once the game should close
+	bool Tick();
 
   private:
 	void Init();
+	void MenuTick();
+	void GameTick();
+	void ResultTick();
 	void CheckGameEvent();
 	void CheckMenuEvent();
 

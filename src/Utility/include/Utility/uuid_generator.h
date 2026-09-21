@@ -12,10 +12,13 @@
 #ifndef UTILITY_INCLUDE_UTILITY_UUID_GENERATOR_H
 #define UTILITY_INCLUDE_UTILITY_UUID_GENERATOR_H
 
-#include "uuid_v4/uuid_v4.h"
+#include <cstdint>
+#include <string>
 
 namespace wolfenstein {
 
+// Generates ids that are unique within a run. A plain counter replaces the
+// previous uuid_v4 dependency, which only compiled on x86 (SSE2).
 class UuidGenerator
 {
   public:
@@ -24,12 +27,11 @@ class UuidGenerator
 	UuidGenerator& operator=(const UuidGenerator&) = delete;
 	~UuidGenerator() = default;
 
-	UUIDv4::UUID GenerateUuid();
+	std::string GenerateUuid();
 
   private:
-	UuidGenerator();
-	UUIDv4::UUIDGenerator<std::mt19937_64> generator_;
-	static UuidGenerator* instance_;
+	UuidGenerator() = default;
+	uint64_t next_id_{0};
 };
 
 }  // namespace wolfenstein

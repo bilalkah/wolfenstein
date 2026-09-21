@@ -6,7 +6,7 @@ namespace wolfenstein {
 StaticObject::StaticObject(const vector2d& pose_, const int texture_id_,
 						   const double width_, const double height_)
 	: pose(pose_), texture_id(texture_id_), width(width_), height(height_) {
-	id = UuidGenerator::GetInstance().GenerateUuid().bytes();
+	id = UuidGenerator::GetInstance().GenerateUuid();
 }
 
 StaticObject::~StaticObject() {}

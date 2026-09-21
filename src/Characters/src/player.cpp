@@ -16,7 +16,7 @@ Player::Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera)
 	  width_(config.width),
 	  height_(config.height),
 	  health_(100) {
-	id_ = UuidGenerator::GetInstance().GenerateUuid().bytes();
+	id_ = UuidGenerator::GetInstance().GenerateUuid();
 	camera_ = camera;
 	weapon_ = std::make_shared<Weapon>("mp5");
 	weapon_->Init();
@@ -161,18 +161,26 @@ void Player::Move(double delta_time) {
 }
 
 void Player::Rotate(double delta_time) {
-	if (SDL_ShowCursor(SDL_QUERY) == SDL_DISABLE) {
-		int x, y;
-		SDL_GetMouseState(&x, &y);
-		position_ptr_->theta = SumRadian(
-			position_ptr_->theta, (x - 400) * rotation_speed_ * delta_time);
-		if (position_ptr_->theta > M_PI) {
-			position_ptr_->theta -= 2 * M_PI;
-		}
-		else if (position_ptr_->theta < -M_PI) {
-			position_ptr_->theta += 2 * M_PI;
-		}
-		SDL_WarpMouseInWindow(nullptr, 400, 300);
+	constexpr double kKeyboardTurnSpeed = 2.5;	// rad/s
+	const Uint8* keystate = SDL_GetKeyboardState(NULL);
+	double turn = 0.0;
+	if (keystate[SDL_SCANCODE_LEFT]) {
+		turn -= kKeyboardTurnSpeed * delta_time;
+	}
+	if (keystate[SDL_SCANCODE_RIGHT]) {
+		turn += kKeyboardTurnSpeed * delta_time;
+	}
+
+	// Relative mouse mode reports motion since the last call, which also
+	// works under browser pointer lock (unlike warping the cursor)
+	int dx = 0;
+	SDL_GetRelativeMouseState(&dx, nullptr);
+	if (SDL_GetRelativeMouseMode()) {
+		turn += dx * rotation_speed_ * delta_time;
+	}
+
+	if (turn != 0.0) {
+		position_ptr_->theta = SumRadian(position_ptr_->theta, turn);
 	}
 }
 
@@ -183,8 +191,9 @@ void Player::ShootOrReload() {
 		weapon_->Reload();
 	}
 
-	// If left mouse button is pressed, attack
-	if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_LMASK) {
+	// If left mouse button or left ctrl is pressed, attack
+	if ((SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_LMASK) ||
+		keystate[SDL_SCANCODE_LCTRL]) {
 		weapon_->Attack();
 	}
 }

@@ -7,10 +7,8 @@ UuidGenerator& UuidGenerator::GetInstance() {
 	return instance;
 }
 
-UuidGenerator::UuidGenerator() : generator_(13U) {}
-
-UUIDv4::UUID UuidGenerator::GenerateUuid() {
-	return generator_.getUUID();
+std::string UuidGenerator::GenerateUuid() {
+	return std::to_string(next_id_++);
 }
 
 }  // namespace wolfenstein

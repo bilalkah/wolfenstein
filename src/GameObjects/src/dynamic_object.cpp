@@ -8,7 +8,7 @@ DynamicObject::DynamicObject(const vector2d& pose_,
 							 const double width_, const double height_)
 	: pose(pose_), width(width_), height(height_) {
 	animation = std::move(animation_);
-	id = UuidGenerator::GetInstance().GenerateUuid().bytes();
+	id = UuidGenerator::GetInstance().GenerateUuid();
 }
 
 DynamicObject::~DynamicObject() {}
