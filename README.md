@@ -74,7 +74,7 @@ The output in `build-web/bin` is a static site (`index.html`, `.js`, `.wasm`, `.
 ### Native Build
 
 #### Prerequisites
-1. **C++ Compiler**: Ensure you have a modern C++ compiler (C++20 or higher).
+1. **C++ Compiler**: Ensure you have a C++23 compiler (e.g. GCC 13+, Clang 17+, Apple Clang 15+) and CMake 3.20+.
 2. **SDL Library**: Install SDL for rendering, sound, and input handling.
 
 #### Build Instructions
