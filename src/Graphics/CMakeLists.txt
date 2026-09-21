@@ -48,6 +48,7 @@ target_link_libraries(
     renderer_interface
     time_manager
     profiler
+    settings
 )
 
 add_library(
@@ -63,6 +64,8 @@ target_link_libraries(
     renderer_menu
     PUBLIC
     renderer_interface
+    settings
+    ui
 )
 
 add_library(

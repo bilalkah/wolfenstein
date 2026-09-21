@@ -28,7 +28,6 @@ void Renderer2D::RenderScene() {
 	RenderObjects();
 	RenderPaths();
 	RenderCrosshairs();
-	SDL_RenderPresent(context_->GetRenderer());
 }
 
 void Renderer2D::RenderMap() {

@@ -1,6 +1,7 @@
 #include "Camera/ray.h"
 #include "Graphics/renderer_3d.h"
 #include "Profiler/profiler.h"
+#include "Settings/settings.h"
 #include "TextureManager/texture_manager.h"
 #include "TimeManager/time_manager.h"
 #include <list>
@@ -24,12 +25,8 @@ void Renderer3D::RenderScene() {
 		ScopedTimer timer(ProfileSection::RenderDraw);
 		RenderTextures(render_queue);
 	}
-	{
-		ScopedTimer timer(ProfileSection::RenderHud);
-		RenderHUD();
-	}
-	ScopedTimer timer(ProfileSection::Present);
-	SDL_RenderPresent(context_->GetRenderer());
+	ScopedTimer timer(ProfileSection::RenderHud);
+	RenderHUD();
 }
 
 void Renderer3D::RenderBackground() {
@@ -246,31 +243,33 @@ void Renderer3D::RenderHUD() {
 	}
 
 	// FPS Top Left
-	SDL_Color color = {255, 255, 255, 255};	 // White text
-	SDL_Surface* textSurface = TTF_RenderText_Solid(
-		context_->GetFont(),
-		std::to_string(
-			static_cast<int>(TimeManager::GetInstance().GetFramePerSecond()))
-			.c_str(),
-		color);
-	if (!textSurface) {
-		std::cerr << "Failed to create text surface: " << TTF_GetError()
-				  << std::endl;
-		exit(EXIT_FAILURE);
-	}
-	SDL_Texture* textTexture =
-		SDL_CreateTextureFromSurface(context_->GetRenderer(), textSurface);
-	if (!textTexture) {
-		std::cerr << "Failed to create texture: " << SDL_GetError()
-				  << std::endl;
-	}
-	SDL_Rect rect = {0, 0, textSurface->w,
-					 textSurface->h};  // Position and size
-	SDL_RenderCopy(context_->GetRenderer(), textTexture, nullptr, &rect);
+	if (Settings::Get().show_fps) {
+		SDL_Color color = {255, 255, 255, 255};	 // White text
+		SDL_Surface* textSurface = TTF_RenderText_Solid(
+			context_->GetFont(),
+			std::to_string(
+				static_cast<int>(TimeManager::GetInstance().GetFramePerSecond()))
+				.c_str(),
+			color);
+		if (!textSurface) {
+			std::cerr << "Failed to create text surface: " << TTF_GetError()
+					  << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		SDL_Texture* textTexture =
+			SDL_CreateTextureFromSurface(context_->GetRenderer(), textSurface);
+		if (!textTexture) {
+			std::cerr << "Failed to create texture: " << SDL_GetError()
+					  << std::endl;
+		}
+		SDL_Rect rect = {0, 0, textSurface->w,
+						 textSurface->h};  // Position and size
+		SDL_RenderCopy(context_->GetRenderer(), textTexture, nullptr, &rect);
 
-	SDL_FreeSurface(
-		textSurface);  // Free the surface after creating the texture
-	SDL_DestroyTexture(textTexture);
+		SDL_FreeSurface(
+			textSurface);  // Free the surface after creating the texture
+		SDL_DestroyTexture(textTexture);
+	}
 
 	// Ammo Bottom Right
 	digits = {};

@@ -14,7 +14,6 @@ RendererResult::RendererResult(std::shared_ptr<RendererContext> context,
 void RendererResult::Render() {
 	ClearScreen();
 	RenderScreen();
-	SDL_RenderPresent(context_->GetRenderer());
 }
 
 void RendererResult::RenderScreen() {

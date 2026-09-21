@@ -32,6 +32,8 @@ class SoundManager
 	~SoundManager();
 
 	void InitManager();
+	// 0 (silent) to 1 (full); scales music and effects together
+	void SetMasterVolume(double volume);
 	void PlayEffect(std::string requester_id, std::string sound_effect);
 
   private:
