@@ -2,3 +2,5 @@
 .vscode/
 build/
 build-web/
+benchmarks/node_modules/
+benchmarks/package-lock.json

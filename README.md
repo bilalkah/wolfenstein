@@ -71,6 +71,16 @@ The game compiles to WebAssembly with [Emscripten](https://emscripten.org) and r
 
 The output in `build-web/bin` is a static site (`index.html`, `.js`, `.wasm`, `.data`), so it can also be hosted as is, for example on GitHub Pages.
 
+### Benchmark
+
+`index.html?benchmark=2000` runs a fixed, reproducible scenario instead of the game: the player walks a set route through level 1 at a fixed time step while enemies chase and attack. It reports per-frame timings for each part of the frame (AI, pathfinding, raycasting, rendering) and heap allocations per frame.
+
+```bash
+./scripts/bench_web.sh [frames] [label]
+```
+
+This builds the web version, runs the benchmark in headless Chromium (Docker), saves the full report to `benchmarks/results/`, appends a row to [benchmarks/results.md](benchmarks/results.md) and prints the change against the previous run. Natively, run `./build/bin/wolfenstein --benchmark 2000`.
+
 ### Native Build
 
 #### Prerequisites

@@ -1,4 +1,5 @@
 #include "Camera/ray.h"
+#include "Profiler/profiler.h"
 #include "Camera/single_raycaster.h"
 #include "Characters/enemy.h"
 #include "CollisionManager/collision_manager.h"
@@ -84,7 +85,11 @@ void Enemy::Update(double delta_time) {
 	if (!is_alive_) {
 		return;
 	}
-	crosshair_ray = SingleRayCasterService::GetInstance().Cast(position_.pose);
+	{
+		ScopedTimer timer(ProfileSection::LineOfSight);
+		crosshair_ray =
+			SingleRayCasterService::GetInstance().Cast(position_.pose);
+	}
 	weapon_->SetCrosshairRay(crosshair_ray);
 	state_->Update(delta_time);
 	if (!(next_pose == position_.pose)) {

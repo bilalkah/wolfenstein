@@ -1,4 +1,5 @@
 #include "Camera/camera.h"
+#include "Profiler/profiler.h"
 #include "Characters/player.h"
 #include "CollisionManager/collision_manager.h"
 #include "Math/vector.h"
@@ -41,7 +42,10 @@ void Player::Update(double delta_time) {
 	weapon_->Update(delta_time);
 	Move(delta_time);
 	Rotate(delta_time);
-	camera_->Update();
+	{
+		ScopedTimer timer(ProfileSection::Camera);
+		camera_->Update();
+	}
 	damage_animation_ptr_->Update(delta_time);
 }
 

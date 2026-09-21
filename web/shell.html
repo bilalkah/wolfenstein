@@ -58,11 +58,22 @@
   const statusEl = document.getElementById('status');
   const canvas = document.getElementById('canvas');
 
+  // ?benchmark[=frames] runs the performance benchmark (see benchmarks/)
+  const params = new URLSearchParams(location.search);
+  const benchmarkArgs = params.has('benchmark')
+    ? ['--benchmark', params.get('benchmark') || '']
+    : [];
+
   var Module = {
+    arguments: benchmarkArgs,
     canvas,
     setStatus(text) {
       statusEl.textContent = text;
       statusEl.hidden = !text;
+    },
+    onRuntimeInitialized() {
+      // Read by the benchmark runner as the page's load time
+      window.runtimeReadyMs = performance.now();
     },
     monitorRunDependencies(left) {
       if (left) Module.setStatus('Loading…');

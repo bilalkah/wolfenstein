@@ -47,6 +47,7 @@ target_link_libraries(
     PUBLIC
     renderer_interface
     time_manager
+    profiler
 )
 
 add_library(
