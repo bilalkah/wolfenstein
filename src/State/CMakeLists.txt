@@ -16,6 +16,7 @@ target_link_libraries(
     navigation_manager
     texture_manager
     sound_manager
+    profiler
 )
 
 add_library(

@@ -14,6 +14,7 @@ target_link_libraries(
     navigation_manager
     collision_manager
     character
+    profiler
 )
 
 add_library(
@@ -63,4 +64,5 @@ target_link_libraries(
     renderer_menu
     renderer_result
     scene_loader
+    profiler
 )

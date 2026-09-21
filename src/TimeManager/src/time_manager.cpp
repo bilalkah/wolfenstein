@@ -25,6 +25,13 @@ void TimeManager::CalculateDeltaTime() {
 	auto current_time_point = std::chrono::high_resolution_clock::now();
 	delta_time = current_time_point - previos_time_point;
 	previos_time_point = current_time_point;
+	if (fixed_delta_time.count() > 0.0) {
+		delta_time = fixed_delta_time;
+	}
+}
+
+void TimeManager::SetFixedDeltaTime(double seconds) {
+	fixed_delta_time = std::chrono::duration<double>(seconds);
 }
 
 void TimeManager::SleepForHz(double hz) {

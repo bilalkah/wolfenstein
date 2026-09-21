@@ -1,4 +1,5 @@
 #include "Characters/enemy.h"
+#include "Profiler/profiler.h"
 #include "NavigationManager/navigation_manager.h"
 #include "ShootingManager/shooting_manager.h"
 #include "SoundManager/sound_manager.h"
@@ -89,6 +90,7 @@ void WalkState::Update(const double& delta_time) {
 	}
 	if ((!context_->IsPlayerInShootingRange()) ||
 		((distance > range_min_) && context_->IsPlayerInShootingRange())) {
+		ScopedTimer timer(ProfileSection::Pathfinding);
 		auto next_position = NavigationManager::GetInstance().FindPathToPlayer(
 			bot_position, context_->GetId());
 		context_->SetNextPose(next_position);

@@ -1,4 +1,5 @@
 #include "Core/scene.h"
+#include "Profiler/profiler.h"
 namespace wolfenstein {
 
 void Scene::AddObject(std::shared_ptr<IGameObject> object) {
@@ -27,10 +28,14 @@ void Scene::DecreaseAliveEnemies() {
 }
 
 void Scene::Update(double delta_time) {
-	for (auto& object : objects) {
-		object->Update(delta_time);
+	{
+		ScopedTimer timer(ProfileSection::UpdateEnemies);
+		for (auto& object : objects) {
+			object->Update(delta_time);
+		}
 	}
 
+	ScopedTimer timer(ProfileSection::UpdatePlayer);
 	player->Update(delta_time);
 }
 

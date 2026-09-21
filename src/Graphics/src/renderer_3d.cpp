@@ -1,19 +1,34 @@
 #include "Camera/ray.h"
 #include "Graphics/renderer_3d.h"
+#include "Profiler/profiler.h"
 #include "TextureManager/texture_manager.h"
 #include "TimeManager/time_manager.h"
 #include <list>
 namespace wolfenstein {
 
 void Renderer3D::RenderScene() {
+	ScopedTimer render_timer(ProfileSection::Render);
 	RenderQueue render_queue(Compare);
 	ClearScreen();
 	RenderBackground();
-	RenderWalls(render_queue);
-	RenderObjects(render_queue);
-	RenderWeapon(render_queue);
-	RenderTextures(render_queue);
-	RenderHUD();
+	{
+		ScopedTimer timer(ProfileSection::RenderWalls);
+		RenderWalls(render_queue);
+	}
+	{
+		ScopedTimer timer(ProfileSection::RenderObjects);
+		RenderObjects(render_queue);
+		RenderWeapon(render_queue);
+	}
+	{
+		ScopedTimer timer(ProfileSection::RenderDraw);
+		RenderTextures(render_queue);
+	}
+	{
+		ScopedTimer timer(ProfileSection::RenderHud);
+		RenderHUD();
+	}
+	ScopedTimer timer(ProfileSection::Present);
 	SDL_RenderPresent(context_->GetRenderer());
 }
 
