@@ -1,11 +1,12 @@
-cmake_minimum_required(VERSION 3.16)  
+cmake_minimum_required(VERSION 3.20)  
 project(wolfenstein VERSION 1.0 LANGUAGES CXX C)
 add_definitions("-Wall" "-g")
 add_definitions("-Wno-dev")
 
-# Set the C++ standard to C++20
-set(CMAKE_CXX_STANDARD 20)
+# Set the C++ standard to C++23, without compiler-specific extensions
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Set the output directory for the build executables and libraries
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
