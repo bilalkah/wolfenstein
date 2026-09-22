@@ -29,6 +29,7 @@ target_link_libraries(
     scene_loader
     PUBLIC
     scene
+    nlohmann_json::nlohmann_json
 )
 
 add_library(
@@ -53,9 +54,9 @@ target_link_libraries(
     texture_manager
     navigation_manager
     sound_manager
-    SDL2
-    SDL2_image
-    SDL2_ttf
+    wolfenstein::sdl2
+    wolfenstein::sdl2_image
+    wolfenstein::sdl2_ttf
     enemy_state
     single_raycaster
     renderer_interface

@@ -1,0 +1,21 @@
+FetchContent_Declare(googletest
+    URL https://github.com/google/googletest/releases/download/v1.17.0/googletest-1.17.0.tar.gz
+    URL_HASH SHA256=65fab701d9829d38cb77c14acdc431d2108bfdbf8979e40eb8ae567edf10b27c
+    SYSTEM
+)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+include(GoogleTest)
+
+add_executable(unit_tests
+    math_test.cpp
+    map_test.cpp
+    raycaster_test.cpp
+)
+target_link_libraries(unit_tests PRIVATE
+    GTest::gtest_main
+    vector
+    map
+    camera
+)
+gtest_discover_tests(unit_tests)

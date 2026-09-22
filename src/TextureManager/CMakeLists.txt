@@ -9,6 +9,6 @@ target_include_directories(texture_manager PUBLIC
 target_link_libraries(
     texture_manager
     PUBLIC
-    SDL2
-    SDL2_image
+    wolfenstein::sdl2
+    wolfenstein::sdl2_image
 )

@@ -23,5 +23,5 @@ docker run --rm \
 	-e GIT_COMMIT="$GIT_COMMIT" -e GIT_DIRTY="$GIT_DIRTY" \
 	"mcr.microsoft.com/playwright:v$PLAYWRIGHT_VERSION-noble" \
 	bash -c "npm install --no-audit --no-fund --silent \
-		&& node run_web_benchmark.mjs /repo/build-web/bin $FRAMES '$LABEL' \
+		&& node run_web_benchmark.mjs /repo/build/web-release/bin $FRAMES '$LABEL' \
 		&& chown -R $(id -u):$(id -g) results results.md"
