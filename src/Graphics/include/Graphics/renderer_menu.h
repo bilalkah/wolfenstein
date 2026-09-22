@@ -63,6 +63,8 @@ class Menu
 	void DrawWeaponCard(const SDL_Rect& rect, const Weapon& weapon,
 						bool focused);
 	void DrawHint(std::string_view text);
+	// Makes weapon `index` (-1 for none) the animated preview
+	void SetPreviewedWeapon(int index);
 	// Leaves Controls or Settings for the screen they were opened from
 	void GoBack();
 

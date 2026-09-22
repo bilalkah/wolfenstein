@@ -56,8 +56,29 @@ void Menu::Open(MenuScreen screen) {
 		return_screen_ = screen_;
 	}
 	screen_ = screen;
-	previewed_weapon_ = -1;
+	if (screen == MenuScreen::WeaponSelect) {
+		for (const auto& weapon : weapons_) {
+			weapon->TransitionTo(std::make_shared<LoadedState>());
+		}
+		previewed_weapon_ = -1;
+	}
 	ui_->ResetFocus();
+}
+
+void Menu::SetPreviewedWeapon(int index) {
+	if (index == previewed_weapon_) {
+		return;
+	}
+	// The card losing focus goes back to its first frame instead of freezing
+	// mid-animation; the card gaining it plays the reload animation
+	if (previewed_weapon_ >= 0) {
+		weapons_[previewed_weapon_]->TransitionTo(
+			std::make_shared<LoadedState>());
+	}
+	previewed_weapon_ = index;
+	if (index >= 0) {
+		weapons_[index]->Reload();
+	}
 }
 
 void Menu::GoBack() {
@@ -160,6 +181,7 @@ MenuAction Menu::WeaponSelectScreen(double delta_time) {
 		2;
 
 	MenuAction action;
+	int focused_card = -1;
 	for (std::size_t i = 0; i < weapons_.size(); ++i) {
 		const SDL_Rect card{
 			cards_left + static_cast<int>(i) * (kCardWidth + kCardGap), 140,
@@ -169,15 +191,16 @@ MenuAction Menu::WeaponSelectScreen(double delta_time) {
 			action.type = MenuAction::Type::StartGame;
 			action.weapon = kWeapons[i].name;
 		}
-		// Play the reload animation when a card gains focus
-		if (focused && previewed_weapon_ != static_cast<int>(i)) {
-			previewed_weapon_ = static_cast<int>(i);
-			weapons_[i]->Reload();
-		}
 		if (focused) {
+			focused_card = static_cast<int>(i);
+			SetPreviewedWeapon(focused_card);
 			weapons_[i]->Update(delta_time);
 		}
 		DrawWeaponCard(card, *weapons_[i], focused);
+	}
+
+	if (focused_card < 0) {
+		SetPreviewedWeapon(-1);
 	}
 
 	if (ui_->Button("BACK", {(width - 300) / 2, 760, 300, 64}) ||
