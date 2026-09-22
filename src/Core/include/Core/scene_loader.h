@@ -12,8 +12,8 @@
 #ifndef CORE_INCLUDE_CORE_SCENE_LOADER_H_
 #define CORE_INCLUDE_CORE_SCENE_LOADER_H_
 
-#include "Core/json.hpp"
 #include "Core/scene.h"
+#include <nlohmann/json.hpp>
 
 namespace wolfenstein {
 

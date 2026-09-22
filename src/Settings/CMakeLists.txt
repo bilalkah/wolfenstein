@@ -9,5 +9,5 @@ target_include_directories(settings PUBLIC
 target_link_libraries(
     settings
     PUBLIC
-    SDL2
+    wolfenstein::sdl2
 )

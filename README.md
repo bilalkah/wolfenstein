@@ -69,7 +69,7 @@ The game compiles to WebAssembly with [Emscripten](https://emscripten.org) and r
    ./scripts/run_web.sh
    ```
 
-The output in `build-web/bin` is a static site (`index.html`, `.js`, `.wasm`, `.data`), so it can also be hosted as is, for example on GitHub Pages.
+The output in `build/web-release/bin` is a static site (`index.html`, `.js`, `.wasm`, `.data`), so it can also be hosted as is, for example on GitHub Pages.
 
 ### Benchmark
 
@@ -83,23 +83,25 @@ This builds the web version, runs the benchmark in headless Chromium (Docker), s
 
 ### Native Build
 
-#### Prerequisites
-1. **C++ Compiler**: Ensure you have a C++23 compiler (e.g. GCC 13+, Clang 17+, Apple Clang 15+) and CMake 3.20+.
-2. **SDL Library**: Install SDL for rendering, sound, and input handling.
+The native build uses **Clang with libc++** (the same standard library as the web and macOS builds) and CMake presets.
 
-#### Build Instructions
-1. Install dependencies:
-   ```bash
-   ./scripts/install_deps.sh
-   ```
-2. Build the project using `cmake` or your preferred build system:
-   ```bash
-   ./scripts/compile.sh # or you can your own way to build
-   ```
-3. Run the executable:
-   ```bash
-   ./build/bin/wolfenstein
-   ```
+The easiest way is the toolchain container, which only needs Docker:
+```bash
+./scripts/dev.sh cmake --preset native-debug          # configure
+./scripts/dev.sh cmake --build --preset native-debug  # build
+./scripts/dev.sh ctest --preset native-debug          # unit tests
+```
+
+On Ubuntu 26.04 you can also install the toolchain directly with `./scripts/install_deps.sh` and drop the `./scripts/dev.sh` prefix.
+
+| Preset | Purpose |
+|---|---|
+| `native-debug` | Development build with tests |
+| `native-release` | Optimised build with debug info (`./scripts/compile.sh`) |
+| `native-asan` | AddressSanitizer + UndefinedBehaviorSanitizer |
+| `web-release` | WebAssembly build (`./scripts/build_web.sh`) |
+
+The game binary is `build/<preset>/bin/wolfenstein`; `--benchmark 300` runs the headless benchmark scenario. Static analysis: `./scripts/dev.sh ./scripts/tidy.sh`.
 
 ---
 

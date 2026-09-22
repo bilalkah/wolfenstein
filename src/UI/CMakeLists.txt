@@ -9,6 +9,6 @@ target_include_directories(ui PUBLIC
 target_link_libraries(
     ui
     PUBLIC
-    SDL2
-    SDL2_ttf
+    wolfenstein::sdl2
+    wolfenstein::sdl2_ttf
 )

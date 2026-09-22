@@ -1,4 +1,9 @@
-add_executable(${EXECUTABLE} main.cpp allocation_counter.cpp)
+add_executable(${EXECUTABLE} main.cpp)
+# The allocation counter replaces global operator new/delete, which clashes
+# with the sanitizers' own allocator; sanitizer builds track memory themselves
+if(NOT WOLFENSTEIN_SANITIZERS)
+    target_sources(${EXECUTABLE} PRIVATE allocation_counter.cpp)
+endif()
 target_compile_definitions(${EXECUTABLE} PRIVATE DEBUG=0)
 target_link_libraries(
     ${EXECUTABLE} 
