@@ -1,7 +1,7 @@
+#include "Core/game.h"
 #include "Animation/looped_animation.h"
 #include "Camera/single_raycaster.h"
 #include "Characters/enemy.h"
-#include "Core/game.h"
 #include "Core/scene_loader.h"
 #include "GameObjects/dynamic_object.h"
 #include "GameObjects/static_object.h"
@@ -315,7 +315,8 @@ void Game::CheckGameEvent() {
 	// losing the lock is what pauses the game there
 	if (!IsBenchmark()) {
 		EmscriptenPointerlockChangeEvent status;
-		if (emscripten_get_pointerlock_status(&status) == EMSCRIPTEN_RESULT_SUCCESS) {
+		if (emscripten_get_pointerlock_status(&status) ==
+			EMSCRIPTEN_RESULT_SUCCESS) {
 			if (status.isActive) {
 				had_pointer_lock_ = true;
 			}
@@ -330,8 +331,8 @@ void Game::CheckGameEvent() {
 void Game::CheckGameOver() {
 	const double delta_time = TimeManager::GetInstance().GetDeltaTime();
 	if (!player_->IsAlive() && !renderer_result_) {
-		renderer_result_ =
-			std::make_unique<RendererResult>(renderer_context_, kGameOverTexture);
+		renderer_result_ = std::make_unique<RendererResult>(renderer_context_,
+															kGameOverTexture);
 	}
 	if (scene_->GetNumberOfAliveEnemies() == 0 && !renderer_result_) {
 		if (!scene_->GetNextScene().empty()) {
@@ -344,8 +345,8 @@ void Game::CheckGameOver() {
 			}
 		}
 		else {
-			renderer_result_ =
-				std::make_unique<RendererResult>(renderer_context_, kWinTexture);
+			renderer_result_ = std::make_unique<RendererResult>(
+				renderer_context_, kWinTexture);
 		}
 	}
 
@@ -408,7 +409,8 @@ void Game::BenchmarkStep() {
 		distance -= length;
 	}
 
-	if (profiler.GetFrameCount() >= static_cast<std::size_t>(benchmark_frames_)) {
+	if (profiler.GetFrameCount() >=
+		static_cast<std::size_t>(benchmark_frames_)) {
 		std::cout << "BENCHMARK_RESULT " << profiler.ReportJson(kWarmupFrames)
 				  << std::endl;
 		running_ = false;

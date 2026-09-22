@@ -1,7 +1,7 @@
+#include "State/weapon_state.h"
 #include "ShootingManager/shooting_manager.h"
 #include "SoundManager/sound_manager.h"
 #include "State/state.h"
-#include "State/weapon_state.h"
 #include "Strike/weapon.h"
 #include <memory>
 

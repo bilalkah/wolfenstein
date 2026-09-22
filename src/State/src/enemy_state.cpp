@@ -1,9 +1,9 @@
+#include "State/enemy_state.h"
 #include "Characters/enemy.h"
-#include "Profiler/profiler.h"
 #include "NavigationManager/navigation_manager.h"
+#include "Profiler/profiler.h"
 #include "ShootingManager/shooting_manager.h"
 #include "SoundManager/sound_manager.h"
-#include "State/enemy_state.h"
 #include "TextureManager/texture_manager.h"
 
 namespace wolfenstein {

@@ -203,8 +203,7 @@ MenuAction Menu::WeaponSelectScreen(double delta_time) {
 		SetPreviewedWeapon(-1);
 	}
 
-	if (ui_->Button("BACK", {(width - 300) / 2, 760, 300, 64}) ||
-		input_.back) {
+	if (ui_->Button("BACK", {(width - 300) / 2, 760, 300, 64}) || input_.back) {
 		Open(MenuScreen::Main);
 	}
 	DrawHint("Click a weapon or press Enter to start  ·  Esc to go back");
@@ -224,9 +223,9 @@ void Menu::DrawWeaponCard(const SDL_Rect& rect, const Weapon& weapon,
 	const auto texture =
 		TextureManager::GetInstance().GetTexture(weapon.GetTextureId());
 	if (texture.texture != nullptr && texture.width > 0 && texture.height > 0) {
-		const double scale = std::min(
-			static_cast<double>(preview.w) / texture.width,
-			static_cast<double>(preview.h) / texture.height);
+		const double scale =
+			std::min(static_cast<double>(preview.w) / texture.width,
+					 static_cast<double>(preview.h) / texture.height);
 		const int w = static_cast<int>(texture.width * scale);
 		const int h = static_cast<int>(texture.height * scale);
 		const SDL_Rect dest{preview.x + (preview.w - w) / 2,
@@ -253,8 +252,8 @@ void Menu::DrawWeaponCard(const SDL_Rect& rect, const Weapon& weapon,
 		const auto [max_damage, min_damage] = w->GetAttackDamage();
 		best_damage = std::max(best_damage, (max_damage + min_damage) / 2);
 		best_rate = std::max(best_rate, 1.0 / w->GetAttackSpeed());
-		best_capacity = std::max(
-			best_capacity, static_cast<double>(w->GetAmmoCapacity()));
+		best_capacity =
+			std::max(best_capacity, static_cast<double>(w->GetAmmoCapacity()));
 		best_reload = std::min(best_reload, w->GetReloadSpeed());
 	}
 	const auto [max_damage, min_damage] = weapon.GetAttackDamage();
@@ -326,13 +325,13 @@ MenuAction Menu::ControlsScreen() {
 		y += 56;
 	}
 #ifdef __EMSCRIPTEN__
-	ui_->Text("Click the game to capture the mouse; Esc releases it and pauses.",
-			  width / 2, panel.y + panel.h - 62, ui::FontStyle::Small,
-			  ui::color::kMuted, ui::Align::Center);
+	ui_->Text(
+		"Click the game to capture the mouse; Esc releases it and pauses.",
+		width / 2, panel.y + panel.h - 62, ui::FontStyle::Small,
+		ui::color::kMuted, ui::Align::Center);
 #endif
 
-	if (ui_->Button("BACK", {(width - 300) / 2, 720, 300, 64}) ||
-		input_.back) {
+	if (ui_->Button("BACK", {(width - 300) / 2, 720, 300, 64}) || input_.back) {
 		GoBack();
 	}
 	return {};
@@ -364,8 +363,8 @@ MenuAction Menu::SettingsScreen() {
 	}
 	y += kRowHeight + kButtonGap;
 	if (ui_->Slider("Volume", std::format("{:.0f}%", settings.volume * 100),
-					{left, y, kRowWidth, kRowHeight}, settings.volume, 0.0,
-					1.0, 0.05)) {
+					{left, y, kRowWidth, kRowHeight}, settings.volume, 0.0, 1.0,
+					0.05)) {
 		action.type = MenuAction::Type::SettingsChanged;
 	}
 	y += kRowHeight + kButtonGap;
@@ -374,8 +373,7 @@ MenuAction Menu::SettingsScreen() {
 		action.type = MenuAction::Type::SettingsChanged;
 	}
 
-	if (ui_->Button("BACK", {(width - 300) / 2, 720, 300, 64}) ||
-		input_.back) {
+	if (ui_->Button("BACK", {(width - 300) / 2, 720, 300, 64}) || input_.back) {
 		GoBack();
 	}
 	DrawHint("Left / Right to adjust  ·  Esc to go back");
@@ -417,10 +415,11 @@ MenuAction Menu::ResultScreen() {
 }
 
 void Menu::DrawBackground() {
-	SDL_RenderCopy(
-		context_->GetRenderer(),
-		TextureManager::GetInstance().GetTexture(kMenuBackgroundTexture).texture,
-		nullptr, nullptr);
+	SDL_RenderCopy(context_->GetRenderer(),
+				   TextureManager::GetInstance()
+					   .GetTexture(kMenuBackgroundTexture)
+					   .texture,
+				   nullptr, nullptr);
 }
 
 void Menu::DrawDimmer(Uint8 alpha) {

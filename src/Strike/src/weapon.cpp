@@ -1,5 +1,5 @@
-#include "State/weapon_state.h"
 #include "Strike/weapon.h"
+#include "State/weapon_state.h"
 #include "TimeManager/time_manager.h"
 #include <cstddef>
 #include <iostream>

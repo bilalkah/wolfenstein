@@ -23,9 +23,9 @@ class LoopedAnimation : public IAnimation
 {
   public:
 	LoopedAnimation(const std::vector<uint16_t>& textures,
-				 const double animation_speed);
+					const double animation_speed);
 	LoopedAnimation(const std::string collection_name,
-				 const double animation_speed);
+					const double animation_speed);
 	~LoopedAnimation() = default;
 
 	void Update(const double& delta_time) override;

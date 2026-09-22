@@ -37,11 +37,11 @@ inline constexpr SDL_Color kTrack{60, 52, 46, 255};
 }  // namespace color
 
 enum class FontStyle : std::uint8_t {
-	Title,		// display font, huge
-	Heading,	// display font
-	Button,		// display font
-	Body,		// text font
-	Small,		// text font
+	Title,	  // display font, huge
+	Heading,  // display font
+	Button,	  // display font
+	Body,	  // text font
+	Small,	  // text font
 	Count
 };
 

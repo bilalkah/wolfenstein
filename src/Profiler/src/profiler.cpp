@@ -7,11 +7,12 @@ namespace wolfenstein {
 
 namespace {
 
-constexpr std::array<const char*, static_cast<std::size_t>(ProfileSection::Count)>
-	kSectionNames = {"frame",		   "update_enemies", "pathfinding",
-					 "line_of_sight",  "update_player",	 "camera",
-					 "render",		   "render_walls",	 "render_objects",
-					 "render_draw",	   "render_hud",	 "present"};
+constexpr std::array<const char*,
+					 static_cast<std::size_t>(ProfileSection::Count)>
+	kSectionNames = {"frame",		  "update_enemies", "pathfinding",
+					 "line_of_sight", "update_player",	"camera",
+					 "render",		  "render_walls",	"render_objects",
+					 "render_draw",	  "render_hud",		"present"};
 
 // Nearest-rank percentile of an already sorted sample
 double Percentile(const std::vector<double>& sorted, double p) {

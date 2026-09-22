@@ -1,9 +1,9 @@
+#include "NavigationManager/navigation_manager.h"
 #include "Characters/enemy.h"
 #include "Core/scene.h"
 #include "Map/map.h"
 #include "Math/vector.h"
 #include "NavigationManager/navigation_helper.h"
-#include "NavigationManager/navigation_manager.h"
 #include "common_planning.h"
 #include <memory>
 #include <string>
