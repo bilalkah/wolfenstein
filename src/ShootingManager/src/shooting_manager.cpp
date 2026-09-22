@@ -1,6 +1,6 @@
+#include "ShootingManager/shooting_manager.h"
 #include "Math/vector.h"
 #include "ShootingManager/shooting_helper.h"
-#include "ShootingManager/shooting_manager.h"
 #include "Strike/simple_weapon.h"
 #include "Strike/weapon.h"
 #include <algorithm>

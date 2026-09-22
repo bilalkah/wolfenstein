@@ -137,10 +137,9 @@ void Ui::BeginFrame(const Input& input) {
 
 void Ui::MoveFocus(int delta) {
 	if (previous_widget_count_ > 0) {
-		focus_index_ =
-			((focus_index_ + delta) % previous_widget_count_ +
-			 previous_widget_count_) %
-			previous_widget_count_;
+		focus_index_ = ((focus_index_ + delta) % previous_widget_count_ +
+						previous_widget_count_) %
+					   previous_widget_count_;
 	}
 }
 
@@ -184,9 +183,9 @@ void Ui::DrawRect(const SDL_Rect& rect, SDL_Color c, int thickness) {
 
 const Ui::CachedText& Ui::GetText(std::string_view text, FontStyle style,
 								  SDL_Color c) {
-	const auto key = std::format("{}|{:02x}{:02x}{:02x}{:02x}|{}",
-								 static_cast<int>(style), c.r, c.g, c.b, c.a,
-								 text);
+	const auto key =
+		std::format("{}|{:02x}{:02x}{:02x}{:02x}|{}", static_cast<int>(style),
+					c.r, c.g, c.b, c.a, text);
 	if (const auto it = text_cache_.find(key); it != text_cache_.end()) {
 		return it->second;
 	}
@@ -292,9 +291,8 @@ bool Ui::Slider(std::string_view label, std::string_view value_text,
 	}
 	// Clicking or dragging on the track sets the value directly
 	if (pressed_widget_ == index && input_.mouse_down && track.w > 0) {
-		const double t =
-			std::clamp(static_cast<double>(input_.mouse_x - track.x) / track.w,
-					   0.0, 1.0);
+		const double t = std::clamp(
+			static_cast<double>(input_.mouse_x - track.x) / track.w, 0.0, 1.0);
 		value = min + t * (max - min);
 		value = std::round(value / step) * step;
 	}
@@ -315,8 +313,8 @@ bool Ui::Slider(std::string_view label, std::string_view value_text,
 			 focused ? color::kAccentBright : color::kText);
 
 	Text(value_text, rect.x + rect.w - kPadding,
-		 rect.y + (rect.h - label_size.y) / 2, FontStyle::Body,
-		 color::kText, Align::Right);
+		 rect.y + (rect.h - label_size.y) / 2, FontStyle::Body, color::kText,
+		 Align::Right);
 	return value != before;
 }
 
@@ -326,7 +324,8 @@ bool Ui::Toggle(std::string_view label, const SDL_Rect& rect, bool& value) {
 	const bool clicked = input_.mouse_released && pressed_widget_ == index &&
 						 Contains(rect, input_.mouse_x, input_.mouse_y);
 	const bool changed =
-		clicked || (focused && (input_.activate || input_.left || input_.right));
+		clicked ||
+		(focused && (input_.activate || input_.left || input_.right));
 	if (changed) {
 		value = !value;
 	}
@@ -344,8 +343,9 @@ bool Ui::Toggle(std::string_view label, const SDL_Rect& rect, bool& value) {
 	FillRect(pill, value ? color::kAccent : color::kTrack);
 	FillRect({value ? pill.x + pill.w - 26 : pill.x + 4, pill.y + 4, 22, 20},
 			 color::kText);
-	Text(value ? "On" : "Off", pill.x - 14, rect.y + (rect.h - label_size.y) / 2,
-		 FontStyle::Body, color::kText, Align::Right);
+	Text(value ? "On" : "Off", pill.x - 14,
+		 rect.y + (rect.h - label_size.y) / 2, FontStyle::Body, color::kText,
+		 Align::Right);
 	return changed;
 }
 

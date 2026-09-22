@@ -21,7 +21,9 @@ namespace {
 EM_JS_DEPS(settings_storage, "$stringToNewUTF8,$UTF8ToString");
 
 // localStorage can be unavailable (e.g. blocked site data); settings then
-// simply fall back to their defaults
+// simply fall back to their defaults. The bodies are JavaScript, so
+// clang-format must not touch them.
+// clang-format off
 EM_JS(char*, ReadStoredSettings, (), {
 	let value = null;
 	try {
@@ -37,6 +39,7 @@ EM_JS(void, WriteStoredSettings, (const char* text), {
 	} catch (e) {
 	}
 });
+// clang-format on
 
 std::string ReadSettingsText() {
 	char* text = ReadStoredSettings();
@@ -116,8 +119,8 @@ void Settings::Load() {
 			continue;
 		}
 		if (key == "mouse_sensitivity") {
-			mouse_sensitivity = std::clamp(number, kMinMouseSensitivity,
-										   kMaxMouseSensitivity);
+			mouse_sensitivity =
+				std::clamp(number, kMinMouseSensitivity, kMaxMouseSensitivity);
 		}
 		else if (key == "volume") {
 			volume = std::clamp(number, 0.0, 1.0);
@@ -129,9 +132,9 @@ void Settings::Load() {
 }
 
 void Settings::Save() const {
-	WriteSettingsText(std::format(
-		"mouse_sensitivity={}\nvolume={}\nshow_fps={}\n", mouse_sensitivity,
-		volume, show_fps ? 1 : 0));
+	WriteSettingsText(
+		std::format("mouse_sensitivity={}\nvolume={}\nshow_fps={}\n",
+					mouse_sensitivity, volume, show_fps ? 1 : 0));
 }
 
 }  // namespace wolfenstein
