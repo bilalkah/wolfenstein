@@ -12,13 +12,11 @@ TriggeredSingleAnimation::TriggeredSingleAnimation(const uint16_t texture_id,
 												   int alpha_end)
 	: texture(TextureManager::GetInstance().GetTexture(texture_id)),
 	  texture_id(texture_id),
-	  counter(0),
 	  animation_speed(animation_speed),
 	  transparancy(alpha_start),
 	  alpha_start(alpha_start),
 	  alpha_end(alpha_end),
-	  direction((alpha_end - alpha_start) / abs((alpha_end - alpha_start))),
-	  is_animation_finished_once(false) {}
+	  direction((alpha_end - alpha_start) / abs((alpha_end - alpha_start))) {}
 
 void TriggeredSingleAnimation::Update(const double& delta_time) {
 	if (is_animation_finished_once) {

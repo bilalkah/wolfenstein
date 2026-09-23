@@ -34,9 +34,9 @@ class SimpleWeapon : public IStrike
 
   protected:
 	std::pair<double, double> attack_damage;
-	double attack_range;
-	double attack_speed;
-	double attack_rate;
+	double attack_range{};
+	double attack_speed{};
+	double attack_rate{};
 	Ray crosshair_ray;
 	std::string weapon_name;
 };

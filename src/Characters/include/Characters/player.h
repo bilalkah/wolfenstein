@@ -59,11 +59,11 @@ class Player : public ICharacter, public IGameObject
 
 	bool is_alive_{true};
 	bool damaged_{false};
-	double rotation_speed_;
-	double translation_speed_;
-	double width_;
-	double height_;
-	double health_;
+	double rotation_speed_{};
+	double translation_speed_{};
+	double width_{};
+	double height_{};
+	double health_{};
 	std::string id_;
 	std::shared_ptr<Position2D> position_ptr_;
 	std::shared_ptr<Camera2D> camera_;

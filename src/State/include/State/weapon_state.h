@@ -45,9 +45,6 @@ using WeaponStatePtr = std::unique_ptr<WeaponState>;
 class LoadedState : public WeaponState
 {
   public:
-	LoadedState();
-	~LoadedState();
-
 	void Update(const double&) override;
 	void OnContextSet() override;
 	WeaponStateType GetType() const override;
@@ -55,18 +52,15 @@ class LoadedState : public WeaponState
 	void PullTrigger() override;
 
   private:
-	bool trigger_pulled_;
-	double trigger_pull_time_;
-	double fire_rate_;
+	bool trigger_pulled_{false};
+	double trigger_pull_time_{0.0};
+	double fire_rate_{0.0};
 };
 
 // ########################################### OutOfAmmoState ###########################################
 class OutOfAmmoState : public WeaponState
 {
   public:
-	OutOfAmmoState();
-	~OutOfAmmoState();
-
 	void Update(const double&) override;
 	void OnContextSet() override;
 	WeaponStateType GetType() const override;
@@ -74,25 +68,22 @@ class OutOfAmmoState : public WeaponState
 	void PullTrigger() override;
 
   private:
-	bool trigger_pulled_;
-	double trigger_pull_time_;
-	double fire_rate_;
+	bool trigger_pulled_{false};
+	double trigger_pull_time_{0.0};
+	double fire_rate_{0.0};
 };
 
 // ########################################### ReloadingState ###########################################
 class ReloadingState : public WeaponState
 {
   public:
-	ReloadingState();
-	~ReloadingState();
-
 	void Update(const double&) override;
 	void OnContextSet() override;
 	WeaponStateType GetType() const override;
 
   private:
-	double reload_time_;
-	double reload_speed_;
+	double reload_time_{0.0};
+	double reload_speed_{0.0};
 };
 
 }  // namespace wolfenstein

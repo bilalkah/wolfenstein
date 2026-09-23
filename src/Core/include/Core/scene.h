@@ -51,7 +51,7 @@ class Scene
 	std::vector<std::shared_ptr<Enemy>> enemies;
 	std::shared_ptr<Map> map;
 	std::shared_ptr<Player> player;
-	size_t number_of_alive_enemies;
+	size_t number_of_alive_enemies{};
 	std::string next_scene_str;
 };
 

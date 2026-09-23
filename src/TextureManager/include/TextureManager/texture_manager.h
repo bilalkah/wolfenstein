@@ -22,12 +22,12 @@ namespace wolfenstein {
 
 struct Texture
 {
-	Texture() : texture(nullptr), width(0), height(0) {}
+	Texture() = default;
 	Texture(SDL_Texture* texture, int width, int height)
 		: texture(texture), width(width), height(height) {}
-	SDL_Texture* texture;
-	int width;
-	int height;
+	SDL_Texture* texture{};
+	int width{};
+	int height{};
 };
 
 class TextureManager
@@ -56,8 +56,8 @@ class TextureManager
 	void FillAscendingIds(std::string key, uint16_t begin, uint16_t end);
 
 	static TextureManager* instance_;
-	uint16_t t_count_;
-	SDL_Renderer* renderer_;
+	uint16_t t_count_{};
+	SDL_Renderer* renderer_{};
 	std::unordered_map<uint16_t, Texture> textures_;
 	std::unordered_map<std::string, std::vector<uint16_t>> texture_collections_;
 };

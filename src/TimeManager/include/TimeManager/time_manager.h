@@ -43,7 +43,7 @@ class TimeManager
 	TimeManager() = default;
 	static TimeManager* instance_;
 
-	std::chrono::duration<double> delta_time;
+	std::chrono::duration<double> delta_time{};
 	std::chrono::duration<double> fixed_delta_time{0.0};
 	std::chrono::time_point<std::chrono::high_resolution_clock>
 		previos_time_point;

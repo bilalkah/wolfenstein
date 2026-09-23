@@ -44,10 +44,10 @@ class SoundManager
 
 	static SoundManager* instance_;
 	bool initialized_{false};
-	int channel_counter;
+	int channel_counter{};
 	std::unordered_map<std::string, Mix_Chunk*> chunks_;
 	std::unordered_map<std::string, int> id_to_channel_;
-	Mix_Music* main_theme;
+	Mix_Music* main_theme{};
 };
 
 }  // namespace wolfenstein
