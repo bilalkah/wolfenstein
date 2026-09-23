@@ -50,7 +50,6 @@ class Renderer3D : public IRenderer
 
   public:
 	using IRenderer::IRenderer;
-	~Renderer3D() = default;
 	void RenderScene() override;
 
   private:

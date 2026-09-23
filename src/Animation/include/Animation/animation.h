@@ -19,6 +19,16 @@ class IAnimation
   public:
 	virtual ~IAnimation() = default;
 
+  protected:
+	// Copies and moves only through derived classes: copying through the
+	// base would slice off the derived part
+	IAnimation() = default;
+	IAnimation(const IAnimation&) = default;
+	IAnimation& operator=(const IAnimation&) = default;
+	IAnimation(IAnimation&&) = default;
+	IAnimation& operator=(IAnimation&&) = default;
+
+  public:
 	virtual void Update(const double& delta_time) = 0;
 	virtual void Reset() = 0;
 	virtual int GetCurrentFrame() const = 0;

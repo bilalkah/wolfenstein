@@ -33,6 +33,16 @@ class EnemyState : public State<Enemy>
   public:
 	virtual ~EnemyState() = default;
 
+  protected:
+	// Copies and moves only through derived classes: copying through the
+	// base would slice off the derived part
+	EnemyState() = default;
+	EnemyState(const EnemyState&) = default;
+	EnemyState& operator=(const EnemyState&) = default;
+	EnemyState(EnemyState&&) = default;
+	EnemyState& operator=(EnemyState&&) = default;
+
+  public:
 	void Reset() override;
 	int GetCurrentFrame() const override;
 

@@ -23,8 +23,11 @@ class UuidGenerator
 {
   public:
 	static UuidGenerator& GetInstance();
+	// Process-wide instance
 	UuidGenerator(const UuidGenerator&) = delete;
 	UuidGenerator& operator=(const UuidGenerator&) = delete;
+	UuidGenerator(UuidGenerator&&) = delete;
+	UuidGenerator& operator=(UuidGenerator&&) = delete;
 	~UuidGenerator() = default;
 
 	std::string GenerateUuid();

@@ -20,7 +20,6 @@ class Renderer2D : public IRenderer
 {
   public:
 	using IRenderer::IRenderer;
-	~Renderer2D() = default;
 	void RenderScene() override;
 
   private:

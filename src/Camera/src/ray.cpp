@@ -28,8 +28,6 @@ Ray::Ray(vector2d direction_, double theta_)
 	  is_hit(false),
 	  is_hit_vertical(false) {}
 
-Ray::~Ray() {}
-
 void Ray::Reset(const vector2d ray_orig, const double ray_theta) {
 	origin = ray_orig;
 	direction = {std::cos(ray_theta), std::sin(ray_theta)};

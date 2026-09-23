@@ -49,8 +49,6 @@ Game::Game(GeneralConfig& config) : config_(config) {
 	Profiler::GetInstance().AddStartupTime(init_time.count());
 }
 
-Game::~Game() {}
-
 void Game::Init() {
 	Camera2DConfig camera_config = {config_.screen_width, config_.fov,
 									config_.view_distance};

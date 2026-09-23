@@ -11,8 +11,6 @@ DynamicObject::DynamicObject(const vector2d& pose_,
 	id = UuidGenerator::GetInstance().GenerateUuid();
 }
 
-DynamicObject::~DynamicObject() {}
-
 void DynamicObject::Update(double delta_time) {
 	animation->Update(delta_time);
 }

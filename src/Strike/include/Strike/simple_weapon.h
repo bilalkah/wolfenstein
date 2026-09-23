@@ -24,6 +24,16 @@ class SimpleWeapon : public IStrike
   public:
 	virtual ~SimpleWeapon() = default;
 
+  protected:
+	// Copies and moves only through derived classes: copying through the
+	// base would slice off the derived part
+	SimpleWeapon() = default;
+	SimpleWeapon(const SimpleWeapon&) = default;
+	SimpleWeapon& operator=(const SimpleWeapon&) = default;
+	SimpleWeapon(SimpleWeapon&&) = default;
+	SimpleWeapon& operator=(SimpleWeapon&&) = default;
+
+  public:
 	void SetCrosshairRay(Ray ray);
 	std::pair<double, double> GetAttackDamage() const;
 	double GetAttackRange() const;
@@ -45,7 +55,6 @@ class Melee : public SimpleWeapon
 {
   public:
 	Melee();
-	~Melee() = default;
 	void Attack() override;
 };
 
@@ -53,7 +62,6 @@ class Rifle : public SimpleWeapon
 {
   public:
 	Rifle();
-	~Rifle() = default;
 	void Attack() override;
 };
 
@@ -61,7 +69,6 @@ class LaserGun : public SimpleWeapon
 {
   public:
 	LaserGun();
-	~LaserGun() = default;
 	void Attack() override;
 };
 

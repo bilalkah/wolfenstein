@@ -32,6 +32,11 @@ class RayCaster
 	RayCaster(const int num_ray, const double fov, const double depth,
 			  const bool make_parallel = true);
 	~RayCaster();
+	// Owns worker threads, which it joins on destruction
+	RayCaster(const RayCaster&) = delete;
+	RayCaster& operator=(const RayCaster&) = delete;
+	RayCaster(RayCaster&&) = delete;
+	RayCaster& operator=(RayCaster&&) = delete;
 
 	void Update(const Map& map_ptr, const Position2D& position,
 				RayVector& rays);

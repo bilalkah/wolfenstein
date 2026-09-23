@@ -23,7 +23,6 @@ struct Ray
 {
 	Ray();
 	Ray(vector2d direction, double theta);
-	~Ray();
 
 	void Reset(const vector2d ray_orig, const double ray_theta);
 

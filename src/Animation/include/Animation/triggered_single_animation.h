@@ -27,7 +27,6 @@ class TriggeredSingleAnimation : public IAnimation
 	TriggeredSingleAnimation(const uint16_t texture_id,
 							 const double animation_speed,
 							 int alpha_start = 128, int alpha_end = 0);
-	~TriggeredSingleAnimation() = default;
 
 	void Update(const double& delta_time) override;
 	void Reset() override;
