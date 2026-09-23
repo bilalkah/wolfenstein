@@ -38,7 +38,12 @@ class SecondState : public State<TestOwner>
 class FirstState : public State<TestOwner>
 {
   public:
+	FirstState() = default;
 	~FirstState() override { context_->events.push_back("destroy first"); }
+	FirstState(const FirstState&) = delete;
+	FirstState& operator=(const FirstState&) = delete;
+	FirstState(FirstState&&) = delete;
+	FirstState& operator=(FirstState&&) = delete;
 	void Update(const double&) override {
 		context_->machine.TransitionTo(std::make_unique<SecondState>());
 		context_->events.push_back(still_alive_ ? "first still alive" : "?");

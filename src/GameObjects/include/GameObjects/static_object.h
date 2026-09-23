@@ -22,7 +22,6 @@ class StaticObject : public IGameObject
   public:
 	explicit StaticObject(const vector2d& pose_, const int texture_id_,
 						  const double width_, const double height_);
-	~StaticObject();
 
 	void Update(double delta_time) override;
 

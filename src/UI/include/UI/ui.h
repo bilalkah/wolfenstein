@@ -75,8 +75,11 @@ class Ui
 	Ui(SDL_Renderer* renderer, const std::string& display_font_path,
 	   const std::string& text_font_path);
 	~Ui();
+	// Owns fonts and cached text textures
 	Ui(const Ui&) = delete;
 	Ui& operator=(const Ui&) = delete;
+	Ui(Ui&&) = delete;
+	Ui& operator=(Ui&&) = delete;
 
 	void BeginFrame(const Input& input);
 	void EndFrame();

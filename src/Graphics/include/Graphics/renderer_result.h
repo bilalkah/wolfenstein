@@ -25,7 +25,6 @@ class RendererResult
   public:
 	RendererResult(std::shared_ptr<RendererContext> context,
 				   const uint16_t texture_id);
-	~RendererResult() = default;
 
 	void Render();
 

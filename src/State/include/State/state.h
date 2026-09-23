@@ -29,6 +29,17 @@ class State
 {
   public:
 	virtual ~State() = default;
+
+  protected:
+	// Copies and moves only through derived classes: copying through the
+	// base would slice off the derived part
+	State() = default;
+	State(const State&) = default;
+	State& operator=(const State&) = default;
+	State(State&&) = default;
+	State& operator=(State&&) = default;
+
+  public:
 	void SetContext(T& context) {
 		context_ = &context;
 		OnContextSet();

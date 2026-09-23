@@ -41,7 +41,6 @@ class Enemy : public ICharacter, public IGameObject
 {
   public:
 	explicit Enemy(std::string bot_name, CharacterConfig config);
-	~Enemy() = default;
 	void Update(double delta_time) override;
 	void TransitionTo(EnemyStatePtr state);
 	bool IsPlayerInShootingRange() const;

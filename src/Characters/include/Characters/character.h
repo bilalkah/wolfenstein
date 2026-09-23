@@ -20,15 +20,6 @@ struct Position2D
 {
 	Position2D() : pose{0, 0}, theta(0) {}
 	Position2D(vector2d pose, double theta) : pose{pose}, theta(theta) {}
-	Position2D(const Position2D& other)
-		: pose{other.pose}, theta(other.theta) {}
-	Position2D& operator=(const Position2D& other) {
-		if (this != &other) {
-			pose = other.pose;
-			theta = other.theta;
-		}
-		return *this;
-	}
 
 	vector2d pose;
 	double theta;
@@ -55,6 +46,16 @@ class ICharacter
   public:
 	virtual ~ICharacter() = default;
 
+  protected:
+	// Copies and moves only through derived classes: copying through the
+	// base would slice off the derived part
+	ICharacter() = default;
+	ICharacter(const ICharacter&) = default;
+	ICharacter& operator=(const ICharacter&) = default;
+	ICharacter(ICharacter&&) = default;
+	ICharacter& operator=(ICharacter&&) = default;
+
+  public:
 	virtual void SetPosition(const Position2D position) = 0;
 	virtual Position2D GetPosition() const = 0;
 	virtual void IncreaseHealth(double amount) = 0;

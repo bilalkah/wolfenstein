@@ -28,7 +28,6 @@ class Player : public ICharacter, public IGameObject
 {
   public:
 	explicit Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera);
-	~Player() = default;
 
 	void Update(double delta_time) override;
 

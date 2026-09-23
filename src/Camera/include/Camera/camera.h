@@ -40,7 +40,6 @@ class Camera2D
   public:
 	explicit Camera2D(const Camera2DConfig& config,
 					  const std::shared_ptr<Scene> scene = nullptr);
-	~Camera2D() = default;
 
 	void Update();
 

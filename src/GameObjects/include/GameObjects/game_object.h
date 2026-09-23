@@ -29,6 +29,16 @@ class IGameObject
   public:
 	virtual ~IGameObject() = default;
 
+  protected:
+	// Copies and moves only through derived classes: copying through the
+	// base would slice off the derived part
+	IGameObject() = default;
+	IGameObject(const IGameObject&) = default;
+	IGameObject& operator=(const IGameObject&) = default;
+	IGameObject(IGameObject&&) = default;
+	IGameObject& operator=(IGameObject&&) = default;
+
+  public:
 	virtual void Update(double delta_time) = 0;
 
 	virtual void SetPose(const vector2d& pose) = 0;

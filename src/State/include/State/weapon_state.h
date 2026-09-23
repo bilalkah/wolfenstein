@@ -31,6 +31,17 @@ class WeaponState : public State<Weapon>
 {
   public:
 	virtual ~WeaponState() = default;
+
+  protected:
+	// Copies and moves only through derived classes: copying through the
+	// base would slice off the derived part
+	WeaponState() = default;
+	WeaponState(const WeaponState&) = default;
+	WeaponState& operator=(const WeaponState&) = default;
+	WeaponState(WeaponState&&) = default;
+	WeaponState& operator=(WeaponState&&) = default;
+
+  public:
 	virtual void PullTrigger() {};
 	void Reset() override;
 	int GetCurrentFrame() const override;

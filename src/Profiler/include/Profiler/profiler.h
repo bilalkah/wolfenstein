@@ -51,8 +51,12 @@ class Profiler
 {
   public:
 	static Profiler& GetInstance();
+	// Process-wide instance
 	Profiler(const Profiler&) = delete;
 	Profiler& operator=(const Profiler&) = delete;
+	Profiler(Profiler&&) = delete;
+	Profiler& operator=(Profiler&&) = delete;
+	~Profiler() = default;
 
 	// Recording is off until Enable is called, so the timers cost two clock
 	// reads and a branch during normal play
@@ -94,8 +98,11 @@ class ScopedTimer
   public:
 	explicit ScopedTimer(ProfileSection section);
 	~ScopedTimer();
+	// Records exactly one measurement, when the scope ends
 	ScopedTimer(const ScopedTimer&) = delete;
 	ScopedTimer& operator=(const ScopedTimer&) = delete;
+	ScopedTimer(ScopedTimer&&) = delete;
+	ScopedTimer& operator=(ScopedTimer&&) = delete;
 
   private:
 	ProfileSection section_;

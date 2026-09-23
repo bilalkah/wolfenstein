@@ -24,7 +24,6 @@ class DynamicObject : public IGameObject
 	explicit DynamicObject(const vector2d& pose_,
 						   std::unique_ptr<IAnimation> animation_,
 						   const double width_, const double height_);
-	~DynamicObject();
 
 	void Update(double delta_time) override;
 

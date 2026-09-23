@@ -61,7 +61,12 @@ class Game
 {
   public:
 	Game(GeneralConfig& config);
-	~Game();
+	// The browser main loop keeps a pointer to the game
+	Game(const Game&) = delete;
+	Game& operator=(const Game&) = delete;
+	Game(Game&&) = delete;
+	Game& operator=(Game&&) = delete;
+	~Game() = default;
 
 	void Run();
 	// Runs a single frame; returns false once the game should close

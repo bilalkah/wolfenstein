@@ -9,8 +9,6 @@ StaticObject::StaticObject(const vector2d& pose_, const int texture_id_,
 	id = UuidGenerator::GetInstance().GenerateUuid();
 }
 
-StaticObject::~StaticObject() {}
-
 void StaticObject::Update(double delta_time) {
 	(void)delta_time;
 }
