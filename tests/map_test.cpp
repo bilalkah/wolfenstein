@@ -29,5 +29,29 @@ TEST(Map, LoadsLevelOneMap) {
 	}
 }
 
+TEST(Map, CellsOutsideTheMapAreBlocked) {
+	const auto path = testing::WriteMapFile("wolfenstein_map_bounds_test.txt",
+											{"000", "010", "000"});
+	const Map map(path.string());
+
+	EXPECT_FALSE(map.IsBlocked(0, 0));
+	EXPECT_TRUE(map.IsBlocked(1, 1));  // wall
+	EXPECT_TRUE(map.IsBlocked(-1, 0));
+	EXPECT_TRUE(map.IsBlocked(0, 3));
+	EXPECT_TRUE(map.IsBlocked(3, 0));
+}
+
+TEST(Map, PositionsAreFlooredNotTruncated) {
+	const auto path = testing::WriteMapFile("wolfenstein_map_floor_test.txt",
+											{"000", "000", "000"});
+	const Map map(path.string());
+
+	EXPECT_FALSE(map.IsBlocked(vector2d{0.5, 0.5}));
+	EXPECT_FALSE(map.IsBlocked(vector2d{2.99, 2.99}));
+	// Truncation would read cell (0, 0) for these and call them free
+	EXPECT_TRUE(map.IsBlocked(vector2d{-0.5, 0.5}));
+	EXPECT_TRUE(map.IsBlocked(vector2d{0.5, -0.5}));
+}
+
 }  // namespace
 }  // namespace wolfenstein

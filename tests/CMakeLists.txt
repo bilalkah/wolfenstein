@@ -13,6 +13,7 @@ add_executable(unit_tests
     raycaster_test.cpp
     state_machine_test.cpp
     lifetime_test.cpp
+    line_of_sight_test.cpp
 )
 target_link_libraries(unit_tests PRIVATE
     GTest::gtest_main
@@ -21,5 +22,8 @@ target_link_libraries(unit_tests PRIVATE
     camera
     weapon
     character
+    single_raycaster
+    scene
 )
-gtest_discover_tests(unit_tests)
+# A test that hangs (e.g. an unbounded loop) fails instead of stalling CI
+gtest_discover_tests(unit_tests PROPERTIES TIMEOUT 10)

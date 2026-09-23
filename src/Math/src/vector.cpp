@@ -143,8 +143,11 @@ void vector2d::Norm() {
 	y /= size;
 }
 
+// Floors rather than truncates, so a position always maps to the cell that
+// contains it (truncation would put -0.5 in cell 0)
 vector2i ToVector2i(const vector2d& v) {
-	return {static_cast<int>(v.x), static_cast<int>(v.y)};
+	return {static_cast<int>(std::floor(v.x)),
+			static_cast<int>(std::floor(v.y))};
 }
 
 vector2d ToVector2d(const vector2i& v) {

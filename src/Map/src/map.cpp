@@ -1,15 +1,16 @@
 #include "Map/map.h"
+#include <cmath>
 #include <iostream>
 #include <string>
 
 namespace wolfenstein {
 
-Map::Map(std::string map_path, double resolution) : res(resolution) {
+Map::Map(const std::string& map_path, double resolution) : res(resolution) {
 	LoadMap(map_path);
 	MapToPathFinderMap();
 }
 
-void Map::LoadMap(std::string map_path) {
+void Map::LoadMap(const std::string& map_path) {
 	std::ifstream infile(map_path);
 	std::string line;
 	std::getline(infile, line);
@@ -82,6 +83,20 @@ double Map::GetResolution() {
 
 const std::vector<uint16_t>& Map::operator[](size_t i) const {
 	return map_[i];
+}
+
+bool Map::Contains(int x, int y) const {
+	return x >= 0 && x < size_x_ && y >= 0 && y < size_y_;
+}
+
+bool Map::IsBlocked(int x, int y) const {
+	return !Contains(x, y) ||
+		   map_[static_cast<size_t>(x)][static_cast<size_t>(y)] != 0;
+}
+
+bool Map::IsBlocked(const vector2d& position) const {
+	return IsBlocked(static_cast<int>(std::floor(position.x)),
+					 static_cast<int>(std::floor(position.y)));
 }
 
 }  // namespace wolfenstein

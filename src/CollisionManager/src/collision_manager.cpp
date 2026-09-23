@@ -40,7 +40,7 @@ bool CollisionManager::CheckWallCollision(const vector2d& pose,
 		py -= kCollisionDistance;
 	}
 
-	return scene_ptr_->GetMap()[px][py] != 0;
+	return scene_ptr_->GetMap().IsBlocked(vector2d{px, py});
 }
 
 }  // namespace wolfenstein
