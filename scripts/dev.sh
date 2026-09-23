@@ -9,6 +9,11 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 IMAGE=wolfenstein-dev:26.04
 
+if ! docker info >/dev/null 2>&1; then
+	echo "Docker is not running; start Docker Desktop and try again." >&2
+	exit 1
+fi
+
 if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
 	docker build -t "$IMAGE" -f docker/dev.Dockerfile .
 fi
