@@ -11,4 +11,5 @@ target_link_libraries(
     map
     PUBLIC
     common_planning
+    vector
 )
