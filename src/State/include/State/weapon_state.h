@@ -39,7 +39,7 @@ class WeaponState : public State<Weapon>
 	std::unique_ptr<LoopedAnimation> animation_;
 };
 
-typedef std::shared_ptr<WeaponState> WeaponStatePtr;
+using WeaponStatePtr = std::unique_ptr<WeaponState>;
 
 // ########################################### LoadedState ###########################################
 class LoadedState : public WeaponState

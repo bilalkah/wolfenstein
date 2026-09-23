@@ -19,8 +19,7 @@
 
 namespace wolfenstein {
 
-class SimpleWeapon : public IStrike,
-					 public std::enable_shared_from_this<SimpleWeapon>
+class SimpleWeapon : public IStrike
 {
   public:
 	virtual ~SimpleWeapon() = default;

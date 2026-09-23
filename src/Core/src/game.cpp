@@ -75,7 +75,6 @@ void Game::NewGame(const std::string& weapon_name) {
 									 1.0};
 	player_ = std::make_shared<Player>(player_config, camera_);
 	auto weapon = std::make_shared<Weapon>(weapon_name);
-	weapon->Init();
 	player_->SetWeapon(weapon);
 
 	scene_ = SceneLoader::GetInstance().Load("level1.json", player_);

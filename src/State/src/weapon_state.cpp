@@ -29,7 +29,7 @@ void LoadedState::Update(const double& delta_time) {
 			trigger_pulled_ = false;
 			animation_->Reset();
 			if (context_->GetAmmo() == 0) {
-				context_->TransitionTo(std::make_shared<OutOfAmmoState>());
+				context_->TransitionTo(std::make_unique<OutOfAmmoState>());
 				return;
 			}
 		}
@@ -103,7 +103,7 @@ void ReloadingState::Update(const double& delta_time) {
 	if (reload_time_ >= reload_speed_) {
 		animation_->Reset();
 		context_->SetAmmo(context_->GetAmmoCapacity());
-		context_->TransitionTo(std::make_shared<LoadedState>());
+		context_->TransitionTo(std::make_unique<LoadedState>());
 		return;
 	}
 }

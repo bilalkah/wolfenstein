@@ -32,10 +32,6 @@ jobs:
       - run: cmake --build --preset ${{ matrix.preset }}
       - run: ctest --preset ${{ matrix.preset }}
       - name: Benchmark scenario (headless, 300 frames)
-        # Leak detection is off until the Weapon <-> WeaponState shared_ptr
-        # reference cycle is fixed; ASan and UBSan stay on
-        env:
-          ASAN_OPTIONS: detect_leaks=0
         run: ./build/${{ matrix.preset }}/bin/wolfenstein --benchmark 300 | grep BENCHMARK_RESULT > /dev/null
 
   web:

@@ -21,7 +21,6 @@ Player::Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera)
 	id_ = UuidGenerator::GetInstance().GenerateUuid();
 	camera_ = camera;
 	weapon_ = std::make_shared<Weapon>("mp5");
-	weapon_->Init();
 	position_ptr_ = std::make_shared<Position2D>(config.initial_position);
 	damage_animation_ptr_ = std::make_unique<TriggeredSingleAnimation>(9, 1);
 }

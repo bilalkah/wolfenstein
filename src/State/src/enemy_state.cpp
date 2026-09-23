@@ -27,11 +27,11 @@ void IdleState::Update(const double& delta_time) {
 	if (context_->IsPlayerInShootingRange() &&
 		NavigationManager::GetInstance().EuclideanDistanceToPlayer(
 			context_->GetPosition()) <= range_ + 2.0) {
-		context_->TransitionTo(std::make_shared<WalkState>());
+		context_->TransitionTo(std::make_unique<WalkState>());
 		return;
 	}
 	if (context_->IsAttacked()) {
-		context_->TransitionTo(std::make_shared<PainState>());
+		context_->TransitionTo(std::make_unique<PainState>());
 		return;
 	}
 }
@@ -70,13 +70,13 @@ void WalkState::Update(const double& delta_time) {
 	if (context_->IsAttacked()) {
 		NavigationManager::GetInstance().ResetPath(context_->GetId());
 		context_->SetNextPose(bot_position.pose);
-		context_->TransitionTo(std::make_shared<PainState>());
+		context_->TransitionTo(std::make_unique<PainState>());
 		return;
 	}
 	if (!context_->IsPlayerInShootingRange()) {
 		if (distance > range_max_) {
 			NavigationManager::GetInstance().ResetPath(context_->GetId());
-			context_->TransitionTo(std::make_shared<IdleState>());
+			context_->TransitionTo(std::make_unique<IdleState>());
 			return;
 		}
 	}
@@ -84,7 +84,7 @@ void WalkState::Update(const double& delta_time) {
 		attack_counter_ += delta_time;
 		if (attack_counter_ > attack_rate_) {
 			context_->SetNextPose(bot_position.pose);
-			context_->TransitionTo(std::make_shared<AttackState>());
+			context_->TransitionTo(std::make_unique<AttackState>());
 			return;
 		}
 	}
@@ -124,11 +124,11 @@ void AttackState::Update(const double& delta_time) {
 		context_->Shoot();
 	}
 	if (context_->IsAttacked()) {
-		context_->TransitionTo(std::make_shared<PainState>());
+		context_->TransitionTo(std::make_unique<PainState>());
 		return;
 	}
 	if (attack_counter_ > animation_speed_) {
-		context_->TransitionTo(std::make_shared<WalkState>());
+		context_->TransitionTo(std::make_unique<WalkState>());
 		return;
 	}
 	attack_counter_ += delta_time;
@@ -156,11 +156,11 @@ void PainState::Update(const double& delta_time) {
 	if (counter > animation_speed_) {
 		if (context_->GetHealth() <= 0) {
 			NavigationManager::GetInstance().ResetPath(context_->GetId());
-			context_->TransitionTo(std::make_shared<DeathState>());
+			context_->TransitionTo(std::make_unique<DeathState>());
 			return;
 		}
 		context_->SetAttacked(false);
-		context_->TransitionTo(std::make_shared<WalkState>());
+		context_->TransitionTo(std::make_unique<WalkState>());
 		return;
 	}
 }
