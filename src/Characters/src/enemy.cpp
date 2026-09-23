@@ -58,11 +58,12 @@ Enemy::Enemy(std::string bot_name, CharacterConfig config)
 	  bot_name_(bot_name),
 	  id_(UuidGenerator::GetInstance().GenerateUuid()),
 	  crosshair_ray(Ray{}),
-	  weapon_(GetBotWeapon(bot_name)) {}
+	  weapon_(GetBotWeapon(bot_name)) {
+	state_machine_.TransitionTo(std::make_unique<IdleState>());
+}
 
 void Enemy::TransitionTo(EnemyStatePtr state) {
-	state_ = state;
-	state_->SetContext(shared_from_this());
+	state_machine_.TransitionTo(std::move(state));
 }
 
 bool Enemy::IsPlayerInShootingRange() const {
@@ -91,7 +92,7 @@ void Enemy::Update(double delta_time) {
 			SingleRayCasterService::GetInstance().Cast(position_.pose);
 	}
 	weapon_->SetCrosshairRay(crosshair_ray);
-	state_->Update(delta_time);
+	state_machine_.Update(delta_time);
 	if (!(next_pose == position_.pose)) {
 		Move(delta_time);
 	}
@@ -165,7 +166,7 @@ void Enemy::SetDeath() {
 }
 
 int Enemy::GetTextureId() const {
-	return state_->GetCurrentFrame();
+	return state_machine_.Current().GetCurrentFrame();
 }
 
 double Enemy::GetWidth() const {
@@ -193,9 +194,7 @@ SimpleWeapon& Enemy::GetWeapon() {
 
 std::shared_ptr<Enemy> EnemyFactory::CreateEnemy(std::string bot_name,
 												 CharacterConfig config) {
-	auto enemy_ptr = std::make_shared<Enemy>(bot_name, config);
-	enemy_ptr->TransitionTo(std::make_shared<IdleState>());
-	return enemy_ptr;
+	return std::make_shared<Enemy>(bot_name, config);
 }
 
 }  // namespace wolfenstein

@@ -39,12 +39,11 @@ struct WeaponConfig
 	double reload_speed;
 };
 
-class Weapon : public IStrike, public std::enable_shared_from_this<Weapon>
+// Pinned (not copyable or movable): its states point back to it
+class Weapon : public IStrike
 {
   public:
-	Weapon(std::string weapon_name);
-	~Weapon();
-	void Init();
+	explicit Weapon(std::string weapon_name);
 
 	void Attack() override;
 	void Update(double delta_time);
@@ -72,7 +71,7 @@ class Weapon : public IStrike, public std::enable_shared_from_this<Weapon>
   private:
 	WeaponConfig weapon_properties_;
 	size_t ammo_;
-	WeaponStatePtr state_;
+	StateMachine<Weapon, WeaponState> state_machine_{*this};
 	bool cooldown_;
 	double attack_time_;
 	std::shared_ptr<Ray> crosshair_;

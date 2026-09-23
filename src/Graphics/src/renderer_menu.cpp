@@ -47,7 +47,6 @@ Menu::Menu(std::shared_ptr<RendererContext> context)
 		  std::string(RESOURCE_DIR) + "font/Roboto-Light.ttf")) {
 	for (const auto& info : kWeapons) {
 		weapons_.push_back(std::make_shared<Weapon>(info.name));
-		weapons_.back()->Init();
 	}
 }
 
@@ -58,7 +57,7 @@ void Menu::Open(MenuScreen screen) {
 	screen_ = screen;
 	if (screen == MenuScreen::WeaponSelect) {
 		for (const auto& weapon : weapons_) {
-			weapon->TransitionTo(std::make_shared<LoadedState>());
+			weapon->TransitionTo(std::make_unique<LoadedState>());
 		}
 		previewed_weapon_ = -1;
 	}
@@ -73,7 +72,7 @@ void Menu::SetPreviewedWeapon(int index) {
 	// mid-animation; the card gaining it plays the reload animation
 	if (previewed_weapon_ >= 0) {
 		weapons_[previewed_weapon_]->TransitionTo(
-			std::make_shared<LoadedState>());
+			std::make_unique<LoadedState>());
 	}
 	previewed_weapon_ = index;
 	if (index >= 0) {

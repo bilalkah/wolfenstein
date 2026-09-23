@@ -40,7 +40,7 @@ class EnemyState : public State<Enemy>
 	std::unique_ptr<LoopedAnimation> animation_;
 };
 
-typedef std::shared_ptr<EnemyState> EnemyStatePtr;
+using EnemyStatePtr = std::unique_ptr<EnemyState>;
 
 // ########################################### IdleState ###########################################
 class IdleState : public EnemyState

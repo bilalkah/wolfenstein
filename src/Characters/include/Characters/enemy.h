@@ -36,9 +36,8 @@ struct StateConfig
 };
 
 class EnemyFactory;
-class Enemy : public ICharacter,
-			  public IGameObject,
-			  public std::enable_shared_from_this<Enemy>
+// Pinned (not copyable or movable): its states point back to it
+class Enemy : public ICharacter, public IGameObject
 {
   public:
 	explicit Enemy(std::string bot_name, CharacterConfig config);
@@ -92,7 +91,7 @@ class Enemy : public ICharacter,
 	std::string bot_name_;
 	std::string id_;
 	Ray crosshair_ray;
-	EnemyStatePtr state_;
+	StateMachine<Enemy, EnemyState> state_machine_{*this};
 	std::shared_ptr<SimpleWeapon> weapon_;
 };
 

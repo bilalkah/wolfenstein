@@ -25,21 +25,15 @@ auto GetWeaponConfig = [](const std::string& weapon_name) -> WeaponConfig {
 Weapon::Weapon(std::string weapon_name)
 	: weapon_properties_(GetWeaponConfig(weapon_name)) {
 	ammo_ = weapon_properties_.ammo_capacity;
-	state_ = std::make_shared<LoadedState>();
-}
-
-Weapon::~Weapon() {}
-
-void Weapon::Init() {
-	state_->SetContext(shared_from_this());
+	state_machine_.TransitionTo(std::make_unique<LoadedState>());
 }
 
 void Weapon::Attack() {
-	state_->PullTrigger();
+	state_machine_.Current().PullTrigger();
 }
 
 void Weapon::Update(double delta_time) {
-	state_->Update(delta_time);
+	state_machine_.Update(delta_time);
 }
 
 void Weapon::Charge() {
@@ -47,14 +41,13 @@ void Weapon::Charge() {
 }
 
 void Weapon::Reload() {
-	if (state_->GetType() != WeaponStateType::Reloading) {
-		TransitionTo(std::make_shared<ReloadingState>());
+	if (state_machine_.Current().GetType() != WeaponStateType::Reloading) {
+		TransitionTo(std::make_unique<ReloadingState>());
 	}
 }
 
 void Weapon::TransitionTo(WeaponStatePtr state) {
-	state_ = state;
-	state_->SetContext(shared_from_this());
+	state_machine_.TransitionTo(std::move(state));
 }
 
 void Weapon::SetAmmo(size_t ammo) {
@@ -110,7 +103,7 @@ std::string Weapon::GetWeaponName() const {
 }
 
 int Weapon::GetTextureId() const {
-	return state_->GetCurrentFrame();
+	return state_machine_.Current().GetCurrentFrame();
 }
 
 const Ray& Weapon::GetCrosshair() const {
