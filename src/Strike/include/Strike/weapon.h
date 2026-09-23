@@ -32,11 +32,11 @@ struct WeaponConfig
 		  attack_speed(attack_speed),
 		  reload_speed(reload_speed) {}
 	std::string weapon_name;
-	size_t ammo_capacity;
+	size_t ammo_capacity{};
 	std::pair<double, double> attack_damage;
-	double attack_range;
-	double attack_speed;
-	double reload_speed;
+	double attack_range{};
+	double attack_speed{};
+	double reload_speed{};
 };
 
 // Pinned (not copyable or movable): its states point back to it
@@ -70,10 +70,10 @@ class Weapon : public IStrike
 
   private:
 	WeaponConfig weapon_properties_;
-	size_t ammo_;
+	size_t ammo_{};
 	StateMachine<Weapon, WeaponState> state_machine_{*this};
-	bool cooldown_;
-	double attack_time_;
+	bool cooldown_{};
+	double attack_time_{};
 	std::shared_ptr<Ray> crosshair_;
 };
 

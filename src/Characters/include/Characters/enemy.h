@@ -25,14 +25,14 @@ namespace wolfenstein {
 
 struct AnimationTime
 {
-	double idle_animation_speed;
+	double idle_animation_speed{};
 };
 
 struct StateConfig
 {
 	AnimationTime animation_time;
-	double follow_range_max;
-	double follow_range_min;
+	double follow_range_max{};
+	double follow_range_min{};
 };
 
 class EnemyFactory;
@@ -78,13 +78,13 @@ class Enemy : public ICharacter, public IGameObject
 
 	void Move(double delta_time);
 
-	bool is_attacked_;
-	bool is_alive_;
-	double rotation_speed_;
-	double translation_speed_;
-	double width;
-	double height;
-	double health_;
+	bool is_attacked_{};
+	bool is_alive_{};
+	double rotation_speed_{};
+	double translation_speed_{};
+	double width{};
+	double height{};
+	double health_{};
 	Position2D position_;
 	vector2d next_pose;
 	StateConfig state_config_;

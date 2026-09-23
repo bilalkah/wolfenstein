@@ -16,10 +16,6 @@ int WeaponState::GetCurrentFrame() const {
 }
 
 // ########################################### LoadedState ###########################################
-LoadedState::LoadedState()
-	: trigger_pulled_(false), trigger_pull_time_(0.0), fire_rate_(0.0) {}
-
-LoadedState::~LoadedState() {}
 
 void LoadedState::Update(const double& delta_time) {
 	if (trigger_pulled_) {
@@ -58,10 +54,6 @@ void LoadedState::PullTrigger() {
 }
 
 // ########################################### OutOfAmmoState ###########################################
-OutOfAmmoState::OutOfAmmoState()
-	: trigger_pulled_(false), trigger_pull_time_(0.0), fire_rate_(0.0) {}
-
-OutOfAmmoState::~OutOfAmmoState() {}
 
 void OutOfAmmoState::Update(const double& delta_time) {
 	if (trigger_pulled_) {
@@ -93,9 +85,6 @@ void OutOfAmmoState::PullTrigger() {
 }
 
 // ########################################### ReloadingState ###########################################
-ReloadingState::ReloadingState() : reload_time_(0.0) {}
-
-ReloadingState::~ReloadingState() {}
 
 void ReloadingState::Update(const double& delta_time) {
 	animation_->Update(delta_time);

@@ -17,9 +17,6 @@ int EnemyState::GetCurrentFrame() const {
 }
 
 // ########################################### IdleState ###########################################
-IdleState::IdleState() {}
-
-IdleState::~IdleState() {}
 
 void IdleState::Update(const double& delta_time) {
 	animation_->Update(delta_time);
@@ -51,16 +48,6 @@ EnemyStateType IdleState::GetType() const {
 }
 
 // ########################################### WalkState ###########################################
-WalkState::WalkState()
-	: animation_speed_(1.2),
-	  range_max_(5.0),
-	  range_min_(1.5),
-	  attack_range_(5.0),
-	  attack_rate_(1.0),
-	  attack_counter_(0.0),
-	  is_attacked_(false) {}
-
-WalkState::~WalkState() {}
 
 void WalkState::Update(const double& delta_time) {
 	const auto bot_position = context_->GetPosition();
@@ -114,9 +101,6 @@ EnemyStateType WalkState::GetType() const {
 }
 
 // ########################################### AttackState ###########################################
-AttackState::AttackState() : animation_speed_(0.5), attack_counter_(0.0) {}
-
-AttackState::~AttackState() {}
 
 void AttackState::Update(const double& delta_time) {
 	animation_->Update(delta_time);
@@ -146,9 +130,6 @@ EnemyStateType AttackState::GetType() const {
 }
 
 // ########################################### PainState ###########################################
-PainState::PainState() : animation_speed_(0.2), counter(0.0) {}
-
-PainState::~PainState() {}
 
 void PainState::Update(const double& delta_time) {
 	animation_->Update(delta_time);
@@ -176,9 +157,6 @@ EnemyStateType PainState::GetType() const {
 }
 
 // ########################################### DeathState ###########################################
-DeathState::DeathState() : animation_speed_(1.0) {}
-
-DeathState::~DeathState() {}
 
 void DeathState::Update(const double& delta_time) {
 	if (animation_->IsAnimationFinishedOnce()) {

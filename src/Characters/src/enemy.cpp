@@ -45,8 +45,7 @@ auto GetBotWeapon =
 }  // namespace
 
 Enemy::Enemy(std::string bot_name, CharacterConfig config)
-	: is_attacked_(false),
-	  is_alive_(true),
+	: is_alive_(true),
 	  rotation_speed_(config.rotation_speed),
 	  translation_speed_(config.translation_speed),
 	  width(config.width),
