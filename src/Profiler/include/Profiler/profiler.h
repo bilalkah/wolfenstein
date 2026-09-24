@@ -65,7 +65,9 @@ class Profiler
 
 	void BeginFrame();
 	void EndFrame();
-	void Add(ProfileSection section, double milliseconds);
+	// Adds a section's time and the heap allocations made while it ran
+	void Add(ProfileSection section, double milliseconds,
+			 std::uint64_t allocations, std::uint64_t allocated_bytes);
 	std::size_t GetFrameCount() const { return frames_.size(); }
 
 	void AddStartupTime(double milliseconds) { startup_ms_ += milliseconds; }
@@ -81,6 +83,12 @@ class Profiler
 	{
 		std::array<double, static_cast<std::size_t>(ProfileSection::Count)>
 			section_ms{};
+		std::array<std::uint64_t,
+				   static_cast<std::size_t>(ProfileSection::Count)>
+			section_allocations{};
+		std::array<std::uint64_t,
+				   static_cast<std::size_t>(ProfileSection::Count)>
+			section_allocated_bytes{};
 		std::uint64_t allocations = 0;
 		std::uint64_t allocated_bytes = 0;
 	};
@@ -107,6 +115,8 @@ class ScopedTimer
   private:
 	ProfileSection section_;
 	std::chrono::steady_clock::time_point start_;
+	std::uint64_t start_allocations_;
+	std::uint64_t start_bytes_;
 };
 
 }  // namespace wolfenstein
