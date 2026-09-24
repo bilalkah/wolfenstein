@@ -1,3 +1,0 @@
-[submodule "third-party/path-planning"]
-	path = third-party/path-planning
-	url = https://github.com/bilalkah/path-planning.git

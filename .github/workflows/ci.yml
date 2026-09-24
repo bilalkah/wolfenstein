@@ -21,12 +21,11 @@ jobs:
       SDL_AUDIODRIVER: dummy
       SDL_RENDER_DRIVER: software
     steps:
-      - name: Install git (checkout needs it for LFS and submodules)
+      - name: Install git (checkout needs it for LFS)
         run: apt-get update && apt-get install -y --no-install-recommends ca-certificates git git-lfs
       - uses: actions/checkout@v4
         with:
           lfs: true
-          submodules: true
       - run: ./scripts/install_deps.sh
       - run: cmake --preset ${{ matrix.preset }}
       - run: cmake --build --preset ${{ matrix.preset }}
@@ -42,7 +41,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
-          submodules: true
       - run: cmake --preset web-release
       - run: cmake --build --preset web-release
       - uses: actions/upload-artifact@v4

@@ -40,7 +40,7 @@ Welcome to the Wolfenstein project! This README provides an overview of the game
 
 ## Technical Highlights
 
-- **Pathfinding and Navigation**: A* algorithm is used for efficient enemy movement and navigation. For more details on the implementation, see my [path-planning](https://github.com/bilalkah/path-planning) project.
+- **Pathfinding and Navigation**: Enemies navigate with an in-house weighted A* on a grid twice as fine as the map. It allocates nothing per query: per-cell arrays are reused and a generation counter replaces clearing them. It grew out of my [path-planning](https://github.com/bilalkah/path-planning) project.
 - **Ray Casting with DDA**: The Digital Differential Analyzer (DDA) algorithm is used for efficient ray casting, creating realistic field of view.
 - **Templates and Type Traits**: Advanced template programming ensures modular and reusable code.
 - **Instant State Transitions**: Transitions between states happen instantly, ensuring smooth gameplay.
@@ -49,10 +49,10 @@ Welcome to the Wolfenstein project! This README provides an overview of the game
 
 ## Setup Instructions
 
-Clone the repository with its submodule and the assets, which are stored with [Git LFS](https://git-lfs.com):
+Clone the repository with its assets, which are stored with [Git LFS](https://git-lfs.com):
 ```bash
 git lfs install
-git clone https://github.com/bilalkah/wolfenstein --recurse-submodules
+git clone https://github.com/bilalkah/wolfenstein
 cd wolfenstein
 ```
 

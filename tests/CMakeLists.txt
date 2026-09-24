@@ -15,6 +15,7 @@ add_executable(unit_tests
     lifetime_test.cpp
     line_of_sight_test.cpp
     type_traits_test.cpp
+    grid_path_finder_test.cpp
 )
 target_link_libraries(unit_tests PRIVATE
     GTest::gtest_main
@@ -26,6 +27,15 @@ target_link_libraries(unit_tests PRIVATE
     single_raycaster
     scene
     game
+    navigation_manager
+    profiler
 )
+# Counting heap allocations replaces global operator new, which clashes with
+# the sanitizers' allocator, so allocation tests run in non-sanitizer builds
+if(NOT WOLFENSTEIN_SANITIZERS)
+    target_sources(unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/app/allocation_counter.cpp)
+    target_compile_definitions(unit_tests PRIVATE WOLFENSTEIN_COUNTS_ALLOCATIONS)
+endif()
+
 # A test that hangs (e.g. an unbounded loop) fails instead of stalling CI
 gtest_discover_tests(unit_tests PROPERTIES TIMEOUT 10)
