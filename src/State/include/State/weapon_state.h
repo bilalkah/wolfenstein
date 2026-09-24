@@ -50,14 +50,13 @@ class WeaponState : public State<Weapon>
 	std::unique_ptr<LoopedAnimation> animation_;
 };
 
-using WeaponStatePtr = std::unique_ptr<WeaponState>;
-
 // ########################################### LoadedState ###########################################
 class LoadedState : public WeaponState
 {
   public:
 	void Update(const double&) override;
 	void OnContextSet() override;
+	void OnEnter() override;
 	WeaponStateType GetType() const override;
 
 	void PullTrigger() override;
@@ -74,6 +73,7 @@ class OutOfAmmoState : public WeaponState
   public:
 	void Update(const double&) override;
 	void OnContextSet() override;
+	void OnEnter() override;
 	WeaponStateType GetType() const override;
 
 	void PullTrigger() override;
@@ -90,6 +90,7 @@ class ReloadingState : public WeaponState
   public:
 	void Update(const double&) override;
 	void OnContextSet() override;
+	void OnEnter() override;
 	WeaponStateType GetType() const override;
 
   private:

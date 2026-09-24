@@ -12,7 +12,7 @@
 #ifndef STATE_INCLUDE_STATE_STATE_H_
 #define STATE_INCLUDE_STATE_STATE_H_
 
-#include <memory>
+#include <utility>
 
 namespace wolfenstein {
 
@@ -44,7 +44,11 @@ class State
 		context_ = &context;
 		OnContextSet();
 	};
+	// Called once, when the owner hands the state its context: read
+	// configuration, build animations
 	virtual void OnContextSet() { /* Do nothing */ };
+	// Called every time the state becomes current: reset per-visit data
+	virtual void OnEnter() { Reset(); }
 	virtual void Update(const double& delta_time) = 0;
 	virtual void Reset() = 0;
 	virtual int GetCurrentFrame() const = 0;
@@ -54,40 +58,42 @@ class State
 	T* context_ = nullptr;
 };
 
-// Owns the current state S (derived from State<T>) of an owner T.
+// Tracks which of its owner's states is current. The owner keeps every
+// state it can be in as a member, for its whole lifetime, so a transition
+// switches a pointer: nothing is allocated or destroyed.
 //
 // A transition requested while the current state is running, i.e. from
-// inside its Update, is applied only after Update returns: replacing the
-// state right away would destroy the object whose member function is still
-// executing. Transitions requested from outside take effect immediately.
+// inside its Update, takes effect only after Update returns, so a state never
+// sees itself replaced mid-update. Transitions requested from outside take
+// effect immediately. Entering a state calls its OnEnter.
 //
-// The machine keeps a pointer to its owner, so neither may be copied or
-// moved; owners holding a StateMachine are therefore pinned too.
-template <typename T, typename S = State<T>>
+// The machine points into its owner, so neither may be copied or moved;
+// owners holding a StateMachine are therefore pinned too.
+template <typename S>
 class StateMachine
 {
   public:
-	explicit StateMachine(T& owner) : owner_(&owner) {}
+	StateMachine() = default;
 	StateMachine(const StateMachine&) = delete;
 	StateMachine& operator=(const StateMachine&) = delete;
 	StateMachine(StateMachine&&) = delete;
 	StateMachine& operator=(StateMachine&&) = delete;
 	~StateMachine() = default;
 
-	void TransitionTo(std::unique_ptr<S> state) {
+	void TransitionTo(S& state) {
 		if (updating_) {
-			pending_ = std::move(state);
+			pending_ = &state;
 			return;
 		}
-		Enter(std::move(state));
+		Enter(state);
 	}
 
 	void Update(double delta_time) {
 		updating_ = true;
 		current_->Update(delta_time);
 		updating_ = false;
-		if (pending_) {
-			Enter(std::move(pending_));
+		if (pending_ != nullptr) {
+			Enter(*std::exchange(pending_, nullptr));
 		}
 	}
 
@@ -95,14 +101,13 @@ class StateMachine
 	const S& Current() const { return *current_; }
 
   private:
-	void Enter(std::unique_ptr<S> state) {
-		current_ = std::move(state);
-		current_->SetContext(*owner_);
+	void Enter(S& state) {
+		current_ = &state;
+		current_->OnEnter();
 	}
 
-	T* owner_;
-	std::unique_ptr<S> current_;
-	std::unique_ptr<S> pending_;
+	S* current_ = nullptr;
+	S* pending_ = nullptr;
 	bool updating_ = false;
 };
 

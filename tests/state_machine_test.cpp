@@ -1,6 +1,8 @@
+#include "Profiler/profiler.h"
 #include "State/state.h"
+#include "Strike/weapon.h"
 #include <gtest/gtest.h>
-#include <memory>
+#include <string>
 #include <vector>
 
 namespace wolfenstein {
@@ -13,69 +15,106 @@ struct StateType<TestOwner>
 	enum class Type { First, Second };
 };
 
-struct TestOwner
-{
-	StateMachine<TestOwner> machine{*this};
-	std::vector<const char*> events;
-};
-
 namespace {
 
 using Type = StateType<TestOwner>::Type;
 
-class SecondState : public State<TestOwner>
+class TestState : public State<TestOwner>
 {
   public:
-	void OnContextSet() override { context_->events.push_back("enter second"); }
-	void Update(const double&) override {}
-	void Reset() override {}
-	int GetCurrentFrame() const override { return 2; }
+	void Reset() override { updates = 0; }
+	int GetCurrentFrame() const override { return updates; }
+	int updates = 0;
+};
+
+class SecondState : public TestState
+{
+  public:
+	void OnEnter() override;
+	void Update(const double&) override { ++updates; }
 	Type GetType() const override { return Type::Second; }
 };
 
-// Requests a transition from inside its own Update, then keeps using its own
-// members: legal only because the machine defers the transition
-class FirstState : public State<TestOwner>
+// Requests a transition from inside its own Update and keeps running: the
+// machine must not switch states until Update returns
+class FirstState : public TestState
 {
   public:
-	FirstState() = default;
-	~FirstState() override { context_->events.push_back("destroy first"); }
-	FirstState(const FirstState&) = delete;
-	FirstState& operator=(const FirstState&) = delete;
-	FirstState(FirstState&&) = delete;
-	FirstState& operator=(FirstState&&) = delete;
-	void Update(const double&) override {
-		context_->machine.TransitionTo(std::make_unique<SecondState>());
-		context_->events.push_back(still_alive_ ? "first still alive" : "?");
-	}
-	void Reset() override {}
-	int GetCurrentFrame() const override { return 1; }
+	void Update(const double&) override;
 	Type GetType() const override { return Type::First; }
-
-  private:
-	bool still_alive_ = true;
 };
 
-TEST(StateMachine, TransitionFromInsideUpdateIsDeferredUntilUpdateReturns) {
+}  // namespace
+
+struct TestOwner
+{
+	TestOwner() {
+		first.SetContext(*this);
+		second.SetContext(*this);
+	}
+	FirstState first;
+	SecondState second;
+	StateMachine<TestState> machine;
+	std::vector<std::string> events;
+};
+
+namespace {
+
+void SecondState::OnEnter() {
+	TestState::OnEnter();
+	context_->events.emplace_back("enter second");
+}
+
+void FirstState::Update(const double&) {
+	context_->machine.TransitionTo(context_->second);
+	context_->events.emplace_back(
+		&context_->machine.Current() == this ? "first still current" : "?");
+}
+
+TEST(StateMachine, TransitionFromInsideUpdateWaitsUntilUpdateReturns) {
 	TestOwner owner;
-	owner.machine.TransitionTo(std::make_unique<FirstState>());
+	owner.machine.TransitionTo(owner.first);
 	owner.machine.Update(0.016);
 
 	EXPECT_EQ(owner.machine.Current().GetType(), Type::Second);
-	const std::vector<const char*> expected = {"first still alive",
-											   "destroy first", "enter second"};
-	ASSERT_EQ(owner.events.size(), expected.size());
-	for (std::size_t i = 0; i < expected.size(); ++i) {
-		EXPECT_STREQ(owner.events[i], expected[i]);
-	}
+	const std::vector<std::string> expected = {"first still current",
+											   "enter second"};
+	EXPECT_EQ(owner.events, expected);
 }
 
 TEST(StateMachine, TransitionFromOutsideUpdateIsImmediate) {
 	TestOwner owner;
-	owner.machine.TransitionTo(std::make_unique<SecondState>());
+	owner.machine.TransitionTo(owner.second);
 	EXPECT_EQ(owner.machine.Current().GetType(), Type::Second);
-	EXPECT_EQ(owner.machine.Current().GetCurrentFrame(), 2);
 }
+
+// States are reused, so per-visit data must be reset on every entry
+TEST(StateMachine, EnteringAStateResetsIt) {
+	TestOwner owner;
+	owner.machine.TransitionTo(owner.second);
+	owner.machine.Update(0.016);
+	owner.machine.Update(0.016);
+	EXPECT_EQ(owner.second.updates, 2);
+
+	owner.machine.TransitionTo(owner.first);
+	owner.machine.TransitionTo(owner.second);
+	EXPECT_EQ(owner.second.updates, 0);
+}
+
+#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+// A weapon owns all of its states: reloading and returning to loaded switch
+// between them without touching the heap
+TEST(StateMachine, WeaponTransitionsDoNotAllocate) {
+	Weapon weapon("mp5");
+	const auto before = AllocationStats::count;
+	for (int i = 0; i < 100; ++i) {
+		weapon.Reload();
+		weapon.Update(weapon.GetReloadSpeed() + 0.1);  // reload completes
+	}
+	EXPECT_EQ(AllocationStats::count - before, 0u);
+	EXPECT_EQ(weapon.GetAmmo(), weapon.GetAmmoCapacity());
+}
+#endif
 
 }  // namespace
 }  // namespace wolfenstein

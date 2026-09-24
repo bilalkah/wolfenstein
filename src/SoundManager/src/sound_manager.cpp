@@ -50,7 +50,7 @@ void SoundManager::InitManager() {
 	}
 
 	// Allocate channels (default is 8; increase if necessary)
-	Mix_AllocateChannels(16);
+	Mix_AllocateChannels(kChannels);
 
 	std::string sound_path = std::string(RESOURCE_DIR) + "sounds/";
 	LoadSound("npc_attack", sound_path + "npc_attack.wav");
@@ -79,17 +79,26 @@ void SoundManager::InitManager() {
 }
 
 // keep track of the ids
-void SoundManager::PlayEffect(std::string requester_id,
-							  std::string sound_effect) {
-	auto channel = id_to_channel_.find(requester_id);
-	if (channel == id_to_channel_.end()) {
-		id_to_channel_.insert({requester_id, channel_counter++});
-		PlaySound(GetSound(sound_effect), id_to_channel_[requester_id]);
+// Channels are shared round-robin: handing out a new channel number per
+// source ran past the kChannels that exist after a level or two, and sounds
+// on those channels silently did not play
+void SoundManager::RegisterRequester(const std::string& requester_id) {
+	if (id_to_channel_.try_emplace(requester_id, channel_counter).second) {
+		channel_counter = (channel_counter + 1) % kChannels;
+	}
+}
+
+void SoundManager::PlayEffect(const std::string& requester_id,
+							  const std::string& sound_effect) {
+	auto found = id_to_channel_.find(requester_id);
+	if (found == id_to_channel_.end()) {
+		RegisterRequester(requester_id);
+		found = id_to_channel_.find(requester_id);
 	}
 	else {
-		Mix_HaltChannel(channel->second);
-		PlaySound(GetSound(sound_effect), id_to_channel_[requester_id]);
+		Mix_HaltChannel(found->second);
 	}
+	PlaySound(GetSound(sound_effect), found->second);
 }
 
 void SoundManager::LoadSound(const std::string sound_name,

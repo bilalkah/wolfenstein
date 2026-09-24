@@ -49,7 +49,7 @@ class Weapon : public IStrike
 	void Update(double delta_time);
 	void Charge();
 	void Reload();
-	void TransitionTo(WeaponStatePtr state);
+	void TransitionTo(WeaponStateType type);
 
 	void SetAmmo(size_t ammo);
 	void IncreaseAmmo();
@@ -71,7 +71,14 @@ class Weapon : public IStrike
   private:
 	WeaponConfig weapon_properties_;
 	size_t ammo_{};
-	StateMachine<Weapon, WeaponState> state_machine_{*this};
+	WeaponState& StateFor(WeaponStateType type);
+
+	// Every state the weapon can be in, set up once: transitions allocate
+	// nothing
+	LoadedState loaded_state_;
+	OutOfAmmoState out_of_ammo_state_;
+	ReloadingState reloading_state_;
+	StateMachine<WeaponState> state_machine_;
 	bool cooldown_{};
 	double attack_time_{};
 	std::shared_ptr<Ray> crosshair_;

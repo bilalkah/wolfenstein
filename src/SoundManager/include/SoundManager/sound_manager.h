@@ -34,7 +34,11 @@ class SoundManager
 	void InitManager();
 	// 0 (silent) to 1 (full); scales music and effects together
 	void SetMasterVolume(double volume);
-	void PlayEffect(std::string requester_id, std::string sound_effect);
+	// Registers a sound source up front (at load time) so its first sound
+	// does not allocate; sources share the mixer channels round-robin
+	void RegisterRequester(const std::string& requester_id);
+	void PlayEffect(const std::string& requester_id,
+					const std::string& sound_effect);
 
   private:
 	SoundManager() = default;
@@ -44,6 +48,8 @@ class SoundManager
 
 	static SoundManager* instance_;
 	bool initialized_{false};
+	// Mixer channels allocated in InitManager
+	static constexpr int kChannels = 16;
 	int channel_counter{};
 	std::unordered_map<std::string, Mix_Chunk*> chunks_;
 	std::unordered_map<std::string, int> id_to_channel_;

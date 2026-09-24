@@ -19,6 +19,7 @@ Player::Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera)
 	  height_(config.height),
 	  health_(100) {
 	id_ = UuidGenerator::GetInstance().GenerateUuid();
+	SoundManager::GetInstance().RegisterRequester(id_);
 	camera_ = camera;
 	weapon_ = std::make_shared<Weapon>("mp5");
 	position_ptr_ = std::make_shared<Position2D>(config.initial_position);

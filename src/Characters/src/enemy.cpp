@@ -4,10 +4,12 @@
 #include "CollisionManager/collision_manager.h"
 #include "Math/vector.h"
 #include "Profiler/profiler.h"
+#include "SoundManager/sound_manager.h"
 #include "Strike/simple_weapon.h"
 #include "Strike/strike.h"
 #include "Utility/uuid_generator.h"
 #include <memory>
+#include <utility>
 
 namespace wolfenstein {
 
@@ -58,11 +60,37 @@ Enemy::Enemy(std::string bot_name, CharacterConfig config)
 	  id_(UuidGenerator::GetInstance().GenerateUuid()),
 	  crosshair_ray(Ray{}),
 	  weapon_(GetBotWeapon(bot_name)) {
-	state_machine_.TransitionTo(std::make_unique<IdleState>());
+	SoundManager::GetInstance().RegisterRequester(id_);
+	for (const auto type :
+		 {EnemyStateType::Idle, EnemyStateType::Walk, EnemyStateType::Attack,
+		  EnemyStateType::Pain, EnemyStateType::Death}) {
+		StateFor(type).SetContext(*this);
+	}
+	state_machine_.TransitionTo(idle_state_);
 }
 
-void Enemy::TransitionTo(EnemyStatePtr state) {
-	state_machine_.TransitionTo(std::move(state));
+EnemyState& Enemy::StateFor(EnemyStateType type) {
+	switch (type) {
+		case EnemyStateType::Idle:
+			return idle_state_;
+		case EnemyStateType::Walk:
+			return walk_state_;
+		case EnemyStateType::Attack:
+			return attack_state_;
+		case EnemyStateType::Pain:
+			return pain_state_;
+		case EnemyStateType::Death:
+			return death_state_;
+	}
+	std::unreachable();
+}
+
+EnemyStateType Enemy::GetStateType() const {
+	return state_machine_.Current().GetType();
+}
+
+void Enemy::TransitionTo(EnemyStateType type) {
+	state_machine_.TransitionTo(StateFor(type));
 }
 
 bool Enemy::IsPlayerInShootingRange() const {

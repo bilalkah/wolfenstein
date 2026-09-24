@@ -57,7 +57,7 @@ void Menu::Open(MenuScreen screen) {
 	screen_ = screen;
 	if (screen == MenuScreen::WeaponSelect) {
 		for (const auto& weapon : weapons_) {
-			weapon->TransitionTo(std::make_unique<LoadedState>());
+			weapon->TransitionTo(WeaponStateType::Loaded);
 		}
 		previewed_weapon_ = -1;
 	}
@@ -71,8 +71,7 @@ void Menu::SetPreviewedWeapon(int index) {
 	// The card losing focus goes back to its first frame instead of freezing
 	// mid-animation; the card gaining it plays the reload animation
 	if (previewed_weapon_ >= 0) {
-		weapons_[previewed_weapon_]->TransitionTo(
-			std::make_unique<LoadedState>());
+		weapons_[previewed_weapon_]->TransitionTo(WeaponStateType::Loaded);
 	}
 	previewed_weapon_ = index;
 	if (index >= 0) {

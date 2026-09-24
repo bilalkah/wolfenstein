@@ -50,8 +50,6 @@ class EnemyState : public State<Enemy>
 	std::unique_ptr<LoopedAnimation> animation_;
 };
 
-using EnemyStatePtr = std::unique_ptr<EnemyState>;
-
 // ########################################### IdleState ###########################################
 class IdleState : public EnemyState
 {
@@ -71,6 +69,7 @@ class WalkState : public EnemyState
   public:
 	void Update(const double& delta_time) override;
 	void OnContextSet() override;
+	void OnEnter() override;
 	EnemyStateType GetType() const override;
 
   private:
@@ -89,6 +88,7 @@ class AttackState : public EnemyState
   public:
 	void Update(const double& delta_time) override;
 	void OnContextSet() override;
+	void OnEnter() override;
 	EnemyStateType GetType() const override;
 
   private:
@@ -102,6 +102,7 @@ class PainState : public EnemyState
   public:
 	void Update(const double& delta_time) override;
 	void OnContextSet() override;
+	void OnEnter() override;
 	EnemyStateType GetType() const override;
 
   private:
@@ -115,6 +116,7 @@ class DeathState : public EnemyState
   public:
 	void Update(const double& delta_time) override;
 	void OnContextSet() override;
+	void OnEnter() override;
 	EnemyStateType GetType() const override;
 
   private:
