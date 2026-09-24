@@ -1,6 +1,7 @@
 // Runs the web build's benchmark mode (index.html?benchmark=N) in headless
-// Chromium, stores the full report in results/, appends a summary row to
-// results.md and prints the change against the previous run.
+// Chromium, stores the full report in docs/benchmarks/results/, appends a
+// summary row to docs/benchmarks/results.md and prints the change against the
+// previous run. docs/ is git-ignored: results are local records, not code.
 //
 // Usage: node run_web_benchmark.mjs <site dir> <frames> [label]
 // Env:   GIT_COMMIT, GIT_DIRTY (set by scripts/bench_web.sh)
@@ -13,8 +14,9 @@ import path from 'node:path';
 const [siteDir, framesArg = '2000', label = ''] = process.argv.slice(2);
 const frames = Number(framesArg);
 const benchDir = path.dirname(new URL(import.meta.url).pathname);
-const resultsDir = path.join(benchDir, 'results');
-const summaryFile = path.join(benchDir, 'results.md');
+const recordsDir = path.join(benchDir, '..', 'docs', 'benchmarks');
+const resultsDir = path.join(recordsDir, 'results');
+const summaryFile = path.join(recordsDir, 'results.md');
 
 const MIME = {
   '.html': 'text/html',
@@ -128,6 +130,7 @@ function fmt(value) {
 
 function appendSummary(result) {
   if (!fs.existsSync(summaryFile)) {
+    fs.mkdirSync(recordsDir, { recursive: true });
     const header = ['Date', 'Commit', 'Label', ...COLUMNS.map(([name]) => name)];
     fs.writeFileSync(summaryFile, [
       '# Benchmark results',
