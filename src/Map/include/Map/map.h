@@ -13,7 +13,6 @@
 #define MAP_INCLUDE_MAP_MAP_H_
 
 #include "Math/vector.h"
-#include "path-planning/planning/utility/common_planning.h"
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -24,13 +23,11 @@ typedef std::vector<std::vector<uint16_t>> MapRaw;
 class Map
 {
   public:
-	explicit Map(const std::string& map_path, double resolution = 0.5);
+	explicit Map(const std::string& map_path);
 
 	const MapRaw& GetRawMap() const;
-	std::shared_ptr<planning::Map> GetPathFinderMap();
 	const uint16_t GetSizeX() const;
 	const uint16_t GetSizeY() const;
-	double GetResolution();
 	const std::vector<uint16_t>& operator[](size_t i) const;
 
 	// Whether a cell is inside the map
@@ -44,13 +41,10 @@ class Map
 
   private:
 	void LoadMap(const std::string& map_path);
-	void MapToPathFinderMap();
 
 	uint16_t size_x_{};
 	uint16_t size_y_{};
-	std::shared_ptr<planning::Map> path_finder_map_;
 	MapRaw map_;
-	double res{0.5};
 };
 
 }  // namespace wolfenstein

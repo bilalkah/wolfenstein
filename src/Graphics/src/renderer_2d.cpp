@@ -134,7 +134,7 @@ void Renderer2D::RenderPaths() {
 	const auto config = context_->GetConfig();
 	SetDrawColor({0, 0, 255, 255});
 	for (const auto& enemy : enemies) {
-		const auto path =
+		const auto& path =
 			NavigationManager::GetInstance().GetPath(enemy->GetId());
 		if (path.size() < 2) {
 			continue;

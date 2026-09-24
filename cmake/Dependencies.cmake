@@ -44,18 +44,3 @@ FetchContent_Declare(nlohmann_json
     SYSTEM
 )
 FetchContent_MakeAvailable(nlohmann_json)
-
-# ---- path-planning (only the A* planner is used) ---------------------------
-# Its own CMake project would also configure a vendored SDL3, yaml-cpp and
-# googletest, so the three libraries A* needs are defined here instead.
-set(PLANNING_DIR ${PROJECT_SOURCE_DIR}/third-party/path-planning/planning)
-if(NOT EXISTS "${PLANNING_DIR}/grid_base/astar/astar.cpp")
-    message(FATAL_ERROR "third-party/path-planning is missing; run: git submodule update --init")
-endif()
-add_library(common_planning STATIC ${PLANNING_DIR}/utility/common_planning.cpp)
-target_include_directories(common_planning SYSTEM PUBLIC ${PLANNING_DIR}/utility)
-add_library(common_grid_base STATIC ${PLANNING_DIR}/utility/common_grid_base.cpp)
-target_link_libraries(common_grid_base PUBLIC common_planning)
-add_library(astar STATIC ${PLANNING_DIR}/grid_base/astar/astar.cpp)
-target_include_directories(astar SYSTEM PUBLIC ${PLANNING_DIR} ${PLANNING_DIR}/grid_base/astar)
-target_link_libraries(astar PUBLIC common_grid_base)

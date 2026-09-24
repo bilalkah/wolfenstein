@@ -5,11 +5,9 @@ add_library(
 )
 target_include_directories(map PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/third-party/
 )
 target_link_libraries(
     map
     PUBLIC
-    common_planning
     vector
 )
