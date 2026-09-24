@@ -67,23 +67,60 @@ void Profiler::EndFrame() {
 	frames_.push_back(current_);
 }
 
-void Profiler::Add(ProfileSection section, double milliseconds) {
-	current_.section_ms[static_cast<std::size_t>(section)] += milliseconds;
+void Profiler::Add(ProfileSection section, double milliseconds,
+				   std::uint64_t allocations, std::uint64_t allocated_bytes) {
+	const auto index = static_cast<std::size_t>(section);
+	current_.section_ms[index] += milliseconds;
+	current_.section_allocations[index] += allocations;
+	current_.section_allocated_bytes[index] += allocated_bytes;
 }
 
 std::string Profiler::ReportJson(std::size_t warmup_frames) const {
 	const std::size_t first = std::min(warmup_frames, frames_.size());
 	const std::size_t measured = frames_.size() - first;
 
-	std::string sections;
-	for (std::size_t s = 0; s < kSectionNames.size(); ++s) {
-		std::vector<double> values;
-		values.reserve(measured);
-		for (std::size_t f = first; f < frames_.size(); ++f) {
-			values.push_back(frames_[f].section_ms[s]);
-		}
-		sections += std::format(R"({}"{}":{})", s == 0 ? "" : ",",
+	// Per section statistics of one per-frame quantity
+	const auto per_section = [&](auto value_of) {
+		std::string json;
+		for (std::size_t s = 0; s < kSectionNames.size(); ++s) {
+			std::vector<double> values;
+			values.reserve(measured);
+			for (std::size_t f = first; f < frames_.size(); ++f) {
+				values.push_back(value_of(frames_[f], s));
+			}
+			json += std::format(R"({}"{}":{})", s == 0 ? "" : ",",
 								kSectionNames[s], StatsJson(std::move(values)));
+		}
+		return json;
+	};
+	const std::string sections =
+		per_section([](const FrameSample& frame, std::size_t s) {
+			return frame.section_ms[s];
+		});
+	const std::string section_allocations =
+		per_section([](const FrameSample& frame, std::size_t s) {
+			return static_cast<double>(frame.section_allocations[s]);
+		});
+	const std::string section_bytes =
+		per_section([](const FrameSample& frame, std::size_t s) {
+			return static_cast<double>(frame.section_allocated_bytes[s]);
+		});
+
+	// Allocations in the frame but outside every top-level section (events,
+	// game-over checks, ...); top-level sections do not nest in each other
+	std::vector<double> unattributed;
+	for (std::size_t f = first; f < frames_.size(); ++f) {
+		const auto& frame = frames_[f];
+		std::uint64_t attributed = 0;
+		for (const auto section :
+			 {ProfileSection::UpdateEnemies, ProfileSection::UpdatePlayer,
+			  ProfileSection::Render, ProfileSection::Present}) {
+			attributed +=
+				frame.section_allocations[static_cast<std::size_t>(section)];
+		}
+		const auto total = frame.section_allocations[static_cast<std::size_t>(
+			ProfileSection::Frame)];
+		unattributed.push_back(static_cast<double>(total - attributed));
 	}
 
 	std::vector<double> allocations;
@@ -102,20 +139,28 @@ std::string Profiler::ReportJson(std::size_t warmup_frames) const {
 	return std::format(
 		R"({{"frames":{},"warmup_frames":{},"startup_ms":{:.2f},"sections_ms":{{{}}},)"
 		R"("allocations_per_frame":{},"allocated_bytes_per_frame":{},)"
+		R"("section_allocations":{{{}}},"section_allocated_bytes":{{{}}},)"
+		R"("unattributed_allocations":{},)"
 		R"("samples":{{"frame_ms":[{}],"allocations":[{}]}}}})",
 		measured, first, startup_ms_, sections, StatsJson(allocations),
-		StatsJson(allocated_bytes), frame_ms, frame_allocations);
+		StatsJson(allocated_bytes), section_allocations, section_bytes,
+		StatsJson(unattributed), frame_ms, frame_allocations);
 }
 
 ScopedTimer::ScopedTimer(ProfileSection section)
-	: section_(section), start_(std::chrono::steady_clock::now()) {}
+	: section_(section),
+	  start_(std::chrono::steady_clock::now()),
+	  start_allocations_(AllocationStats::count),
+	  start_bytes_(AllocationStats::bytes) {}
 
 ScopedTimer::~ScopedTimer() {
 	auto& profiler = Profiler::GetInstance();
 	if (profiler.IsEnabled()) {
 		const std::chrono::duration<double, std::milli> elapsed =
 			std::chrono::steady_clock::now() - start_;
-		profiler.Add(section_, elapsed.count());
+		profiler.Add(section_, elapsed.count(),
+					 AllocationStats::count - start_allocations_,
+					 AllocationStats::bytes - start_bytes_);
 	}
 }
 
