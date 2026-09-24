@@ -6,6 +6,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
 namespace wolfenstein {
 
 namespace {
@@ -25,7 +26,23 @@ auto GetWeaponConfig = [](const std::string& weapon_name) -> WeaponConfig {
 Weapon::Weapon(std::string weapon_name)
 	: weapon_properties_(GetWeaponConfig(weapon_name)) {
 	ammo_ = weapon_properties_.ammo_capacity;
-	state_machine_.TransitionTo(std::make_unique<LoadedState>());
+	for (const auto type : {WeaponStateType::Loaded, WeaponStateType::OutOfAmmo,
+							WeaponStateType::Reloading}) {
+		StateFor(type).SetContext(*this);
+	}
+	state_machine_.TransitionTo(loaded_state_);
+}
+
+WeaponState& Weapon::StateFor(WeaponStateType type) {
+	switch (type) {
+		case WeaponStateType::Loaded:
+			return loaded_state_;
+		case WeaponStateType::OutOfAmmo:
+			return out_of_ammo_state_;
+		case WeaponStateType::Reloading:
+			return reloading_state_;
+	}
+	std::unreachable();
 }
 
 void Weapon::Attack() {
@@ -42,12 +59,12 @@ void Weapon::Charge() {
 
 void Weapon::Reload() {
 	if (state_machine_.Current().GetType() != WeaponStateType::Reloading) {
-		TransitionTo(std::make_unique<ReloadingState>());
+		TransitionTo(WeaponStateType::Reloading);
 	}
 }
 
-void Weapon::TransitionTo(WeaponStatePtr state) {
-	state_machine_.TransitionTo(std::move(state));
+void Weapon::TransitionTo(WeaponStateType type) {
+	state_machine_.TransitionTo(StateFor(type));
 }
 
 void Weapon::SetAmmo(size_t ammo) {

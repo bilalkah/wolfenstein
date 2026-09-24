@@ -7,8 +7,12 @@ frame for each profiler section, nested as the sections are in the code.
 
     ./scripts/dev.sh ./build/native-release/bin/wolfenstein --benchmark 600 \
         | ./scripts/alloc_breakdown.py
+
+With --require-zero it exits with an error if any frame after the warmup
+allocated, which CI uses to keep the steady-state frame allocation-free.
 """
 
+import argparse
 import json
 import sys
 
@@ -31,6 +35,11 @@ TREE = [
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--require-zero", action="store_true",
+                        help="fail if any measured frame allocated")
+    args = parser.parse_args()
+
     report = None
     for line in sys.stdin:
         if line.startswith("BENCHMARK_RESULT "):
@@ -51,6 +60,15 @@ def main():
         print(f"{label:<22}{count:>14.1f}{size:>14.0f}{count / total:>8.0%}")
     other = report["unattributed_allocations"]["mean"]
     print(f"{'  (outside sections)':<22}{other:>14.1f}{'':>14}{other / total:>8.0%}")
+
+    if args.require_zero:
+        samples = report["samples"]["allocations"]
+        allocating = [i for i, count in enumerate(samples) if count > 0]
+        if allocating:
+            sys.exit(f"{len(allocating)} of {len(samples)} frames allocated "
+                     f"(first at measured frame {allocating[0]}); "
+                     "the steady-state frame must not touch the heap")
+        print(f"OK: none of {len(samples)} frames allocated")
 
 
 if __name__ == "__main__":

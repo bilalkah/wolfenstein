@@ -32,6 +32,10 @@ jobs:
       - run: ctest --preset ${{ matrix.preset }}
       - name: Benchmark scenario (headless, 300 frames)
         run: ./build/${{ matrix.preset }}/bin/wolfenstein --benchmark 300 | grep BENCHMARK_RESULT > /dev/null
+      - name: No heap allocations per frame (benchmark scenario)
+        # Only builds without sanitizers count allocations
+        if: matrix.preset == 'native-debug'
+        run: ./build/native-debug/bin/wolfenstein --benchmark 1000 | python3 scripts/alloc_breakdown.py --require-zero
 
   web:
     name: Web (Emscripten)

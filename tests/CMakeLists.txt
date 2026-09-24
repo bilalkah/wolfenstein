@@ -16,6 +16,7 @@ add_executable(unit_tests
     line_of_sight_test.cpp
     type_traits_test.cpp
     grid_path_finder_test.cpp
+    enemy_state_test.cpp
 )
 target_link_libraries(unit_tests PRIVATE
     GTest::gtest_main

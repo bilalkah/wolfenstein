@@ -42,7 +42,8 @@ class Enemy : public ICharacter, public IGameObject
   public:
 	explicit Enemy(std::string bot_name, CharacterConfig config);
 	void Update(double delta_time) override;
-	void TransitionTo(EnemyStatePtr state);
+	void TransitionTo(EnemyStateType type);
+	EnemyStateType GetStateType() const;
 	bool IsPlayerInShootingRange() const;
 	bool IsAttacked() const;
 	bool IsAlive() const;
@@ -90,7 +91,16 @@ class Enemy : public ICharacter, public IGameObject
 	std::string bot_name_;
 	std::string id_;
 	Ray crosshair_ray;
-	StateMachine<Enemy, EnemyState> state_machine_{*this};
+	EnemyState& StateFor(EnemyStateType type);
+
+	// Every state the enemy can be in, set up once: transitions allocate
+	// nothing
+	IdleState idle_state_;
+	WalkState walk_state_;
+	AttackState attack_state_;
+	PainState pain_state_;
+	DeathState death_state_;
+	StateMachine<EnemyState> state_machine_;
 	std::shared_ptr<SimpleWeapon> weapon_;
 };
 

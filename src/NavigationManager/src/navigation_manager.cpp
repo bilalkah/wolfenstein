@@ -40,6 +40,16 @@ void NavigationManager::InitManager(const std::shared_ptr<Scene>& scene) {
 		}
 	}
 	path_finder_.SetGrid(height, width, walls_);
+
+	// A path visits each free cell at most once, so this capacity is never
+	// exceeded: storing a path never allocates during play
+	const auto free_cells =
+		static_cast<std::size_t>(std::ranges::count(walls_, 0));
+	cells_.reserve(free_cells);
+	obstacles_.reserve(2 * scene_->GetEnemies().size());
+	for (const auto& enemy : scene_->GetEnemies()) {
+		paths_[enemy->GetId()].reserve(free_cells);
+	}
 }
 
 GridCell NavigationManager::ToCell(const vector2d& position) {

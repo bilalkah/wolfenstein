@@ -25,11 +25,17 @@ void LoadedState::Update(const double& delta_time) {
 			trigger_pulled_ = false;
 			animation_->Reset();
 			if (context_->GetAmmo() == 0) {
-				context_->TransitionTo(std::make_unique<OutOfAmmoState>());
+				context_->TransitionTo(WeaponStateType::OutOfAmmo);
 				return;
 			}
 		}
 	}
+}
+
+void LoadedState::OnEnter() {
+	WeaponState::OnEnter();
+	trigger_pulled_ = false;
+	trigger_pull_time_ = 0.0;
 }
 
 WeaponStateType LoadedState::GetType() const {
@@ -66,6 +72,12 @@ void OutOfAmmoState::Update(const double& delta_time) {
 	}
 }
 
+void OutOfAmmoState::OnEnter() {
+	WeaponState::OnEnter();
+	trigger_pulled_ = false;
+	trigger_pull_time_ = 0.0;
+}
+
 WeaponStateType OutOfAmmoState::GetType() const {
 	return WeaponStateType::OutOfAmmo;
 }
@@ -92,9 +104,14 @@ void ReloadingState::Update(const double& delta_time) {
 	if (reload_time_ >= reload_speed_) {
 		animation_->Reset();
 		context_->SetAmmo(context_->GetAmmoCapacity());
-		context_->TransitionTo(std::make_unique<LoadedState>());
+		context_->TransitionTo(WeaponStateType::Loaded);
 		return;
 	}
+}
+
+void ReloadingState::OnEnter() {
+	WeaponState::OnEnter();
+	reload_time_ = 0.0;
 }
 
 WeaponStateType ReloadingState::GetType() const {

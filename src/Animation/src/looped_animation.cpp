@@ -35,6 +35,7 @@ void LoopedAnimation::Update(const double& delta_time) {
 void LoopedAnimation::Reset() {
 	current_frame = 0;
 	counter = 0;
+	is_animation_finished_once = false;
 }
 
 int LoopedAnimation::GetCurrentFrame() const {

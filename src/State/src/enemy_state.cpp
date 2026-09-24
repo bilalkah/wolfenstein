@@ -24,11 +24,11 @@ void IdleState::Update(const double& delta_time) {
 	if (context_->IsPlayerInShootingRange() &&
 		NavigationManager::GetInstance().EuclideanDistanceToPlayer(
 			context_->GetPosition()) <= range_ + 2.0) {
-		context_->TransitionTo(std::make_unique<WalkState>());
+		context_->TransitionTo(EnemyStateType::Walk);
 		return;
 	}
 	if (context_->IsAttacked()) {
-		context_->TransitionTo(std::make_unique<PainState>());
+		context_->TransitionTo(EnemyStateType::Pain);
 		return;
 	}
 }
@@ -57,13 +57,13 @@ void WalkState::Update(const double& delta_time) {
 	if (context_->IsAttacked()) {
 		NavigationManager::GetInstance().ResetPath(context_->GetId());
 		context_->SetNextPose(bot_position.pose);
-		context_->TransitionTo(std::make_unique<PainState>());
+		context_->TransitionTo(EnemyStateType::Pain);
 		return;
 	}
 	if (!context_->IsPlayerInShootingRange()) {
 		if (distance > range_max_) {
 			NavigationManager::GetInstance().ResetPath(context_->GetId());
-			context_->TransitionTo(std::make_unique<IdleState>());
+			context_->TransitionTo(EnemyStateType::Idle);
 			return;
 		}
 	}
@@ -71,7 +71,7 @@ void WalkState::Update(const double& delta_time) {
 		attack_counter_ += delta_time;
 		if (attack_counter_ > attack_rate_) {
 			context_->SetNextPose(bot_position.pose);
-			context_->TransitionTo(std::make_unique<AttackState>());
+			context_->TransitionTo(EnemyStateType::Attack);
 			return;
 		}
 	}
@@ -96,6 +96,12 @@ void WalkState::OnContextSet() {
 		context_->GetBotName() + "_walk", animation_speed_);
 }
 
+void WalkState::OnEnter() {
+	EnemyState::OnEnter();
+	attack_counter_ = 0.0;
+	is_attacked_ = false;
+}
+
 EnemyStateType WalkState::GetType() const {
 	return EnemyStateType::Walk;
 }
@@ -108,11 +114,11 @@ void AttackState::Update(const double& delta_time) {
 		context_->Shoot();
 	}
 	if (context_->IsAttacked()) {
-		context_->TransitionTo(std::make_unique<PainState>());
+		context_->TransitionTo(EnemyStateType::Pain);
 		return;
 	}
 	if (attack_counter_ > animation_speed_) {
-		context_->TransitionTo(std::make_unique<WalkState>());
+		context_->TransitionTo(EnemyStateType::Walk);
 		return;
 	}
 	attack_counter_ += delta_time;
@@ -122,6 +128,11 @@ void AttackState::OnContextSet() {
 	animation_speed_ = context_->GetWeapon().GetAttackSpeed();
 	animation_ = std::make_unique<LoopedAnimation>(
 		context_->GetBotName() + "_attack", animation_speed_);
+}
+
+void AttackState::OnEnter() {
+	EnemyState::OnEnter();
+	attack_counter_ = 0.0;
 	SoundManager::GetInstance().PlayEffect(context_->GetId(), "npc_attack");
 }
 
@@ -137,11 +148,11 @@ void PainState::Update(const double& delta_time) {
 	if (counter > animation_speed_) {
 		if (context_->GetHealth() <= 0) {
 			NavigationManager::GetInstance().ResetPath(context_->GetId());
-			context_->TransitionTo(std::make_unique<DeathState>());
+			context_->TransitionTo(EnemyStateType::Death);
 			return;
 		}
 		context_->SetAttacked(false);
-		context_->TransitionTo(std::make_unique<WalkState>());
+		context_->TransitionTo(EnemyStateType::Walk);
 		return;
 	}
 }
@@ -149,6 +160,11 @@ void PainState::Update(const double& delta_time) {
 void PainState::OnContextSet() {
 	animation_ = std::make_unique<LoopedAnimation>(
 		context_->GetBotName() + "_pain", animation_speed_);
+}
+
+void PainState::OnEnter() {
+	EnemyState::OnEnter();
+	counter = 0.0;
 	SoundManager::GetInstance().PlayEffect(context_->GetId(), "npc_pain");
 }
 
@@ -172,6 +188,11 @@ void DeathState::Update(const double& delta_time) {
 void DeathState::OnContextSet() {
 	animation_ = std::make_unique<LoopedAnimation>(
 		context_->GetBotName() + "_death", animation_speed_);
+}
+
+void DeathState::OnEnter() {
+	EnemyState::OnEnter();
+	counter = 0.0;
 	SoundManager::GetInstance().PlayEffect(context_->GetId(), "npc_death");
 }
 
