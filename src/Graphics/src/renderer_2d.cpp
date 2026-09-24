@@ -58,7 +58,7 @@ void Renderer2D::RenderPlayer() {
 	const auto crosshair_ray = player_ptr.GetCrosshairRay();
 
 	SetDrawColor({00, 0xA5, 0, 1});
-	const auto rays = camera_ptr.GetRays();
+	const auto& rays = camera_ptr.GetRays();
 	for (unsigned int i = 0; i < rays.size(); i++) {
 		if (!rays[i].is_hit || i % 3 != 0) {
 			continue;

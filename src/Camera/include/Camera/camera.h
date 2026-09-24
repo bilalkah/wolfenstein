@@ -16,6 +16,8 @@
 #include "Camera/raycaster.h"
 #include "GameObjects/game_object.h"
 
+#include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <unordered_map>
@@ -46,7 +48,9 @@ class Camera2D
 	void SetScene(const std::shared_ptr<Scene>& scene);
 	const RayVector& GetRays() const;
 	const std::shared_ptr<Ray>& GetCrosshairRay() const;
-	const std::optional<RayPair> GetObjectRay(const std::string id) const;
+	// The rays bounding an object in the current frame, or nullptr if the
+	// object is not visible
+	const RayPair* FindObjectRays(const std::string& id) const;
 	Position2D GetPosition() const;
 	double GetFov() const;
 	double GetDeltaAngle() const;
@@ -64,7 +68,16 @@ class Camera2D
 	std::shared_ptr<Ray> crosshair_ray_;
 	std::unique_ptr<RayCaster> ray_cast_;
 	std::unique_ptr<RayVector> rays_;
-	std::unordered_map<std::string, RayPair> objects_;
+	// Rays of each object, kept across frames so the hash map nodes are
+	// allocated once per level (in SetScene) rather than every frame; an
+	// entry is current only if it was written in this frame
+	struct ObjectView
+	{
+		RayPair rays;
+		std::uint64_t frame = std::numeric_limits<std::uint64_t>::max();
+	};
+	std::unordered_map<std::string, ObjectView> objects_;
+	std::uint64_t frame_ = 0;
 };
 
 }  // namespace wolfenstein

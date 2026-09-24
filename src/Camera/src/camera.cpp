@@ -44,8 +44,8 @@ void Camera2D::Update() {
 	*crosshair_ray_ = rays_->at(config_.width / 4);
 	crosshair_ray_->is_hit = false;
 
-	// Update object rays
-	objects_.clear();
+	// Update object rays; entries not written this frame count as invisible
+	++frame_;
 	for (const auto& object : scene_->GetObjects()) {
 		Calculate(*object);
 	}
@@ -53,19 +53,25 @@ void Camera2D::Update() {
 
 void Camera2D::SetScene(const std::shared_ptr<Scene>& scene) {
 	scene_ = scene;
+	objects_.clear();
+	if (scene_) {
+		objects_.reserve(scene_->GetObjects().size());
+		for (const auto& object : scene_->GetObjects()) {
+			objects_.try_emplace(object->GetId());
+		}
+	}
 }
 
 const RayVector& Camera2D::GetRays() const {
 	return *rays_;
 }
 
-const std::optional<RayPair> Camera2D::GetObjectRay(
-	const std::string id) const {
-	const auto object_it = objects_.find(id);
-	if (object_it != objects_.end()) {
-		return object_it->second;
+const RayPair* Camera2D::FindObjectRays(const std::string& id) const {
+	const auto found = objects_.find(id);
+	if (found == objects_.end() || found->second.frame != frame_) {
+		return nullptr;
 	}
-	return std::nullopt;
+	return &found->second.rays;
 }
 
 const std::shared_ptr<Ray>& Camera2D::GetCrosshairRay() const {
@@ -145,7 +151,9 @@ void Camera2D::Calculate(const IGameObject& object) {
 		object_distance * std::cos(camera_angle_right);
 	object_ray_pair.second.wall_id = texture_id;
 
-	objects_[object.GetId()] = object_ray_pair;
+	auto& view = objects_[object.GetId()];
+	view.rays = object_ray_pair;
+	view.frame = frame_;
 
 	// Calculate if the object is in the crosshair
 	if (object.GetObjectType() == ObjectType::CHARACTER_ENEMY) {
