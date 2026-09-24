@@ -37,7 +37,7 @@ void RayCaster::Update(const Map& map_ptr, const Position2D& position,
 
 void RayCaster::SequentialCast(const Map& map_ptr, const Position2D& position,
 							   RayVector& rays) {
-	const auto map_ = map_ptr.GetRawMap();
+	const auto& map_ = map_ptr.GetRawMap();
 	const auto& row_size = map_ptr.GetSizeX();
 	const auto& col_size = map_ptr.GetSizeY();
 	double ray_theta = position.theta - (fov_ / 2);
@@ -50,7 +50,7 @@ void RayCaster::SequentialCast(const Map& map_ptr, const Position2D& position,
 /// @note Add parallel feature
 void RayCaster::ParallelCast(const Map& map_ptr, const Position2D& position,
 							 RayVector& rays) {
-	const auto map_ = map_ptr.GetRawMap();
+	const auto& map_ = map_ptr.GetRawMap();
 	const auto& row_size = map_ptr.GetSizeX();
 	const auto& col_size = map_ptr.GetSizeY();
 	double ray_theta = position.theta - (fov_ / 2);
