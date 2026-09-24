@@ -1,6 +1,7 @@
 #!/bin/bash
 # Builds the web version and runs its benchmark in headless Chromium (Docker).
-# Results go to benchmarks/results/ and a summary row to benchmarks/results.md.
+# Results go to docs/benchmarks/ (git-ignored): full reports in results/ and a
+# summary row in results.md.
 #
 # Usage: ./scripts/bench_web.sh [frames] [label]
 set -euo pipefail
@@ -24,4 +25,4 @@ docker run --rm \
 	"mcr.microsoft.com/playwright:v$PLAYWRIGHT_VERSION-noble" \
 	bash -c "npm install --no-audit --no-fund --silent \
 		&& node run_web_benchmark.mjs /repo/build/web-release/bin $FRAMES '$LABEL' \
-		&& chown -R $(id -u):$(id -g) results results.md"
+		&& chown -R $(id -u):$(id -g) ../docs/benchmarks"

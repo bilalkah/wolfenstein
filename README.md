@@ -79,7 +79,7 @@ The output in `build/web-release/bin` is a static site (`index.html`, `.js`, `.w
 ./scripts/bench_web.sh [frames] [label]
 ```
 
-This builds the web version, runs the benchmark in headless Chromium (Docker), saves the full report to `benchmarks/results/`, appends a row to [benchmarks/results.md](benchmarks/results.md) and prints the change against the previous run. Natively, run `./build/bin/wolfenstein --benchmark 2000`.
+This builds the web version, runs the benchmark in headless Chromium (Docker), saves the full report to `docs/benchmarks/results/`, appends a row to `docs/benchmarks/results.md` (both git-ignored, local records) and prints the change against the previous run. Natively, run `./build/bin/wolfenstein --benchmark 2000`.
 
 ### Native Build
 
