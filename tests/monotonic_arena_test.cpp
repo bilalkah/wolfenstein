@@ -17,7 +17,8 @@ bool IsAligned(const void* pointer, std::size_t alignment) {
 TEST(MonotonicArena, HonoursEveryAlignment) {
 	MonotonicArena arena(4096);
 	for (const std::size_t alignment : {1u, 2u, 4u, 8u, 16u, 32u, 64u, 128u}) {
-		arena.allocate(1, 1);  // knock the offset off any natural alignment
+		// Knock the offset off any natural alignment
+		(void)arena.allocate(1, 1);
 		void* pointer = arena.allocate(24, alignment);
 		EXPECT_TRUE(IsAligned(pointer, alignment)) << alignment;
 	}
@@ -32,14 +33,14 @@ TEST(MonotonicArena, AllocationsDoNotOverlap) {
 
 TEST(MonotonicArena, TracksUsageAndHighWaterMark) {
 	MonotonicArena arena(1024);
-	arena.allocate(100, 1);
-	arena.allocate(50, 1);
+	(void)arena.allocate(100, 1);
+	(void)arena.allocate(50, 1);
 	EXPECT_EQ(arena.Used(), 150u);
 	EXPECT_EQ(arena.HighWaterMark(), 150u);
 
 	arena.Reset();
 	EXPECT_EQ(arena.Used(), 0u);
-	arena.allocate(10, 1);
+	(void)arena.allocate(10, 1);
 	EXPECT_EQ(arena.HighWaterMark(), 150u);	 // the peak survives a reset
 }
 
@@ -53,10 +54,10 @@ TEST(MonotonicArena, ResetReusesTheSameMemory) {
 // A blown budget is reported, never silently served from the heap
 TEST(MonotonicArena, ThrowsWhenFull) {
 	MonotonicArena arena(128);
-	arena.allocate(100, 1);
-	EXPECT_THROW(arena.allocate(64, 1), std::bad_alloc);
+	(void)arena.allocate(100, 1);
+	EXPECT_THROW((void)arena.allocate(64, 1), std::bad_alloc);
 	EXPECT_EQ(arena.Used(), 100u);	// a failed allocation changes nothing
-	EXPECT_NO_THROW(arena.allocate(28, 1));
+	EXPECT_NO_THROW((void)arena.allocate(28, 1));
 }
 
 TEST(MonotonicArena, BacksStandardContainers) {

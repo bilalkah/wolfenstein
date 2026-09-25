@@ -26,11 +26,11 @@ class RendererResult
 	RendererResult(std::shared_ptr<RendererContext> context,
 				   const uint16_t texture_id);
 
-	void Render();
+	void Render(double delta_time);
 
   private:
 	void ClearScreen();
-	void RenderScreen();
+	void RenderScreen(double delta_time);
 	std::shared_ptr<RendererContext> context_;
 	TriggeredSingleAnimation result_animation_;
 };

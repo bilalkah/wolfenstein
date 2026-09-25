@@ -1,6 +1,5 @@
 #include "Graphics/renderer_result.h"
 #include "TextureManager/texture_manager.h"
-#include "TimeManager/time_manager.h"
 #include <SDL2/SDL_render.h>
 
 namespace wolfenstein {
@@ -9,19 +8,19 @@ RendererResult::RendererResult(std::shared_ptr<RendererContext> context,
 							   const uint16_t texture_id)
 	: context_(context), result_animation_(texture_id, 0.2, 0, 255) {}
 
-void RendererResult::Render() {
+void RendererResult::Render(double delta_time) {
 	ClearScreen();
-	RenderScreen();
+	RenderScreen(delta_time);
 }
 
-void RendererResult::RenderScreen() {
-	result_animation_.Update(TimeManager::GetInstance().GetDeltaTime());
+void RendererResult::RenderScreen(double delta_time) {
+	result_animation_.Update(delta_time);
 
-	SDL_RenderCopy(context_->GetRenderer(),
-				   TextureManager::GetInstance()
-					   .GetTexture(result_animation_.GetCurrentFrame())
-					   .texture,
-				   nullptr, nullptr);
+	SDL_Texture* texture = context_->Textures()
+							   .GetTexture(result_animation_.GetCurrentFrame())
+							   .texture;
+	SDL_SetTextureAlphaMod(texture, result_animation_.GetAlpha());
+	SDL_RenderCopy(context_->GetRenderer(), texture, nullptr, nullptr);
 }
 
 void RendererResult::ClearScreen() {

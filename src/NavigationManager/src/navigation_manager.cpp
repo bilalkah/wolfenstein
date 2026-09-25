@@ -5,43 +5,53 @@
 #include "Math/vector.h"
 #include <algorithm>
 #include <cmath>
-#include <memory>
 #include <span>
 #include <vector>
 
 namespace wolfenstein {
 
-NavigationManager* NavigationManager::instance_ = nullptr;
+namespace {
+constexpr int kCellsPerSide =
+	static_cast<int>(1.0 / NavigationManager::kCellSize);
+}  // namespace
 
-NavigationManager& NavigationManager::GetInstance() {
-	if (instance_ == nullptr) {
-		instance_ = new NavigationManager();
-	}
-	return *instance_;
+NavigationManager::NavigationManager(const Scene& scene,
+									 std::pmr::memory_resource* memory)
+	: scene_(scene),
+	  // Weight 0.6: f = 0.4 g + 0.6 h, the tuning the game has always used
+	  path_finder_(0.6, memory),
+	  routes_(memory),
+	  obstacles_(memory),
+	  cells_(memory) {}
+
+std::size_t NavigationManager::MemoryFor(int map_rows, int map_cols,
+										 std::size_t objects,
+										 std::size_t enemies) {
+	const int height = map_rows * kCellsPerSide;
+	const int width = map_cols * kCellsPerSide;
+	const auto cells =
+		static_cast<std::size_t>(height) * static_cast<std::size_t>(width);
+	constexpr std::size_t kPadding = alignof(std::max_align_t);
+	return GridPathFinder::MemoryFor(height, width) + objects * sizeof(Route) +
+		   2 * enemies * sizeof(GridCell) + cells * sizeof(GridCell) +
+		   3 * kPadding;
 }
 
-NavigationManager::~NavigationManager() {
-	delete instance_;
-}
-
-void NavigationManager::InitManager(const std::shared_ptr<Scene>& scene) {
-	scene_ = scene;
-
-	// Each map cell splits into cells_per_side^2 pathfinding cells, built
+void NavigationManager::Build() {
+	// Each map cell splits into kCellsPerSide^2 pathfinding cells, built
 	// straight into the path finder's grid
-	const Map& map = scene_->GetMap();
-	const int cells_per_side = static_cast<int>(1.0 / kCellSize);
-	path_finder_.SetGrid(map.GetSizeX() * cells_per_side,
-						 map.GetSizeY() * cells_per_side, [&](int x, int y) {
-							 return map.IsBlocked(x / cells_per_side,
-												  y / cells_per_side);
+	const Map& map = scene_.GetMap();
+	path_finder_.SetGrid(map.GetSizeX() * kCellsPerSide,
+						 map.GetSizeY() * kCellsPerSide, [&](int x, int y) {
+							 return map.IsBlocked(x / kCellsPerSide,
+												  y / kCellsPerSide);
 						 });
 
 	// A path visits each free cell at most once, so the scratch path never
 	// grows during play
 	cells_.reserve(path_finder_.FreeCells());
-	obstacles_.reserve(2 * scene_->GetEnemies().size());
-	routes_.assign(scene_->GetObjects().size(), Route{});
+	obstacles_.reserve(2 * scene_.GetEnemies().size());
+	routes_.assign(scene_.GetObjects().size(), Route{});
 }
 
 GridCell NavigationManager::ToCell(const vector2d& position) {
@@ -55,7 +65,7 @@ vector2d NavigationManager::CellCentre(GridCell cell) {
 
 void NavigationManager::CollectDynamicObstacles() {
 	obstacles_.clear();
-	for (const auto& enemy : scene_->GetEnemies()) {
+	for (const auto& enemy : scene_.GetEnemies()) {
 		if (!enemy->IsAlive()) {
 			continue;
 		}
@@ -97,7 +107,7 @@ vector2d NavigationManager::FindPath(Position2D start, Position2D end,
 }
 
 vector2d NavigationManager::FindPathToPlayer(Position2D start, ObjectId id) {
-	return FindPath(start, *player_position_ptr_, id);
+	return FindPath(start, scene_.GetPlayer().GetPosition(), id);
 }
 
 std::span<const GridCell> NavigationManager::GetPath(ObjectId id) const {
@@ -112,19 +122,9 @@ void NavigationManager::ResetPath(ObjectId id) {
 	routes_[ToIndex(id)].size = 0;
 }
 
-void NavigationManager::SetPositionPtr(
-	const std::shared_ptr<Position2D>& position) {
-	player_position_ptr_ = position;
-}
-
 double NavigationManager::EuclideanDistanceToPlayer(
-	const Position2D& position) {
-	return player_position_ptr_->pose.Distance(position.pose);
-}
-
-double NavigationManager::ManhattanDistanceToPlayer(
-	const Position2D& position) {
-	return player_position_ptr_->pose.MDistance(position.pose);
+	const Position2D& position) const {
+	return scene_.GetPlayer().GetPosition().pose.Distance(position.pose);
 }
 
 }  // namespace wolfenstein

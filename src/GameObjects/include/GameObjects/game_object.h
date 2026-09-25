@@ -45,6 +45,9 @@ class IGameObject
 
 	virtual ObjectType GetObjectType() const = 0;
 	virtual vector2d GetPose() const = 0;
+	// Where to draw the object `alpha` of the way from the previous
+	// simulation tick to the latest; objects that move override it
+	virtual vector2d GetRenderPose(double /*alpha*/) const { return GetPose(); }
 	virtual int GetTextureId() const = 0;
 	virtual double GetWidth() const = 0;
 	virtual double GetHeight() const = 0;

@@ -12,39 +12,29 @@
 #ifndef SHOOTING_MANAGER_INCLUDE_SHOOTING_MANAGER_SHOOTING_MANAGER_H
 #define SHOOTING_MANAGER_INCLUDE_SHOOTING_MANAGER_SHOOTING_MANAGER_H
 
-#include "Camera/single_raycaster.h"
+#include "Camera/ray.h"
 #include "Characters/character.h"
-#include "Characters/enemy.h"
-#include "Characters/player.h"
-#include "Core/scene.h"
-#include "Math/vector.h"
-#include "NavigationManager/navigation_manager.h"
-#include "Strike/simple_weapon.h"
-#include "Strike/strike.h"
-#include <memory>
-#include <vector>
 
 namespace wolfenstein {
 
-class ShootingManager
-{
-  public:
-	static ShootingManager& GetInstance();
-	ShootingManager(const ShootingManager&) = delete;
-	ShootingManager& operator=(const ShootingManager&) = delete;
-	~ShootingManager();
+class Player;
+class Scene;
+class SimpleWeapon;
+class Weapon;
 
-	void InitManager(const std::shared_ptr<Scene>& scene);
-	void PlayerShoot(const Weapon& weapon);
-	void EnemyShoot(const SimpleWeapon& weapon);
+// What a shot fired from `eye` (facing eye.theta) hits: is_hit is set, with
+// the enemy's id and distance, for the nearest living enemy the line of fire
+// passes through before a wall. Part of the simulation, so it depends on the
+// game state only, not on what was last drawn.
+Ray Aim(const Scene& scene, const Position2D& eye);
 
-  private:
-	ShootingManager() = default;
-	double CalculateDamage(const Weapon& weapon);
+// The player fired from `eye`: damages the enemy it hits, if any, and counts
+// it in the scene if the shot kills it
+void ResolvePlayerShot(Scene& scene, const Weapon& weapon,
+					   const Position2D& eye);
 
-	static ShootingManager* instance_;
-	std::shared_ptr<Scene> scene_;
-};
+// An enemy fired at the player
+void ResolveEnemyShot(Player& player, const SimpleWeapon& weapon);
 
 }  // namespace wolfenstein
 

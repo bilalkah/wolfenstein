@@ -14,9 +14,11 @@
 
 #include "Camera/camera.h"
 #include "Core/scene.h"
+#include "TextureManager/texture_manager.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <memory>
+#include <optional>
 
 namespace wolfenstein {
 
@@ -59,6 +61,8 @@ class RendererContext
 	RenderConfig GetConfig() const;
 	const Camera2D& GetCamera() const;
 	Camera2D& GetCamera();
+	TextureManager& Textures() { return *textures_; }
+	const TextureManager& Textures() const { return *textures_; }
 
   private:
 	SDL_Renderer* renderer_;
@@ -66,6 +70,8 @@ class RendererContext
 	SDL_Window* window_;
 	RenderConfig config_;
 	Camera2D& camera_ptr;
+	// Created once the renderer exists, destroyed before it
+	std::optional<TextureManager> textures_;
 };
 
 class IRenderer
@@ -83,8 +89,10 @@ class IRenderer
 	IRenderer& operator=(IRenderer&&) = default;
 
   public:
-	virtual void RenderScene() = 0;
-	void SetScene(const std::shared_ptr<Scene>& scene_ptr);
+	// delta_time: seconds the frame took, for anything the view animates
+	virtual void RenderScene(double delta_time) = 0;
+	// Borrows the scene until the next call; the game owns it
+	void SetScene(Scene& scene);
 
   protected:
 	void ClearScreen();
@@ -92,7 +100,7 @@ class IRenderer
 	std::shared_ptr<RendererContext> GetContext() const;
 
 	std::shared_ptr<RendererContext> context_;
-	std::shared_ptr<Scene> scene_;
+	Scene* scene_ = nullptr;
 };
 
 }  // namespace wolfenstein

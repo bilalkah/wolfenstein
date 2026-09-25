@@ -30,7 +30,8 @@ std::string StatsJson(std::vector<double> values) {
 	for (const double value : values) {
 		sum += value;
 	}
-	const double mean = values.empty() ? 0.0 : sum / values.size();
+	const double mean =
+		values.empty() ? 0.0 : sum / static_cast<double>(values.size());
 	return std::format(
 		R"({{"mean":{:.4f},"p50":{:.4f},"p95":{:.4f},"p99":{:.4f},"max":{:.4f}}})",
 		mean, Percentile(values, 50), Percentile(values, 95),

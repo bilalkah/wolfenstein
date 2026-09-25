@@ -12,17 +12,17 @@
 #ifndef CHARACTERS_INCLUDE_ENEMY_H_
 #define CHARACTERS_INCLUDE_ENEMY_H_
 
-#include "Camera/single_raycaster.h"
+#include "Camera/ray.h"
 #include "Characters/character.h"
 #include "GameObjects/game_object.h"
 #include "Math/vector.h"
 #include "SoundManager/sound_manager.h"
 #include "State/enemy_state.h"
 #include "Strike/simple_weapon.h"
-#include "Strike/strike.h"
-#include <memory>
 #include <string>
 namespace wolfenstein {
+
+class Scene;
 
 struct AnimationTime
 {
@@ -36,11 +36,14 @@ struct StateConfig
 	double follow_range_min{};
 };
 
-// Pinned (not copyable or movable): its states point back to it
+// Pinned (not copyable or movable): its states point back to it. Lives in
+// its scene's pool and borrows the scene (map, player, navigation), which
+// outlives it.
 class Enemy : public ICharacter, public IGameObject
 {
   public:
-	explicit Enemy(std::string bot_name, CharacterConfig config);
+	Enemy(Scene& scene, std::string bot_name, CharacterConfig config);
+	Scene& GetScene() { return scene_; }
 	void Update(double delta_time) override;
 	void TransitionTo(EnemyStateType type);
 	EnemyStateType GetStateType() const;
@@ -60,29 +63,31 @@ class Enemy : public ICharacter, public IGameObject
 
 	ObjectType GetObjectType() const override;
 	vector2d GetPose() const override;
+	vector2d GetRenderPose(double alpha) const override;
 	Position2D GetPosition() const override;
 	const std::string& GetBotName() const;
-	SoundChannel GetSoundChannel() const { return sound_channel_; }
+	// Plays on the enemy's own channel, cutting off its previous sound
+	void PlaySound(SoundEffect effect);
 	int GetTextureId() const override;
 	double GetWidth() const override;
 	double GetHeight() const override;
 	StateConfig GetStateConfig() const;
 	const Ray& GetCrosshairRay() const;
 	const SimpleWeapon& GetWeapon() const;
-	SimpleWeapon& GetWeapon();
 
   private:
 	void Move(double delta_time);
 
+	Scene& scene_;
 	bool is_attacked_{};
 	bool is_alive_{};
-	double rotation_speed_{};
 	double translation_speed_{};
 	double width{};
 	double height{};
 	double health_{};
 	Position2D position_;
 	vector2d next_pose;
+	vector2d previous_pose_;
 	StateConfig state_config_;
 	std::string bot_name_;
 	SoundChannel sound_channel_;
@@ -97,7 +102,7 @@ class Enemy : public ICharacter, public IGameObject
 	PainState pain_state_;
 	DeathState death_state_;
 	StateMachine<EnemyState> state_machine_;
-	std::shared_ptr<SimpleWeapon> weapon_;
+	SimpleWeapon weapon_;
 };
 
 }  // namespace wolfenstein

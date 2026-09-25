@@ -14,13 +14,13 @@
 
 #include "SoundManager/sound_manager.h"
 #include "State/weapon_state.h"
-#include "Strike/strike.h"
 #include <cstddef>
 #include <memory>
 #include <string>
 namespace wolfenstein {
 
-class Ray;
+class TextureManager;
+
 struct WeaponConfig
 {
 	WeaponConfig(std::string weapon_name, size_t ammo_capacity,
@@ -41,12 +41,17 @@ struct WeaponConfig
 };
 
 // Pinned (not copyable or movable): its states point back to it
-class Weapon : public IStrike
+class Weapon
 {
   public:
-	explicit Weapon(std::string weapon_name);
+	// Borrows the textures its animations play from and the sound it plays;
+	// both outlive it
+	Weapon(std::string weapon_name, const TextureManager& textures,
+		   SoundManager& sound);
+	const TextureManager& GetTextures() const { return textures_; }
 
-	void Attack() override;
+	// Pulls the trigger; true if a shot was fired (the caller resolves it)
+	bool Attack();
 	void Update(double delta_time);
 	void Charge();
 	void Reload();
@@ -57,7 +62,6 @@ class Weapon : public IStrike
 	void IncreaseAmmo(size_t amount);
 	void DecreaseAmmo();
 	void DecreaseAmmo(size_t amount);
-	void SetCrossHair(std::shared_ptr<Ray> crosshair);
 
 	size_t GetAmmo() const;
 	size_t GetAmmoCapacity() const;
@@ -66,11 +70,15 @@ class Weapon : public IStrike
 	double GetAttackSpeed() const;
 	double GetReloadSpeed() const;
 	const std::string& GetWeaponName() const;
-	SoundChannel GetSoundChannel() const { return sound_channel_; }
+	// Plays on the weapon's own channel
+	void PlaySound(SoundEffect effect) {
+		sound_.PlayEffect(sound_channel_, effect);
+	}
 	int GetTextureId() const;
-	const Ray& GetCrosshair() const;
 
   private:
+	const TextureManager& textures_;
+	SoundManager& sound_;
 	WeaponConfig weapon_properties_;
 	SoundChannel sound_channel_;
 	size_t ammo_{};
@@ -82,9 +90,6 @@ class Weapon : public IStrike
 	OutOfAmmoState out_of_ammo_state_;
 	ReloadingState reloading_state_;
 	StateMachine<WeaponState> state_machine_;
-	bool cooldown_{};
-	double attack_time_{};
-	std::shared_ptr<Ray> crosshair_;
 };
 
 }  // namespace wolfenstein

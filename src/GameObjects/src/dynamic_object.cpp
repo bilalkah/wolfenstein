@@ -11,8 +11,8 @@ void DynamicObject::Update(double delta_time) {
 	animation.Update(delta_time);
 }
 
-void DynamicObject::SetPose(const vector2d& pose) {
-	this->pose = pose;
+void DynamicObject::SetPose(const vector2d& new_pose) {
+	pose = new_pose;
 }
 
 ObjectType DynamicObject::GetObjectType() const {

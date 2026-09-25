@@ -39,14 +39,15 @@ SDL_Rect ButtonRect(int screen_width, int top, int index) {
 
 }  // namespace
 
-Menu::Menu(std::shared_ptr<RendererContext> context)
+Menu::Menu(std::shared_ptr<RendererContext> context, SoundManager& sound)
 	: context_(std::move(context)),
 	  ui_(std::make_unique<ui::Ui>(
 		  context_->GetRenderer(),
 		  std::string(RESOURCE_DIR) + "font/EternalAncient.ttf",
 		  std::string(RESOURCE_DIR) + "font/Roboto-Light.ttf")) {
 	for (const auto& info : kWeapons) {
-		weapons_.push_back(std::make_shared<Weapon>(info.name));
+		weapons_.push_back(
+			std::make_shared<Weapon>(info.name, context_->Textures(), sound));
 	}
 }
 
@@ -71,11 +72,12 @@ void Menu::SetPreviewedWeapon(int index) {
 	// The card losing focus goes back to its first frame instead of freezing
 	// mid-animation; the card gaining it plays the reload animation
 	if (previewed_weapon_ >= 0) {
-		weapons_[previewed_weapon_]->TransitionTo(WeaponStateType::Loaded);
+		weapons_[static_cast<std::size_t>(previewed_weapon_)]->TransitionTo(
+			WeaponStateType::Loaded);
 	}
 	previewed_weapon_ = index;
 	if (index >= 0) {
-		weapons_[index]->Reload();
+		weapons_[static_cast<std::size_t>(index)]->Reload();
 	}
 }
 
@@ -218,8 +220,7 @@ void Menu::DrawWeaponCard(const SDL_Rect& rect, const Weapon& weapon,
 	// Weapon sprite, scaled to fit the preview area and kept in proportion
 	const SDL_Rect preview{rect.x + kPadding, rect.y + kPadding,
 						   rect.w - 2 * kPadding, 230};
-	const auto texture =
-		TextureManager::GetInstance().GetTexture(weapon.GetTextureId());
+	const auto texture = context_->Textures().GetTexture(weapon.GetTextureId());
 	if (texture.texture != nullptr && texture.width > 0 && texture.height > 0) {
 		const double scale =
 			std::min(static_cast<double>(preview.w) / texture.width,
@@ -259,16 +260,16 @@ void Menu::DrawWeaponCard(const SDL_Rect& rect, const Weapon& weapon,
 	struct Stat
 	{
 		const char* label;
-		std::string value;
+		ui::FixedText<16> value;
 		double fill;
 	};
 	const std::array<Stat, 4> stats = {{
-		{"Damage", std::format("{:.0f}-{:.0f}", min_damage, max_damage),
+		{"Damage", ui::FixedText<16>("{:.0f}-{:.0f}", min_damage, max_damage),
 		 (max_damage + min_damage) / 2 / best_damage},
-		{"Fire rate", std::format("{:.1f}/s", rate), rate / best_rate},
-		{"Magazine", std::format("{}", weapon.GetAmmoCapacity()),
+		{"Fire rate", ui::FixedText<16>("{:.1f}/s", rate), rate / best_rate},
+		{"Magazine", ui::FixedText<16>("{}", weapon.GetAmmoCapacity()),
 		 weapon.GetAmmoCapacity() / best_capacity},
-		{"Reload", std::format("{:.1f}s", weapon.GetReloadSpeed()),
+		{"Reload", ui::FixedText<16>("{:.1f}s", weapon.GetReloadSpeed()),
 		 best_reload / weapon.GetReloadSpeed()},
 	}};
 	const int bar_left = rect.x + 170;
@@ -353,14 +354,14 @@ MenuAction Menu::SettingsScreen() {
 	int y = 200;
 
 	if (ui_->Slider("Mouse sensitivity",
-					std::format("{:.2f}x", settings.mouse_sensitivity),
+					ui::FixedText<>("{:.2f}x", settings.mouse_sensitivity),
 					{left, y, kRowWidth, kRowHeight},
 					settings.mouse_sensitivity, Settings::kMinMouseSensitivity,
 					Settings::kMaxMouseSensitivity, 0.05)) {
 		action.type = MenuAction::Type::SettingsChanged;
 	}
 	y += kRowHeight + kButtonGap;
-	if (ui_->Slider("Volume", std::format("{:.0f}%", settings.volume * 100),
+	if (ui_->Slider("Volume", ui::FixedText<>("{:.0f}%", settings.volume * 100),
 					{left, y, kRowWidth, kRowHeight}, settings.volume, 0.0, 1.0,
 					0.05)) {
 		action.type = MenuAction::Type::SettingsChanged;
@@ -413,11 +414,10 @@ MenuAction Menu::ResultScreen() {
 }
 
 void Menu::DrawBackground() {
-	SDL_RenderCopy(context_->GetRenderer(),
-				   TextureManager::GetInstance()
-					   .GetTexture(kMenuBackgroundTexture)
-					   .texture,
-				   nullptr, nullptr);
+	SDL_RenderCopy(
+		context_->GetRenderer(),
+		context_->Textures().GetTexture(kMenuBackgroundTexture).texture,
+		nullptr, nullptr);
 }
 
 void Menu::DrawDimmer(Uint8 alpha) {

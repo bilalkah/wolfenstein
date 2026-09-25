@@ -181,11 +181,22 @@ void Ui::DrawRect(const SDL_Rect& rect, SDL_Color c, int thickness) {
 	}
 }
 
+std::size_t Ui::TextKeyHash::operator()(const TextKeyView& key) const noexcept {
+	const std::size_t text = std::hash<std::string_view>{}(key.text);
+	// 64 bits even where size_t is 32 (wasm32)
+	const std::uint64_t style_and_colour =
+		(static_cast<std::uint64_t>(key.style) << 32) | key.rgba;
+	// Combines the two as boost::hash_combine does
+	return text ^ (std::hash<std::uint64_t>{}(style_and_colour) + 0x9e3779b9 +
+				   (text << 6) + (text >> 2));
+}
+
 const Ui::CachedText& Ui::GetText(std::string_view text, FontStyle style,
 								  SDL_Color c) {
-	const auto key =
-		std::format("{}|{:02x}{:02x}{:02x}{:02x}|{}", static_cast<int>(style),
-					c.r, c.g, c.b, c.a, text);
+	const std::uint32_t rgba = (std::uint32_t{c.r} << 24) |
+							   (std::uint32_t{c.g} << 16) |
+							   (std::uint32_t{c.b} << 8) | c.a;
+	const TextKeyView key{style, rgba, text};
 	if (const auto it = text_cache_.find(key); it != text_cache_.end()) {
 		return it->second;
 	}
@@ -197,7 +208,7 @@ const Ui::CachedText& Ui::GetText(std::string_view text, FontStyle style,
 	}
 
 	CachedText cached;
-	const std::string owned(text);
+	std::string owned(text);
 	SDL_Surface* surface = TTF_RenderUTF8_Blended(
 		fonts_[static_cast<std::size_t>(style)], owned.c_str(), c);
 	if (surface != nullptr) {
@@ -206,7 +217,8 @@ const Ui::CachedText& Ui::GetText(std::string_view text, FontStyle style,
 		cached.height = surface->h;
 		SDL_FreeSurface(surface);
 	}
-	return text_cache_.emplace(key, cached).first->second;
+	return text_cache_.emplace(TextKey{style, rgba, std::move(owned)}, cached)
+		.first->second;
 }
 
 SDL_Point Ui::MeasureText(std::string_view text, FontStyle style) {

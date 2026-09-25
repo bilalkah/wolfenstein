@@ -42,10 +42,12 @@ RendererContext::RendererContext(const std::string& window_name,
 		SDL_SetWindowFullscreen(window_, SDL_WINDOW_FULLSCREEN_DESKTOP);
 	}
 
-	TextureManager::GetInstance().InitManager(renderer_);
+	textures_.emplace(renderer_);
 }
 
 RendererContext::~RendererContext() {
+	// Textures belong to the renderer: they go first
+	textures_.reset();
 	SDL_DestroyRenderer(renderer_);
 	TTF_CloseFont(font_);
 	SDL_DestroyWindow(window_);
@@ -85,9 +87,9 @@ void IRenderer::ClearScreen() {
 	SDL_RenderClear(context_->GetRenderer());
 }
 
-void IRenderer::SetScene(const std::shared_ptr<Scene>& scene_ptr) {
-	scene_ = scene_ptr;
-	context_->GetCamera().SetScene(scene_ptr);
+void IRenderer::SetScene(Scene& scene) {
+	scene_ = &scene;
+	context_->GetCamera().SetScene(scene);
 }
 
 std::shared_ptr<RendererContext> IRenderer::GetContext() const {

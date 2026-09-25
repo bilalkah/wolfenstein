@@ -59,16 +59,21 @@ endif()
 # free of boilerplate. Downloaded dependencies are left alone.
 function(wolfenstein_apply_options_to_project)
     get_property(subdirs DIRECTORY ${PROJECT_SOURCE_DIR} PROPERTY SUBDIRECTORIES)
-    foreach(dir ${subdirs})
-        cmake_path(IS_PREFIX PROJECT_SOURCE_DIR "${dir}" NORMALIZE inside_project)
-        if(inside_project)
-            wolfenstein_apply_options(${dir})
-        endif()
-    endforeach()
+    wolfenstein_apply_options(${subdirs})
 endfunction()
 
+# Applies the options to every target in the given directories and their
+# subdirectories, skipping anything outside the source tree and fetched
+# dependencies (GoogleTest, Google Benchmark): those live under the build
+# directory, which may itself be inside the source tree, and keep their own
+# flags rather than the project's strict warnings
 function(wolfenstein_apply_options)
     foreach(dir ${ARGN})
+        cmake_path(IS_PREFIX PROJECT_SOURCE_DIR "${dir}" NORMALIZE inside_project)
+        cmake_path(IS_PREFIX PROJECT_BINARY_DIR "${dir}" NORMALIZE in_build_dir)
+        if(NOT inside_project OR in_build_dir)
+            continue()
+        endif()
         get_property(targets DIRECTORY ${dir} PROPERTY BUILDSYSTEM_TARGETS)
         foreach(target ${targets})
             # Set through the properties rather than target_link_libraries,

@@ -1,81 +1,49 @@
 #include "TimeManager/time_manager.h"
+#include <algorithm>
 #include <thread>
 
 namespace wolfenstein {
 
-TimeManager* TimeManager::instance_ = nullptr;
+FrameClock::FrameClock() : previous_(Clock::now()) {}
 
-TimeManager& TimeManager::GetInstance() {
-	if (instance_ == nullptr) {
-		instance_ = new TimeManager();
-	}
-	return *instance_;
+void FrameClock::Restart() {
+	previous_ = Clock::now();
 }
 
-TimeManager::~TimeManager() {
-	delete instance_;
+void FrameClock::Tick() {
+	const auto now = Clock::now();
+	delta_ = fixed_delta_.count() > 0.0 ? fixed_delta_ : now - previous_;
+	previous_ = now;
 }
 
-void TimeManager::InitClock() {
-	previos_time_point = std::chrono::high_resolution_clock::now();
-	initial_time_point = previos_time_point;
+void FrameClock::SetFixedDeltaTime(double seconds) {
+	fixed_delta_ = std::chrono::duration<double>(seconds);
 }
 
-void TimeManager::CalculateDeltaTime() {
-	auto current_time_point = std::chrono::high_resolution_clock::now();
-	delta_time = current_time_point - previos_time_point;
-	previos_time_point = current_time_point;
-	if (fixed_delta_time.count() > 0.0) {
-		delta_time = fixed_delta_time;
-	}
-}
-
-void TimeManager::SetFixedDeltaTime(double seconds) {
-	fixed_delta_time = std::chrono::duration<double>(seconds);
-}
-
-void TimeManager::SleepForHz(double hz) {
-	if (hz == 0) {
+void FrameClock::SleepForHz(double hz) const {
+	if (hz <= 0.0) {
 		return;
 	}
-	std::chrono::duration<double, std::milli> duration_between_frame =
-		std::chrono::high_resolution_clock::now() - previos_time_point;
-	std::chrono::duration<double, std::milli> ms((1.0 / hz) * 1000);
-	if (duration_between_frame.count() < ms.count()) {
-		std::chrono::duration<double, std::milli> delta_ms(
-			ms.count() - duration_between_frame.count());
-		auto delta_ms_duration =
-			std::chrono::duration_cast<std::chrono::milliseconds>(delta_ms);
+	const std::chrono::duration<double> frame(1.0 / hz);
+	const auto elapsed = Clock::now() - previous_;
+	if (elapsed < frame) {
 		std::this_thread::sleep_for(
-			std::chrono::milliseconds(delta_ms_duration.count()));
+			std::chrono::duration_cast<std::chrono::milliseconds>(frame -
+																  elapsed));
 	}
 }
 
-double TimeManager::GetDeltaTime() {
-	return delta_time.count();
-}
+FixedStep::FixedStep(double tick_seconds, double max_frame_seconds)
+	: tick_seconds_(tick_seconds), max_frame_seconds_(max_frame_seconds) {}
 
-double TimeManager::GetFramePerSecond() {
-	return 1.0 / GetDeltaTime();
-}
-
-double TimeManager::GetCurrentTime() {
-	auto time_passed =
-		std::chrono::high_resolution_clock::now() - initial_time_point;
-	auto current_time =
-		std::chrono::duration_cast<std::chrono::seconds>(time_passed);
-	return current_time.count();
-}
-
-std::string TimeManager::GetTime() {
-	auto time_passed =
-		std::chrono::high_resolution_clock::now() - initial_time_point;
-	auto time_passed_seconds =
-		std::chrono::duration_cast<std::chrono::seconds>(time_passed);
-	auto time_passed_milliseconds =
-		std::chrono::duration_cast<std::chrono::milliseconds>(time_passed);
-	return std::to_string(time_passed_seconds.count()) + "." +
-		   std::to_string(time_passed_milliseconds.count() % 1000) + "s";
+int FixedStep::Advance(double frame_seconds) {
+	accumulator_ += std::min(frame_seconds, max_frame_seconds_);
+	int ticks = 0;
+	while (accumulator_ >= tick_seconds_) {
+		accumulator_ -= tick_seconds_;
+		++ticks;
+	}
+	return ticks;
 }
 
 }  // namespace wolfenstein

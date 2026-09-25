@@ -26,30 +26,27 @@ void Camera2D::InitRays() {
 	rays_.assign(static_cast<std::size_t>(config_.width / 2), Ray());
 }
 
-Camera2D::Camera2D(const Camera2DConfig& config,
-				   const std::shared_ptr<Scene> scene)
-	: config_(config),
-	  scene_(scene),
-	  ray_cast_(config.width / 2, config.fov, config.depth) {
+Camera2D::Camera2D(const Camera2DConfig& config)
+	: config_(config), ray_cast_(config.width / 2, config.fov, config.depth) {
 	InitRays();
-	crosshair_ray_ = std::make_shared<Ray>();
 }
 
-void Camera2D::Update() {
-	ray_cast_.Update(scene_->GetMap(), *position_, rays_);
-	*crosshair_ray_ = rays_.at(static_cast<std::size_t>(config_.width / 4));
-	crosshair_ray_->is_hit = false;
+void Camera2D::Update(const Position2D& eye, double alpha) {
+	eye_ = eye;
+	ray_cast_.Update(scene_->GetMap(), eye_, rays_);
+	crosshair_ray_ = rays_.at(static_cast<std::size_t>(config_.width / 4));
+	crosshair_ray_.is_hit = false;
 
 	// Update object rays; entries not written this frame count as invisible
 	++frame_;
 	for (const auto& object : scene_->GetObjects()) {
-		Calculate(*object);
+		Calculate(*object, alpha);
 	}
 }
 
-void Camera2D::SetScene(const std::shared_ptr<Scene>& scene) {
-	scene_ = scene;
-	views_.assign(scene_ ? scene_->GetObjects().size() : 0, ObjectView{});
+void Camera2D::SetScene(Scene& scene) {
+	scene_ = &scene;
+	views_.assign(scene_->GetObjects().size(), ObjectView{});
 }
 
 const RayVector& Camera2D::GetRays() const {
@@ -64,12 +61,8 @@ const RayPair* Camera2D::FindObjectRays(ObjectId id) const {
 	return &views_[index].rays;
 }
 
-const std::shared_ptr<Ray>& Camera2D::GetCrosshairRay() const {
-	return crosshair_ray_;
-}
-
 Position2D Camera2D::GetPosition() const {
-	return *position_;
+	return eye_;
 }
 
 double Camera2D::GetFov() const {
@@ -79,24 +72,20 @@ double Camera2D::GetDeltaAngle() const {
 	return ray_cast_.GetDeltaTheta();
 }
 
-void Camera2D::SetPositionPtr(const std::shared_ptr<Position2D> position) {
-	position_ = position;
-}
+void Camera2D::Calculate(const IGameObject& object, double alpha) {
 
-void Camera2D::Calculate(const IGameObject& object) {
-
-	const auto object_pose = object.GetPose();
+	const auto object_pose = object.GetRenderPose(alpha);
 	const auto width = object.GetWidth();
-	const auto position_ = *this->position_;
+	const auto& position = eye_;
 	// check if object is in the camera view
-	auto object_distance = object_pose.Distance(position_.pose);
+	auto object_distance = object_pose.Distance(position.pose);
 	if (object_distance > config_.depth) {
 		return;
 	}
 
 	// Object center angle
 	const auto object_center_angle = std::atan2(
-		object_pose.y - position_.pose.y, object_pose.x - position_.pose.x);
+		object_pose.y - position.pose.y, object_pose.x - position.pose.x);
 
 	// Object left edge point and angle
 	auto object_left_edge_angle =
@@ -105,8 +94,8 @@ void Camera2D::Calculate(const IGameObject& object) {
 		object_pose + vector2d{width / 2 * std::cos(object_left_edge_angle),
 							   width / 2 * std::sin(object_left_edge_angle)};
 	const auto left_edge_angle =
-		std::atan2(left_edge_point.y - position_.pose.y,
-				   left_edge_point.x - position_.pose.x);
+		std::atan2(left_edge_point.y - position.pose.y,
+				   left_edge_point.x - position.pose.x);
 	const auto camera_angle_left = WorldAngleToCameraAngle(left_edge_angle);
 
 	// Object right edge point and angle
@@ -116,8 +105,8 @@ void Camera2D::Calculate(const IGameObject& object) {
 		object_pose + vector2d{width / 2 * std::cos(object_right_edge_angle),
 							   width / 2 * std::sin(object_right_edge_angle)};
 	const auto right_edge_angle =
-		std::atan2(right_edge_point.y - position_.pose.y,
-				   right_edge_point.x - position_.pose.x);
+		std::atan2(right_edge_point.y - position.pose.y,
+				   right_edge_point.x - position.pose.x);
 	const auto camera_angle_right = WorldAngleToCameraAngle(right_edge_angle);
 
 	// Check if object is in the camera view
@@ -129,13 +118,13 @@ void Camera2D::Calculate(const IGameObject& object) {
 
 	// Calculate object raypair
 	RayPair object_ray_pair;
-	object_ray_pair.first.Reset(position_.pose, camera_angle_left);
+	object_ray_pair.first.Reset(position.pose, camera_angle_left);
 	object_ray_pair.first.is_hit = true;
 	object_ray_pair.first.perpendicular_distance =
 		object_distance * std::cos(camera_angle_left);
 	object_ray_pair.first.wall_id = texture_id;
 
-	object_ray_pair.second.Reset(position_.pose, camera_angle_right);
+	object_ray_pair.second.Reset(position.pose, camera_angle_right);
 	object_ray_pair.second.is_hit = true;
 	object_ray_pair.second.perpendicular_distance =
 		object_distance * std::cos(camera_angle_right);
@@ -148,23 +137,23 @@ void Camera2D::Calculate(const IGameObject& object) {
 	// Calculate if the object is in the crosshair
 	if (object.GetObjectType() == ObjectType::CHARACTER_ENEMY) {
 		const auto& bot = dynamic_cast<const Enemy&>(object);
-		if (object_distance < crosshair_ray_->perpendicular_distance &&
+		if (object_distance < crosshair_ray_.perpendicular_distance &&
 			camera_angle_left <= 0 && camera_angle_right >= 0 &&
 			bot.IsAlive()) {
-			crosshair_ray_->is_hit = true;
-			crosshair_ray_->perpendicular_distance =
+			crosshair_ray_.is_hit = true;
+			crosshair_ray_.perpendicular_distance =
 				(object_ray_pair.first.perpendicular_distance +
 				 object_ray_pair.second.perpendicular_distance) /
 				2;
-			crosshair_ray_->distance = object_distance;
-			crosshair_ray_->object_id = bot.GetId();
-			crosshair_ray_->hit_point = object_pose;
+			crosshair_ray_.distance = object_distance;
+			crosshair_ray_.object_id = bot.GetId();
+			crosshair_ray_.hit_point = object_pose;
 		}
 	}
 }
 
 double Camera2D::WorldAngleToCameraAngle(double angle) const {
-	const auto vector_of_crosshair = crosshair_ray_->direction;
+	const auto vector_of_crosshair = crosshair_ray_.direction;
 	const auto vector_of_ray = vector2d{std::cos(angle), std::sin(angle)};
 	const auto angle_between = CalculateAngleBetweenTwoVectorsSigned(
 		vector_of_ray, vector_of_crosshair);

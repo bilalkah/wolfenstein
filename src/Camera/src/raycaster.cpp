@@ -7,18 +7,16 @@ namespace wolfenstein {
 RayCaster::RayCaster(int num_ray, double fov, double depth)
 	: fov_(fov), depth_(depth), delta_theta_(fov_ / num_ray) {}
 
-void RayCaster::Update(const Map& map, const Position2D& position,
-					   RayVector& rays) {
-	const auto cells = map.GetCells();
-	double ray_theta = position.theta - (fov_ / 2);
-	for (auto& ray : rays) {
-		ray = Cast(cells, position, ray_theta);
-		ray_theta += delta_theta_;
-	}
-}
+namespace {
 
-Ray RayCaster::Cast(Map::CellView cells, const Position2D& position,
-					double ray_theta) const {
+void PrepareRay(const Position2D& position, const double ray_theta, Ray& ray,
+				vector2d& ray_unit_step, vector2d& ray_length_1d,
+				vector2i& step, vector2i& map_check);
+
+// DDA through the cells from `position` at `ray_theta`, until a wall or
+// `depth`
+Ray Cast(Map::CellView cells, const Position2D& position, double ray_theta,
+		 double depth) {
 	const auto row_size = static_cast<int>(cells.extent(0));
 	const auto col_size = static_cast<int>(cells.extent(1));
 	Ray ray;
@@ -27,7 +25,7 @@ Ray RayCaster::Cast(Map::CellView cells, const Position2D& position,
 	PrepareRay(position, ray_theta, ray, ray_unit_step, ray_length_1d, step,
 			   map_check);
 
-	while (!ray.is_hit && ray.distance < depth_) {
+	while (!ray.is_hit && ray.distance < depth) {
 		if (ray_length_1d.x < ray_length_1d.y) {
 			ray.is_hit_vertical = true;
 			ray.perpendicular_distance = ray_length_1d.x;
@@ -57,14 +55,9 @@ Ray RayCaster::Cast(Map::CellView cells, const Position2D& position,
 	return ray;
 }
 
-double RayCaster::GetDeltaTheta() const {
-	return delta_theta_;
-}
-
-void RayCaster::PrepareRay(const Position2D& position, const double ray_theta,
-						   Ray& ray, vector2d& ray_unit_step,
-						   vector2d& ray_length_1d, vector2i& step,
-						   vector2i& map_check) const {
+void PrepareRay(const Position2D& position, const double ray_theta, Ray& ray,
+				vector2d& ray_unit_step, vector2d& ray_length_1d,
+				vector2i& step, vector2i& map_check) {
 
 	ray.Reset(position.pose, ray_theta);
 
@@ -95,6 +88,27 @@ void RayCaster::PrepareRay(const Position2D& position, const double ray_theta,
 		ray_length_1d.y =
 			(double(map_check.y + 1) - ray.origin.y) * ray_unit_step.y;
 	}
+}
+
+}  // namespace
+
+void RayCaster::Update(const Map& map, const Position2D& position,
+					   RayVector& rays) {
+	const auto cells = map.GetCells();
+	double ray_theta = position.theta - (fov_ / 2);
+	for (auto& ray : rays) {
+		ray = Cast(cells, position, ray_theta, depth_);
+		ray_theta += delta_theta_;
+	}
+}
+
+Ray CastRay(const Map& map, const Position2D& from, double theta,
+			double depth) {
+	return Cast(map.GetCells(), from, theta, depth);
+}
+
+double RayCaster::GetDeltaTheta() const {
+	return delta_theta_;
 }
 
 }  // namespace wolfenstein
