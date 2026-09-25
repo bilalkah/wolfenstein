@@ -22,6 +22,7 @@ add_executable(unit_tests
     level_data_test.cpp
     animation_test.cpp
     world_test.cpp
+    menu_test.cpp
 )
 target_link_libraries(unit_tests PRIVATE
     GTest::gtest_main
@@ -39,6 +40,7 @@ target_link_libraries(unit_tests PRIVATE
     scene_loader
     animation
     world
+    renderer_menu
 )
 # Counting heap allocations replaces global operator new, which clashes with
 # the sanitizers' allocator, so allocation tests run in non-sanitizer builds
