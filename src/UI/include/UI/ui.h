@@ -17,11 +17,16 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
+#include <format>
+#include <functional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 
 namespace wolfenstein::ui {
 
@@ -46,6 +51,27 @@ enum class FontStyle : std::uint8_t {
 };
 
 enum class Align : std::uint8_t { Left, Center, Right };
+
+// Text formatted into a buffer on the stack, for values drawn every frame
+// ("0.75x", "80%"): unlike std::format's std::string it never allocates.
+// Output longer than Capacity is cut off.
+template <std::size_t Capacity = 32>
+class FixedText
+{
+  public:
+	template <typename... Args>
+	explicit FixedText(std::format_string<Args...> format, Args&&... args) {
+		const auto result = std::format_to_n(buffer_.data(), Capacity, format,
+											 std::forward<Args>(args)...);
+		size_ = std::min(static_cast<std::size_t>(result.size), Capacity);
+	}
+	std::string_view View() const { return {buffer_.data(), size_}; }
+	operator std::string_view() const { return View(); }
+
+  private:
+	std::array<char, Capacity> buffer_{};
+	std::size_t size_ = 0;
+};
 
 // Input collected from the frame's SDL events
 class Input
@@ -119,6 +145,41 @@ class Ui
 		int height = 0;
 	};
 
+	// A rasterised text is identified by its style, colour and characters.
+	// Lookups use TextKeyView, which borrows the characters, so finding a
+	// cached text builds no key string; only rasterising a new one does.
+	struct TextKeyView
+	{
+		FontStyle style;
+		std::uint32_t rgba;
+		std::string_view text;
+		friend bool operator==(const TextKeyView&,
+							   const TextKeyView&) = default;
+	};
+	struct TextKey
+	{
+		FontStyle style;
+		std::uint32_t rgba;
+		std::string text;
+		operator TextKeyView() const { return {style, rgba, text}; }
+	};
+	struct TextKeyHash
+	{
+		using is_transparent = void;
+		std::size_t operator()(const TextKeyView& key) const noexcept;
+		std::size_t operator()(const TextKey& key) const noexcept {
+			return (*this)(static_cast<TextKeyView>(key));
+		}
+	};
+	struct TextKeyEqual
+	{
+		using is_transparent = void;
+		bool operator()(const TextKeyView& lhs,
+						const TextKeyView& rhs) const noexcept {
+			return lhs == rhs;
+		}
+	};
+
 	// Registers the next focusable widget and returns its index, moving focus
 	// to it when the mouse hovers it
 	int NextWidget(const SDL_Rect& rect);
@@ -128,7 +189,8 @@ class Ui
 
 	SDL_Renderer* renderer_;
 	std::array<TTF_Font*, static_cast<std::size_t>(FontStyle::Count)> fonts_{};
-	std::unordered_map<std::string, CachedText> text_cache_;
+	std::unordered_map<TextKey, CachedText, TextKeyHash, TextKeyEqual>
+		text_cache_;
 	Input input_;
 	int focus_index_ = 0;
 	int widget_count_ = 0;

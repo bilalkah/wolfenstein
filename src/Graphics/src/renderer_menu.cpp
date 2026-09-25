@@ -260,16 +260,16 @@ void Menu::DrawWeaponCard(const SDL_Rect& rect, const Weapon& weapon,
 	struct Stat
 	{
 		const char* label;
-		std::string value;
+		ui::FixedText<16> value;
 		double fill;
 	};
 	const std::array<Stat, 4> stats = {{
-		{"Damage", std::format("{:.0f}-{:.0f}", min_damage, max_damage),
+		{"Damage", ui::FixedText<16>("{:.0f}-{:.0f}", min_damage, max_damage),
 		 (max_damage + min_damage) / 2 / best_damage},
-		{"Fire rate", std::format("{:.1f}/s", rate), rate / best_rate},
-		{"Magazine", std::format("{}", weapon.GetAmmoCapacity()),
+		{"Fire rate", ui::FixedText<16>("{:.1f}/s", rate), rate / best_rate},
+		{"Magazine", ui::FixedText<16>("{}", weapon.GetAmmoCapacity()),
 		 weapon.GetAmmoCapacity() / best_capacity},
-		{"Reload", std::format("{:.1f}s", weapon.GetReloadSpeed()),
+		{"Reload", ui::FixedText<16>("{:.1f}s", weapon.GetReloadSpeed()),
 		 best_reload / weapon.GetReloadSpeed()},
 	}};
 	const int bar_left = rect.x + 170;
@@ -354,14 +354,14 @@ MenuAction Menu::SettingsScreen() {
 	int y = 200;
 
 	if (ui_->Slider("Mouse sensitivity",
-					std::format("{:.2f}x", settings.mouse_sensitivity),
+					ui::FixedText<>("{:.2f}x", settings.mouse_sensitivity),
 					{left, y, kRowWidth, kRowHeight},
 					settings.mouse_sensitivity, Settings::kMinMouseSensitivity,
 					Settings::kMaxMouseSensitivity, 0.05)) {
 		action.type = MenuAction::Type::SettingsChanged;
 	}
 	y += kRowHeight + kButtonGap;
-	if (ui_->Slider("Volume", std::format("{:.0f}%", settings.volume * 100),
+	if (ui_->Slider("Volume", ui::FixedText<>("{:.0f}%", settings.volume * 100),
 					{left, y, kRowWidth, kRowHeight}, settings.volume, 0.0, 1.0,
 					0.05)) {
 		action.type = MenuAction::Type::SettingsChanged;
