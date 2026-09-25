@@ -58,7 +58,7 @@ class RendererContext
 	SDL_Renderer* GetRenderer() const;
 	TTF_Font* GetFont() const;
 	SDL_Window* GetWindow() const;
-	RenderConfig GetConfig() const;
+	const RenderConfig& GetConfig() const { return config_; }
 	const Camera2D& GetCamera() const;
 	Camera2D& GetCamera();
 	TextureManager& Textures() { return *textures_; }
@@ -77,7 +77,8 @@ class RendererContext
 class IRenderer
 {
   public:
-	explicit IRenderer(std::shared_ptr<RendererContext> context);
+	// Borrows the context, which outlives every view
+	explicit IRenderer(RendererContext& context);
 	virtual ~IRenderer() = default;
 
   protected:
@@ -97,9 +98,7 @@ class IRenderer
   protected:
 	void ClearScreen();
 
-	std::shared_ptr<RendererContext> GetContext() const;
-
-	std::shared_ptr<RendererContext> context_;
+	RendererContext* context_;
 	Scene* scene_ = nullptr;
 };
 

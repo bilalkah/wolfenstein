@@ -5,9 +5,8 @@
 
 namespace wolfenstein {
 
-RendererResult::RendererResult(std::shared_ptr<RendererContext> context,
-							   int texture_id)
-	: context_(std::move(context)),
+RendererResult::RendererResult(RendererContext& context, int texture_id)
+	: context_(&context),
 	  texture_id_(texture_id),
 	  result_animation_(0.2, 0, 255) {}
 

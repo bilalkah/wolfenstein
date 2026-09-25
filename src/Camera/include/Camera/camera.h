@@ -33,7 +33,7 @@ struct Camera2DConfig
 	double depth;
 };
 
-typedef std::pair<Ray, Ray> RayPair;
+using RayPair = std::pair<Ray, Ray>;
 
 class Scene;
 class Camera2D
@@ -54,7 +54,7 @@ class Camera2D
 	// The rays bounding an object in the current frame, or nullptr if the
 	// object is not visible
 	const RayPair* FindObjectRays(ObjectId id) const;
-	Position2D GetPosition() const;
+	const Position2D& GetPosition() const { return eye_; }
 	double GetFov() const;
 	double GetDeltaAngle() const;
 

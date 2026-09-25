@@ -77,5 +77,35 @@ TEST(LevelData, ReportsMalformedFilesAsErrors) {
 	EXPECT_FALSE(ParseLevel(wrong_type));
 }
 
+// The reader streams the file into LevelData: fields the game does not
+// read are skipped, and a missing field is reported by name
+TEST(LevelData, IgnoresUnknownFields) {
+	std::istringstream input(R"({
+		"map": "m.txt", "author": {"name": "someone", "tags": [1, true, null]},
+		"player": {"position": {"x": 1, "y": 2, "theta": 0.5}, "hat": "red"},
+		"enemies": [{"type": "soldier", "position": {"x": 3, "y": 4, "theta": 0}}],
+		"dynamicObjects": [{"type": "red_light", "position": {"x": 5, "y": 6}}],
+		"staticObjects": []})");
+	const auto level = ParseLevel(input);
+	ASSERT_TRUE(level) << level.error();
+	EXPECT_EQ(level->map, "m.txt");
+	EXPECT_DOUBLE_EQ(level->player.theta, 0.5);
+	ASSERT_EQ(level->enemies.size(), 1u);
+	EXPECT_DOUBLE_EQ(level->enemies[0].position.pose.y, 4.0);
+	ASSERT_EQ(level->dynamic_objects.size(), 1u);
+	EXPECT_EQ(level->dynamic_objects[0].type, "red_light");
+	EXPECT_TRUE(level->next_level.empty());
+}
+
+TEST(LevelData, AnEnemyNeedsAFullPosition) {
+	std::istringstream input(R"({
+		"map": "m.txt", "player": {"position": {"x": 1, "y": 2, "theta": 0}},
+		"enemies": [{"type": "soldier", "position": {"x": 3, "y": 4}}],
+		"dynamicObjects": []})");
+	const auto level = ParseLevel(input);
+	ASSERT_FALSE(level);
+	EXPECT_NE(level.error().find("theta"), std::string::npos) << level.error();
+}
+
 }  // namespace
 }  // namespace wolfenstein

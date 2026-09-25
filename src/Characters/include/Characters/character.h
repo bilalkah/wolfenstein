@@ -37,8 +37,7 @@ inline Position2D Interpolate(const Position2D& from, const Position2D& to,
 							  double alpha) {
 	const double turn =
 		std::remainder(to.theta - from.theta, 2.0 * std::numbers::pi);
-	return Position2D(Interpolate(from.pose, to.pose, alpha),
-					  from.theta + turn * alpha);
+	return {Interpolate(from.pose, to.pose, alpha), from.theta + turn * alpha};
 }
 
 struct CharacterConfig
@@ -73,7 +72,7 @@ class ICharacter
 
   public:
 	virtual void SetPosition(const Position2D position) = 0;
-	virtual Position2D GetPosition() const = 0;
+	virtual const Position2D& GetPosition() const = 0;
 	virtual void IncreaseHealth(double amount) = 0;
 	virtual void DecreaseHealth(double amount) = 0;
 	virtual double GetHealth() const = 0;

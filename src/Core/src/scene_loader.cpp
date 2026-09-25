@@ -54,7 +54,7 @@ std::expected<std::unique_ptr<Scene>, std::string> SceneLoader::Load(
 	// The level file says how many objects the scene must hold, so its pools
 	// and arena are sized exactly, once
 	auto scene = std::make_unique<Scene>(
-		textures, sound, std::move(*map),
+		textures, sound, *map,
 		SceneCapacity{
 			.enemies = static_cast<std::uint32_t>(level->enemies.size()),
 			.dynamic_objects =

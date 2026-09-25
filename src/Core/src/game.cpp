@@ -46,14 +46,14 @@ Game::Game(GeneralConfig& config) : config_(config) {
 void Game::Init() {
 	Camera2DConfig camera_config = {config_.screen_width, config_.fov,
 									config_.view_distance};
-	camera_ = std::make_shared<Camera2D>(camera_config);
+	camera_ = std::make_unique<Camera2D>(camera_config);
 
 	RenderConfig render_config = {config_.screen_width, config_.screen_height,
 								  config_.padding,		config_.scale,
 								  config_.fps,			config_.view_distance,
 								  config_.fov,			config_.fullscreen};
 
-	renderer_context_ = std::make_shared<RendererContext>(
+	renderer_context_ = std::make_unique<RendererContext>(
 		"Wolfenstein", render_config, *camera_);
 	auto world = World::Create(renderer_context_->Textures(), RESOURCE_DIR);
 	if (!world) {
@@ -61,10 +61,10 @@ void Game::Init() {
 		std::exit(EXIT_FAILURE);
 	}
 	world_ = std::move(*world);
-	menu_ = std::make_unique<Menu>(renderer_context_, world_->Sound(),
+	menu_ = std::make_unique<Menu>(*renderer_context_, world_->Sound(),
 								   world_->Config().weapons);
-	renderer_3d_ = std::make_unique<Renderer3D>(renderer_context_);
-	renderer_2d_ = std::make_unique<Renderer2D>(renderer_context_);
+	renderer_3d_ = std::make_unique<Renderer3D>(*renderer_context_);
+	renderer_2d_ = std::make_unique<Renderer2D>(*renderer_context_);
 	ApplySettings();
 }
 
@@ -378,7 +378,7 @@ void Game::CheckGameOver() {
 	const double delta_time = clock_.DeltaTime();
 	if (!world_->GetPlayer().IsAlive() && !renderer_result_) {
 		renderer_result_ = std::make_unique<RendererResult>(
-			renderer_context_,
+			*renderer_context_,
 			renderer_context_->Textures().GetTextureId("game_over"));
 	}
 	if (world_->CurrentLevel().GetNumberOfAliveEnemies() == 0 &&
@@ -397,7 +397,7 @@ void Game::CheckGameOver() {
 		}
 		else {
 			renderer_result_ = std::make_unique<RendererResult>(
-				renderer_context_,
+				*renderer_context_,
 				renderer_context_->Textures().GetTextureId("win"));
 		}
 	}
@@ -464,7 +464,7 @@ void Game::BenchmarkStep() {
 	if (profiler.GetFrameCount() >=
 		static_cast<std::size_t>(benchmark_frames_)) {
 		std::cout << "BENCHMARK_RESULT " << profiler.ReportJson(kWarmupFrames)
-				  << std::endl;
+				  << '\n';
 		running_ = false;
 	}
 }

@@ -30,7 +30,8 @@ class RayCaster
   public:
 	RayCaster(int num_ray, double fov, double depth);
 
-	void Update(const Map& map, const Position2D& position, RayVector& rays);
+	void Update(const Map& map, const Position2D& position,
+				RayVector& rays) const;
 	double GetDeltaTheta() const;
 
   private:

@@ -36,8 +36,7 @@ void Renderer3D::TextureDeleter::operator()(
 	SDL_DestroyTexture(texture);
 }
 
-Renderer3D::Renderer3D(std::shared_ptr<RendererContext> context)
-	: IRenderer(std::move(context)) {
+Renderer3D::Renderer3D(RendererContext& context) : IRenderer(context) {
 	// One command per wall column (2 px wide), plus objects and the weapon
 	constexpr std::size_t kExtraCommands = 64;
 	render_queue_.reserve(
@@ -65,12 +64,12 @@ Renderer3D::Renderer3D(std::shared_ptr<RendererContext> context)
 
 	const SDL_Color white{255, 255, 255, 255};
 	for (int digit = 0; digit < 10; ++digit) {
-		const char text[] = {static_cast<char>('0' + digit), '\0'};
+		const std::array<char, 2> text{static_cast<char>('0' + digit), '\0'};
 		SDL_Surface* surface =
-			TTF_RenderText_Solid(context_->GetFont(), text, white);
+			TTF_RenderText_Solid(context_->GetFont(), text.data(), white);
 		if (surface == nullptr) {
 			std::cerr << "Failed to render FPS digit: " << TTF_GetError()
-					  << std::endl;
+					  << '\n';
 			continue;
 		}
 		auto& glyph = fps_digits_[static_cast<std::size_t>(digit)];
@@ -111,10 +110,10 @@ void Renderer3D::RenderScene(double delta_time) {
 }
 
 void Renderer3D::RenderBackground() {
-	const auto config = context_->GetConfig();
+	const auto& config = context_->GetConfig();
 	auto renderer_ = context_->GetRenderer();
 	// Render sky
-	auto sky_texture = context_->Textures().GetTexture(sky_texture_);
+	const auto& sky_texture = context_->Textures().GetTexture(sky_texture_);
 	SDL_Rect src_rect = {0, 0, sky_texture.width, sky_texture.height};
 	SDL_Rect dest_rect = {0, 0, config.width, config.height / 2};
 	SDL_RenderCopy(renderer_, sky_texture.texture, &src_rect, &dest_rect);
@@ -163,7 +162,7 @@ void Renderer3D::RenderIfRayHit(const int& horizontal_slice, const Ray& ray) {
 }
 
 void Renderer3D::RenderIfRayHitNot(const int& horizontal_slice) {
-	const auto config_ = context_->GetConfig();
+	const auto& config_ = context_->GetConfig();
 	const auto [line_height, draw_start, draw_end] =
 		CalculateVerticalSlice(config_.view_distance);
 
@@ -213,7 +212,7 @@ void Renderer3D::RenderObjects() {
 
 int Renderer3D::CalculateHorizontalSlice(const double& angle) {
 	const auto& camera_ptr = context_->GetCamera();
-	const auto config_ = context_->GetConfig();
+	const auto& config_ = context_->GetConfig();
 	const auto horizontal_slice =
 		static_cast<int>(angle / camera_ptr.GetDeltaAngle()) * 2 +
 		config_.width / 2;
@@ -223,7 +222,7 @@ int Renderer3D::CalculateHorizontalSlice(const double& angle) {
 
 std::tuple<int, int, int> Renderer3D::CalculateVerticalSlice(
 	const double& distance) {
-	const auto config_ = context_->GetConfig();
+	const auto& config_ = context_->GetConfig();
 	auto line_height = static_cast<int>(config_.height / distance);
 	int draw_start = -line_height / 2 + config_.height / 2;
 	int draw_end = line_height / 2 + config_.height / 2;
@@ -232,10 +231,10 @@ std::tuple<int, int, int> Renderer3D::CalculateVerticalSlice(
 
 void Renderer3D::RenderWeapon() {
 	const auto& player_ptr = scene_->GetPlayer();
-	const auto config_ = context_->GetConfig();
+	const auto& config_ = context_->GetConfig();
 
 	// Render crosshair
-	auto crosshair_texture =
+	const auto& crosshair_texture =
 		context_->Textures().GetTexture(crosshair_texture_);
 	const auto crosshair_height = crosshair_texture.height;
 	const auto crosshair_width = crosshair_texture.width;
@@ -298,7 +297,7 @@ void Renderer3D::RenderTextures() {
 
 void Renderer3D::RenderHUD(double delta_time) {
 	const auto& player = scene_->GetPlayer();
-	const auto config = context_->GetConfig();
+	const auto& config = context_->GetConfig();
 	auto& textures = context_->Textures();
 	const int digit_width = config.width / 40;
 

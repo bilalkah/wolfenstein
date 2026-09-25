@@ -25,14 +25,15 @@
 #include "Math/vector.h"
 #include "TextureManager/texture_manager.h"
 #include "TimeManager/time_manager.h"
+#include <cstdint>
 #include <memory>
 #include <string>
 
 namespace wolfenstein {
 
-enum class RenderType { TEXTURE, LINE };
+enum class RenderType : std::uint8_t { TEXTURE, LINE };
 
-enum class GameState { Menu, Playing, Paused, Result };
+enum class GameState : std::uint8_t { Menu, Playing, Paused, Result };
 
 struct GeneralConfig
 {
@@ -104,8 +105,8 @@ class Game
 	// Declared in dependency order, destroyed in the reverse: the views,
 	// which borrow the world, then the world (level, player, sound), then
 	// the renderer context (textures, then the SDL renderer and SDL itself)
-	std::shared_ptr<Camera2D> camera_;
-	std::shared_ptr<RendererContext> renderer_context_;
+	std::unique_ptr<Camera2D> camera_;
+	std::unique_ptr<RendererContext> renderer_context_;
 	std::unique_ptr<World> world_;
 	// Both views are built once; switching between them (P) swaps the
 	// pointer instead of building a renderer each time

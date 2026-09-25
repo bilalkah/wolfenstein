@@ -105,7 +105,7 @@ Ui::Ui(SDL_Renderer* renderer, const std::string& display_font_path,
 		fonts_[i] = TTF_OpenFont(path.c_str(), spec.size);
 		if (fonts_[i] == nullptr) {
 			std::cerr << "Failed to load font " << path << ": "
-					  << TTF_GetError() << std::endl;
+					  << TTF_GetError() << '\n';
 			std::exit(EXIT_FAILURE);
 		}
 	}

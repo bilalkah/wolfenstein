@@ -20,17 +20,17 @@ std::size_t LevelArenaBytes(const Map& map, SceneCapacity capacity) {
 		   objects * sizeof(IGameObject*) + enemies * sizeof(Enemy*) +
 		   NavigationManager::MemoryFor(map.GetSizeX(), map.GetSizeY(), objects,
 										enemies) +
-		   8 * kSlack;
+		   map.MemoryBytes() + 8 * kSlack;
 }
 
 }  // namespace
 
-Scene::Scene(const TextureManager& textures, SoundManager& sound, Map map,
-			 SceneCapacity capacity)
+Scene::Scene(const TextureManager& textures, SoundManager& sound,
+			 const Map& map, SceneCapacity capacity)
 	: textures_(textures),
 	  sound_(sound),
-	  map_(std::move(map)),
-	  arena_(LevelArenaBytes(map_, capacity)),
+	  arena_(LevelArenaBytes(map, capacity)),
+	  map_(map, &arena_),
 	  enemies_(capacity.enemies, &arena_),
 	  dynamic_objects_(capacity.dynamic_objects, &arena_),
 	  objects_(&arena_),
@@ -73,8 +73,8 @@ void Scene::FinishLoading() {
 	navigation_.Build();
 }
 
-void Scene::SetNextScene(const std::string next_scene) {
-	next_scene_str = next_scene;
+void Scene::SetNextScene(std::string next_scene) {
+	next_scene_str = std::move(next_scene);
 }
 
 void Scene::DecreaseAliveEnemies() {

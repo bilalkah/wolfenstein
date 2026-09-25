@@ -15,6 +15,7 @@
 #include "Graphics/renderer_interface.h"
 #include "Strike/weapon.h"
 #include "UI/ui.h"
+#include <cstdint>
 #include <memory>
 #include <span>
 #include <string>
@@ -22,11 +23,18 @@
 
 namespace wolfenstein {
 
-enum class MenuScreen { Main, WeaponSelect, Controls, Settings, Pause, Result };
+enum class MenuScreen : std::uint8_t {
+	Main,
+	WeaponSelect,
+	Controls,
+	Settings,
+	Pause,
+	Result
+};
 
 struct MenuAction
 {
-	enum class Type {
+	enum class Type : std::uint8_t {
 		None,
 		StartGame,		  // with `weapon`
 		Resume,			  // leave the pause screen
@@ -42,7 +50,7 @@ class Menu
 {
   public:
 	// Offers the given weapons, which outlive the menu (the World's config)
-	Menu(std::shared_ptr<RendererContext> context, SoundManager& sound,
+	Menu(RendererContext& context, SoundManager& sound,
 		 std::span<const WeaponConfig> weapons);
 
 	void Open(MenuScreen screen);
@@ -71,13 +79,13 @@ class Menu
 	// Leaves Controls or Settings for the screen they were opened from
 	void GoBack();
 
-	std::shared_ptr<RendererContext> context_;
+	RendererContext* context_;
 	std::unique_ptr<ui::Ui> ui_;
 	ui::Input input_;
 	MenuScreen screen_ = MenuScreen::Main;
 	MenuScreen return_screen_ = MenuScreen::Main;
 	std::span<const WeaponConfig> weapon_configs_;
-	std::vector<std::shared_ptr<Weapon>> weapons_;
+	std::vector<std::unique_ptr<Weapon>> weapons_;
 	int previewed_weapon_ = -1;
 	int background_texture_ = 0;
 };

@@ -2,6 +2,7 @@
 #include "State/state.h"
 #include "Strike/weapon.h"
 #include "test_services.h"
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <string>
 #include <vector>
@@ -13,7 +14,7 @@ struct TestOwner;
 template <>
 struct StateType<TestOwner>
 {
-	enum class Type { First, Second };
+	enum class Type : std::uint8_t { First, Second };
 };
 
 namespace {

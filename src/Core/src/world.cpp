@@ -10,7 +10,7 @@ constexpr const char* kFirstLevel = "level1.json";
 }  // namespace
 
 std::expected<std::unique_ptr<World>, std::string> World::Create(
-	const TextureManager& textures, std::string asset_dir) {
+	const TextureManager& textures, const std::string& asset_dir) {
 	auto loader = SceneLoader::Open(asset_dir);
 	if (!loader) {
 		return std::unexpected(loader.error());
@@ -45,7 +45,7 @@ std::expected<void, std::string> World::NewGame(
 	CharacterConfig config(Position2D(), stats.translation_speed,
 						   stats.rotation_speed, stats.width, stats.height);
 	player_ = std::make_unique<Player>(
-		config, std::make_shared<Weapon>(*weapon, textures_, *sound_), *sound_);
+		config, std::make_unique<Weapon>(*weapon, textures_, *sound_), *sound_);
 	return LoadLevel(kFirstLevel);
 }
 

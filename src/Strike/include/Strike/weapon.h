@@ -43,8 +43,8 @@ struct WeaponConfig
 class Weapon
 {
   public:
-	// Borrows the textures its animations play from and the sound it plays;
-	// both outlive it
+	// Borrows its configuration (the World's), the textures its animations
+	// play from and the sound it plays: all outlive it
 	Weapon(const WeaponConfig& config, const TextureManager& textures,
 		   SoundManager& sound);
 	const TextureManager& GetTextures() const { return textures_; }
@@ -69,7 +69,7 @@ class Weapon
 	double GetAttackSpeed() const;
 	double GetReloadSpeed() const;
 	const std::string& GetWeaponName() const;
-	DamageFalloff GetFalloff() const { return weapon_properties_.falloff; }
+	DamageFalloff GetFalloff() const { return config_.falloff; }
 	// Plays on the weapon's own channel
 	void PlaySound(SoundEffect effect) {
 		sound_.PlayEffect(sound_channel_, effect);
@@ -79,7 +79,8 @@ class Weapon
   private:
 	const TextureManager& textures_;
 	SoundManager& sound_;
-	WeaponConfig weapon_properties_;
+	// Borrowed from the game config, which outlives every weapon
+	const WeaponConfig& config_;
 	SoundChannel sound_channel_;
 	size_t ammo_{};
 	WeaponState& StateFor(WeaponStateType type);

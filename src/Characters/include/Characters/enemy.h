@@ -71,14 +71,14 @@ class Enemy : public ICharacter, public IGameObject
 	ObjectType GetObjectType() const override;
 	vector2d GetPose() const override;
 	vector2d GetRenderPose(double alpha) const override;
-	Position2D GetPosition() const override;
+	const Position2D& GetPosition() const override { return position_; }
 	const std::string& GetBotName() const;
 	// Plays on the enemy's own channel, cutting off its previous sound
 	void PlaySound(SoundEffect effect);
 	int GetTextureId() const override;
 	double GetWidth() const override;
 	double GetHeight() const override;
-	StateConfig GetStateConfig() const;
+	const StateConfig& GetStateConfig() const { return config_.behaviour; }
 	const Ray& GetCrosshairRay() const;
 	const SimpleWeapon& GetWeapon() const;
 
@@ -95,8 +95,8 @@ class Enemy : public ICharacter, public IGameObject
 	Position2D position_;
 	vector2d next_pose;
 	vector2d previous_pose_;
-	StateConfig state_config_;
-	std::string bot_name_;
+	// Borrowed from the game config, which outlives every enemy
+	const EnemyConfig& config_;
 	SoundChannel sound_channel_;
 	Ray crosshair_ray;
 	EnemyState& StateFor(EnemyStateType type);

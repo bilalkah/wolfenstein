@@ -37,7 +37,7 @@ class EnemyStateTest : public ::testing::Test
 								   0.4};
 	Player player_{
 		player_config_,
-		std::make_shared<Weapon>(testing::Weapon("mp5"),
+		std::make_unique<Weapon>(testing::Weapon("mp5"),
 								 testing::TestTextures(), testing::TestSound()),
 		testing::TestSound()};
 	Scene scene_{testing::TestTextures(), testing::TestSound(),

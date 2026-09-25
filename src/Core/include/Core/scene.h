@@ -53,12 +53,13 @@ class Scene
 	// Borrows the textures its objects' animations play from and the sound
 	// they play; both outlive every level. The map and the capacity size the
 	// level's arena, which also holds the navigation data.
-	Scene(const TextureManager& textures, SoundManager& sound, Map map,
+	Scene(const TextureManager& textures, SoundManager& sound, const Map& map,
 		  SceneCapacity capacity = {});
 	Scene(const Scene&) = delete;
 	Scene& operator=(const Scene&) = delete;
 	Scene(Scene&&) = delete;
 	Scene& operator=(Scene&&) = delete;
+	~Scene() = default;
 
 	std::expected<memory::Handle<Enemy>, memory::PoolError> AddEnemy(
 		const EnemyConfig& config, const Position2D& position);
@@ -70,7 +71,7 @@ class Scene
 	// Builds what depends on the finished level (the navigation grid): call
 	// once every object is in place
 	void FinishLoading();
-	void SetNextScene(const std::string next_scene);
+	void SetNextScene(std::string next_scene);
 	void DecreaseAliveEnemies();
 
 	void Update(double delta_time);
@@ -96,10 +97,11 @@ class Scene
   private:
 	const TextureManager& textures_;
 	SoundManager& sound_;
-	Map map_;
 	// Declared first of what the scene owns, so it is destroyed last, after
 	// everything living in it
 	memory::MonotonicArena arena_;
+	// The level's map, with its cells in the arena
+	Map map_;
 	memory::ObjectPool<Enemy> enemies_;
 	memory::ObjectPool<DynamicObject> dynamic_objects_;
 	std::pmr::vector<IGameObject*> objects_;

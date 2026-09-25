@@ -34,7 +34,7 @@ void IdleState::Update(const double& delta_time) {
 }
 
 void IdleState::OnContextSet() {
-	const auto config = context_->GetStateConfig();
+	const auto& config = context_->GetStateConfig();
 	animation_speed_ = config.idle_frame_seconds;
 	range_ = config.follow_range;
 	// Idle holds each frame for animation_speed_, where other clips spread
@@ -52,7 +52,7 @@ EnemyStateType IdleState::GetType() const {
 // ########################################### WalkState ###########################################
 
 void WalkState::Update(const double& delta_time) {
-	const auto bot_position = context_->GetPosition();
+	const auto& bot_position = context_->GetPosition();
 	const auto distance =
 		context_->GetScene().GetNavigation().EuclideanDistanceToPlayer(
 			bot_position);

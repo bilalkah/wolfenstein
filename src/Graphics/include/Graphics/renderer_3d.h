@@ -25,7 +25,7 @@ namespace wolfenstein {
 class Renderer3D : public IRenderer
 {
   public:
-	explicit Renderer3D(std::shared_ptr<RendererContext> context);
+	explicit Renderer3D(RendererContext& context);
 	void RenderScene(double delta_time) override;
 
   private:

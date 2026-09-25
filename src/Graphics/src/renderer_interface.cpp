@@ -24,7 +24,7 @@ RendererContext::RendererContext(const std::string& window_name,
 		std::string(RESOURCE_DIR) + "font/EternalAncient.ttf";
 	font_ = TTF_OpenFont(font_path.c_str(), 30);  // Font size: 24
 	if (!font_) {
-		std::cerr << "Failed to load font: " << TTF_GetError() << std::endl;
+		std::cerr << "Failed to load font: " << TTF_GetError() << '\n';
 		exit(EXIT_FAILURE);
 	}
 
@@ -85,10 +85,6 @@ SDL_Window* RendererContext::GetWindow() const {
 	return window_;
 }
 
-RenderConfig RendererContext::GetConfig() const {
-	return config_;
-}
-
 const Camera2D& RendererContext::GetCamera() const {
 	return camera_ptr;
 }
@@ -97,8 +93,7 @@ Camera2D& RendererContext::GetCamera() {
 	return camera_ptr;
 }
 
-IRenderer::IRenderer(std::shared_ptr<RendererContext> context)
-	: context_(context) {}
+IRenderer::IRenderer(RendererContext& context) : context_(&context) {}
 
 void IRenderer::ClearScreen() {
 	SDL_SetRenderDrawColor(context_->GetRenderer(), 0, 0, 0, 255);
@@ -108,10 +103,6 @@ void IRenderer::ClearScreen() {
 void IRenderer::SetScene(Scene& scene) {
 	scene_ = &scene;
 	context_->GetCamera().SetScene(scene);
-}
-
-std::shared_ptr<RendererContext> IRenderer::GetContext() const {
-	return context_;
 }
 
 }  // namespace wolfenstein

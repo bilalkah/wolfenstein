@@ -61,10 +61,6 @@ const RayPair* Camera2D::FindObjectRays(ObjectId id) const {
 	return &views_[index].rays;
 }
 
-Position2D Camera2D::GetPosition() const {
-	return eye_;
-}
-
 double Camera2D::GetFov() const {
 	return config_.fov;
 }
