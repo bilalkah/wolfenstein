@@ -52,6 +52,26 @@ jobs:
           name: web-build
           path: build/web-release/bin
 
+  web-benchmark:
+    name: Web benchmark (headless Chromium)
+    needs: web
+    runs-on: ubuntu-24.04
+    # Keep the tag in step with playwright-core in benchmarks/package.json
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: build/web-release/bin
+      - name: Benchmark scenario (1000 frames)
+        working-directory: benchmarks
+        run: npm install --no-audit --no-fund && node run_web_benchmark.mjs ../build/web-release/bin 1000 ci
+      - name: No heap allocations per frame
+        # wasm32 differs from native (a 10-character short-string buffer
+        # instead of 22, 4-byte pointers), so the native gate is not enough
+        run: python3 scripts/alloc_breakdown.py --require-zero --report "$(ls docs/benchmarks/results/*.json)"
+
   format:
     name: Formatting
     runs-on: ubuntu-24.04

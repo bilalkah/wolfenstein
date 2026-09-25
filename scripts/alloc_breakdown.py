@@ -8,6 +8,9 @@ frame for each profiler section, nested as the sections are in the code.
     ./scripts/dev.sh ./build/native-release/bin/wolfenstein --benchmark 600 \
         | ./scripts/alloc_breakdown.py
 
+With --report it reads a saved report instead (the JSON files the web
+benchmark writes to docs/benchmarks/results/).
+
 With --require-zero it exits with an error if any frame after the warmup
 allocated, which CI uses to keep the steady-state frame allocation-free.
 """
@@ -38,12 +41,18 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--require-zero", action="store_true",
                         help="fail if any measured frame allocated")
+    parser.add_argument("--report", metavar="FILE",
+                        help="read a saved JSON report instead of stdin")
     args = parser.parse_args()
 
     report = None
-    for line in sys.stdin:
-        if line.startswith("BENCHMARK_RESULT "):
-            report = json.loads(line[len("BENCHMARK_RESULT "):])
+    if args.report:
+        with open(args.report) as report_file:
+            report = json.load(report_file)
+    else:
+        for line in sys.stdin:
+            if line.startswith("BENCHMARK_RESULT "):
+                report = json.loads(line[len("BENCHMARK_RESULT "):])
     if report is None:
         sys.exit("no BENCHMARK_RESULT line on stdin")
 
