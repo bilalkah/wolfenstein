@@ -25,6 +25,8 @@ export function serve(dir) {
       }
       res.writeHead(200, {
         'Content-Type': MIME[path.extname(target)] ?? 'application/octet-stream',
+        // Lets the page's loading bar know each download's size
+        'Content-Length': body.length,
         'Cross-Origin-Opener-Policy': 'same-origin',
         'Cross-Origin-Embedder-Policy': 'require-corp',
       });
