@@ -40,8 +40,8 @@ Scene::Scene(const TextureManager& textures, SoundManager& sound, Map map,
 }
 
 std::expected<memory::Handle<Enemy>, memory::PoolError> Scene::AddEnemy(
-	const std::string& type, const CharacterConfig& config) {
-	auto handle = enemies_.Create(*this, type, config);
+	const EnemyConfig& config, const Position2D& position) {
+	auto handle = enemies_.Create(*this, config, position);
 	if (handle) {
 		Enemy* enemy = enemies_.Get(*handle);
 		enemy->SetId(ObjectId{static_cast<std::uint32_t>(objects_.size())});

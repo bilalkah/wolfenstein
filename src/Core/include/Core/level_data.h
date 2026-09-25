@@ -7,12 +7,15 @@
 #define CORE_INCLUDE_CORE_LEVEL_DATA_H_
 
 #include "Characters/character.h"
+#include "Characters/enemy.h"
 #include "Math/vector.h"
+#include "Strike/weapon.h"
 #include <expected>
 #include <functional>
 #include <istream>
 #include <map>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace wolfenstein {
@@ -37,13 +40,19 @@ struct DynamicObjectStats
 	double height{};
 };
 
-// config.json: the stats shared by every level
+// config.json: the game's content shared by every level. A new enemy type
+// or weapon is added there, with its art in textures.json, not in code.
 struct GameConfig
 {
 	// By enemy type ("soldier"); std::less<> allows string_view lookups
-	std::map<std::string, CharacterStats, std::less<>> enemies;
+	std::map<std::string, EnemyConfig, std::less<>> enemies;
+	// In the order the menu offers them
+	std::vector<WeaponConfig> weapons;
 	CharacterStats player;
 	DynamicObjectStats light;
+
+	// The named weapon, or nullptr
+	const WeaponConfig* FindWeapon(std::string_view name) const;
 };
 
 struct EnemySpawn

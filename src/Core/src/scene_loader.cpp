@@ -78,15 +78,11 @@ std::expected<std::unique_ptr<Scene>, std::string> SceneLoader::Load(
 std::expected<void, std::string> SceneLoader::PrepareEnemies(
 	Scene& scene, const LevelData& level) const {
 	for (const auto& spawn : level.enemies) {
-		const auto stats = config_.enemies.find(spawn.type);
-		if (stats == config_.enemies.end()) {
+		const auto enemy = config_.enemies.find(spawn.type);
+		if (enemy == config_.enemies.end()) {
 			return std::unexpected("unknown enemy type " + spawn.type);
 		}
-		const auto added = scene.AddEnemy(
-			spawn.type,
-			CharacterConfig(spawn.position, stats->second.translation_speed,
-							stats->second.rotation_speed, stats->second.width,
-							stats->second.height));
+		const auto added = scene.AddEnemy(enemy->second, spawn.position);
 		if (!added) {
 			return std::unexpected("more enemies than the scene can hold");
 		}

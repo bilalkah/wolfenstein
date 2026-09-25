@@ -14,7 +14,7 @@
 
 #include "Camera/ray.h"
 #include "Characters/character.h"
-#include "Map/map.h"
+#include "GameMap/map.h"
 #include "Math/vector.h"
 
 namespace wolfenstein {

@@ -5,7 +5,7 @@
 #include "Characters/enemy.h"
 #include "Characters/player.h"
 #include "Core/scene.h"
-#include "Map/map.h"
+#include "GameMap/map.h"
 #include "Strike/weapon.h"
 #include "test_map.h"
 #include "test_services.h"
@@ -20,9 +20,8 @@ class EnemyStateTest : public ::testing::Test
   protected:
 	void SetUp() override {
 		scene_.SetPlayer(player_);
-		ASSERT_TRUE(scene_.AddEnemy(
-			"soldier",
-			CharacterConfig(Position2D({1.5, 1.5}, 0.0), 1.0, 1.0, 0.4, 0.4)));
+		ASSERT_TRUE(scene_.AddEnemy(testing::Enemy("soldier"),
+									Position2D({1.5, 1.5}, 0.0)));
 		enemy_ = scene_.GetEnemies().front();
 		scene_.FinishLoading();
 	}
@@ -36,10 +35,11 @@ class EnemyStateTest : public ::testing::Test
 	// The scene borrows the player, so the player is declared first
 	CharacterConfig player_config_{Position2D({1.5, 4.5}, 0.0), 1.0, 1.0, 0.4,
 								   0.4};
-	Player player_{player_config_,
-				   std::make_shared<Weapon>("mp5", testing::TestTextures(),
-											testing::TestSound()),
-				   testing::TestSound()};
+	Player player_{
+		player_config_,
+		std::make_shared<Weapon>(testing::Weapon("mp5"),
+								 testing::TestTextures(), testing::TestSound()),
+		testing::TestSound()};
 	Scene scene_{testing::TestTextures(), testing::TestSound(),
 				 Map(testing::WriteMapFile(
 						 "wolfenstein_enemy_state_test.txt",

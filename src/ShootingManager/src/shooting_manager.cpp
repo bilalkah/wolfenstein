@@ -9,6 +9,7 @@
 #include "Strike/weapon.h"
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace wolfenstein {
 
@@ -18,15 +19,15 @@ double CalculateDamage(const Weapon& weapon, double distance) {
 	if (distance > weapon.GetAttackRange()) {
 		return 0;
 	}
-	if (weapon.GetWeaponName() == "mp5") {
-		return LinearSlope(weapon.GetAttackDamage(), weapon.GetAttackRange(),
-						   distance);
+	switch (weapon.GetFalloff()) {
+		case DamageFalloff::Linear:
+			return LinearSlope(weapon.GetAttackDamage(),
+							   weapon.GetAttackRange(), distance);
+		case DamageFalloff::Exponential:
+			return ExponentialSlope(weapon.GetAttackDamage(),
+									weapon.GetAttackRange(), distance);
 	}
-	if (weapon.GetWeaponName() == "shotgun") {
-		return ExponentialSlope(weapon.GetAttackDamage(),
-								weapon.GetAttackRange(), distance);
-	}
-	return 0;
+	std::unreachable();
 }
 
 }  // namespace

@@ -5,24 +5,93 @@
         "width": 0.4,
         "height": 1.0
     },
+    "weapons": [
+        {
+            "name": "mp5",
+            "label": "MP5",
+            "description": "Fast and steady. A big magazine, lighter hits.",
+            "ammo": 18,
+            "damage": [
+                25,
+                2
+            ],
+            "range": 8,
+            "attack_speed": 0.5,
+            "reload_speed": 1.5,
+            "falloff": "linear"
+        },
+        {
+            "name": "shotgun",
+            "label": "SHOTGUN",
+            "description": "Two shells, devastating up close.",
+            "ammo": 2,
+            "damage": [
+                60,
+                2
+            ],
+            "range": 7,
+            "attack_speed": 0.7,
+            "reload_speed": 3.5,
+            "falloff": "exponential"
+        }
+    ],
     "config_enemy": {
         "soldier": {
             "t_speed": 0.8,
-            "r_speed": 0.4,
             "width": 0.3,
-            "height": 0.6
+            "height": 0.6,
+            "weapon": {
+                "name": "rifle",
+                "damage": [
+                    15,
+                    5
+                ],
+                "range": 5.0,
+                "attack_speed": 0.7,
+                "attack_rate": 1.0
+            },
+            "ai": {
+                "idle_frame_seconds": 0.8,
+                "follow_range": 5.0
+            }
         },
         "caco_demon": {
             "t_speed": 0.8,
-            "r_speed": 0.4,
             "width": 0.4,
-            "height": 0.8
+            "height": 0.8,
+            "weapon": {
+                "name": "melee",
+                "damage": [
+                    17,
+                    8
+                ],
+                "range": 2.0,
+                "attack_speed": 0.5,
+                "attack_rate": 1.0
+            },
+            "ai": {
+                "idle_frame_seconds": 0.8,
+                "follow_range": 5.0
+            }
         },
         "cyber_demon": {
             "t_speed": 0.8,
-            "r_speed": 0.4,
             "width": 0.5,
-            "height": 1.0
+            "height": 1.0,
+            "weapon": {
+                "name": "laser gun",
+                "damage": [
+                    19,
+                    10
+                ],
+                "range": 7.0,
+                "attack_speed": 1.0,
+                "attack_rate": 1.0
+            },
+            "ai": {
+                "idle_frame_seconds": 0.8,
+                "follow_range": 5.0
+            }
         }
     },
     "config_dynamic": {

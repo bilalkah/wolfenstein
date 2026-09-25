@@ -24,9 +24,8 @@ class AimTest : public ::testing::Test
 				 Map(testing::WriteMapFile("wolfenstein_aim_test.txt", rows)
 						 .string()),
 				 SceneCapacity{.enemies = 1}) {
-		EXPECT_TRUE(scene_.AddEnemy(
-			"soldier",
-			CharacterConfig(Position2D({1.5, 5.5}, 0.0), 1.0, 1.0, 0.4, 0.4)));
+		EXPECT_TRUE(scene_.AddEnemy(testing::Enemy("soldier"),
+									Position2D({1.5, 5.5}, 0.0)));
 	}
 	Scene scene_;
 };

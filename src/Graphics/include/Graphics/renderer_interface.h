@@ -70,8 +70,8 @@ class RendererContext
 	SDL_Window* window_;
 	RenderConfig config_;
 	Camera2D& camera_ptr;
-	// Created once the renderer exists, destroyed before it
-	std::optional<TextureManager> textures_;
+	// Loaded once the renderer exists, destroyed before it
+	std::unique_ptr<TextureManager> textures_;
 };
 
 class IRenderer

@@ -3,30 +3,15 @@
 #include <cstddef>
 #include <iostream>
 #include <memory>
-#include <stdexcept>
 #include <string>
 #include <utility>
 namespace wolfenstein {
 
-namespace {
-auto GetWeaponConfig = [](const std::string& weapon_name) -> WeaponConfig {
-	if (weapon_name == "mp5") {
-		return {"mp5", 18, 25, 2, 8, 0.5, 1.5};
-	}
-	else if (weapon_name == "shotgun") {
-		return {"shotgun", 2, 60, 2, 7, 0.7, 3.5};
-	}
-	else {
-		throw std::invalid_argument("Invalid weapon name");
-	}
-};
-}  // namespace
-
-Weapon::Weapon(std::string weapon_name, const TextureManager& textures,
+Weapon::Weapon(const WeaponConfig& config, const TextureManager& textures,
 			   SoundManager& sound)
 	: textures_(textures),
 	  sound_(sound),
-	  weapon_properties_(GetWeaponConfig(weapon_name)),
+	  weapon_properties_(config),
 	  sound_channel_(sound.AllocateChannel()) {
 	ammo_ = weapon_properties_.ammo_capacity;
 	for (const auto type : {WeaponStateType::Loaded, WeaponStateType::OutOfAmmo,

@@ -1,5 +1,9 @@
 #include "Graphics/renderer_interface.h"
 #include "TextureManager/texture_manager.h"
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <string>
 
 namespace wolfenstein {
 
@@ -42,7 +46,21 @@ RendererContext::RendererContext(const std::string& window_name,
 		SDL_SetWindowFullscreen(window_, SDL_WINDOW_FULLSCREEN_DESKTOP);
 	}
 
-	textures_.emplace(renderer_);
+	const std::string manifest_path =
+		std::string(RESOURCE_DIR) + "textures.json";
+	std::ifstream manifest_file(manifest_path);
+	auto manifest = ParseTextureManifest(manifest_file);
+	if (!manifest) {
+		std::cerr << manifest_path << ": " << manifest.error() << '\n';
+		std::exit(EXIT_FAILURE);
+	}
+	auto textures =
+		TextureManager::Load(renderer_, *manifest, std::string(RESOURCE_DIR));
+	if (!textures) {
+		std::cerr << "Cannot load the textures: " << textures.error() << '\n';
+		std::exit(EXIT_FAILURE);
+	}
+	textures_ = std::move(*textures);
 }
 
 RendererContext::~RendererContext() {

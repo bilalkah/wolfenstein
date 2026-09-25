@@ -3,10 +3,10 @@
  * @brief A fixed-capacity bump allocator usable as a std::pmr::memory_resource
  */
 
-#ifndef MEMORY_INCLUDE_MEMORY_MONOTONIC_ARENA_H
-#define MEMORY_INCLUDE_MEMORY_MONOTONIC_ARENA_H
+#ifndef ALLOCATORS_INCLUDE_ALLOCATORS_MONOTONIC_ARENA_H
+#define ALLOCATORS_INCLUDE_ALLOCATORS_MONOTONIC_ARENA_H
 
-#include "Memory/asan.h"
+#include "Allocators/asan.h"
 #include <algorithm>
 #include <bit>
 #include <cassert>
@@ -103,4 +103,4 @@ class MonotonicArena final : public std::pmr::memory_resource
 
 }  // namespace wolfenstein::memory
 
-#endif	// MEMORY_INCLUDE_MEMORY_MONOTONIC_ARENA_H
+#endif	// ALLOCATORS_INCLUDE_ALLOCATORS_MONOTONIC_ARENA_H

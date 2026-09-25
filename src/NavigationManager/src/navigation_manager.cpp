@@ -1,7 +1,7 @@
 #include "NavigationManager/navigation_manager.h"
 #include "Characters/enemy.h"
 #include "Core/scene.h"
-#include "Map/map.h"
+#include "GameMap/map.h"
 #include "Math/vector.h"
 #include <algorithm>
 #include <cmath>

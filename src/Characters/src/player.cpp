@@ -21,7 +21,7 @@ Player::Player(CharacterConfig& config, std::shared_ptr<Weapon> weapon,
 	  sound_channel_(sound.AllocateChannel()),
 	  position_(config.initial_position),
 	  previous_position_(config.initial_position),
-	  damage_animation_(9, 1) {
+	  damage_animation_(1.0) {
 	SetWeapon(std::move(weapon));
 }
 
@@ -97,10 +97,6 @@ Position2D Player::GetRenderPosition(double alpha) const {
 int Player::GetTextureId() const {
 	return weapon_->GetTextureId();
 }
-
-int Player::GetDamageTextureId() const {
-	return damage_animation_.GetCurrentFrame();
-};
 
 double Player::GetWidth() const {
 	return width_;

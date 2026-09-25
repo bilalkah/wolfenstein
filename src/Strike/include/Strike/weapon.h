@@ -15,29 +15,28 @@
 #include "SoundManager/sound_manager.h"
 #include "State/weapon_state.h"
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
 namespace wolfenstein {
 
 class TextureManager;
 
+// How a weapon's damage falls from point blank to its range
+enum class DamageFalloff : std::uint8_t { Linear, Exponential };
+
+// A player weapon as config.json describes it
 struct WeaponConfig
 {
-	WeaponConfig(std::string weapon_name, size_t ammo_capacity,
-				 double attack_damage_max, double attack_damage_min,
-				 double attack_range, double attack_speed, double reload_speed)
-		: weapon_name(weapon_name),
-		  ammo_capacity(ammo_capacity),
-		  attack_damage(attack_damage_max, attack_damage_min),
-		  attack_range(attack_range),
-		  attack_speed(attack_speed),
-		  reload_speed(reload_speed) {}
-	std::string weapon_name;
-	size_t ammo_capacity{};
-	std::pair<double, double> attack_damage;
+	std::string weapon_name;  // names its animation clips: "<name>_reload"
+	std::string label;		  // shown in the menu
+	std::string description;  // shown in the menu
+	std::size_t ammo_capacity{};
+	std::pair<double, double> attack_damage;  // at point blank, at range
 	double attack_range{};
 	double attack_speed{};
 	double reload_speed{};
+	DamageFalloff falloff = DamageFalloff::Linear;
 };
 
 // Pinned (not copyable or movable): its states point back to it
@@ -46,7 +45,7 @@ class Weapon
   public:
 	// Borrows the textures its animations play from and the sound it plays;
 	// both outlive it
-	Weapon(std::string weapon_name, const TextureManager& textures,
+	Weapon(const WeaponConfig& config, const TextureManager& textures,
 		   SoundManager& sound);
 	const TextureManager& GetTextures() const { return textures_; }
 
@@ -70,6 +69,7 @@ class Weapon
 	double GetAttackSpeed() const;
 	double GetReloadSpeed() const;
 	const std::string& GetWeaponName() const;
+	DamageFalloff GetFalloff() const { return weapon_properties_.falloff; }
 	// Plays on the weapon's own channel
 	void PlaySound(SoundEffect effect) {
 		sound_.PlayEffect(sound_channel_, effect);

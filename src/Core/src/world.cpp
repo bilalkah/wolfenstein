@@ -34,6 +34,10 @@ World::World(const TextureManager& textures, SceneLoader loader,
 
 std::expected<void, std::string> World::NewGame(
 	const std::string& weapon_name) {
+	const WeaponConfig* weapon = loader_.Config().FindWeapon(weapon_name);
+	if (weapon == nullptr) {
+		return std::unexpected("unknown weapon " + weapon_name);
+	}
 	// The old level borrows the old player: it goes first
 	scene_.reset();
 	const CharacterStats& stats = loader_.Config().player;
@@ -41,8 +45,7 @@ std::expected<void, std::string> World::NewGame(
 	CharacterConfig config(Position2D(), stats.translation_speed,
 						   stats.rotation_speed, stats.width, stats.height);
 	player_ = std::make_unique<Player>(
-		config, std::make_shared<Weapon>(weapon_name, textures_, *sound_),
-		*sound_);
+		config, std::make_shared<Weapon>(*weapon, textures_, *sound_), *sound_);
 	return LoadLevel(kFirstLevel);
 }
 

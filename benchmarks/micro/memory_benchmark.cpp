@@ -2,8 +2,8 @@
 // Build with the native-release preset and run:
 //   ./scripts/dev.sh ./build/native-release/bin/memory_benchmark
 
-#include "Memory/monotonic_arena.h"
-#include "Memory/object_pool.h"
+#include "Allocators/monotonic_arena.h"
+#include "Allocators/object_pool.h"
 #include <array>
 #include <benchmark/benchmark.h>
 #include <cstddef>

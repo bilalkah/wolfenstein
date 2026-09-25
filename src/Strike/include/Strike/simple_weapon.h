@@ -19,13 +19,22 @@
 
 namespace wolfenstein {
 
+// An enemy weapon as config.json describes it
+struct SimpleWeaponConfig
+{
+	std::string weapon_name;
+	std::pair<double, double> attack_damage;  // at point blank, at range
+	double attack_range{};
+	double attack_speed{};
+	double attack_rate{};
+};
+
 // An enemy's weapon: its stats and what its crosshair currently points at.
 // A plain value its enemy holds; firing is ResolveEnemyShot's job.
 class SimpleWeapon
 {
   public:
-	// The weapon an enemy type carries; exits for an unknown type
-	static SimpleWeapon ForEnemy(std::string_view enemy_type);
+	explicit SimpleWeapon(const SimpleWeaponConfig& config);
 
 	void SetCrosshairRay(const Ray& ray) { crosshair_ray_ = ray; }
 	std::pair<double, double> GetAttackDamage() const { return attack_damage_; }
@@ -36,10 +45,6 @@ class SimpleWeapon
 	const std::string& GetWeaponName() const { return weapon_name_; }
 
   private:
-	SimpleWeapon(std::string weapon_name,
-				 std::pair<double, double> attack_damage, double attack_range,
-				 double attack_speed, double attack_rate);
-
 	std::string weapon_name_;
 	std::pair<double, double> attack_damage_;  // at point blank, at range
 	double attack_range_{};

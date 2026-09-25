@@ -1,4 +1,5 @@
 #include "Core/level_data.h"
+#include <algorithm>
 #include <nlohmann/json.hpp>
 
 namespace wolfenstein {
@@ -22,6 +23,52 @@ CharacterStats ToStats(const json& stats) {
 			.height = stats.at("height").get<double>()};
 }
 
+// [at point blank, at range]
+std::pair<double, double> ToDamage(const json& damage) {
+	return {damage.at(0).get<double>(), damage.at(1).get<double>()};
+}
+
+DamageFalloff ToFalloff(const json& falloff) {
+	const auto name = falloff.get<std::string>();
+	if (name == "linear") {
+		return DamageFalloff::Linear;
+	}
+	if (name == "exponential") {
+		return DamageFalloff::Exponential;
+	}
+	throw json::other_error::create(
+		501, "unknown damage falloff \"" + name + "\"", &falloff);
+}
+
+WeaponConfig ToWeapon(const json& weapon) {
+	return {.weapon_name = weapon.at("name").get<std::string>(),
+			.label = weapon.at("label").get<std::string>(),
+			.description = weapon.at("description").get<std::string>(),
+			.ammo_capacity = weapon.at("ammo").get<std::size_t>(),
+			.attack_damage = ToDamage(weapon.at("damage")),
+			.attack_range = weapon.at("range").get<double>(),
+			.attack_speed = weapon.at("attack_speed").get<double>(),
+			.reload_speed = weapon.at("reload_speed").get<double>(),
+			.falloff = ToFalloff(weapon.at("falloff"))};
+}
+
+EnemyConfig ToEnemy(const std::string& type, const json& enemy) {
+	const auto& weapon = enemy.at("weapon");
+	const auto& ai = enemy.at("ai");
+	return {.type = type,
+			.translation_speed = enemy.at("t_speed").get<double>(),
+			.width = enemy.at("width").get<double>(),
+			.height = enemy.at("height").get<double>(),
+			.behaviour = {.idle_frame_seconds =
+							  ai.at("idle_frame_seconds").get<double>(),
+						  .follow_range = ai.at("follow_range").get<double>()},
+			.weapon = {.weapon_name = weapon.at("name").get<std::string>(),
+					   .attack_damage = ToDamage(weapon.at("damage")),
+					   .attack_range = weapon.at("range").get<double>(),
+					   .attack_speed = weapon.at("attack_speed").get<double>(),
+					   .attack_rate = weapon.at("attack_rate").get<double>()}};
+}
+
 vector2d ToPoint(const json& position) {
 	return {position.at("x").get<double>(), position.at("y").get<double>()};
 }
@@ -41,11 +88,20 @@ auto Parse(std::istream& input, Convert convert)
 
 }  // namespace
 
+const WeaponConfig* GameConfig::FindWeapon(std::string_view name) const {
+	const auto found =
+		std::ranges::find(weapons, name, &WeaponConfig::weapon_name);
+	return found == weapons.end() ? nullptr : &*found;
+}
+
 std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 	return Parse(input, [](const json& root) {
 		GameConfig config;
-		for (const auto& [type, stats] : root.at("config_enemy").items()) {
-			config.enemies.emplace(type, ToStats(stats));
+		for (const auto& [type, enemy] : root.at("config_enemy").items()) {
+			config.enemies.emplace(type, ToEnemy(type, enemy));
+		}
+		for (const auto& weapon : root.at("weapons")) {
+			config.weapons.push_back(ToWeapon(weapon));
 		}
 		config.player = ToStats(root.at("player_config"));
 		const auto& light = root.at("config_dynamic").at("light");

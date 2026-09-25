@@ -1,5 +1,5 @@
 #include "Camera/raycaster.h"
-#include "Map/map.h"
+#include "GameMap/map.h"
 #include "test_map.h"
 #include <gtest/gtest.h>
 #include <numbers>
