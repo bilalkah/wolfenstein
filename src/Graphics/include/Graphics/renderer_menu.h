@@ -19,6 +19,7 @@
 #include <memory>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace wolfenstein {
@@ -43,7 +44,8 @@ struct MenuAction
 		SettingsChanged,  // apply Settings::Get() (e.g. volume)
 	};
 	Type type = Type::None;
-	std::string weapon;
+	// Names a weapon of the configuration the menu was given
+	std::string_view weapon;
 };
 
 class Menu
@@ -60,6 +62,10 @@ class Menu
 	// Draws the current screen without presenting, so the pause and result
 	// screens can draw over the game frame, and returns the player's choice
 	MenuAction Update(double delta_time);
+	// Draws a level's title and name across the middle of the screen, at the
+	// given opacity, over whatever is already drawn
+	void DrawLevelBanner(std::string_view title, std::string_view name,
+						 Uint8 alpha);
 
   private:
 	MenuAction MainScreen();

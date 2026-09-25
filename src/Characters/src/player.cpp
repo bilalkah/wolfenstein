@@ -11,8 +11,8 @@
 
 namespace wolfenstein {
 
-Player::Player(CharacterConfig& config, std::unique_ptr<Weapon> weapon,
-			   SoundManager& sound)
+Player::Player(CharacterConfig& config, const WeaponConfig& weapon,
+			   const TextureManager& textures, SoundManager& sound)
 	: translation_speed_(config.translation_speed),
 	  width_(config.width),
 	  height_(config.height),
@@ -21,9 +21,8 @@ Player::Player(CharacterConfig& config, std::unique_ptr<Weapon> weapon,
 	  sound_channel_(sound.AllocateChannel()),
 	  position_(config.initial_position),
 	  previous_position_(config.initial_position),
-	  damage_animation_(1.0) {
-	SetWeapon(std::move(weapon));
-}
+	  weapon_(weapon, textures, sound),
+	  damage_animation_(1.0) {}
 
 void Player::Update(double delta_time) {
 
@@ -39,14 +38,10 @@ void Player::Update(double delta_time) {
 		return;
 	}
 	ShootOrReload();
-	weapon_->Update(delta_time);
+	weapon_.Update(delta_time);
 	Move(delta_time);
 	Rotate(delta_time);
 	damage_animation_.Update(delta_time);
-}
-
-void Player::SetWeapon(std::unique_ptr<Weapon> weapon) {
-	weapon_ = std::move(weapon);
 }
 
 void Player::SetPose(const vector2d& pose) {
@@ -91,7 +86,7 @@ Position2D Player::GetRenderPosition(double alpha) const {
 }
 
 int Player::GetTextureId() const {
-	return weapon_->GetTextureId();
+	return weapon_.GetTextureId();
 }
 
 double Player::GetWidth() const {
@@ -110,7 +105,7 @@ bool Player::IsAlive() const {
 }
 
 const Weapon& Player::GetWeapon() const {
-	return *weapon_;
+	return weapon_;
 }
 
 void Player::SetCommand(const PlayerCommand& command) {
@@ -146,10 +141,10 @@ void Player::Rotate(double delta_time) {
 
 void Player::ShootOrReload() {
 	if (command_.reload) {
-		weapon_->Reload();
+		weapon_.Reload();
 	}
-	if (command_.fire && weapon_->Attack()) {
-		ResolvePlayerShot(*scene_, *weapon_, position_);
+	if (command_.fire && weapon_.Attack()) {
+		ResolvePlayerShot(*scene_, weapon_, position_);
 	}
 }
 

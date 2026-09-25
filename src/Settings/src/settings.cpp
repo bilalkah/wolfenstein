@@ -1,13 +1,18 @@
 #include "Settings/settings.h"
 #include <SDL2/SDL.h>
 #include <algorithm>
+#include <array>
 #include <charconv>
+#include <cstddef>
 #include <cstdlib>
 #include <format>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <string_view>
+
+#include <fcntl.h>
+#include <unistd.h>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -51,17 +56,23 @@ std::string ReadSettingsText() {
 	return result;
 }
 
-void WriteSettingsText(const std::string& text) {
-	WriteStoredSettings(text.c_str());
+// `text` is NUL-terminated
+void WriteSettingsText(std::string_view text) {
+	WriteStoredSettings(text.data());
 }
 #else
-std::string SettingsFilePath() {
-	char* directory = SDL_GetPrefPath("bilalkah", "wolfenstein");
-	if (directory == nullptr) {
-		return {};
-	}
-	std::string path = std::string(directory) + "settings.txt";
-	SDL_free(directory);
+// Worked out once, on first use (when the settings load at startup), so
+// saving later needs no string building
+const std::string& SettingsFilePath() {
+	static const std::string path = [] {
+		char* directory = SDL_GetPrefPath("bilalkah", "wolfenstein");
+		if (directory == nullptr) {
+			return std::string();
+		}
+		std::string result = std::string(directory) + "settings.txt";
+		SDL_free(directory);
+		return result;
+	}();
 	return path;
 }
 
@@ -72,11 +83,19 @@ std::string ReadSettingsText() {
 	return buffer.str();
 }
 
-void WriteSettingsText(const std::string& text) {
-	const auto path = SettingsFilePath();
-	if (!path.empty()) {
-		std::ofstream(path) << text;
+// POSIX write rather than a file stream: saving happens while the game runs
+// (leaving the settings screen), where nothing may allocate
+void WriteSettingsText(std::string_view text) {
+	const std::string& path = SettingsFilePath();
+	if (path.empty()) {
+		return;
 	}
+	const int file = ::open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+	if (file < 0) {
+		return;
+	}
+	(void)::write(file, text.data(), text.size());
+	::close(file);
 }
 #endif
 
@@ -131,10 +150,17 @@ void Settings::Load() {
 	}
 }
 
+// Formats into a buffer on the stack: no allocation while the game runs
 void Settings::Save() const {
-	WriteSettingsText(
-		std::format("mouse_sensitivity={}\nvolume={}\nshow_fps={}\n",
-					mouse_sensitivity, volume, show_fps ? 1 : 0));
+	std::array<char, 128> buffer{};
+	const auto written =
+		std::format_to_n(buffer.data(), buffer.size() - 1,
+						 "mouse_sensitivity={}\nvolume={}\nshow_fps={}\n",
+						 mouse_sensitivity, volume, show_fps ? 1 : 0);
+	const auto size =
+		std::min(static_cast<std::size_t>(written.size), buffer.size() - 1);
+	buffer[size] = '\0';
+	WriteSettingsText(std::string_view(buffer.data(), size));
 }
 
 }  // namespace wolfenstein

@@ -25,11 +25,16 @@ std::size_t LevelArenaBytes(const Map& map, SceneCapacity capacity) {
 
 }  // namespace
 
+std::size_t Scene::MemoryFor(const Map& map, SceneCapacity capacity) {
+	return LevelArenaBytes(map, capacity);
+}
+
 Scene::Scene(const TextureManager& textures, SoundManager& sound,
-			 const Map& map, SceneCapacity capacity)
+			 const Map& map, SceneCapacity capacity,
+			 memory::MonotonicArena& arena)
 	: textures_(textures),
 	  sound_(sound),
-	  arena_(LevelArenaBytes(map, capacity)),
+	  arena_(arena),
 	  map_(map, &arena_),
 	  enemies_(capacity.enemies, &arena_),
 	  dynamic_objects_(capacity.dynamic_objects, &arena_),
@@ -73,10 +78,6 @@ void Scene::FinishLoading() {
 	navigation_.Build();
 }
 
-void Scene::SetNextScene(std::string next_scene) {
-	next_scene_str = std::move(next_scene);
-}
-
 void Scene::DecreaseAliveEnemies() {
 	number_of_alive_enemies--;
 }
@@ -111,10 +112,6 @@ Player& Scene::GetPlayer() {
 
 size_t Scene::GetNumberOfAliveEnemies() const {
 	return number_of_alive_enemies;
-}
-
-const std::string& Scene::GetNextScene() const {
-	return next_scene_str;
 }
 
 }  // namespace wolfenstein

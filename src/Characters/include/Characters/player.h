@@ -31,12 +31,19 @@ class Player : public ICharacter, public IGameObject
 {
   public:
 	// Borrows the sound it plays, which outlives it
-	Player(CharacterConfig& config, std::unique_ptr<Weapon> weapon,
-		   SoundManager& sound);
+	// Carries a weapon built from `weapon`, in place. Borrows the textures
+	// and sound, which outlive it.
+	Player(CharacterConfig& config, const WeaponConfig& weapon,
+		   const TextureManager& textures, SoundManager& sound);
+	// Pinned: its weapon's states point back to the weapon inside it
+	Player(const Player&) = delete;
+	Player& operator=(const Player&) = delete;
+	Player(Player&&) = delete;
+	Player& operator=(Player&&) = delete;
+	~Player() override = default;
 
 	void Update(double delta_time) override;
 
-	void SetWeapon(std::unique_ptr<Weapon> weapon);
 	// The player outlives levels; each level's scene hands itself over here
 	// and stays valid until the next one does
 	void EnterScene(Scene& scene) { scene_ = &scene; }
@@ -79,7 +86,7 @@ class Player : public ICharacter, public IGameObject
 	SoundChannel sound_channel_;
 	Position2D position_;
 	Position2D previous_position_;
-	std::unique_ptr<Weapon> weapon_;
+	Weapon weapon_;
 	TriggeredSingleAnimation damage_animation_;
 };
 

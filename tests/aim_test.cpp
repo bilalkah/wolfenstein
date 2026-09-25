@@ -17,16 +17,21 @@ constexpr double kFacingDown = std::numbers::pi / 2;  // towards +y
 class AimTest : public ::testing::Test
 {
   protected:
+	static constexpr SceneCapacity kCapacity{.enemies = 1};
+
 	explicit AimTest(std::initializer_list<const char*> rows = {"3333333",
 																"3000003",
 																"3333333"})
-		: scene_(testing::TestTextures(), testing::TestSound(),
-				 Map(testing::WriteMapFile("wolfenstein_aim_test.txt", rows)
-						 .string()),
-				 SceneCapacity{.enemies = 1}) {
+		: map_(
+			  testing::WriteMapFile("wolfenstein_aim_test.txt", rows).string()),
+		  arena_(Scene::MemoryFor(map_, kCapacity)),
+		  scene_(testing::TestTextures(), testing::TestSound(), map_, kCapacity,
+				 arena_) {
 		EXPECT_TRUE(scene_.AddEnemy(testing::Enemy("soldier"),
 									Position2D({1.5, 5.5}, 0.0)));
 	}
+	Map map_;
+	memory::MonotonicArena arena_;
 	Scene scene_;
 };
 

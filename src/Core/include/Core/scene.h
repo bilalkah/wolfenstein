@@ -39,10 +39,11 @@ struct SceneCapacity
 };
 
 // Owns one level. Its objects live in fixed-capacity pools whose storage,
-// like the lists that order them, comes from a per-level arena: objects are
-// laid out contiguously, creating them needs no per-object heap allocation,
-// and tearing the level down releases the whole block at once. It also owns
-// the level's systems (navigation), which borrow it.
+// like the lists that order them, the map and the navigation data, comes
+// from a level arena it borrows: the World sizes one arena for its largest
+// level at startup and resets it between levels, so building a level never
+// touches the heap. The scene also owns the level's systems (navigation),
+// which borrow it.
 //
 // A scene has a single owner (the game); renderers, the camera, enemies and
 // the player borrow it for its lifetime. It borrows the player, which
@@ -50,11 +51,15 @@ struct SceneCapacity
 class Scene
 {
   public:
-	// Borrows the textures its objects' animations play from and the sound
-	// they play; both outlive every level. The map and the capacity size the
-	// level's arena, which also holds the navigation data.
+	// Bytes of arena a level with this map and capacity takes
+	static std::size_t MemoryFor(const Map& map, SceneCapacity capacity);
+
+	// Borrows the textures its objects' animations play from, the sound they
+	// play and the arena everything level-sized comes from (at least
+	// MemoryFor(map, capacity) bytes free); all outlive the scene. The map
+	// is copied into the arena.
 	Scene(const TextureManager& textures, SoundManager& sound, const Map& map,
-		  SceneCapacity capacity = {});
+		  SceneCapacity capacity, memory::MonotonicArena& arena);
 	Scene(const Scene&) = delete;
 	Scene& operator=(const Scene&) = delete;
 	Scene(Scene&&) = delete;
@@ -71,7 +76,6 @@ class Scene
 	// Builds what depends on the finished level (the navigation grid): call
 	// once every object is in place
 	void FinishLoading();
-	void SetNextScene(std::string next_scene);
 	void DecreaseAliveEnemies();
 
 	void Update(double delta_time);
@@ -91,15 +95,13 @@ class Scene
 	const NavigationManager& GetNavigation() const { return navigation_; }
 
 	size_t GetNumberOfAliveEnemies() const;
-	const std::string& GetNextScene() const;
 	const memory::MonotonicArena& LevelMemory() const { return arena_; }
 
   private:
 	const TextureManager& textures_;
 	SoundManager& sound_;
-	// Declared first of what the scene owns, so it is destroyed last, after
-	// everything living in it
-	memory::MonotonicArena arena_;
+	// Borrowed; everything below that the scene owns lives in it
+	memory::MonotonicArena& arena_;
 	// The level's map, with its cells in the arena
 	Map map_;
 	memory::ObjectPool<Enemy> enemies_;
@@ -109,7 +111,6 @@ class Scene
 	Player* player_ = nullptr;
 	NavigationManager navigation_{*this, &arena_};
 	size_t number_of_alive_enemies{};
-	std::string next_scene_str;
 };
 
 }  // namespace wolfenstein

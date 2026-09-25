@@ -5,10 +5,6 @@
 
 namespace wolfenstein {
 
-namespace {
-constexpr const char* kFirstLevel = "level1.json";
-}  // namespace
-
 std::expected<std::unique_ptr<World>, std::string> World::Create(
 	const TextureManager& textures, const std::string& asset_dir) {
 	auto loader = SceneLoader::Open(asset_dir);
@@ -30,41 +26,58 @@ World::World(const TextureManager& textures, SceneLoader loader,
 			 std::unique_ptr<SoundManager> sound)
 	: textures_(textures),
 	  loader_(std::move(loader)),
-	  sound_(std::move(sound)) {}
+	  sound_(std::move(sound)),
+	  level_memory_(loader_.LargestLevelMemory()) {}
 
-std::expected<void, std::string> World::NewGame(
-	const std::string& weapon_name) {
+std::expected<void, std::string> World::NewGame(std::string_view weapon_name,
+												std::string_view level) {
 	const WeaponConfig* weapon = loader_.Config().FindWeapon(weapon_name);
 	if (weapon == nullptr) {
-		return std::unexpected("unknown weapon " + weapon_name);
+		return std::unexpected("unknown weapon " + std::string(weapon_name));
 	}
 	// The old level borrows the old player: it goes first
 	scene_.reset();
 	const CharacterStats& stats = loader_.Config().player;
-	// The level file sets the start position
+	// The level sets the start position
 	CharacterConfig config(Position2D(), stats.translation_speed,
 						   stats.rotation_speed, stats.width, stats.height);
-	player_ = std::make_unique<Player>(
-		config, std::make_unique<Weapon>(*weapon, textures_, *sound_), *sound_);
-	return LoadLevel(kFirstLevel);
+	player_.emplace(config, *weapon, textures_, *sound_);
+	level_index_ = 0;
+	in_campaign_ = level.empty();
+	return StartLevel(in_campaign_
+						  ? std::string_view(loader_.Config().levels.front())
+						  : level);
 }
 
 std::expected<void, std::string> World::NextLevel() {
-	return LoadLevel(scene_->GetNextScene());
+	if (!HasNextLevel()) {
+		return std::unexpected("no next level");
+	}
+	++level_index_;
+	return StartLevel(loader_.Config().levels[level_index_]);
 }
 
 bool World::HasNextLevel() const {
-	return scene_ != nullptr && !scene_->GetNextScene().empty();
+	return in_campaign_ && level_index_ + 1 < loader_.Config().levels.size();
 }
 
-std::expected<void, std::string> World::LoadLevel(
-	const std::string& level_file) {
-	auto scene = loader_.Load(level_file, *player_, textures_, *sound_);
-	if (!scene) {
-		return std::unexpected(scene.error());
+std::expected<void, std::string> World::StartLevel(
+	std::string_view level_file) {
+	if (!player_) {
+		return std::unexpected("no game started");
 	}
-	scene_ = std::move(*scene);
-	return {};
+	const PreparedLevel* level = loader_.FindLevel(level_file);
+	if (level == nullptr) {
+		return std::unexpected("unknown level " + std::string(level_file));
+	}
+	// The previous level lives in the arena: it goes before the arena is
+	// reused for the next one
+	scene_.reset();
+	level_memory_.Reset();
+	scene_.emplace(textures_, *sound_, level->map, level->capacity,
+				   level_memory_);
+	level_ = level;
+	return loader_.Populate(*scene_, *level, *player_);
 }
 
 }  // namespace wolfenstein

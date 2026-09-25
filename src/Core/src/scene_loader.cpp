@@ -1,5 +1,6 @@
 #include "Core/scene_loader.h"
 #include "GameObjects/dynamic_object.h"
+#include <algorithm>
 #include <cstdint>
 #include <fstream>
 #include <string>
@@ -35,65 +36,69 @@ std::expected<SceneLoader, std::string> SceneLoader::Open(
 	if (!config) {
 		return std::unexpected(config.error());
 	}
-	return SceneLoader(std::move(asset_dir), std::move(*config));
+	SceneLoader loader(std::move(asset_dir), std::move(*config));
+	for (const std::string& file : loader.config_.levels) {
+		if (auto prepared = loader.Prepare(file); !prepared) {
+			return std::unexpected(prepared.error());
+		}
+	}
+	if (auto prepared = loader.Prepare(loader.config_.benchmark_level);
+		!prepared) {
+		return std::unexpected(prepared.error());
+	}
+	return loader;
 }
 
-std::expected<std::unique_ptr<Scene>, std::string> SceneLoader::Load(
-	const std::string& level_file, Player& player,
-	const TextureManager& textures, SoundManager& sound) const {
-	const auto level =
-		ParseFile(asset_dir_ + "levels/" + level_file, ParseLevel);
-	if (!level) {
-		return std::unexpected(level.error());
+std::expected<void, std::string> SceneLoader::Prepare(const std::string& file) {
+	if (levels_.contains(file)) {
+		return {};
 	}
-	auto map = Map::FromFile(asset_dir_ + "maps/" + level->map);
+	auto data = ParseFile(asset_dir_ + "levels/" + file, ParseLevel);
+	if (!data) {
+		return std::unexpected(data.error());
+	}
+	auto map = Map::FromFile(asset_dir_ + "maps/" + data->map);
 	if (!map) {
 		return std::unexpected(map.error());
 	}
-
-	// The level file says how many objects the scene must hold, so its pools
-	// and arena are sized exactly, once
-	auto scene = std::make_unique<Scene>(
-		textures, sound, *map,
-		SceneCapacity{
-			.enemies = static_cast<std::uint32_t>(level->enemies.size()),
-			.dynamic_objects =
-				static_cast<std::uint32_t>(level->dynamic_objects.size())});
-
-	player.SetPosition(level->player);
-	player.IncreaseHealth(100);
-	scene->SetPlayer(player);
-	if (auto added = PrepareEnemies(*scene, *level); !added) {
-		return std::unexpected(level_file + ": " + added.error());
-	}
-	if (auto added = PrepareDynamicObjects(*scene, *level); !added) {
-		return std::unexpected(level_file + ": " + added.error());
-	}
-
-	scene->SetNextScene(level->next_level);
-	scene->FinishLoading();
-	return scene;
-}
-
-std::expected<void, std::string> SceneLoader::PrepareEnemies(
-	Scene& scene, const LevelData& level) const {
-	for (const auto& spawn : level.enemies) {
-		const auto enemy = config_.enemies.find(spawn.type);
-		if (enemy == config_.enemies.end()) {
-			return std::unexpected("unknown enemy type " + spawn.type);
-		}
-		const auto added = scene.AddEnemy(enemy->second, spawn.position);
-		if (!added) {
-			return std::unexpected("more enemies than the scene can hold");
+	for (const EnemySpawn& spawn : data->enemies) {
+		if (!config_.enemies.contains(spawn.type)) {
+			return std::unexpected(file + ": unknown enemy type " + spawn.type);
 		}
 	}
+	const SceneCapacity capacity{
+		.enemies = static_cast<std::uint32_t>(data->enemies.size()),
+		.dynamic_objects =
+			static_cast<std::uint32_t>(data->dynamic_objects.size())};
+	largest_memory_ =
+		std::max(largest_memory_, Scene::MemoryFor(*map, capacity));
+	largest_objects_ = std::max(
+		largest_objects_, data->enemies.size() + data->dynamic_objects.size());
+	levels_.emplace(file, PreparedLevel{.data = std::move(*data),
+										.map = std::move(*map),
+										.capacity = capacity});
 	return {};
 }
 
-std::expected<void, std::string> SceneLoader::PrepareDynamicObjects(
-	Scene& scene, const LevelData& level) const {
+const PreparedLevel* SceneLoader::FindLevel(std::string_view name) const {
+	const auto found = levels_.find(name);
+	return found == levels_.end() ? nullptr : &found->second;
+}
+
+std::expected<void, std::string> SceneLoader::Populate(
+	Scene& scene, const PreparedLevel& level, Player& player) const {
+	player.SetPosition(level.data.player);
+	player.IncreaseHealth(100);
+	scene.SetPlayer(player);
+	for (const EnemySpawn& spawn : level.data.enemies) {
+		// Checked when the level was prepared
+		const EnemyConfig& enemy = config_.enemies.find(spawn.type)->second;
+		if (!scene.AddEnemy(enemy, spawn.position)) {
+			return std::unexpected("more enemies than the scene can hold");
+		}
+	}
 	const auto& light = config_.light;
-	for (const auto& spawn : level.dynamic_objects) {
+	for (const ObjectSpawn& spawn : level.data.dynamic_objects) {
 		const auto added =
 			scene.AddDynamicObject(spawn.position,
 								   LoopedAnimation(scene.Textures(), spawn.type,
@@ -103,6 +108,7 @@ std::expected<void, std::string> SceneLoader::PrepareDynamicObjects(
 			return std::unexpected("more objects than the scene can hold");
 		}
 	}
+	scene.FinishLoading();
 	return {};
 }
 

@@ -14,38 +14,59 @@
 
 #include "Core/level_data.h"
 #include "Core/scene.h"
+#include "GameMap/map.h"
+#include <cstddef>
 #include <expected>
-#include <memory>
+#include <functional>
+#include <map>
 #include <string>
+#include <string_view>
 
 namespace wolfenstein {
 
-// Builds levels from the files under the asset directory. Owned by the
-// World; it keeps the game configuration read when it was opened.
+// A level ready to play: its file parsed and its map read at startup
+struct PreparedLevel
+{
+	LevelData data;
+	Map map;
+	SceneCapacity capacity;
+};
+
+// The game's content, read once at startup: the configuration and every
+// level it names (the campaign and the benchmark level). Starting a level
+// later only reads what is here, so it needs no file access or allocation.
+// Owned by the World.
 class SceneLoader
 {
   public:
-	// Reads the game configuration; the error says what is missing or wrong
+	// Reads the configuration and every level; the error says which file is
+	// missing or wrong
 	static std::expected<SceneLoader, std::string> Open(std::string asset_dir);
 
-	// Builds the level described by levels/<level_file>; the caller owns it.
-	// The scene borrows the player, the textures and the sound. The error
-	// says what is wrong with the level's files.
-	std::expected<std::unique_ptr<Scene>, std::string> Load(
-		const std::string& level_file, Player& player,
-		const TextureManager& textures, SoundManager& sound) const;
-
 	const GameConfig& Config() const { return config_; }
+	// The level with this file name, or nullptr
+	const PreparedLevel* FindLevel(std::string_view name) const;
+	// The arena bytes and object count of the largest level: what the level
+	// arena and the per-object views are sized for, once
+	std::size_t LargestLevelMemory() const { return largest_memory_; }
+	std::size_t LargestLevelObjects() const { return largest_objects_; }
+
+	// Fills a scene built for `level` with its enemies and objects, places the
+	// player in it and builds its navigation. The error says what the level
+	// asks for that the configuration lacks.
+	std::expected<void, std::string> Populate(Scene& scene,
+											  const PreparedLevel& level,
+											  Player& player) const;
 
   private:
 	SceneLoader(std::string asset_dir, GameConfig config);
-	std::expected<void, std::string> PrepareEnemies(
-		Scene& scene, const LevelData& level) const;
-	std::expected<void, std::string> PrepareDynamicObjects(
-		Scene& scene, const LevelData& level) const;
+	std::expected<void, std::string> Prepare(const std::string& file);
 
 	std::string asset_dir_;
 	GameConfig config_;
+	std::map<std::string, PreparedLevel, std::less<>> levels_;
+	std::size_t largest_memory_ = 0;
+	std::size_t largest_objects_ = 0;
 };
 
 }  // namespace wolfenstein

@@ -1,0 +1,254 @@
+{
+  "name": "THE SANCTUM",
+  "map": "level4.txt",
+  "player": {
+    "position": {
+      "x": 28.5,
+      "y": 15.5,
+      "theta": 3.14
+    }
+  },
+  "enemies": [
+    {
+      "type": "soldier",
+      "position": {
+        "x": 20.5,
+        "y": 5.5,
+        "theta": 3.14
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 21.5,
+        "y": 7.5,
+        "theta": -2.21
+      }
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 17.5,
+        "y": 2.5,
+        "theta": 0.88
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 17.5,
+        "y": 26.5,
+        "theta": 0.0
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 22.5,
+        "y": 26.5,
+        "theta": 3.14
+      }
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 20.5,
+        "y": 27.5,
+        "theta": -2.03
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 17.5,
+        "y": 19.5,
+        "theta": -1.43
+      }
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 18.5,
+        "y": 15.5,
+        "theta": 2.36
+      }
+    },
+    {
+      "type": "cyber_demon",
+      "position": {
+        "x": 21.5,
+        "y": 15.5,
+        "theta": 3.0
+      }
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 8.5,
+        "y": 3.5,
+        "theta": 1.25
+      }
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 7.5,
+        "y": 24.5,
+        "theta": 1.03
+      }
+    },
+    {
+      "type": "cyber_demon",
+      "position": {
+        "x": 8.5,
+        "y": 26.5,
+        "theta": 0.79
+      }
+    },
+    {
+      "type": "cyber_demon",
+      "position": {
+        "x": 5.5,
+        "y": 16.5,
+        "theta": -0.79
+      }
+    },
+    {
+      "type": "cyber_demon",
+      "position": {
+        "x": 2.5,
+        "y": 20.5,
+        "theta": -0.91
+      }
+    }
+  ],
+  "dynamicObjects": [
+    {
+      "type": "red_light",
+      "position": {
+        "x": 25.5,
+        "y": 13.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 26.5,
+        "y": 19.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 21.5,
+        "y": 9.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 23.5,
+        "y": 8.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 23.5,
+        "y": 24.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 20.5,
+        "y": 22.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 20.5,
+        "y": 20.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 16.5,
+        "y": 11.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 22.5,
+        "y": 17.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 15.5,
+        "y": 19.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 8.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 12.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 12.5,
+        "y": 25.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 8.5,
+        "y": 30.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 1.5,
+        "y": 11.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 10.5,
+        "y": 19.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 2.5,
+        "y": 10.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 7.5,
+        "y": 10.5
+      }
+    }
+  ],
+  "staticObjects": []
+}

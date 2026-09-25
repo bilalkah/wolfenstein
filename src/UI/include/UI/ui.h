@@ -25,7 +25,6 @@
 #include <functional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <utility>
 
 namespace wolfenstein::ui {
@@ -101,7 +100,7 @@ class Ui
 	Ui(SDL_Renderer* renderer, const std::string& display_font_path,
 	   const std::string& text_font_path);
 	~Ui();
-	// Owns fonts and cached text textures
+	// Owns fonts and glyph textures
 	Ui(const Ui&) = delete;
 	Ui& operator=(const Ui&) = delete;
 	Ui(Ui&&) = delete;
@@ -138,59 +137,33 @@ class Ui
 	bool IsFocused(int index) const { return index == focus_index_; }
 
   private:
-	struct CachedText
+	// One character of one font, rasterised in white at startup and tinted
+	// when drawn, so any text in any colour is drawn without creating a
+	// texture (or allocating) while the game runs
+	struct Glyph
 	{
 		SDL_Texture* texture = nullptr;
 		int width = 0;
 		int height = 0;
+		int advance = 0;
 	};
+	// Indexed by Latin-1 code: printable ASCII and the symbols the screens
+	// use ("·"); anything else draws as '?'
+	static constexpr std::size_t kGlyphCodes = 256;
+	using GlyphSet = std::array<Glyph, kGlyphCodes>;
 
-	// A rasterised text is identified by its style, colour and characters.
-	// Lookups use TextKeyView, which borrows the characters, so finding a
-	// cached text builds no key string; only rasterising a new one does.
-	struct TextKeyView
-	{
-		FontStyle style;
-		std::uint32_t rgba;
-		std::string_view text;
-		friend bool operator==(const TextKeyView&,
-							   const TextKeyView&) = default;
-	};
-	struct TextKey
-	{
-		FontStyle style;
-		std::uint32_t rgba;
-		std::string text;
-		operator TextKeyView() const { return {style, rgba, text}; }
-	};
-	struct TextKeyHash
-	{
-		using is_transparent = void;
-		std::size_t operator()(const TextKeyView& key) const noexcept;
-		std::size_t operator()(const TextKey& key) const noexcept {
-			return (*this)(static_cast<TextKeyView>(key));
-		}
-	};
-	struct TextKeyEqual
-	{
-		using is_transparent = void;
-		bool operator()(const TextKeyView& lhs,
-						const TextKeyView& rhs) const noexcept {
-			return lhs == rhs;
-		}
-	};
+	void RasteriseGlyphs();
+	const Glyph& GlyphFor(FontStyle style, std::uint8_t code) const;
 
 	// Registers the next focusable widget and returns its index, moving focus
 	// to it when the mouse hovers it
 	int NextWidget(const SDL_Rect& rect);
 	bool Contains(const SDL_Rect& rect, int x, int y) const;
-	const CachedText& GetText(std::string_view text, FontStyle style,
-							  SDL_Color color);
 
 	SDL_Renderer* renderer_;
 	std::array<TTF_Font*, static_cast<std::size_t>(FontStyle::Count)> fonts_{};
-	std::unordered_map<TextKey, CachedText, TextKeyHash, TextKeyEqual>
-		text_cache_;
+	std::array<GlyphSet, static_cast<std::size_t>(FontStyle::Count)> glyphs_{};
+	std::array<int, static_cast<std::size_t>(FontStyle::Count)> line_heights_{};
 	Input input_;
 	int focus_index_ = 0;
 	int widget_count_ = 0;

@@ -48,20 +48,6 @@ Renderer3D::Renderer3D(RendererContext& context) : IRenderer(context) {
 	crosshair_texture_ = context_->Textures().GetTextureId("crosshair");
 	damage_texture_ = context_->Textures().GetTextureId("damage_taken");
 
-	// SDL queues draw calls, and grows its command pool and vertex buffer
-	// whenever a frame queues more of them than any frame before: the first
-	// frame with more sprites in view than ever allocated inside SDL. A frame
-	// and a half's worth of copies here grows both once, at load time (they
-	// keep their capacity). The copies land in the back buffer, which the
-	// next frame clears.
-	auto* renderer = context_->GetRenderer();
-	const auto& warm_up = context_->Textures().GetTexture(hud_digits_[0]);
-	const SDL_Rect pixel{0, 0, 1, 1};
-	for (std::size_t i = 0; i < render_queue_.capacity() * 3 / 2; ++i) {
-		SDL_RenderCopy(renderer, warm_up.texture, &pixel, &pixel);
-	}
-	SDL_RenderFlush(renderer);
-
 	const SDL_Color white{255, 255, 255, 255};
 	for (int digit = 0; digit < 10; ++digit) {
 		const std::array<char, 2> text{static_cast<char>('0' + digit), '\0'};
@@ -78,7 +64,12 @@ Renderer3D::Renderer3D(RendererContext& context) : IRenderer(context) {
 		glyph.width = surface->w;
 		glyph.height = surface->h;
 		SDL_FreeSurface(surface);
+		// Drawn once now, so its first draw in play costs nothing extra
+		const SDL_Rect pixel{0, 0, 1, 1};
+		SDL_RenderCopy(context_->GetRenderer(), glyph.texture.get(), nullptr,
+					   &pixel);
 	}
+	SDL_RenderFlush(context_->GetRenderer());
 }
 
 void Renderer3D::Enqueue(int texture_id, const SDL_Rect& src_rect,
@@ -184,6 +175,12 @@ void Renderer3D::RenderObjects() {
 
 		const Ray& first = rays->first;
 		const Ray& last = rays->second;
+		// A sprite the viewer stands in (lights do not block movement) would
+		// cover the screen: it is not drawn
+		constexpr double kNearestSprite = 0.25;
+		if (first.perpendicular_distance < kNearestSprite) {
+			continue;
+		}
 
 		auto [line_height, draw_start, draw_end] =
 			CalculateVerticalSlice(first.perpendicular_distance);
@@ -223,7 +220,14 @@ int Renderer3D::CalculateHorizontalSlice(const double& angle) {
 std::tuple<int, int, int> Renderer3D::CalculateVerticalSlice(
 	const double& distance) {
 	const auto& config_ = context_->GetConfig();
-	auto line_height = static_cast<int>(config_.height / distance);
+	// Near zero distance the height tends to infinity, and converting that to
+	// an int is undefined: clamp the distance and the result
+	constexpr double kNearest = 0.01;
+	constexpr double kTallest = 32.0;  // screen heights
+	const double height =
+		std::min(config_.height / std::max(distance, kNearest),
+				 config_.height * kTallest);
+	auto line_height = static_cast<int>(height);
 	int draw_start = -line_height / 2 + config_.height / 2;
 	int draw_end = line_height / 2 + config_.height / 2;
 	return std::make_tuple(line_height, draw_start, draw_end);

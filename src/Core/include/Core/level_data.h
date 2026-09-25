@@ -48,6 +48,10 @@ struct GameConfig
 	std::map<std::string, EnemyConfig, std::less<>> enemies;
 	// In the order the menu offers them
 	std::vector<WeaponConfig> weapons;
+	// The campaign: level files in the order they are played
+	std::vector<std::string> levels;
+	// The level the benchmark plays; not part of the campaign
+	std::string benchmark_level;
 	CharacterStats player;
 	DynamicObjectStats light;
 
@@ -70,11 +74,11 @@ struct ObjectSpawn
 // levelN.json
 struct LevelData
 {
+	std::string name;  // shown when the level starts; optional
 	std::string map;
 	Position2D player;
 	std::vector<EnemySpawn> enemies;
 	std::vector<ObjectSpawn> dynamic_objects;
-	std::string next_level;	 // empty for the last level
 };
 
 std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input);

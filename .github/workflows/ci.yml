@@ -39,6 +39,9 @@ jobs:
         # Only builds without sanitizers count allocations
         if: matrix.preset == 'native-debug'
         run: ./build/native-debug/bin/wolfenstein --benchmark 1000 | python3 scripts/alloc_breakdown.py --require-zero
+      - name: Nothing allocates once a game starts (scripted session)
+        if: matrix.preset == 'native-debug'
+        run: ./build/native-debug/bin/wolfenstein --soak | python3 scripts/check_soak.py
 
   web:
     name: Web (Emscripten)
@@ -74,6 +77,10 @@ jobs:
         # wasm32 differs from native (a 10-character short-string buffer
         # instead of 22, 4-byte pointers), so the native gate is not enough
         run: python3 scripts/alloc_breakdown.py --require-zero --report "$(ls docs/benchmarks/results/*.json)"
+      - name: Nothing allocates once a game starts (scripted session)
+        # Counted at the malloc level: SDL, WebGL and audio included
+        working-directory: benchmarks
+        run: node run_web_soak.mjs ../build/web-release/bin | python3 ../scripts/check_soak.py
 
   format:
     name: Formatting
