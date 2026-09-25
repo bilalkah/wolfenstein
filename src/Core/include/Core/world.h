@@ -33,7 +33,7 @@ class World
 	// Reads the game configuration and opens the audio device (running
 	// silently if there is none). The error says what could not be loaded.
 	static std::expected<std::unique_ptr<World>, std::string> Create(
-		const TextureManager& textures, std::string asset_dir);
+		const TextureManager& textures, const std::string& asset_dir);
 
 	// The world borrows the textures, which outlive it
 	World(const TextureManager& textures, SceneLoader loader,
@@ -43,6 +43,7 @@ class World
 	World& operator=(const World&) = delete;
 	World(World&&) = delete;
 	World& operator=(World&&) = delete;
+	~World() = default;
 
 	// A fresh player carrying the named weapon, in the first level. The
 	// previous level and player are gone afterwards: views borrowing them

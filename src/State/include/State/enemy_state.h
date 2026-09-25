@@ -14,6 +14,7 @@
 
 #include "Animation/looped_animation.h"
 #include "State/state.h"
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -24,14 +25,14 @@ class Enemy;
 template <>
 struct StateType<Enemy>
 {
-	enum class Type { Idle, Walk, Attack, Pain, Death };
+	enum class Type : std::uint8_t { Idle, Walk, Attack, Pain, Death };
 };
-typedef StateType<Enemy>::Type EnemyStateType;
+using EnemyStateType = StateType<Enemy>::Type;
 
 class EnemyState : public State<Enemy>
 {
   public:
-	virtual ~EnemyState() = default;
+	~EnemyState() override = default;
 
   protected:
 	// Copies and moves only through derived classes: copying through the

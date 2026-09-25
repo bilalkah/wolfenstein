@@ -7,6 +7,7 @@
 #define ALLOCATORS_INCLUDE_ALLOCATORS_OBJECT_POOL_H
 
 #include "Allocators/asan.h"
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <expected>
@@ -37,7 +38,7 @@ struct Handle
 	friend bool operator==(const Handle&, const Handle&) = default;
 };
 
-enum class PoolError { Full };
+enum class PoolError : std::uint8_t { Full };
 
 // Fixed-capacity storage for objects of type T. All memory is taken once, up
 // front, from a std::pmr::memory_resource (a level arena, for example), so
@@ -99,8 +100,9 @@ class ObjectPool
 		free_list_.pop_back();
 		UnpoisonRegion(&slots_[index], sizeof(Slot));
 		try {
-			std::construct_at(reinterpret_cast<T*>(slots_[index].storage),
-							  std::forward<Args>(args)...);
+			std::construct_at(
+				reinterpret_cast<T*>(slots_[index].storage.data()),
+				std::forward<Args>(args)...);
 		}
 		catch (...) {
 			// Strong guarantee: the pool is unchanged if T's constructor throws
@@ -152,7 +154,7 @@ class ObjectPool
   private:
 	struct Slot
 	{
-		alignas(T) std::byte storage[sizeof(T)];
+		alignas(T) std::array<std::byte, sizeof(T)> storage;
 	};
 
 	bool IsLive(Handle<T> handle) const noexcept {
@@ -162,7 +164,7 @@ class ObjectPool
 	T* Object(std::uint32_t index) const noexcept {
 		// The storage is reused for different objects over time; launder
 		// makes the pointer refer to the object currently living there
-		return std::launder(reinterpret_cast<T*>(slots_[index].storage));
+		return std::launder(reinterpret_cast<T*>(slots_[index].storage.data()));
 	}
 
 	std::pmr::memory_resource* resource_;

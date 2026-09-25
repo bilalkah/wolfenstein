@@ -14,10 +14,11 @@
 
 #include "GameObjects/object_id.h"
 #include "Math/vector.h"
+#include <cstdint>
 
 namespace wolfenstein {
 
-enum class ObjectType {
+enum class ObjectType : std::uint8_t {
 	STATIC_OBJECT,
 	DYNAMIC_OBJECT,
 	CHARACTER_PLAYER,

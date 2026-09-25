@@ -124,7 +124,7 @@ void TextureManager::DefineCollection(std::string key, uint16_t begin,
 									  uint16_t end) {
 	auto& ids = texture_collections_[std::move(key)];
 	ids.resize(end - begin);
-	std::iota(ids.begin(), ids.end(), begin);
+	std::ranges::iota(ids, begin);
 }
 
 }  // namespace wolfenstein

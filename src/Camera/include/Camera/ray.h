@@ -41,7 +41,7 @@ struct Ray
 	bool is_hit_vertical;
 };
 
-typedef std::vector<Ray> RayVector;
+using RayVector = std::vector<Ray>;
 
 }  // namespace wolfenstein
 

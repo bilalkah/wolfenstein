@@ -109,7 +109,7 @@ TEST(ObjectPool, RespectsOverAlignedTypes) {
 
 // All of a pool's memory can come from a level arena
 TEST(ObjectPool, TakesItsStorageFromAnArena) {
-	MonotonicArena arena(64 * 1024);
+	MonotonicArena arena(std::size_t{64} * 1024);
 	int live = 0;
 	{
 		ObjectPool<Tracked> pool(100, &arena);

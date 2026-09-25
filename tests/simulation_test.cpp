@@ -29,7 +29,7 @@ struct Game
 		EXPECT_TRUE(world->NewGame("mp5"));
 	}
 
-	void Tick(const PlayerCommand& command) {
+	void Tick(const PlayerCommand& command) const {
 		world->GetPlayer().SetCommand(command);
 		world->CurrentLevel().Update(kTick);
 	}

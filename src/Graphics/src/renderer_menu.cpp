@@ -25,9 +25,9 @@ SDL_Rect ButtonRect(int screen_width, int top, int index) {
 
 }  // namespace
 
-Menu::Menu(std::shared_ptr<RendererContext> context, SoundManager& sound,
+Menu::Menu(RendererContext& context, SoundManager& sound,
 		   std::span<const WeaponConfig> weapons)
-	: context_(std::move(context)),
+	: context_(&context),
 	  ui_(std::make_unique<ui::Ui>(
 		  context_->GetRenderer(),
 		  std::string(RESOURCE_DIR) + "font/EternalAncient.ttf",
@@ -36,7 +36,7 @@ Menu::Menu(std::shared_ptr<RendererContext> context, SoundManager& sound,
 	background_texture_ = context_->Textures().GetTextureId("menu_background");
 	for (const WeaponConfig& config : weapon_configs_) {
 		weapons_.push_back(
-			std::make_shared<Weapon>(config, context_->Textures(), sound));
+			std::make_unique<Weapon>(config, context_->Textures(), sound));
 	}
 }
 
@@ -209,7 +209,8 @@ void Menu::DrawWeaponCard(const SDL_Rect& rect, const Weapon& weapon,
 	// Weapon sprite, scaled to fit the preview area and kept in proportion
 	const SDL_Rect preview{rect.x + kPadding, rect.y + kPadding,
 						   rect.w - 2 * kPadding, 230};
-	const auto texture = context_->Textures().GetTexture(weapon.GetTextureId());
+	const auto& texture =
+		context_->Textures().GetTexture(weapon.GetTextureId());
 	if (texture.texture != nullptr && texture.width > 0 && texture.height > 0) {
 		const double scale =
 			std::min(static_cast<double>(preview.w) / texture.width,
@@ -246,16 +247,16 @@ void Menu::DrawWeaponCard(const SDL_Rect& rect, const Weapon& weapon,
 	const double rate = 1.0 / weapon.GetAttackSpeed();
 	struct Stat
 	{
-		const char* label;
+		const char* label = nullptr;
 		ui::FixedText<16> value;
-		double fill;
+		double fill = 0.0;
 	};
 	const std::array<Stat, 4> stats = {{
 		{"Damage", ui::FixedText<16>("{:.0f}-{:.0f}", min_damage, max_damage),
 		 (max_damage + min_damage) / 2 / best_damage},
 		{"Fire rate", ui::FixedText<16>("{:.1f}/s", rate), rate / best_rate},
 		{"Magazine", ui::FixedText<16>("{}", weapon.GetAmmoCapacity()),
-		 weapon.GetAmmoCapacity() / best_capacity},
+		 static_cast<double>(weapon.GetAmmoCapacity()) / best_capacity},
 		{"Reload", ui::FixedText<16>("{:.1f}s", weapon.GetReloadSpeed()),
 		 best_reload / weapon.GetReloadSpeed()},
 	}};
@@ -407,12 +408,12 @@ void Menu::DrawBackground() {
 }
 
 void Menu::DrawDimmer(Uint8 alpha) {
-	const auto config = context_->GetConfig();
+	const auto& config = context_->GetConfig();
 	ui_->FillRect({0, 0, config.width, config.height}, {0, 0, 0, alpha});
 }
 
 void Menu::DrawHint(std::string_view text) {
-	const auto config = context_->GetConfig();
+	const auto& config = context_->GetConfig();
 	// Dark strip so the hint stays readable over the background art
 	ui_->FillRect({0, config.height - 64, config.width, 64}, {0, 0, 0, 170});
 	ui_->Text(text, config.width / 2, config.height - 46, ui::FontStyle::Small,

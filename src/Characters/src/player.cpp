@@ -11,7 +11,7 @@
 
 namespace wolfenstein {
 
-Player::Player(CharacterConfig& config, std::shared_ptr<Weapon> weapon,
+Player::Player(CharacterConfig& config, std::unique_ptr<Weapon> weapon,
 			   SoundManager& sound)
 	: translation_speed_(config.translation_speed),
 	  width_(config.width),
@@ -45,7 +45,7 @@ void Player::Update(double delta_time) {
 	damage_animation_.Update(delta_time);
 }
 
-void Player::SetWeapon(std::shared_ptr<Weapon> weapon) {
+void Player::SetWeapon(std::unique_ptr<Weapon> weapon) {
 	weapon_ = std::move(weapon);
 }
 
@@ -84,10 +84,6 @@ void Player::DecreaseHealth(double amount) {
 
 double Player::GetHealth() const {
 	return health_;
-}
-
-Position2D Player::GetPosition() const {
-	return position_;
 }
 
 Position2D Player::GetRenderPosition(double alpha) const {

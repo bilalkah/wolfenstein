@@ -23,8 +23,7 @@ Enemy::Enemy(Scene& scene, const EnemyConfig& config,
 	  position_(position),
 	  next_pose(position_.pose),
 	  previous_pose_(position_.pose),
-	  state_config_(config.behaviour),
-	  bot_name_(config.type),
+	  config_(config),
 	  sound_channel_(scene.Sound().AllocateChannel()),
 	  crosshair_ray(Ray{}),
 	  weapon_(config.weapon) {
@@ -130,12 +129,8 @@ double Enemy::GetHealth() const {
 	return health_;
 }
 
-Position2D Enemy::GetPosition() const {
-	return position_;
-}
-
 const std::string& Enemy::GetBotName() const {
-	return bot_name_;
+	return config_.type;
 }
 
 void Enemy::Move(double delta_time) {
@@ -173,10 +168,6 @@ double Enemy::GetWidth() const {
 }
 double Enemy::GetHeight() const {
 	return height;
-}
-
-StateConfig Enemy::GetStateConfig() const {
-	return state_config_;
 }
 
 const Ray& Enemy::GetCrosshairRay() const {

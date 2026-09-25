@@ -63,6 +63,9 @@ SoundManager::~SoundManager() {
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
+// Changes the audio device, not the manager's members, but is not const:
+// it changes what the manager plays
+// NOLINTNEXTLINE(readability-make-member-function-const)
 void SoundManager::SetMasterVolume(double volume) {
 	if (!open_) {
 		return;
@@ -90,7 +93,7 @@ void SoundManager::PlayEffect(SoundChannel channel, SoundEffect effect) {
 	const int index = std::to_underlying(channel);
 	Mix_HaltChannel(index);
 	if (Mix_PlayChannel(index, chunks_[std::to_underlying(effect)], 0) == -1) {
-		std::cerr << "Failed to play sound: " << Mix_GetError() << std::endl;
+		std::cerr << "Failed to play sound: " << Mix_GetError() << '\n';
 	}
 }
 

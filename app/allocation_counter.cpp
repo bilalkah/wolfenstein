@@ -104,6 +104,9 @@ void free(void* ptr) {
 #include <cstdlib>
 #include <new>
 
+// Replacing the global allocation functions means calling malloc and free
+// directly: this file is the allocator, so nothing here can use RAII
+// NOLINTBEGIN(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory)
 void* operator new(std::size_t size) {
 	wolfenstein::AllocationStats::count++;
 	wolfenstein::AllocationStats::bytes += size;
@@ -132,4 +135,5 @@ void operator delete(void* ptr, std::size_t) noexcept {
 void operator delete[](void* ptr, std::size_t) noexcept {
 	std::free(ptr);
 }
+// NOLINTEND(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory)
 #endif

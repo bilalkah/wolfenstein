@@ -14,6 +14,7 @@
 
 #include "Animation/looped_animation.h"
 #include "State/state.h"
+#include <cstdint>
 #include <memory>
 
 namespace wolfenstein {
@@ -23,14 +24,14 @@ class Weapon;
 template <>
 struct StateType<Weapon>
 {
-	enum class Type { Loaded, OutOfAmmo, Reloading };
+	enum class Type : std::uint8_t { Loaded, OutOfAmmo, Reloading };
 };
-typedef StateType<Weapon>::Type WeaponStateType;
+using WeaponStateType = StateType<Weapon>::Type;
 
 class WeaponState : public State<Weapon>
 {
   public:
-	virtual ~WeaponState() = default;
+	~WeaponState() override = default;
 
   protected:
 	// Copies and moves only through derived classes: copying through the

@@ -1,22 +1,22 @@
 #include "Graphics/renderer_2d.h"
 #include "NavigationManager/navigation_manager.h"
+#include <cmath>
+#include <numbers>
 
 namespace wolfenstein {
 
 namespace {
-std::vector<vector2i> GenerateCirclePoints(vector2i center, int radius,
-										   int num_points) {
-	const double increment = 2 * M_PI / num_points;
-
-	std::vector<vector2i> points;
+// Draws a circle as num_points points, straight to the renderer: collecting
+// the points in a vector first allocated for every circle, every frame
+void DrawCircle(SDL_Renderer* renderer, vector2i center, int radius,
+				int num_points) {
+	const double increment = 2 * std::numbers::pi / num_points;
 	for (int i = 0; i < num_points; ++i) {
-		double angle = i * increment;
-		int x = static_cast<int>(center.x + radius * std::cos(angle));
-		int y = static_cast<int>(center.y + radius * std::sin(angle));
-		points.push_back({x, y});
+		const double angle = i * increment;
+		SDL_RenderDrawPoint(
+			renderer, static_cast<int>(center.x + radius * std::cos(angle)),
+			static_cast<int>(center.y + radius * std::sin(angle)));
 	}
-
-	return points;
 }
 
 }  // namespace
@@ -34,7 +34,7 @@ void Renderer2D::RenderMap() {
 	const auto cells = scene_->GetMap().GetCells();
 	const auto size_x = static_cast<int>(cells.extent(0));
 	const auto size_y = static_cast<int>(cells.extent(1));
-	const auto config = context_->GetConfig();
+	const auto& config = context_->GetConfig();
 
 	SetDrawColor({162, 117, 76, 255});
 	for (int i = 0; i < size_x; i++) {
@@ -51,10 +51,10 @@ void Renderer2D::RenderMap() {
 
 void Renderer2D::RenderPlayer() {
 	const auto& player_ptr = scene_->GetPlayer();
-	const auto config = context_->GetConfig();
+	const auto& config = context_->GetConfig();
 	const auto& camera_ptr = context_->GetCamera();
 
-	const auto position = player_ptr.GetPosition();
+	const auto& position = player_ptr.GetPosition();
 	const auto& crosshair_ray = camera_ptr.GetCrosshairRay();
 
 	SetDrawColor({00, 0xA5, 0, 1});
@@ -69,20 +69,16 @@ void Renderer2D::RenderPlayer() {
 	}
 
 	SetDrawColor({255, 0, 0, 255});
-	const auto circle_points = GenerateCirclePoints(
-		ToVector2i(position.pose * config.scale),
-		static_cast<int>(config.scale * player_ptr.GetWidth() / 2), 20);
-	for (unsigned int i = 0; i < circle_points.size(); i++) {
-		SDL_RenderDrawPoint(context_->GetRenderer(), circle_points[i].x,
-							circle_points[i].y);
-	}
+	DrawCircle(context_->GetRenderer(),
+			   ToVector2i(position.pose * config.scale),
+			   static_cast<int>(config.scale * player_ptr.GetWidth() / 2), 20);
 	DrawLine(ToVector2i(crosshair_ray.origin * config.scale),
 			 ToVector2i(crosshair_ray.hit_point * config.scale));
 }
 
 void Renderer2D::RenderObjects() {
 	const auto& objects = scene_->GetObjects();
-	const auto config = context_->GetConfig();
+	const auto& config = context_->GetConfig();
 	const auto& camera_ptr = context_->GetCamera();
 	auto renderer_ = context_->GetRenderer();
 
@@ -92,13 +88,8 @@ void Renderer2D::RenderObjects() {
 		const auto object_pose = object->GetPose();
 		const auto w = object->GetWidth();
 
-		const auto object_points =
-			GenerateCirclePoints(ToVector2i(object_pose * config.scale),
-								 static_cast<int>(config.scale * w / 2), 20);
-		for (unsigned int i = 0; i < object_points.size(); i++) {
-			SDL_RenderDrawPoint(renderer_, object_points[i].x,
-								object_points[i].y);
-		}
+		DrawCircle(renderer_, ToVector2i(object_pose * config.scale),
+				   static_cast<int>(config.scale * w / 2), 20);
 
 		const auto object_angle =
 			std::atan2(object_pose.y - camera_ptr.GetPosition().pose.y,
@@ -114,25 +105,16 @@ void Renderer2D::RenderObjects() {
 			vector2d{w / 2 * std::cos(to_right), w / 2 * std::sin(to_right)};
 		DrawLine(ToVector2i(left_vertex * config.scale),
 				 ToVector2i(right_vertex * config.scale));
-		const auto left_point =
-			GenerateCirclePoints(ToVector2i(left_vertex * config.scale), 1, 20);
 		SetDrawColor({0xFF, 0, 0, 255});
-		for (unsigned int i = 0; i < left_point.size(); i++) {
-			SDL_RenderDrawPoint(renderer_, left_point[i].x, left_point[i].y);
-		}
-
-		const auto right_point = GenerateCirclePoints(
-			ToVector2i(right_vertex * config.scale), 1, 20);
+		DrawCircle(renderer_, ToVector2i(left_vertex * config.scale), 1, 20);
 		SetDrawColor({0, 0xFF, 0, 255});
-		for (unsigned int i = 0; i < right_point.size(); i++) {
-			SDL_RenderDrawPoint(renderer_, right_point[i].x, right_point[i].y);
-		}
+		DrawCircle(renderer_, ToVector2i(right_vertex * config.scale), 1, 20);
 	}
 }
 
 void Renderer2D::RenderPaths() {
 	const auto& enemies = scene_->GetEnemies();
-	const auto config = context_->GetConfig();
+	const auto& config = context_->GetConfig();
 	SetDrawColor({0, 0, 255, 255});
 	for (const auto& enemy : enemies) {
 		const auto path = scene_->GetNavigation().GetPath(enemy->GetId());
@@ -147,7 +129,7 @@ void Renderer2D::RenderPaths() {
 
 void Renderer2D::RenderCrosshairs() {
 	const auto& enemies = scene_->GetEnemies();
-	const auto config = context_->GetConfig();
+	const auto& config = context_->GetConfig();
 	SetDrawColor({255, 0, 255, 255});
 	for (const auto& enemy : enemies) {
 		const auto crosshair_ray = enemy->GetCrosshairRay();

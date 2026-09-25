@@ -11,9 +11,9 @@ Weapon::Weapon(const WeaponConfig& config, const TextureManager& textures,
 			   SoundManager& sound)
 	: textures_(textures),
 	  sound_(sound),
-	  weapon_properties_(config),
+	  config_(config),
 	  sound_channel_(sound.AllocateChannel()) {
-	ammo_ = weapon_properties_.ammo_capacity;
+	ammo_ = config_.ammo_capacity;
 	for (const auto type : {WeaponStateType::Loaded, WeaponStateType::OutOfAmmo,
 							WeaponStateType::Reloading}) {
 		StateFor(type).SetContext(*this);
@@ -42,7 +42,7 @@ void Weapon::Update(double delta_time) {
 }
 
 void Weapon::Charge() {
-	ammo_ = weapon_properties_.ammo_capacity;
+	ammo_ = config_.ammo_capacity;
 }
 
 void Weapon::Reload() {
@@ -80,27 +80,27 @@ size_t Weapon::GetAmmo() const {
 }
 
 size_t Weapon::GetAmmoCapacity() const {
-	return weapon_properties_.ammo_capacity;
+	return config_.ammo_capacity;
 }
 
 std::pair<double, double> Weapon::GetAttackDamage() const {
-	return weapon_properties_.attack_damage;
+	return config_.attack_damage;
 }
 
 double Weapon::GetAttackRange() const {
-	return weapon_properties_.attack_range;
+	return config_.attack_range;
 }
 
 double Weapon::GetAttackSpeed() const {
-	return weapon_properties_.attack_speed;
+	return config_.attack_speed;
 }
 
 double Weapon::GetReloadSpeed() const {
-	return weapon_properties_.reload_speed;
+	return config_.reload_speed;
 }
 
 const std::string& Weapon::GetWeaponName() const {
-	return weapon_properties_.weapon_name;
+	return config_.weapon_name;
 }
 
 int Weapon::GetTextureId() const {

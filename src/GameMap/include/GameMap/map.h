@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <expected>
 #include <mdspan>
+#include <memory_resource>
 #include <string>
 #include <vector>
 
@@ -36,6 +37,22 @@ class Map
 	static std::expected<Map, std::string> FromFile(const std::string& path);
 	// Reads a map file and exits if it cannot: the level cannot run without
 	explicit Map(const std::string& map_path);
+	// A copy of `other` whose cells live in `memory` (a level's arena)
+	Map(const Map& other, std::pmr::memory_resource* memory);
+	Map(const Map&) = default;
+	Map(Map&&) noexcept = default;
+	// Not assignable: a map's cells may live in an arena, and assigning
+	// across memory resources would copy (and could throw) where a move is
+	// expected not to
+	Map& operator=(const Map&) = delete;
+	Map& operator=(Map&&) = delete;
+	~Map() = default;
+
+	// Bytes a copy into a memory resource takes, padding included
+	std::size_t MemoryBytes() const {
+		return cells_.size() * sizeof(std::uint16_t) +
+			   alignof(std::max_align_t);
+	}
 
 	CellView GetCells() const {
 		return CellView(cells_.data(), size_x_, size_y_);
@@ -56,7 +73,7 @@ class Map
 
 	std::uint16_t size_x_{};  // rows
 	std::uint16_t size_y_{};  // columns
-	std::vector<std::uint16_t> cells_;
+	std::pmr::vector<std::uint16_t> cells_;
 };
 
 }  // namespace wolfenstein

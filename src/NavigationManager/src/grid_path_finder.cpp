@@ -46,7 +46,10 @@ std::size_t GridPathFinder::MemoryFor(int height, int width) {
 void GridPathFinder::SetGrid(int height, int width,
 							 std::span<const std::uint8_t> blocked) {
 	SetGrid(height, width, [&](int x, int y) {
-		const auto index = static_cast<std::size_t>(x * width + y);
+		// Widened before multiplying: x * width can overflow an int
+		const auto index =
+			static_cast<std::size_t>(x) * static_cast<std::size_t>(width) +
+			static_cast<std::size_t>(y);
 		return index < blocked.size() && blocked[index] != 0;
 	});
 }

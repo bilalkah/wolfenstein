@@ -82,4 +82,18 @@ jobs:
     steps:
       - run: apt-get update && apt-get install -y --no-install-recommends ca-certificates git clang-format
       - uses: actions/checkout@v4
-      - run: find app src tests -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run -Werror
+      - run: find app src tests benchmarks -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run -Werror
+
+  tidy:
+    name: Static analysis (clang-tidy)
+    runs-on: ubuntu-24.04
+    # Same toolchain as the native jobs
+    container: ubuntu:26.04
+    steps:
+      - name: Install git
+        run: apt-get update && apt-get install -y --no-install-recommends ca-certificates git
+      - uses: actions/checkout@v4
+      - run: ./scripts/install_deps.sh
+      # Configuring is enough: clang-tidy reads compile_commands.json
+      - run: cmake --preset native-debug
+      - run: ./scripts/tidy.sh

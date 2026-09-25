@@ -61,7 +61,7 @@ TEST(MonotonicArena, ThrowsWhenFull) {
 }
 
 TEST(MonotonicArena, BacksStandardContainers) {
-	MonotonicArena arena(64 * 1024);
+	MonotonicArena arena(std::size_t{64} * 1024);
 	std::pmr::vector<int> numbers(&arena);
 	for (int i = 0; i < 1000; ++i) {
 		numbers.push_back(i);
