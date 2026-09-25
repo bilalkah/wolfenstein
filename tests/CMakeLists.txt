@@ -17,6 +17,8 @@ add_executable(unit_tests
     type_traits_test.cpp
     grid_path_finder_test.cpp
     enemy_state_test.cpp
+    monotonic_arena_test.cpp
+    object_pool_test.cpp
 )
 target_link_libraries(unit_tests PRIVATE
     GTest::gtest_main
@@ -30,6 +32,7 @@ target_link_libraries(unit_tests PRIVATE
     game
     navigation_manager
     profiler
+    memory
 )
 # Counting heap allocations replaces global operator new, which clashes with
 # the sanitizers' allocator, so allocation tests run in non-sanitizer builds
