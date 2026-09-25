@@ -222,11 +222,82 @@
     });
   }
 
-  // The data package is fetched by Emscripten's loader: give it the
-  // chunked download too
+  // The downloaded files are kept in the browser and used again while the
+  // server's copy is unchanged, so only the first visit after a build
+  // downloads anything. IndexedDB, not the Cache API: that one needs https,
+  // and the game is also played from plain http:// LAN addresses.
+  const store = new Promise((resolve) => {
+    try {
+      const request = indexedDB.open('wolfenstein', 1);
+      request.onupgradeneeded = () => request.result.createObjectStore('files');
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve(null);
+    } catch {
+      resolve(null);  // storage turned off (some private windows)
+    }
+  });
+  async function inStore(mode, action) {
+    const db = await store;
+    if (!db) return undefined;
+    return new Promise((resolve, reject) => {
+      const request = action(db.transaction('files', mode).objectStore('files'));
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  // What identifies the server's copy of `url`: its size and date (or tag).
+  // Null if the server tells neither, or does not answer.
+  async function remoteVersion(url) {
+    for (let attempt = 0; attempt < 3; ++attempt) {
+      try {
+        return await withConnection(async () => {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), kStallMs);
+          try {
+            const response = await nativeFetch(url, {
+              method: 'HEAD', cache: 'no-store', signal: controller.signal,
+            });
+            const tag = response.headers.get('ETag') ?? response.headers.get('Last-Modified');
+            const size = response.headers.get('Content-Length');
+            return response.ok && tag && size ? `${size} ${tag}` : null;
+          } finally {
+            clearTimeout(timer);
+          }
+        });
+      } catch {
+        // stalled: ask again
+      }
+    }
+    return null;
+  }
+
+  async function cachedFetch(url, type, onProgress) {
+    const version = await remoteVersion(url);
+    if (version) {
+      const kept = await inStore('readonly', (files) => files.get(url)).catch(() => undefined);
+      if (kept?.version === version) {
+        onProgress(kept.blob.size, kept.blob.size);
+        return new Response(kept.blob, {
+          headers: { 'Content-Type': type, 'Content-Length': String(kept.blob.size) },
+        });
+      }
+    }
+    const response = await chunkedFetch(url, type, onProgress);
+    if (!version) return response;
+    // One copy of the stream for the game, one for the store
+    const [forGame, forStore] = response.body.tee();
+    new Response(forStore).blob()
+      .then((blob) => inStore('readwrite', (files) => files.put({ version, blob }, url)))
+      .catch((error) => console.warn(`${url}: not kept for the next visit:`, error));
+    return new Response(forGame, { headers: response.headers });
+  }
+
+  // The data package is fetched by Emscripten's loader: give it the same
+  // download
   window.fetch = (input, init) =>
     typeof input === 'string' && input.endsWith('index.data')
-      ? chunkedFetch(input, 'application/octet-stream', (loaded, total) => {
+      ? cachedFetch(input, 'application/octet-stream', (loaded, total) => {
           progress.data = [loaded, total];
           showProgress();
         })
@@ -254,7 +325,7 @@
     },
     // Streams the wasm in, compiling while it downloads
     instantiateWasm(imports, done) {
-      chunkedFetch('index.wasm', 'application/wasm', (loaded, total) => {
+      cachedFetch('index.wasm', 'application/wasm', (loaded, total) => {
         progress.wasm = [loaded, total];
         showProgress();
       })
