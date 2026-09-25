@@ -16,7 +16,6 @@
 
 namespace wolfenstein {
 
-class Camera2D;
 class TextureManager;
 
 // Owns everything the game simulates: the level loader and the game
@@ -48,8 +47,7 @@ class World
 	// A fresh player carrying the named weapon, in the first level. The
 	// previous level and player are gone afterwards: views borrowing them
 	// must be pointed at the new level before they draw again.
-	std::expected<void, std::string> NewGame(const std::string& weapon_name,
-											 std::shared_ptr<Camera2D>& camera);
+	std::expected<void, std::string> NewGame(const std::string& weapon_name);
 	// Replaces the finished level with the next one (same caveat)
 	std::expected<void, std::string> NextLevel();
 	bool HasNextLevel() const;

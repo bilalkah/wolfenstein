@@ -19,6 +19,10 @@
 
 namespace wolfenstein {
 
+// Casts one ray from `from` at angle `theta` until it hits a wall or has
+// travelled `depth`: what lies in a line of fire, or a line of view
+Ray CastRay(const Map& map, const Position2D& from, double theta, double depth);
+
 // Casts the camera's fan of rays through the map (DDA), one ray per screen
 // column pair
 class RayCaster
@@ -30,12 +34,6 @@ class RayCaster
 	double GetDeltaTheta() const;
 
   private:
-	Ray Cast(Map::CellView cells, const Position2D& position,
-			 double ray_theta) const;
-	void PrepareRay(const Position2D& position, const double ray_angle,
-					Ray& ray, vector2d& ray_unit_step, vector2d& ray_length_1d,
-					vector2i& step, vector2i& map_check) const;
-
 	double fov_;
 	double depth_;
 	double delta_theta_;

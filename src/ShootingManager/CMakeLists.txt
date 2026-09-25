@@ -9,6 +9,7 @@ target_include_directories(shooting_manager PUBLIC
 target_link_libraries(
     shooting_manager
     PUBLIC
+    camera
     character
     scene
     weapon

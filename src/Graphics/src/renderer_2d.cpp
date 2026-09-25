@@ -55,7 +55,7 @@ void Renderer2D::RenderPlayer() {
 	const auto& camera_ptr = context_->GetCamera();
 
 	const auto position = player_ptr.GetPosition();
-	const auto crosshair_ray = player_ptr.GetCrosshairRay();
+	const auto& crosshair_ray = camera_ptr.GetCrosshairRay();
 
 	SetDrawColor({00, 0xA5, 0, 1});
 	const auto& rays = camera_ptr.GetRays();

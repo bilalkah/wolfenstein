@@ -90,10 +90,6 @@ void Weapon::DecreaseAmmo(size_t amount) {
 	ammo_ -= amount;
 }
 
-void Weapon::SetCrossHair(const std::shared_ptr<Ray> crosshair) {
-	crosshair_ = crosshair;
-}
-
 size_t Weapon::GetAmmo() const {
 	return ammo_;
 }
@@ -124,10 +120,6 @@ const std::string& Weapon::GetWeaponName() const {
 
 int Weapon::GetTextureId() const {
 	return state_machine_.Current().GetCurrentFrame();
-}
-
-const Ray& Weapon::GetCrosshair() const {
-	return *crosshair_;
 }
 
 }  // namespace wolfenstein

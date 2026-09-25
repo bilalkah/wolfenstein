@@ -44,6 +44,31 @@ class FrameClock
 	std::chrono::duration<double> fixed_delta_{};
 };
 
+// Turns variable frame times into a whole number of fixed simulation ticks
+// ("fix your timestep"): time not yet simulated carries over to the next
+// frame, and Alpha() says how far the frame is between the last tick and the
+// next, for drawing.
+class FixedStep
+{
+  public:
+	// A frame longer than max_frame_seconds (a stall, a breakpoint) counts as
+	// that long: it is dropped rather than caught up in a burst of ticks
+	FixedStep(double tick_seconds, double max_frame_seconds);
+
+	// Adds a frame's time and returns how many ticks to simulate for it
+	int Advance(double frame_seconds);
+	// 0 to 1: how far past the last tick the frame is
+	double Alpha() const { return accumulator_ / tick_seconds_; }
+	double TickSeconds() const { return tick_seconds_; }
+	// Forgets time not yet simulated (after a level loads)
+	void Reset() { accumulator_ = 0.0; }
+
+  private:
+	double tick_seconds_;
+	double max_frame_seconds_;
+	double accumulator_ = 0.0;
+};
+
 }  // namespace wolfenstein
 
 #endif	// TIME_MANAGER_INCLUDE_TIME_MANAGER_H_
