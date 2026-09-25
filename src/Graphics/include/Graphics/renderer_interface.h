@@ -84,7 +84,8 @@ class IRenderer
 
   public:
 	virtual void RenderScene() = 0;
-	void SetScene(const std::shared_ptr<Scene>& scene_ptr);
+	// Borrows the scene until the next call; the game owns it
+	void SetScene(Scene& scene);
 
   protected:
 	void ClearScreen();
@@ -92,7 +93,7 @@ class IRenderer
 	std::shared_ptr<RendererContext> GetContext() const;
 
 	std::shared_ptr<RendererContext> context_;
-	std::shared_ptr<Scene> scene_;
+	Scene* scene_ = nullptr;
 };
 
 }  // namespace wolfenstein

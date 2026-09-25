@@ -46,8 +46,8 @@ WeaponState& Weapon::StateFor(WeaponStateType type) {
 	std::unreachable();
 }
 
-void Weapon::Attack() {
-	state_machine_.Current().PullTrigger();
+bool Weapon::Attack() {
+	return state_machine_.Current().PullTrigger();
 }
 
 void Weapon::Update(double delta_time) {

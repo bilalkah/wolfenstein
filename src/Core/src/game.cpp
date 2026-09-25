@@ -1,15 +1,12 @@
 #include "Core/game.h"
 #include "Animation/looped_animation.h"
-#include "Camera/single_raycaster.h"
 #include "Characters/enemy.h"
 #include "Core/scene_loader.h"
 #include "GameObjects/dynamic_object.h"
 #include "GameObjects/static_object.h"
 #include "Math/vector.h"
-#include "NavigationManager/navigation_manager.h"
 #include "Profiler/profiler.h"
 #include "Settings/settings.h"
-#include "ShootingManager/shooting_manager.h"
 #include "SoundManager/sound_manager.h"
 #include "State/enemy_state.h"
 #include "TextureManager/texture_manager.h"
@@ -70,29 +67,28 @@ void Game::Init() {
 	ApplySettings();
 }
 
-// Both renderers get the scene, the idle one too: a renderer left pointing at
-// the previous scene would keep it (its arena, enemies, map and player)
-// alive until the next toggle
-void Game::ShowScene() {
-	renderer_3d_->SetScene(scene_);
-	renderer_2d_->SetScene(scene_);
+// Makes `scene` the current level. Both renderers (and through them the
+// camera) are pointed at it before the previous scene is destroyed, so no
+// view is ever left borrowing a dead scene.
+void Game::ShowScene(std::unique_ptr<Scene> scene) {
+	renderer_3d_->SetScene(*scene);
+	renderer_2d_->SetScene(*scene);
+	scene_ = std::move(scene);
 }
 
 void Game::NewGame(const std::string& weapon_name) {
 	CharacterConfig player_config = {Position2D({3, 1.5}, 1.50), 2.0, 0.4, 0.4,
 									 1.0};
-	player_ = std::make_shared<Player>(player_config, camera_,
+	// The old level borrows the old player: it goes first
+	scene_.reset();
+	player_ = std::make_unique<Player>(player_config, camera_,
 									   std::make_shared<Weapon>(weapon_name));
 
-	scene_ = SceneLoader::GetInstance().Load("level1.json", player_);
 	render_type_ = RenderType::TEXTURE;
 	renderer_ = renderer_3d_.get();
-	ShowScene();
+	ShowScene(SceneLoader::GetInstance().Load("level1.json", *player_));
 
 	camera_->SetPositionPtr(player_->GetPositionPtr());
-	NavigationManager::GetInstance().SetPositionPtr(player_->GetPositionPtr());
-	SingleRayCasterService::GetInstance().SetDestinationPtr(
-		player_->GetPositionPtr());
 
 	renderer_result_.reset();
 	level_transition_time_ = 0.0;
@@ -348,9 +344,8 @@ void Game::CheckGameOver() {
 		if (!scene_->GetNextScene().empty()) {
 			level_transition_time_ += delta_time;
 			if (level_transition_time_ >= kEndOfLevelDelay) {
-				scene_ = SceneLoader::GetInstance().Load(scene_->GetNextScene(),
-														 player_);
-				ShowScene();
+				ShowScene(SceneLoader::GetInstance().Load(
+					scene_->GetNextScene(), *player_));
 				level_transition_time_ = 0.0;
 			}
 		}

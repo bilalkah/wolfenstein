@@ -9,8 +9,8 @@ target_include_directories(shooting_manager PUBLIC
 target_link_libraries(
     shooting_manager
     PUBLIC
-    single_raycaster
-    vector
     character
     scene
+    weapon
+    simple_weapon
 )

@@ -13,40 +13,15 @@
 #define CAMERA_INCLUDE_CAMERA_SINGLE_RAYCASTER_H_
 
 #include "Camera/ray.h"
-#include "Characters/character.h"
 #include "Map/map.h"
 #include "Math/vector.h"
 
-#include <memory>
-
 namespace wolfenstein {
 
-class Scene;
-
-class SingleRayCasterService
-{
-  public:
-	static SingleRayCasterService& GetInstance();
-	SingleRayCasterService(const SingleRayCasterService&) = delete;
-	SingleRayCasterService& operator=(const SingleRayCasterService&) = delete;
-	~SingleRayCasterService();
-
-	void InitService(const std::shared_ptr<Scene>& scene_ptr);
-	Ray Cast(const vector2d& src);
-
-	void SetDestinationPtr(const std::shared_ptr<Position2D>& position_ptr);
-
-  private:
-	SingleRayCasterService() = default;
-
-	void PrepareRay(const vector2d& src, Ray& ray, vector2d& ray_unit_step,
-					vector2d& ray_length_1d, vector2i& step,
-					vector2i& map_check);
-
-	std::shared_ptr<Position2D> dest_ptr_;
-	std::shared_ptr<Scene> scene_ptr_;
-	static SingleRayCasterService* instance_;
-};
+// Line of sight from `from` to `to`: the ray's is_hit is set if it reaches
+// the target's cell before any blocked cell. A pure function of the map and
+// the two points, so it needs no service object or scene.
+Ray CastLineOfSight(const Map& map, const vector2d& from, const vector2d& to);
 
 }  // namespace wolfenstein
 

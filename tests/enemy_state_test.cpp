@@ -2,11 +2,12 @@
 // from fresh per-visit data. This drives a real enemy through being hit
 // twice and then killed.
 
-#include "Camera/single_raycaster.h"
+#include "Camera/camera.h"
 #include "Characters/enemy.h"
+#include "Characters/player.h"
 #include "Core/scene.h"
 #include "Map/map.h"
-#include "NavigationManager/navigation_manager.h"
+#include "Strike/weapon.h"
 #include "test_map.h"
 #include <gtest/gtest.h>
 #include <memory>
@@ -18,7 +19,7 @@ class EnemyStateTest : public ::testing::Test
 {
   protected:
 	void SetUp() override {
-		scene_->SetMap(std::make_shared<Map>(
+		scene_.SetMap(std::make_unique<Map>(
 			testing::WriteMapFile("wolfenstein_enemy_state_test.txt",
 								  // Two chambers split by a wall: the enemy
 								  // cannot see the player, so only hits drive
@@ -26,27 +27,27 @@ class EnemyStateTest : public ::testing::Test
 								  // idle enemy walk first)
 								  {"3333333", "3003003", "3003003", "3333333"})
 				.string()));
-		ASSERT_TRUE(scene_->AddEnemy(
+		scene_.SetPlayer(player_);
+		ASSERT_TRUE(scene_.AddEnemy(
 			"soldier",
 			CharacterConfig(Position2D({1.5, 1.5}, 0.0), 1.0, 1.0, 0.4, 0.4)));
-		enemy_ = scene_->GetEnemies().front();
-
-		SingleRayCasterService::GetInstance().InitService(scene_);
-		SingleRayCasterService::GetInstance().SetDestinationPtr(player_);
-		NavigationManager::GetInstance().InitManager(scene_);
-		NavigationManager::GetInstance().SetPositionPtr(player_);
+		enemy_ = scene_.GetEnemies().front();
+		scene_.FinishLoading();
 	}
 
-	// Lands a shot: what ShootingManager does to the enemy it hits
+	// Lands a shot: what ResolvePlayerShot does to the enemy it hits
 	void Hit(double damage) {
 		enemy_->DecreaseHealth(damage);
 		enemy_->SetAttacked(true);
 	}
 
-	std::shared_ptr<Scene> scene_ =
-		std::make_shared<Scene>(SceneCapacity{.enemies = 1});
-	std::shared_ptr<Position2D> player_ =
-		std::make_shared<Position2D>(vector2d{1.5, 4.5}, 0.0);
+	// The scene borrows the player, so the player is declared first
+	std::shared_ptr<Camera2D> camera_ =
+		std::make_shared<Camera2D>(Camera2DConfig(64, 1.0, 10.0));
+	CharacterConfig player_config_{Position2D({1.5, 4.5}, 0.0), 1.0, 1.0, 0.4,
+								   0.4};
+	Player player_{player_config_, camera_, std::make_shared<Weapon>("mp5")};
+	Scene scene_{SceneCapacity{.enemies = 1}};
 	Enemy* enemy_ = nullptr;
 };
 

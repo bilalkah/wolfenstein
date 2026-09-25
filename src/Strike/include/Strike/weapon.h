@@ -14,7 +14,6 @@
 
 #include "SoundManager/sound_manager.h"
 #include "State/weapon_state.h"
-#include "Strike/strike.h"
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -41,12 +40,13 @@ struct WeaponConfig
 };
 
 // Pinned (not copyable or movable): its states point back to it
-class Weapon : public IStrike
+class Weapon
 {
   public:
 	explicit Weapon(std::string weapon_name);
 
-	void Attack() override;
+	// Pulls the trigger; true if a shot was fired (the caller resolves it)
+	bool Attack();
 	void Update(double delta_time);
 	void Charge();
 	void Reload();

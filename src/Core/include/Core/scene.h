@@ -22,6 +22,7 @@
 #include "Map/map.h"
 #include "Memory/monotonic_arena.h"
 #include "Memory/object_pool.h"
+#include "NavigationManager/navigation_manager.h"
 #include <cstdint>
 #include <expected>
 #include <memory_resource>
@@ -40,20 +41,32 @@ struct SceneCapacity
 // Owns one level. Its objects live in fixed-capacity pools whose storage,
 // like the lists that order them, comes from a per-level arena: objects are
 // laid out contiguously, creating them needs no per-object heap allocation,
-// and tearing the level down releases the whole block at once. Other systems
-// refer to objects through non-owning pointers valid for the scene's life.
+// and tearing the level down releases the whole block at once. It also owns
+// the level's systems (navigation), which borrow it.
+//
+// A scene has a single owner (the game); renderers, the camera, enemies and
+// the player borrow it for its lifetime. It borrows the player, which
+// outlives levels. Pinned: its objects and systems point back to it.
 class Scene
 {
   public:
 	explicit Scene(SceneCapacity capacity = {});
+	Scene(const Scene&) = delete;
+	Scene& operator=(const Scene&) = delete;
+	Scene(Scene&&) = delete;
+	Scene& operator=(Scene&&) = delete;
 
 	std::expected<memory::Handle<Enemy>, memory::PoolError> AddEnemy(
 		const std::string& type, const CharacterConfig& config);
 	std::expected<memory::Handle<DynamicObject>, memory::PoolError>
 	AddDynamicObject(const vector2d& pose, const LoopedAnimation& animation,
 					 double width, double height);
-	void SetMap(std::shared_ptr<Map> map);
-	void SetPlayer(std::shared_ptr<Player>& player);
+	void SetMap(std::unique_ptr<Map> map);
+	// Borrows the player for the scene's life and lets it act in this scene
+	void SetPlayer(Player& player);
+	// Builds what depends on the finished level (the navigation grid): call
+	// once the map and every object are in place
+	void FinishLoading();
 	void SetNextScene(const std::string next_scene);
 	void DecreaseAliveEnemies();
 
@@ -68,6 +81,8 @@ class Scene
 	Map& GetMap();
 	const Player& GetPlayer() const;
 	Player& GetPlayer();
+	NavigationManager& GetNavigation() { return navigation_; }
+	const NavigationManager& GetNavigation() const { return navigation_; }
 
 	size_t GetNumberOfAliveEnemies() const;
 	const std::string& GetNextScene() const;
@@ -80,8 +95,9 @@ class Scene
 	memory::ObjectPool<DynamicObject> dynamic_objects_;
 	std::pmr::vector<IGameObject*> objects_;
 	std::pmr::vector<Enemy*> enemy_list_;
-	std::shared_ptr<Map> map;
-	std::shared_ptr<Player> player;
+	std::unique_ptr<Map> map;
+	Player* player = nullptr;
+	NavigationManager navigation_{*this};
 	size_t number_of_alive_enemies{};
 	std::string next_scene_str;
 };

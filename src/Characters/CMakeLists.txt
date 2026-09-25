@@ -21,6 +21,8 @@ target_link_libraries(
     single_raycaster
     simple_weapon
     sound_manager
+    shooting_manager
+    scene
     profiler
     settings
 )

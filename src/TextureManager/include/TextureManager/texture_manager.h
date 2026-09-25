@@ -13,6 +13,7 @@
 #define TEXTURE_MANAGER_INCLUDE_TEXTURE_MANAGER_H
 
 #include <SDL2/SDL.h>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -50,7 +51,10 @@ class TextureManager
 	// Textures are stored by id, which runs densely from 0, so a lookup is
 	// an index rather than a hash (it runs for every draw call). References
 	// stay valid once InitManager has loaded everything.
-	Texture& GetTexture(uint16_t texture_id) { return textures_[texture_id]; }
+	Texture& GetTexture(uint16_t texture_id) {
+		assert(texture_id < textures_.size() && "texture not loaded");
+		return textures_[texture_id];
+	}
 	// The frames of a named animation clip ("soldier_walk"). The ids live
 	// here for the program's life, so every animation playing the clip shares
 	// them instead of holding a copy. Exits for an unknown name: the assets

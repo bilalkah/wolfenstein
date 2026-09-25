@@ -14,7 +14,6 @@
 
 #include "Camera/camera.h"
 #include "Characters/player.h"
-#include "CollisionManager/collision_manager.h"
 #include "Core/scene.h"
 #include "Graphics/renderer_2d.h"
 #include "Graphics/renderer_3d.h"
@@ -80,7 +79,7 @@ class Game
 	void Init();
 	// Fresh player and level 1, keeping the window, camera and menu
 	void NewGame(const std::string& weapon_name);
-	void ShowScene();
+	void ShowScene(std::unique_ptr<Scene> scene);
 	void EnterPlaying();
 	void Pause();
 	void HandleMenuAction(const MenuAction& action);
@@ -108,8 +107,11 @@ class Game
 	std::unique_ptr<RendererResult> renderer_result_;
 	std::shared_ptr<RendererContext> renderer_context_;
 	std::shared_ptr<Camera2D> camera_;
-	std::shared_ptr<Scene> scene_;
-	std::shared_ptr<Player> player_;
+	// Declared before the scene, which borrows it, so the scene dies first
+	std::unique_ptr<Player> player_;
+	// The current level; its single owner. Renderers, the camera and the
+	// player borrow it.
+	std::unique_ptr<Scene> scene_;
 
 	GeneralConfig config_;
 	GameState state_ = GameState::Menu;

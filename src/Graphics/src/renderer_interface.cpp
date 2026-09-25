@@ -85,9 +85,9 @@ void IRenderer::ClearScreen() {
 	SDL_RenderClear(context_->GetRenderer());
 }
 
-void IRenderer::SetScene(const std::shared_ptr<Scene>& scene_ptr) {
-	scene_ = scene_ptr;
-	context_->GetCamera().SetScene(scene_ptr);
+void IRenderer::SetScene(Scene& scene) {
+	scene_ = &scene;
+	context_->GetCamera().SetScene(scene);
 }
 
 std::shared_ptr<RendererContext> IRenderer::GetContext() const {

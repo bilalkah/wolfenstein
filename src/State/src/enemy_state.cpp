@@ -1,8 +1,8 @@
 #include "State/enemy_state.h"
 #include "Characters/enemy.h"
+#include "Core/scene.h"
 #include "NavigationManager/navigation_manager.h"
 #include "Profiler/profiler.h"
-#include "ShootingManager/shooting_manager.h"
 #include "SoundManager/sound_manager.h"
 #include "TextureManager/texture_manager.h"
 
@@ -22,7 +22,7 @@ void IdleState::Update(const double& delta_time) {
 	animation_.Update(delta_time);
 
 	if (context_->IsPlayerInShootingRange() &&
-		NavigationManager::GetInstance().EuclideanDistanceToPlayer(
+		context_->GetScene().GetNavigation().EuclideanDistanceToPlayer(
 			context_->GetPosition()) <= range_ + 2.0) {
 		context_->TransitionTo(EnemyStateType::Walk);
 		return;
@@ -53,17 +53,17 @@ EnemyStateType IdleState::GetType() const {
 void WalkState::Update(const double& delta_time) {
 	const auto bot_position = context_->GetPosition();
 	const auto distance =
-		NavigationManager::GetInstance().EuclideanDistanceToPlayer(
+		context_->GetScene().GetNavigation().EuclideanDistanceToPlayer(
 			bot_position);
 	if (context_->IsAttacked()) {
-		NavigationManager::GetInstance().ResetPath(context_->GetId());
+		context_->GetScene().GetNavigation().ResetPath(context_->GetId());
 		context_->SetNextPose(bot_position.pose);
 		context_->TransitionTo(EnemyStateType::Pain);
 		return;
 	}
 	if (!context_->IsPlayerInShootingRange()) {
 		if (distance > range_max_) {
-			NavigationManager::GetInstance().ResetPath(context_->GetId());
+			context_->GetScene().GetNavigation().ResetPath(context_->GetId());
 			context_->TransitionTo(EnemyStateType::Idle);
 			return;
 		}
@@ -79,12 +79,13 @@ void WalkState::Update(const double& delta_time) {
 	if ((!context_->IsPlayerInShootingRange()) ||
 		((distance > range_min_) && context_->IsPlayerInShootingRange())) {
 		ScopedTimer timer(ProfileSection::Pathfinding);
-		auto next_position = NavigationManager::GetInstance().FindPathToPlayer(
-			bot_position, context_->GetId());
+		auto next_position =
+			context_->GetScene().GetNavigation().FindPathToPlayer(
+				bot_position, context_->GetId());
 		context_->SetNextPose(next_position);
 	}
 	else {
-		NavigationManager::GetInstance().ResetPath(context_->GetId());
+		context_->GetScene().GetNavigation().ResetPath(context_->GetId());
 		context_->SetNextPose(bot_position.pose);
 	}
 
@@ -149,7 +150,7 @@ void PainState::Update(const double& delta_time) {
 	counter += delta_time;
 	if (counter > animation_speed_) {
 		if (context_->GetHealth() <= 0) {
-			NavigationManager::GetInstance().ResetPath(context_->GetId());
+			context_->GetScene().GetNavigation().ResetPath(context_->GetId());
 			context_->TransitionTo(EnemyStateType::Death);
 			return;
 		}

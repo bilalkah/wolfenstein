@@ -26,11 +26,8 @@ void Camera2D::InitRays() {
 	rays_.assign(static_cast<std::size_t>(config_.width / 2), Ray());
 }
 
-Camera2D::Camera2D(const Camera2DConfig& config,
-				   const std::shared_ptr<Scene> scene)
-	: config_(config),
-	  scene_(scene),
-	  ray_cast_(config.width / 2, config.fov, config.depth) {
+Camera2D::Camera2D(const Camera2DConfig& config)
+	: config_(config), ray_cast_(config.width / 2, config.fov, config.depth) {
 	InitRays();
 	crosshair_ray_ = std::make_shared<Ray>();
 }
@@ -47,9 +44,9 @@ void Camera2D::Update() {
 	}
 }
 
-void Camera2D::SetScene(const std::shared_ptr<Scene>& scene) {
-	scene_ = scene;
-	views_.assign(scene_ ? scene_->GetObjects().size() : 0, ObjectView{});
+void Camera2D::SetScene(Scene& scene) {
+	scene_ = &scene;
+	views_.assign(scene_->GetObjects().size(), ObjectView{});
 }
 
 const RayVector& Camera2D::GetRays() const {

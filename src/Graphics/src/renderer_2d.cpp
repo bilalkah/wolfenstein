@@ -134,8 +134,7 @@ void Renderer2D::RenderPaths() {
 	const auto config = context_->GetConfig();
 	SetDrawColor({0, 0, 255, 255});
 	for (const auto& enemy : enemies) {
-		const auto path =
-			NavigationManager::GetInstance().GetPath(enemy->GetId());
+		const auto path = scene_->GetNavigation().GetPath(enemy->GetId());
 		for (std::size_t i = 1; i < path.size(); ++i) {
 			DrawLine(ToVector2i(NavigationManager::CellCentre(path[i - 1]) *
 								config.scale),

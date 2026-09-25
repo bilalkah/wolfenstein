@@ -27,14 +27,13 @@ class SceneLoader
 	SceneLoader& operator=(const SceneLoader&) = delete;
 	static SceneLoader& GetInstance();
 
-	std::shared_ptr<Scene> Load(const std::string& json_path,
-								std::shared_ptr<Player> player);
+	// Builds the level; the caller owns it. The scene borrows the player.
+	std::unique_ptr<Scene> Load(const std::string& json_path, Player& player);
 
   private:
 	SceneLoader();
 	void PrepareEnemies(Scene& scene, const LevelData& level) const;
 	void PrepareDynamicObjects(Scene& scene, const LevelData& level) const;
-	void InitManagers(const std::shared_ptr<Scene>& scene);
 	static SceneLoader* instance_;
 	std::string asset_path;
 	GameConfig config_;

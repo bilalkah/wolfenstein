@@ -1,9 +1,11 @@
 #include "Characters/player.h"
 #include "Camera/camera.h"
 #include "CollisionManager/collision_manager.h"
+#include "Core/scene.h"
 #include "Math/vector.h"
 #include "Profiler/profiler.h"
 #include "Settings/settings.h"
+#include "ShootingManager/shooting_manager.h"
 #include "SoundManager/sound_manager.h"
 #include "State/weapon_state.h"
 #include <SDL2/SDL.h>
@@ -151,12 +153,13 @@ void Player::Move(double delta_time) {
 		delta_movement.first -= speed_sin;
 		delta_movement.second += speed_cos;
 	}
-	if (!CollisionManager::GetInstance().CheckWallCollision(
-			position_ptr_->pose, {delta_movement.first, 0})) {
+	const Map& map = scene_->GetMap();
+	if (!CheckWallCollision(map, position_ptr_->pose,
+							{delta_movement.first, 0})) {
 		position_ptr_->pose.x += delta_movement.first;
 	}
-	if (!CollisionManager::GetInstance().CheckWallCollision(
-			position_ptr_->pose, {0, delta_movement.second})) {
+	if (!CheckWallCollision(map, position_ptr_->pose,
+							{0, delta_movement.second})) {
 		position_ptr_->pose.y += delta_movement.second;
 	}
 }
@@ -197,7 +200,9 @@ void Player::ShootOrReload() {
 	// If left mouse button or left ctrl is pressed, attack
 	if ((SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_LMASK) ||
 		keystate[SDL_SCANCODE_LCTRL]) {
-		weapon_->Attack();
+		if (weapon_->Attack()) {
+			ResolvePlayerShot(*scene_, *weapon_);
+		}
 	}
 }
 

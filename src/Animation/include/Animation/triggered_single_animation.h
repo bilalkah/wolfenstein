@@ -19,8 +19,6 @@
 
 namespace wolfenstein {
 
-class Texture;
-
 class TriggeredSingleAnimation : public IAnimation
 {
   public:
@@ -35,7 +33,6 @@ class TriggeredSingleAnimation : public IAnimation
 	bool IsAnimationFinishedOnce() const override;
 
   private:
-	Texture& texture;
 	uint16_t texture_id{};
 	double counter{};
 	double animation_speed{};

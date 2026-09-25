@@ -27,6 +27,5 @@ target_include_directories(simple_weapon PUBLIC
 target_link_libraries(
     simple_weapon
     PUBLIC
-    shooting_manager
     ray
 )
