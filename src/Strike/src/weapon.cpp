@@ -24,7 +24,8 @@ auto GetWeaponConfig = [](const std::string& weapon_name) -> WeaponConfig {
 }  // namespace
 
 Weapon::Weapon(std::string weapon_name)
-	: weapon_properties_(GetWeaponConfig(weapon_name)) {
+	: weapon_properties_(GetWeaponConfig(weapon_name)),
+	  sound_channel_(SoundManager::GetInstance().AllocateChannel()) {
 	ammo_ = weapon_properties_.ammo_capacity;
 	for (const auto type : {WeaponStateType::Loaded, WeaponStateType::OutOfAmmo,
 							WeaponStateType::Reloading}) {
@@ -115,7 +116,7 @@ double Weapon::GetReloadSpeed() const {
 	return weapon_properties_.reload_speed;
 }
 
-std::string Weapon::GetWeaponName() const {
+const std::string& Weapon::GetWeaponName() const {
 	return weapon_properties_.weapon_name;
 }
 

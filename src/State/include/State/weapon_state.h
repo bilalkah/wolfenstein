@@ -47,7 +47,7 @@ class WeaponState : public State<Weapon>
 	int GetCurrentFrame() const override;
 
   protected:
-	std::unique_ptr<LoopedAnimation> animation_;
+	LoopedAnimation animation_;
 };
 
 // ########################################### LoadedState ###########################################

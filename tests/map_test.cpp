@@ -12,9 +12,9 @@ TEST(Map, LoadsSizeAndCells) {
 
 	ASSERT_EQ(map.GetSizeX(), 3);
 	ASSERT_EQ(map.GetSizeY(), 3);
-	EXPECT_EQ(map[0][0], 3);
-	EXPECT_EQ(map[1][1], 0);
-	EXPECT_EQ(map[1][2], 2);
+	EXPECT_EQ((map.GetCells()[0, 0]), 3);
+	EXPECT_EQ((map.GetCells()[1, 1]), 0);
+	EXPECT_EQ((map.GetCells()[1, 2]), 2);
 }
 
 TEST(Map, LoadsLevelOneMap) {
@@ -22,11 +22,26 @@ TEST(Map, LoadsLevelOneMap) {
 
 	ASSERT_EQ(map.GetSizeX(), 26);
 	ASSERT_EQ(map.GetSizeY(), 16);
-	EXPECT_EQ(map[3][1], 0);  // the player's spawn cell
-	EXPECT_EQ(map[3][3], 1);
+	EXPECT_EQ((map.GetCells()[3, 1]), 0);  // the player's spawn cell
+	EXPECT_EQ((map.GetCells()[3, 3]), 1);
 	for (uint16_t y = 0; y < map.GetSizeY(); ++y) {
-		EXPECT_NE(map[0][y], 0) << "top border is solid at y=" << y;
+		EXPECT_NE((map.GetCells()[0, y]), 0)
+			<< "top border is solid at y=" << y;
 	}
+}
+
+TEST(Map, RejectsMalformedFiles) {
+	const auto ragged = testing::WriteMapFile("wolfenstein_map_ragged_test.txt",
+											  {"333", "30", "333"});
+	const auto ragged_map = Map::FromFile(ragged.string());
+	ASSERT_FALSE(ragged_map);
+	EXPECT_NE(ragged_map.error().find("row 1"), std::string::npos);
+
+	const auto unknown = testing::WriteMapFile(
+		"wolfenstein_map_unknown_test.txt", {"333", "3x3", "333"});
+	EXPECT_FALSE(Map::FromFile(unknown.string()));
+
+	EXPECT_FALSE(Map::FromFile("/nonexistent/wolfenstein_map.txt"));
 }
 
 TEST(Map, CellsOutsideTheMapAreBlocked) {

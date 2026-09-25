@@ -62,23 +62,32 @@ void Game::Init() {
 	renderer_context_ = std::make_shared<RendererContext>(
 		"Wolfenstein", render_config, *camera_);
 	menu_ = std::make_unique<Menu>(renderer_context_);
+	renderer_3d_ = std::make_unique<Renderer3D>(renderer_context_);
+	renderer_2d_ = std::make_unique<Renderer2D>(renderer_context_);
 
 	// Starts the music, so it already plays in the menu
 	SoundManager::GetInstance().InitManager();
 	ApplySettings();
 }
 
+// Both renderers get the scene, the idle one too: a renderer left pointing at
+// the previous scene would keep it (its arena, enemies, map and player)
+// alive until the next toggle
+void Game::ShowScene() {
+	renderer_3d_->SetScene(scene_);
+	renderer_2d_->SetScene(scene_);
+}
+
 void Game::NewGame(const std::string& weapon_name) {
 	CharacterConfig player_config = {Position2D({3, 1.5}, 1.50), 2.0, 0.4, 0.4,
 									 1.0};
-	player_ = std::make_shared<Player>(player_config, camera_);
-	auto weapon = std::make_shared<Weapon>(weapon_name);
-	player_->SetWeapon(weapon);
+	player_ = std::make_shared<Player>(player_config, camera_,
+									   std::make_shared<Weapon>(weapon_name));
 
 	scene_ = SceneLoader::GetInstance().Load("level1.json", player_);
 	render_type_ = RenderType::TEXTURE;
-	renderer_ = std::make_unique<Renderer3D>(renderer_context_);
-	renderer_->SetScene(scene_);
+	renderer_ = renderer_3d_.get();
+	ShowScene();
 
 	camera_->SetPositionPtr(player_->GetPositionPtr());
 	NavigationManager::GetInstance().SetPositionPtr(player_->GetPositionPtr());
@@ -145,10 +154,15 @@ void Game::StartBenchmark(int frames) {
 	// Loading the level counts towards startup, as it did before the menu
 	// started games on demand
 	const auto load_start = std::chrono::steady_clock::now();
+	const auto load_allocations = AllocationStats::count;
+	const auto load_bytes = AllocationStats::bytes;
 	NewGame("mp5");
 	const std::chrono::duration<double, std::milli> load_time =
 		std::chrono::steady_clock::now() - load_start;
 	Profiler::GetInstance().AddStartupTime(load_time.count());
+	Profiler::GetInstance().SetLevelLoad(
+		load_time.count(), AllocationStats::count - load_allocations,
+		AllocationStats::bytes - load_bytes);
 	state_ = GameState::Playing;
 }
 
@@ -296,13 +310,12 @@ void Game::CheckGameEvent() {
 			if (event.key.keysym.sym == SDLK_p) {
 				if (render_type_ == RenderType::TEXTURE) {
 					render_type_ = RenderType::LINE;
-					renderer_ = std::make_unique<Renderer2D>(renderer_context_);
+					renderer_ = renderer_2d_.get();
 				}
 				else {
 					render_type_ = RenderType::TEXTURE;
-					renderer_ = std::make_unique<Renderer3D>(renderer_context_);
+					renderer_ = renderer_3d_.get();
 				}
-				renderer_->SetScene(scene_);
 			}
 		}
 	}
@@ -337,7 +350,7 @@ void Game::CheckGameOver() {
 			if (level_transition_time_ >= kEndOfLevelDelay) {
 				scene_ = SceneLoader::GetInstance().Load(scene_->GetNextScene(),
 														 player_);
-				renderer_->SetScene(scene_);
+				ShowScene();
 				level_transition_time_ = 0.0;
 			}
 		}

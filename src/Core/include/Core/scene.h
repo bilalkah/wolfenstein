@@ -17,17 +17,41 @@
 
 #include "Characters/enemy.h"
 #include "Characters/player.h"
+#include "GameObjects/dynamic_object.h"
 #include "GameObjects/game_object.h"
 #include "Map/map.h"
+#include "Memory/monotonic_arena.h"
+#include "Memory/object_pool.h"
+#include <cstdint>
+#include <expected>
+#include <memory_resource>
+#include <span>
+#include <string>
 
 namespace wolfenstein {
 
+// How many level objects a scene must hold; known when the level is loaded
+struct SceneCapacity
+{
+	std::uint32_t enemies = 0;
+	std::uint32_t dynamic_objects = 0;
+};
+
+// Owns one level. Its objects live in fixed-capacity pools whose storage,
+// like the lists that order them, comes from a per-level arena: objects are
+// laid out contiguously, creating them needs no per-object heap allocation,
+// and tearing the level down releases the whole block at once. Other systems
+// refer to objects through non-owning pointers valid for the scene's life.
 class Scene
 {
   public:
-	Scene() = default;
+	explicit Scene(SceneCapacity capacity = {});
 
-	void AddObject(std::shared_ptr<IGameObject> object);
+	std::expected<memory::Handle<Enemy>, memory::PoolError> AddEnemy(
+		const std::string& type, const CharacterConfig& config);
+	std::expected<memory::Handle<DynamicObject>, memory::PoolError>
+	AddDynamicObject(const vector2d& pose, const LoopedAnimation& animation,
+					 double width, double height);
 	void SetMap(std::shared_ptr<Map> map);
 	void SetPlayer(std::shared_ptr<Player>& player);
 	void SetNextScene(const std::string next_scene);
@@ -35,8 +59,10 @@ class Scene
 
 	void Update(double delta_time);
 
-	std::vector<std::shared_ptr<IGameObject>>& GetObjects();
-	std::vector<std::shared_ptr<Enemy>>& GetEnemies();
+	// Every level object, in update and draw order; an object's ObjectId is
+	// its index here
+	std::span<IGameObject* const> GetObjects() const { return objects_; }
+	std::span<Enemy* const> GetEnemies() const { return enemy_list_; }
 
 	const Map& GetMap() const;
 	Map& GetMap();
@@ -44,11 +70,16 @@ class Scene
 	Player& GetPlayer();
 
 	size_t GetNumberOfAliveEnemies() const;
-	std::string GetNextScene() const;
+	const std::string& GetNextScene() const;
+	const memory::MonotonicArena& LevelMemory() const { return arena_; }
 
   private:
-	std::vector<std::shared_ptr<IGameObject>> objects;
-	std::vector<std::shared_ptr<Enemy>> enemies;
+	// Declared first so it is destroyed last, after everything living in it
+	memory::MonotonicArena arena_;
+	memory::ObjectPool<Enemy> enemies_;
+	memory::ObjectPool<DynamicObject> dynamic_objects_;
+	std::pmr::vector<IGameObject*> objects_;
+	std::pmr::vector<Enemy*> enemy_list_;
 	std::shared_ptr<Map> map;
 	std::shared_ptr<Player> player;
 	size_t number_of_alive_enemies{};

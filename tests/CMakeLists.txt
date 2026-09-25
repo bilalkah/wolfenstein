@@ -19,6 +19,8 @@ add_executable(unit_tests
     enemy_state_test.cpp
     monotonic_arena_test.cpp
     object_pool_test.cpp
+    level_data_test.cpp
+    test_environment.cpp
 )
 target_link_libraries(unit_tests PRIVATE
     GTest::gtest_main
@@ -33,6 +35,7 @@ target_link_libraries(unit_tests PRIVATE
     navigation_manager
     profiler
     memory
+    scene_loader
 )
 # Counting heap allocations replaces global operator new, which clashes with
 # the sanitizers' allocator, so allocation tests run in non-sanitizer builds

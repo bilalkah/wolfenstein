@@ -1,7 +1,9 @@
 #include "SoundManager/sound_manager.h"
 #include <algorithm>
+#include <cstdlib>
 #include <iostream>
 #include <string>
+#include <utility>
 
 namespace wolfenstein {
 
@@ -15,8 +17,8 @@ SoundManager& SoundManager::GetInstance() {
 }
 
 SoundManager::~SoundManager() {
-	for (auto chunk : chunks_) {
-		Mix_FreeChunk(chunk.second);
+	for (Mix_Chunk* chunk : chunks_) {
+		Mix_FreeChunk(chunk);
 	}
 	Mix_FreeMusic(main_theme);
 	Mix_CloseAudio();
@@ -52,18 +54,12 @@ void SoundManager::InitManager() {
 	// Allocate channels (default is 8; increase if necessary)
 	Mix_AllocateChannels(kChannels);
 
-	std::string sound_path = std::string(RESOURCE_DIR) + "sounds/";
-	LoadSound("npc_attack", sound_path + "npc_attack.wav");
-	LoadSound("npc_pain", sound_path + "npc_pain.wav");
-	LoadSound("npc_death", sound_path + "npc_death.wav");
-	LoadSound("player_pain", sound_path + "player_pain.wav");
-	LoadSound("shotgun", sound_path + "shotgun.wav");
-
-	Mix_VolumeChunk(GetSound("npc_attack"), 32);
-	Mix_VolumeChunk(GetSound("npc_pain"), 32);
-	Mix_VolumeChunk(GetSound("npc_death"), 64);
-	Mix_VolumeChunk(GetSound("player_pain"), 64);
-	Mix_VolumeChunk(GetSound("shotgun"), 64);
+	const std::string sound_path = std::string(RESOURCE_DIR) + "sounds/";
+	LoadSound(SoundEffect::NpcAttack, sound_path + "npc_attack.wav", 32);
+	LoadSound(SoundEffect::NpcPain, sound_path + "npc_pain.wav", 32);
+	LoadSound(SoundEffect::NpcDeath, sound_path + "npc_death.wav", 64);
+	LoadSound(SoundEffect::PlayerPain, sound_path + "player_pain.wav", 64);
+	LoadSound(SoundEffect::Shotgun, sound_path + "shotgun.wav", 64);
 
 	std::string main_music = sound_path + "theme.mp3";
 	main_theme = Mix_LoadMUS(main_music.c_str());
@@ -74,52 +70,32 @@ void SoundManager::InitManager() {
 		std::cerr << "Failed to play MP3 file: " << Mix_GetError() << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	channel_counter = 0;
 	initialized_ = true;
 }
 
-// keep track of the ids
-// Channels are shared round-robin: handing out a new channel number per
-// source ran past the kChannels that exist after a level or two, and sounds
-// on those channels silently did not play
-void SoundManager::RegisterRequester(const std::string& requester_id) {
-	if (id_to_channel_.try_emplace(requester_id, channel_counter).second) {
-		channel_counter = (channel_counter + 1) % kChannels;
+SoundChannel SoundManager::AllocateChannel() {
+	const int channel = next_channel_;
+	next_channel_ = (next_channel_ + 1) % kChannels;
+	return SoundChannel{channel};
+}
+
+void SoundManager::PlayEffect(SoundChannel channel, SoundEffect effect) {
+	const int index = std::to_underlying(channel);
+	Mix_HaltChannel(index);
+	if (Mix_PlayChannel(index, chunks_[std::to_underlying(effect)], 0) == -1) {
+		std::cerr << "Failed to play sound: " << Mix_GetError() << std::endl;
 	}
 }
 
-void SoundManager::PlayEffect(const std::string& requester_id,
-							  const std::string& sound_effect) {
-	auto found = id_to_channel_.find(requester_id);
-	if (found == id_to_channel_.end()) {
-		RegisterRequester(requester_id);
-		found = id_to_channel_.find(requester_id);
-	}
-	else {
-		Mix_HaltChannel(found->second);
-	}
-	PlaySound(GetSound(sound_effect), found->second);
-}
-
-void SoundManager::LoadSound(const std::string sound_name,
-							 const std::string& sound_path) {
+void SoundManager::LoadSound(SoundEffect effect, const std::string& sound_path,
+							 int volume) {
 	Mix_Chunk* sound = Mix_LoadWAV(sound_path.c_str());
 	if (!sound) {
 		std::cerr << "Failed to load WAV file: " << Mix_GetError() << std::endl;
-		return exit(EXIT_FAILURE);
+		std::exit(EXIT_FAILURE);
 	}
-	chunks_.insert({sound_name, sound});
-}
-
-Mix_Chunk* SoundManager::GetSound(std::string sound_name) {
-	return chunks_[sound_name];
-}
-
-void SoundManager::PlaySound(Mix_Chunk* sound, int channel, int loops) {
-	// Play the sound on the specified channel with the specified number of loops
-	if (Mix_PlayChannel(channel, sound, loops) == -1) {
-		std::cerr << "Failed to play sound: " << Mix_GetError() << std::endl;
-	}
+	Mix_VolumeChunk(sound, volume);
+	chunks_[std::to_underlying(effect)] = sound;
 }
 
 }  // namespace wolfenstein

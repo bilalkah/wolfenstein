@@ -17,7 +17,7 @@ Map RoomMap() {
 
 // Casts a single, almost zero-width ray from the room's centre
 Ray CastFromCentre(const Map& map, double theta) {
-	RayCaster caster(1, 1e-6, 20.0, false);
+	RayCaster caster(1, 1e-6, 20.0);
 	RayVector rays(1);
 	caster.Update(map, Position2D({2.5, 2.5}, theta), rays);
 	return rays.front();

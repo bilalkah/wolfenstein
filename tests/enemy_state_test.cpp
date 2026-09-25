@@ -26,10 +26,10 @@ class EnemyStateTest : public ::testing::Test
 								  // idle enemy walk first)
 								  {"3333333", "3003003", "3003003", "3333333"})
 				.string()));
-		enemy_ = EnemyFactory::CreateEnemy(
+		ASSERT_TRUE(scene_->AddEnemy(
 			"soldier",
-			CharacterConfig(Position2D({1.5, 1.5}, 0.0), 1.0, 1.0, 0.4, 0.4));
-		scene_->AddObject(enemy_);
+			CharacterConfig(Position2D({1.5, 1.5}, 0.0), 1.0, 1.0, 0.4, 0.4)));
+		enemy_ = scene_->GetEnemies().front();
 
 		SingleRayCasterService::GetInstance().InitService(scene_);
 		SingleRayCasterService::GetInstance().SetDestinationPtr(player_);
@@ -43,10 +43,11 @@ class EnemyStateTest : public ::testing::Test
 		enemy_->SetAttacked(true);
 	}
 
-	std::shared_ptr<Scene> scene_ = std::make_shared<Scene>();
+	std::shared_ptr<Scene> scene_ =
+		std::make_shared<Scene>(SceneCapacity{.enemies = 1});
 	std::shared_ptr<Position2D> player_ =
 		std::make_shared<Position2D>(vector2d{1.5, 4.5}, 0.0);
-	std::shared_ptr<Enemy> enemy_;
+	Enemy* enemy_ = nullptr;
 };
 
 TEST_F(EnemyStateTest, PainIsReenteredWithAFreshTimer) {

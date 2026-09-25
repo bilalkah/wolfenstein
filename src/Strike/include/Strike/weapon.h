@@ -12,6 +12,7 @@
 #ifndef STRIKE_INCLUDE_STRIKE_WEAPON_H
 #define STRIKE_INCLUDE_STRIKE_WEAPON_H
 
+#include "SoundManager/sound_manager.h"
 #include "State/weapon_state.h"
 #include "Strike/strike.h"
 #include <cstddef>
@@ -64,12 +65,14 @@ class Weapon : public IStrike
 	double GetAttackRange() const;
 	double GetAttackSpeed() const;
 	double GetReloadSpeed() const;
-	std::string GetWeaponName() const;
+	const std::string& GetWeaponName() const;
+	SoundChannel GetSoundChannel() const { return sound_channel_; }
 	int GetTextureId() const;
 	const Ray& GetCrosshair() const;
 
   private:
 	WeaponConfig weapon_properties_;
+	SoundChannel sound_channel_;
 	size_t ammo_{};
 	WeaponState& StateFor(WeaponStateType type);
 

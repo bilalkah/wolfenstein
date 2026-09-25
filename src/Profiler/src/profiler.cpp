@@ -137,12 +137,14 @@ std::string Profiler::ReportJson(std::size_t warmup_frames) const {
 	}
 
 	return std::format(
-		R"({{"frames":{},"warmup_frames":{},"startup_ms":{:.2f},"sections_ms":{{{}}},)"
+		R"({{"frames":{},"warmup_frames":{},"startup_ms":{:.2f},)"
+		R"("level_load":{{"ms":{:.3f},"allocations":{},"bytes":{}}},"sections_ms":{{{}}},)"
 		R"("allocations_per_frame":{},"allocated_bytes_per_frame":{},)"
 		R"("section_allocations":{{{}}},"section_allocated_bytes":{{{}}},)"
 		R"("unattributed_allocations":{},)"
 		R"("samples":{{"frame_ms":[{}],"allocations":[{}]}}}})",
-		measured, first, startup_ms_, sections, StatsJson(allocations),
+		measured, first, startup_ms_, level_load_ms_, level_load_allocations_,
+		level_load_bytes_, sections, StatsJson(allocations),
 		StatsJson(allocated_bytes), section_allocations, section_bytes,
 		StatsJson(unattributed), frame_ms, frame_allocations);
 }

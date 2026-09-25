@@ -6,36 +6,35 @@
 #include "Settings/settings.h"
 #include "SoundManager/sound_manager.h"
 #include "State/weapon_state.h"
-#include "Utility/uuid_generator.h"
 #include <SDL2/SDL.h>
 #include <memory>
+#include <utility>
 
 namespace wolfenstein {
 
-Player::Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera)
+Player::Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera,
+			   std::shared_ptr<Weapon> weapon)
 	: rotation_speed_(config.rotation_speed),
 	  translation_speed_(config.translation_speed),
 	  width_(config.width),
 	  height_(config.height),
-	  health_(100) {
-	id_ = UuidGenerator::GetInstance().GenerateUuid();
-	SoundManager::GetInstance().RegisterRequester(id_);
+	  health_(100),
+	  sound_channel_(SoundManager::GetInstance().AllocateChannel()),
+	  damage_animation_(9, 1) {
 	camera_ = camera;
-	weapon_ = std::make_shared<Weapon>("mp5");
 	position_ptr_ = std::make_shared<Position2D>(config.initial_position);
-	damage_animation_ptr_ = std::make_unique<TriggeredSingleAnimation>(9, 1);
+	SetWeapon(std::move(weapon));
 }
 
 void Player::Update(double delta_time) {
 
-	[this](double delta_time) {
-		static double time = 0;
-		time += delta_time;
-		if (time >= 1.0) {
-			time = 0.0;
-			IncreaseHealth(1);
-		}
-	}(delta_time);
+	// One health point per second; a member, not a function-local static,
+	// so a new game does not inherit the last one's timer
+	regen_time_ += delta_time;
+	if (regen_time_ >= 1.0) {
+		regen_time_ = 0.0;
+		IncreaseHealth(1);
+	}
 	if (!is_alive_) {
 		return;
 	}
@@ -47,11 +46,11 @@ void Player::Update(double delta_time) {
 		ScopedTimer timer(ProfileSection::Camera);
 		camera_->Update();
 	}
-	damage_animation_ptr_->Update(delta_time);
+	damage_animation_.Update(delta_time);
 }
 
 void Player::SetWeapon(std::shared_ptr<Weapon> weapon) {
-	weapon_ = weapon;
+	weapon_ = std::move(weapon);
 	weapon_->SetCrossHair(camera_->GetCrosshairRay());
 }
 
@@ -81,9 +80,10 @@ void Player::DecreaseHealth(double amount) {
 	if (health_ <= 0.0) {
 		is_alive_ = false;
 	}
-	SoundManager::GetInstance().PlayEffect(id_, "player_pain");
+	SoundManager::GetInstance().PlayEffect(sound_channel_,
+										   SoundEffect::PlayerPain);
 	damaged_ = true;
-	damage_animation_ptr_->Reset();
+	damage_animation_.Reset();
 }
 
 double Player::GetHealth() const {
@@ -94,16 +94,12 @@ Position2D Player::GetPosition() const {
 	return *position_ptr_;
 }
 
-std::string Player::GetId() const {
-	return id_;
-}
-
 int Player::GetTextureId() const {
 	return weapon_->GetTextureId();
 }
 
 int Player::GetDamageTextureId() const {
-	return damage_animation_ptr_->GetCurrentFrame();
+	return damage_animation_.GetCurrentFrame();
 };
 
 double Player::GetWidth() const {

@@ -26,12 +26,22 @@ GridPathFinder::GridPathFinder(double heuristic_weight)
 
 void GridPathFinder::SetGrid(int height, int width,
 							 std::span<const std::uint8_t> blocked) {
+	SetGrid(height, width, [&](int x, int y) {
+		const auto index = static_cast<std::size_t>(x * width + y);
+		return index < blocked.size() && blocked[index] != 0;
+	});
+}
+
+std::size_t GridPathFinder::FreeCells() const {
+	return static_cast<std::size_t>(std::ranges::count(walls_, 0));
+}
+
+void GridPathFinder::Resize(int height, int width) {
 	height_ = height;
 	width_ = width;
 	const auto cells =
 		static_cast<std::size_t>(height) * static_cast<std::size_t>(width);
-	walls_.assign(blocked.begin(), blocked.end());
-	walls_.resize(cells, 0);
+	walls_.assign(cells, 0);
 	blocked_stamp_.assign(cells, 0);
 	seen_stamp_.assign(cells, 0);
 	closed_stamp_.assign(cells, 0);

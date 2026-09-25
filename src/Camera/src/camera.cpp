@@ -17,31 +17,27 @@
 #include "Math/vector.h"
 
 #include <cmath>
+#include <cstddef>
 #include <memory>
-#include <string>
 
 namespace wolfenstein {
 
 void Camera2D::InitRays() {
-	rays_ = std::make_unique<RayVector>();
-	for (int i = 0; i < config_.width / 2; i++) {
-		rays_->emplace_back(Ray());
-	}
+	rays_.assign(static_cast<std::size_t>(config_.width / 2), Ray());
 }
 
 Camera2D::Camera2D(const Camera2DConfig& config,
 				   const std::shared_ptr<Scene> scene)
 	: config_(config),
 	  scene_(scene),
-	  ray_cast_(std::make_unique<RayCaster>(config.width / 2, config.fov,
-											config.depth)) {
+	  ray_cast_(config.width / 2, config.fov, config.depth) {
 	InitRays();
 	crosshair_ray_ = std::make_shared<Ray>();
 }
 
 void Camera2D::Update() {
-	ray_cast_->Update(scene_->GetMap(), *position_, *rays_);
-	*crosshair_ray_ = rays_->at(config_.width / 4);
+	ray_cast_.Update(scene_->GetMap(), *position_, rays_);
+	*crosshair_ray_ = rays_.at(static_cast<std::size_t>(config_.width / 4));
 	crosshair_ray_->is_hit = false;
 
 	// Update object rays; entries not written this frame count as invisible
@@ -53,25 +49,19 @@ void Camera2D::Update() {
 
 void Camera2D::SetScene(const std::shared_ptr<Scene>& scene) {
 	scene_ = scene;
-	objects_.clear();
-	if (scene_) {
-		objects_.reserve(scene_->GetObjects().size());
-		for (const auto& object : scene_->GetObjects()) {
-			objects_.try_emplace(object->GetId());
-		}
-	}
+	views_.assign(scene_ ? scene_->GetObjects().size() : 0, ObjectView{});
 }
 
 const RayVector& Camera2D::GetRays() const {
-	return *rays_;
+	return rays_;
 }
 
-const RayPair* Camera2D::FindObjectRays(const std::string& id) const {
-	const auto found = objects_.find(id);
-	if (found == objects_.end() || found->second.frame != frame_) {
+const RayPair* Camera2D::FindObjectRays(ObjectId id) const {
+	const auto index = ToIndex(id);
+	if (index >= views_.size() || views_[index].frame != frame_) {
 		return nullptr;
 	}
-	return &found->second.rays;
+	return &views_[index].rays;
 }
 
 const std::shared_ptr<Ray>& Camera2D::GetCrosshairRay() const {
@@ -86,7 +76,7 @@ double Camera2D::GetFov() const {
 	return config_.fov;
 }
 double Camera2D::GetDeltaAngle() const {
-	return ray_cast_->GetDeltaTheta();
+	return ray_cast_.GetDeltaTheta();
 }
 
 void Camera2D::SetPositionPtr(const std::shared_ptr<Position2D> position) {
@@ -151,7 +141,7 @@ void Camera2D::Calculate(const IGameObject& object) {
 		object_distance * std::cos(camera_angle_right);
 	object_ray_pair.second.wall_id = texture_id;
 
-	auto& view = objects_[object.GetId()];
+	auto& view = views_[ToIndex(object.GetId())];
 	view.rays = object_ray_pair;
 	view.frame = frame_;
 

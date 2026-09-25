@@ -47,7 +47,7 @@ class EnemyState : public State<Enemy>
 	int GetCurrentFrame() const override;
 
   protected:
-	std::unique_ptr<LoopedAnimation> animation_;
+	LoopedAnimation animation_;
 };
 
 // ########################################### IdleState ###########################################

@@ -71,6 +71,13 @@ class Profiler
 	std::size_t GetFrameCount() const { return frames_.size(); }
 
 	void AddStartupTime(double milliseconds) { startup_ms_ += milliseconds; }
+	// Cost of loading the benchmark level (building the scene and its objects)
+	void SetLevelLoad(double milliseconds, std::uint64_t allocations,
+					  std::uint64_t allocated_bytes) {
+		level_load_ms_ = milliseconds;
+		level_load_allocations_ = allocations;
+		level_load_bytes_ = allocated_bytes;
+	}
 
 	// Summary statistics per section, skipping the first warmup_frames, plus
 	// the raw per-frame samples
@@ -95,6 +102,9 @@ class Profiler
 
 	bool enabled_ = false;
 	double startup_ms_ = 0.0;
+	double level_load_ms_ = 0.0;
+	std::uint64_t level_load_allocations_ = 0;
+	std::uint64_t level_load_bytes_ = 0;
 	FrameSample current_;
 	std::uint64_t frame_start_allocations_ = 0;
 	std::uint64_t frame_start_bytes_ = 0;

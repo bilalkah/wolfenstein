@@ -7,7 +7,6 @@
 #include "SoundManager/sound_manager.h"
 #include "Strike/simple_weapon.h"
 #include "Strike/strike.h"
-#include "Utility/uuid_generator.h"
 #include <memory>
 #include <utility>
 
@@ -57,10 +56,9 @@ Enemy::Enemy(std::string bot_name, CharacterConfig config)
 	  next_pose(position_.pose),
 	  state_config_(GetBotStateConfig(bot_name)),
 	  bot_name_(bot_name),
-	  id_(UuidGenerator::GetInstance().GenerateUuid()),
+	  sound_channel_(SoundManager::GetInstance().AllocateChannel()),
 	  crosshair_ray(Ray{}),
 	  weapon_(GetBotWeapon(bot_name)) {
-	SoundManager::GetInstance().RegisterRequester(id_);
 	for (const auto type :
 		 {EnemyStateType::Idle, EnemyStateType::Walk, EnemyStateType::Attack,
 		  EnemyStateType::Pain, EnemyStateType::Death}) {
@@ -157,11 +155,7 @@ Position2D Enemy::GetPosition() const {
 	return position_;
 }
 
-std::string Enemy::GetId() const {
-	return id_;
-}
-
-std::string Enemy::GetBotName() const {
+const std::string& Enemy::GetBotName() const {
 	return bot_name_;
 }
 
@@ -217,11 +211,6 @@ const SimpleWeapon& Enemy::GetWeapon() const {
 
 SimpleWeapon& Enemy::GetWeapon() {
 	return *weapon_;
-}
-
-std::shared_ptr<Enemy> EnemyFactory::CreateEnemy(std::string bot_name,
-												 CharacterConfig config) {
-	return std::make_shared<Enemy>(bot_name, config);
 }
 
 }  // namespace wolfenstein
