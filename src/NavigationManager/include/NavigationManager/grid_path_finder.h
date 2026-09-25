@@ -12,6 +12,8 @@
 #ifndef NAVIGATION_MANAGER_INCLUDE_NAVIGATION_MANAGER_GRID_PATH_FINDER_H
 #define NAVIGATION_MANAGER_INCLUDE_NAVIGATION_MANAGER_GRID_PATH_FINDER_H
 
+#include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <span>
 #include <vector>
@@ -40,6 +42,20 @@ class GridPathFinder
 	// blocked is row-major (x * width + y); non-zero cells are walls.
 	// Allocates only when the grid grows.
 	void SetGrid(int height, int width, std::span<const std::uint8_t> blocked);
+	// The same, asking is_wall(x, y) for each cell: callers deriving the
+	// grid from something else (a map) need no intermediate copy of it
+	template <std::predicate<int, int> IsWall>
+	void SetGrid(int height, int width, IsWall&& is_wall) {
+		Resize(height, width);
+		for (int x = 0; x < height; ++x) {
+			for (int y = 0; y < width; ++y) {
+				walls_[static_cast<std::size_t>(Index({x, y}))] =
+					is_wall(x, y) ? 1 : 0;
+			}
+		}
+	}
+	// Cells that are not walls: no path is longer than this
+	std::size_t FreeCells() const;
 
 	// Writes the path from start to goal, both included, into `path` (reusing
 	// its capacity) and returns true, or returns false with `path` empty if
@@ -64,6 +80,7 @@ class GridPathFinder
 	GridCell Cell(std::int32_t index) const {
 		return {index / width_, index % width_};
 	}
+	void Resize(int height, int width);
 	void NextGeneration();
 
 	double heuristic_weight_;

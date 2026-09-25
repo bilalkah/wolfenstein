@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
-#include <string>
+#include <span>
 #include <vector>
 
 namespace wolfenstein {
@@ -26,30 +26,22 @@ NavigationManager::~NavigationManager() {
 
 void NavigationManager::InitManager(const std::shared_ptr<Scene>& scene) {
 	scene_ = scene;
-	paths_.clear();
 
+	// Each map cell splits into cells_per_side^2 pathfinding cells, built
+	// straight into the path finder's grid
 	const Map& map = scene_->GetMap();
 	const int cells_per_side = static_cast<int>(1.0 / kCellSize);
-	const int height = map.GetSizeX() * cells_per_side;
-	const int width = map.GetSizeY() * cells_per_side;
-	walls_.assign(static_cast<std::size_t>(height * width), 0);
-	for (int x = 0; x < height; ++x) {
-		for (int y = 0; y < width; ++y) {
-			walls_[static_cast<std::size_t>(x * width + y)] =
-				map.IsBlocked(x / cells_per_side, y / cells_per_side) ? 1 : 0;
-		}
-	}
-	path_finder_.SetGrid(height, width, walls_);
+	path_finder_.SetGrid(map.GetSizeX() * cells_per_side,
+						 map.GetSizeY() * cells_per_side, [&](int x, int y) {
+							 return map.IsBlocked(x / cells_per_side,
+												  y / cells_per_side);
+						 });
 
-	// A path visits each free cell at most once, so this capacity is never
-	// exceeded: storing a path never allocates during play
-	const auto free_cells =
-		static_cast<std::size_t>(std::ranges::count(walls_, 0));
-	cells_.reserve(free_cells);
+	// A path visits each free cell at most once, so the scratch path never
+	// grows during play
+	cells_.reserve(path_finder_.FreeCells());
 	obstacles_.reserve(2 * scene_->GetEnemies().size());
-	for (const auto& enemy : scene_->GetEnemies()) {
-		paths_[enemy->GetId()].reserve(free_cells);
-	}
+	routes_.assign(scene_->GetObjects().size(), Route{});
 }
 
 GridCell NavigationManager::ToCell(const vector2d& position) {
@@ -68,50 +60,56 @@ void NavigationManager::CollectDynamicObstacles() {
 			continue;
 		}
 		obstacles_.push_back(ToCell(enemy->GetPose()));
-		const auto found = paths_.find(enemy->GetId());
-		if (found != paths_.end() && !found->second.empty()) {
-			obstacles_.push_back(ToCell(found->second.front()));
+		const Route& route = routes_[ToIndex(enemy->GetId())];
+		if (route.size > 0) {
+			obstacles_.push_back(route.cells[0]);
 		}
 	}
 }
 
 // Returns the waypoint the enemy should head for: two cells along the path,
-// which smooths the movement, or the last cell of a shorter path. The whole
-// remaining path is stored for the enemy.
+// which smooths the movement, or the last cell of a shorter path. The start
+// of the remaining path is stored for the enemy.
 vector2d NavigationManager::FindPath(Position2D start, Position2D end,
-									 const std::string& id) {
-	auto& waypoints = paths_[id];
-	waypoints.clear();
-	if (start.pose.Distance(end.pose) < kCellSize * 0.9) {
-		waypoints.push_back(start.pose);
+									 ObjectId id) {
+	Route& route = routes_[ToIndex(id)];
+	const auto stay = [&] {
+		route.cells[0] = ToCell(start.pose);
+		route.size = 1;
 		return start.pose;
+	};
+	if (start.pose.Distance(end.pose) < kCellSize * 0.9) {
+		return stay();
 	}
 
 	CollectDynamicObstacles();
 	if (!path_finder_.FindPath(ToCell(start.pose), ToCell(end.pose), obstacles_,
 							   cells_) ||
 		cells_.size() < 2) {
-		waypoints.push_back(start.pose);
-		return start.pose;
+		return stay();
 	}
 	// Skip the start cell: the enemy is already there
-	for (std::size_t i = 1; i < cells_.size(); ++i) {
-		waypoints.push_back(CellCentre(cells_[i]));
-	}
-	return waypoints[std::min<std::size_t>(1, waypoints.size() - 1)];
+	const auto path = std::span(cells_).subspan(1);
+	route.size =
+		static_cast<std::uint32_t>(std::min(path.size(), Route::kCapacity));
+	std::ranges::copy(path.first(route.size), route.cells.begin());
+	return CellCentre(path[std::min<std::size_t>(1, path.size() - 1)]);
 }
 
-vector2d NavigationManager::FindPathToPlayer(Position2D start,
-											 const std::string& id) {
+vector2d NavigationManager::FindPathToPlayer(Position2D start, ObjectId id) {
 	return FindPath(start, *player_position_ptr_, id);
 }
 
-const std::vector<vector2d>& NavigationManager::GetPath(const std::string& id) {
-	return paths_[id];
+std::span<const GridCell> NavigationManager::GetPath(ObjectId id) const {
+	const auto index = ToIndex(id);
+	if (index >= routes_.size()) {
+		return {};
+	}
+	return std::span(routes_[index].cells).first(routes_[index].size);
 }
 
-void NavigationManager::ResetPath(const std::string& id) {
-	paths_[id].clear();
+void NavigationManager::ResetPath(ObjectId id) {
+	routes_[ToIndex(id)].size = 0;
 }
 
 void NavigationManager::SetPositionPtr(

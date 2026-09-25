@@ -16,6 +16,7 @@
 #include "Characters/character.h"
 #include "GameObjects/game_object.h"
 #include "Math/vector.h"
+#include "SoundManager/sound_manager.h"
 #include "State/enemy_state.h"
 #include "Strike/simple_weapon.h"
 #include "Strike/strike.h"
@@ -35,7 +36,6 @@ struct StateConfig
 	double follow_range_min{};
 };
 
-class EnemyFactory;
 // Pinned (not copyable or movable): its states point back to it
 class Enemy : public ICharacter, public IGameObject
 {
@@ -61,8 +61,8 @@ class Enemy : public ICharacter, public IGameObject
 	ObjectType GetObjectType() const override;
 	vector2d GetPose() const override;
 	Position2D GetPosition() const override;
-	std::string GetId() const override;
-	std::string GetBotName() const;
+	const std::string& GetBotName() const;
+	SoundChannel GetSoundChannel() const { return sound_channel_; }
 	int GetTextureId() const override;
 	double GetWidth() const override;
 	double GetHeight() const override;
@@ -71,11 +71,7 @@ class Enemy : public ICharacter, public IGameObject
 	const SimpleWeapon& GetWeapon() const;
 	SimpleWeapon& GetWeapon();
 
-	friend class EnemyFactory;
-
   private:
-	Enemy() = default;
-
 	void Move(double delta_time);
 
 	bool is_attacked_{};
@@ -89,7 +85,7 @@ class Enemy : public ICharacter, public IGameObject
 	vector2d next_pose;
 	StateConfig state_config_;
 	std::string bot_name_;
-	std::string id_;
+	SoundChannel sound_channel_;
 	Ray crosshair_ray;
 	EnemyState& StateFor(EnemyStateType type);
 
@@ -102,13 +98,6 @@ class Enemy : public ICharacter, public IGameObject
 	DeathState death_state_;
 	StateMachine<EnemyState> state_machine_;
 	std::shared_ptr<SimpleWeapon> weapon_;
-};
-
-class EnemyFactory
-{
-  public:
-	static std::shared_ptr<Enemy> CreateEnemy(std::string bot_name,
-											  CharacterConfig config);
 };
 
 }  // namespace wolfenstein

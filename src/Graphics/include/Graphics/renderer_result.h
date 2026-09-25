@@ -32,7 +32,7 @@ class RendererResult
 	void ClearScreen();
 	void RenderScreen();
 	std::shared_ptr<RendererContext> context_;
-	std::unique_ptr<TriggeredSingleAnimation> result_animation_;
+	TriggeredSingleAnimation result_animation_;
 };
 
 }  // namespace wolfenstein

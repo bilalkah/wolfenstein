@@ -11,6 +11,10 @@ target_link_libraries(
     PUBLIC
     vector
 )
+# ObjectId only: a header, so just the include path
+target_include_directories(ray PUBLIC
+    ${PROJECT_SOURCE_DIR}/src/GameObjects/include
+)
 
 
 add_library(

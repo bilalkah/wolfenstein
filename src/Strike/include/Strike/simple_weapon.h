@@ -40,7 +40,7 @@ class SimpleWeapon : public IStrike
 	double GetAttackSpeed() const;
 	double GetAttackRate() const;
 	Ray GetCrosshair() const;
-	std::string GetWeaponName() const;
+	const std::string& GetWeaponName() const;
 
   protected:
 	std::pair<double, double> attack_damage;

@@ -80,6 +80,7 @@ class Game
 	void Init();
 	// Fresh player and level 1, keeping the window, camera and menu
 	void NewGame(const std::string& weapon_name);
+	void ShowScene();
 	void EnterPlaying();
 	void Pause();
 	void HandleMenuAction(const MenuAction& action);
@@ -98,7 +99,11 @@ class Game
 	void CheckGameOver();
 	void BenchmarkStep();
 
-	std::unique_ptr<IRenderer> renderer_;
+	// Both views are built once; switching between them (P) swaps the
+	// pointer instead of building a renderer each time
+	std::unique_ptr<Renderer3D> renderer_3d_;
+	std::unique_ptr<Renderer2D> renderer_2d_;
+	IRenderer* renderer_ = nullptr;
 	std::unique_ptr<Menu> menu_;
 	std::unique_ptr<RendererResult> renderer_result_;
 	std::shared_ptr<RendererContext> renderer_context_;

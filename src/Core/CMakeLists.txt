@@ -15,12 +15,14 @@ target_link_libraries(
     collision_manager
     character
     profiler
+    memory
 )
 
 add_library(
     scene_loader
     STATIC
     src/scene_loader.cpp
+    src/level_data.cpp
 )
 target_include_directories(scene_loader PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -29,6 +31,7 @@ target_link_libraries(
     scene_loader
     PUBLIC
     scene
+    PRIVATE
     nlohmann_json::nlohmann_json
 )
 

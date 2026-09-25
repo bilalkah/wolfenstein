@@ -9,17 +9,17 @@
 namespace wolfenstein {
 
 void EnemyState::Reset() {
-	animation_->Reset();
+	animation_.Reset();
 }
 
 int EnemyState::GetCurrentFrame() const {
-	return animation_->GetCurrentFrame();
+	return animation_.GetCurrentFrame();
 }
 
 // ########################################### IdleState ###########################################
 
 void IdleState::Update(const double& delta_time) {
-	animation_->Update(delta_time);
+	animation_.Update(delta_time);
 
 	if (context_->IsPlayerInShootingRange() &&
 		NavigationManager::GetInstance().EuclideanDistanceToPlayer(
@@ -37,10 +37,11 @@ void IdleState::OnContextSet() {
 	const auto config = context_->GetStateConfig();
 	animation_speed_ = config.animation_time.idle_animation_speed;
 	range_ = config.follow_range_max;
-	animation_ = std::make_unique<LoopedAnimation>(
-		TextureManager::GetInstance().GetTextureCollection(
-			context_->GetBotName() + "_idle"),
-		animation_speed_);
+	// Idle holds each frame for animation_speed_, where other clips spread
+	// their duration over all frames
+	animation_ =
+		LoopedAnimation(LoopedAnimation::Clip(context_->GetBotName(), "idle"),
+						animation_speed_);
 }
 
 EnemyStateType IdleState::GetType() const {
@@ -87,13 +88,13 @@ void WalkState::Update(const double& delta_time) {
 		context_->SetNextPose(bot_position.pose);
 	}
 
-	animation_->Update(delta_time);
+	animation_.Update(delta_time);
 }
 void WalkState::OnContextSet() {
 	attack_rate_ = context_->GetWeapon().GetAttackRate();
 	attack_range_ = context_->GetWeapon().GetAttackRange();
-	animation_ = std::make_unique<LoopedAnimation>(
-		context_->GetBotName() + "_walk", animation_speed_);
+	animation_ =
+		LoopedAnimation(context_->GetBotName(), "walk", animation_speed_);
 }
 
 void WalkState::OnEnter() {
@@ -109,7 +110,7 @@ EnemyStateType WalkState::GetType() const {
 // ########################################### AttackState ###########################################
 
 void AttackState::Update(const double& delta_time) {
-	animation_->Update(delta_time);
+	animation_.Update(delta_time);
 	if (attack_counter_ == 0.0) {
 		context_->Shoot();
 	}
@@ -126,14 +127,15 @@ void AttackState::Update(const double& delta_time) {
 
 void AttackState::OnContextSet() {
 	animation_speed_ = context_->GetWeapon().GetAttackSpeed();
-	animation_ = std::make_unique<LoopedAnimation>(
-		context_->GetBotName() + "_attack", animation_speed_);
+	animation_ =
+		LoopedAnimation(context_->GetBotName(), "attack", animation_speed_);
 }
 
 void AttackState::OnEnter() {
 	EnemyState::OnEnter();
 	attack_counter_ = 0.0;
-	SoundManager::GetInstance().PlayEffect(context_->GetId(), "npc_attack");
+	SoundManager::GetInstance().PlayEffect(context_->GetSoundChannel(),
+										   SoundEffect::NpcAttack);
 }
 
 EnemyStateType AttackState::GetType() const {
@@ -143,7 +145,7 @@ EnemyStateType AttackState::GetType() const {
 // ########################################### PainState ###########################################
 
 void PainState::Update(const double& delta_time) {
-	animation_->Update(delta_time);
+	animation_.Update(delta_time);
 	counter += delta_time;
 	if (counter > animation_speed_) {
 		if (context_->GetHealth() <= 0) {
@@ -158,14 +160,15 @@ void PainState::Update(const double& delta_time) {
 }
 
 void PainState::OnContextSet() {
-	animation_ = std::make_unique<LoopedAnimation>(
-		context_->GetBotName() + "_pain", animation_speed_);
+	animation_ =
+		LoopedAnimation(context_->GetBotName(), "pain", animation_speed_);
 }
 
 void PainState::OnEnter() {
 	EnemyState::OnEnter();
 	counter = 0.0;
-	SoundManager::GetInstance().PlayEffect(context_->GetId(), "npc_pain");
+	SoundManager::GetInstance().PlayEffect(context_->GetSoundChannel(),
+										   SoundEffect::NpcPain);
 }
 
 EnemyStateType PainState::GetType() const {
@@ -175,25 +178,26 @@ EnemyStateType PainState::GetType() const {
 // ########################################### DeathState ###########################################
 
 void DeathState::Update(const double& delta_time) {
-	if (animation_->IsAnimationFinishedOnce()) {
+	if (animation_.IsAnimationFinishedOnce()) {
 		if (context_->IsAlive()) {
 			context_->SetDeath();
 		}
 		return;
 	}
-	animation_->Update(delta_time);
+	animation_.Update(delta_time);
 	counter += delta_time;
 }
 
 void DeathState::OnContextSet() {
-	animation_ = std::make_unique<LoopedAnimation>(
-		context_->GetBotName() + "_death", animation_speed_);
+	animation_ =
+		LoopedAnimation(context_->GetBotName(), "death", animation_speed_);
 }
 
 void DeathState::OnEnter() {
 	EnemyState::OnEnter();
 	counter = 0.0;
-	SoundManager::GetInstance().PlayEffect(context_->GetId(), "npc_death");
+	SoundManager::GetInstance().PlayEffect(context_->GetSoundChannel(),
+										   SoundEffect::NpcDeath);
 }
 
 EnemyStateType DeathState::GetType() const {

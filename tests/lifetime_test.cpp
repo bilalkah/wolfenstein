@@ -3,6 +3,7 @@
 // weapon or an enemy really destroys it.
 
 #include "Characters/enemy.h"
+#include "Core/scene.h"
 #include "Strike/weapon.h"
 #include <gtest/gtest.h>
 #include <memory>
@@ -19,13 +20,21 @@ TEST(Lifetime, WeaponIsDestroyedWithItsLastOwner) {
 	EXPECT_TRUE(observer.expired());
 }
 
-TEST(Lifetime, EnemyIsDestroyedWithItsLastOwner) {
-	CharacterConfig config(Position2D({2.5, 2.5}, 0.0), 1.0, 1.0, 0.5, 0.5);
-	auto enemy = EnemyFactory::CreateEnemy("soldier", config);
-	const std::weak_ptr<Enemy> observer = enemy;
+// Enemies live in the scene's pool, inside the level arena; a level cannot
+// hold more than it declared
+TEST(Lifetime, EnemiesLiveInTheLevelArena) {
+	Scene scene(SceneCapacity{.enemies = 2});
+	const std::size_t before = scene.LevelMemory().Used();
+	const CharacterConfig config(Position2D({2.5, 2.5}, 0.0), 1.0, 1.0, 0.5,
+								 0.5);
+	ASSERT_TRUE(scene.AddEnemy("soldier", config));
+	ASSERT_TRUE(scene.AddEnemy("soldier", config));
+	EXPECT_EQ(scene.GetEnemies().size(), 2u);
+	EXPECT_EQ(scene.LevelMemory().Used(), before);	// storage reserved up front
 
-	enemy.reset();
-	EXPECT_TRUE(observer.expired());
+	const auto third = scene.AddEnemy("soldier", config);
+	ASSERT_FALSE(third.has_value());
+	EXPECT_EQ(third.error(), memory::PoolError::Full);
 }
 
 }  // namespace

@@ -9,7 +9,6 @@
 #include <cmath>
 #include <cstddef>
 #include <iostream>
-#include <string>
 namespace wolfenstein {
 
 namespace {
@@ -45,6 +44,40 @@ Renderer3D::Renderer3D(std::shared_ptr<RendererContext> context)
 	render_queue_.reserve(
 		static_cast<std::size_t>(context_->GetConfig().width) / 2 +
 		kExtraCommands);
+	hud_digits_ = TextureManager::GetInstance().GetTextureCollection("digits");
+
+	// SDL queues draw calls, and grows its command pool and vertex buffer
+	// whenever a frame queues more of them than any frame before: the first
+	// frame with more sprites in view than ever allocated inside SDL. A frame
+	// and a half's worth of copies here grows both once, at load time (they
+	// keep their capacity). The copies land in the back buffer, which the
+	// next frame clears.
+	auto* renderer = context_->GetRenderer();
+	const auto& warm_up =
+		TextureManager::GetInstance().GetTexture(hud_digits_[0]);
+	const SDL_Rect pixel{0, 0, 1, 1};
+	for (std::size_t i = 0; i < render_queue_.capacity() * 3 / 2; ++i) {
+		SDL_RenderCopy(renderer, warm_up.texture, &pixel, &pixel);
+	}
+	SDL_RenderFlush(renderer);
+
+	const SDL_Color white{255, 255, 255, 255};
+	for (int digit = 0; digit < 10; ++digit) {
+		const char text[] = {static_cast<char>('0' + digit), '\0'};
+		SDL_Surface* surface =
+			TTF_RenderText_Solid(context_->GetFont(), text, white);
+		if (surface == nullptr) {
+			std::cerr << "Failed to render FPS digit: " << TTF_GetError()
+					  << std::endl;
+			continue;
+		}
+		auto& glyph = fps_digits_[static_cast<std::size_t>(digit)];
+		glyph.texture.reset(
+			SDL_CreateTextureFromSurface(context_->GetRenderer(), surface));
+		glyph.width = surface->w;
+		glyph.height = surface->h;
+		SDL_FreeSurface(surface);
+	}
 }
 
 void Renderer3D::Enqueue(int texture_id, const SDL_Rect& src_rect,
@@ -261,12 +294,11 @@ void Renderer3D::RenderHUD() {
 	const auto& player = scene_->GetPlayer();
 	const auto config = context_->GetConfig();
 	auto& textures = TextureManager::GetInstance();
-	const auto& digit_textures = textures.GetTextureCollection("digits");
 	const int digit_width = config.width / 40;
 
 	const auto draw_digit = [&](int digit, int x) {
-		const auto& texture = textures.GetTexture(
-			digit_textures[static_cast<std::size_t>(digit)]);
+		const auto& texture =
+			textures.GetTexture(hud_digits_[static_cast<std::size_t>(digit)]);
 		const double ratio =
 			static_cast<double>(texture.height) / texture.width;
 		const int height = static_cast<int>(digit_width * ratio);
@@ -301,38 +333,25 @@ void Renderer3D::RenderHUD() {
 	}
 }
 
-// Averages the frame rate over kFpsRefreshSeconds and re-rasterises the text
-// only when the shown value changes; every other frame just draws the cached
-// texture
+// Averages the frame rate over kFpsRefreshSeconds so the number is readable,
+// and draws it from the pre-rendered digits
 void Renderer3D::RenderFps() {
 	fps_elapsed_ += TimeManager::GetInstance().GetDeltaTime();
 	++fps_frames_;
-	if (fps_elapsed_ >= kFpsRefreshSeconds || !fps_texture_) {
-		const int fps =
-			fps_elapsed_ > 0.0
-				? static_cast<int>(std::lround(fps_frames_ / fps_elapsed_))
-				: 0;
+	if (fps_elapsed_ >= kFpsRefreshSeconds) {
+		shown_fps_ = static_cast<int>(std::lround(fps_frames_ / fps_elapsed_));
 		fps_elapsed_ = 0.0;
 		fps_frames_ = 0;
-		if (fps != shown_fps_ || !fps_texture_) {
-			shown_fps_ = fps;
-			const SDL_Color white{255, 255, 255, 255};
-			SDL_Surface* surface = TTF_RenderText_Solid(
-				context_->GetFont(), std::to_string(fps).c_str(), white);
-			if (surface == nullptr) {
-				std::cerr << "Failed to render FPS text: " << TTF_GetError()
-						  << std::endl;
-				return;
-			}
-			fps_texture_.reset(
-				SDL_CreateTextureFromSurface(context_->GetRenderer(), surface));
-			fps_rect_ = {0, 0, surface->w, surface->h};
-			SDL_FreeSurface(surface);
-		}
 	}
-	if (fps_texture_) {
-		SDL_RenderCopy(context_->GetRenderer(), fps_texture_.get(), nullptr,
-					   &fps_rect_);
+	std::array<int, 10> digits{};
+	const std::size_t count = ToDigits(shown_fps_, digits);
+	int x = 0;
+	for (std::size_t i = 0; i < count; ++i) {
+		const auto& glyph = fps_digits_[static_cast<std::size_t>(digits[i])];
+		const SDL_Rect dest{x, 0, glyph.width, glyph.height};
+		SDL_RenderCopy(context_->GetRenderer(), glyph.texture.get(), nullptr,
+					   &dest);
+		x += glyph.width;
 	}
 }
 

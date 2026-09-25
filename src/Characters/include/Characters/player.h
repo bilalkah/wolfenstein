@@ -15,6 +15,7 @@
 #include "Animation/triggered_single_animation.h"
 #include "Characters/character.h"
 #include "GameObjects/game_object.h"
+#include "SoundManager/sound_manager.h"
 #include "Strike/weapon.h"
 #include <functional>
 #include <memory>
@@ -27,7 +28,8 @@ class Ray;
 class Player : public ICharacter, public IGameObject
 {
   public:
-	explicit Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera);
+	Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera,
+		   std::shared_ptr<Weapon> weapon);
 
 	void Update(double delta_time) override;
 
@@ -40,7 +42,6 @@ class Player : public ICharacter, public IGameObject
 	void DecreaseHealth(double amount) override;
 	double GetHealth() const override;
 	Position2D GetPosition() const override;
-	std::string GetId() const override;
 	int GetTextureId() const override;
 	double GetWidth() const override;
 	double GetHeight() const override;
@@ -63,11 +64,12 @@ class Player : public ICharacter, public IGameObject
 	double width_{};
 	double height_{};
 	double health_{};
-	std::string id_;
+	double regen_time_{};
+	SoundChannel sound_channel_;
 	std::shared_ptr<Position2D> position_ptr_;
 	std::shared_ptr<Camera2D> camera_;
 	std::shared_ptr<Weapon> weapon_;
-	std::unique_ptr<TriggeredSingleAnimation> damage_animation_ptr_;
+	TriggeredSingleAnimation damage_animation_;
 };
 
 }  // namespace wolfenstein

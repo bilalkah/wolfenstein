@@ -27,7 +27,7 @@ Ray SimpleWeapon::GetCrosshair() const {
 	return crosshair_ray;
 }
 
-std::string SimpleWeapon::GetWeaponName() const {
+const std::string& SimpleWeapon::GetWeaponName() const {
 	return weapon_name;
 }
 

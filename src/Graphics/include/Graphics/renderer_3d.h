@@ -13,8 +13,10 @@
 #define GRAPHICS_INCLUDE_GRAPHICS_RENDERER_3D_H_
 
 #include "Graphics/renderer_interface.h"
+#include <array>
 #include <cstdint>
 #include <memory>
+#include <span>
 #include <tuple>
 #include <vector>
 
@@ -61,11 +63,18 @@ class Renderer3D : public IRenderer
 	// frame queueing never allocates
 	std::vector<RenderCommand> render_queue_;
 
-	// The FPS counter is rasterised into a texture only when its value
-	// changes, at most every kFpsRefreshSeconds, instead of every frame
-	std::unique_ptr<SDL_Texture, TextureDeleter> fps_texture_;
-	SDL_Rect fps_rect_{};
-	int shown_fps_ = -1;
+	// The FPS counter is drawn from the digits 0-9, rasterised once here:
+	// a changing value costs no text rendering, texture or allocation
+	struct Glyph
+	{
+		std::unique_ptr<SDL_Texture, TextureDeleter> texture;
+		int width = 0;
+		int height = 0;
+	};
+	std::array<Glyph, 10> fps_digits_;
+	// The HUD's digit textures, looked up once rather than every frame
+	std::span<const std::uint16_t> hud_digits_;
+	int shown_fps_ = 0;
 	double fps_elapsed_ = 0.0;
 	int fps_frames_ = 0;
 };	// class Renderer3D
