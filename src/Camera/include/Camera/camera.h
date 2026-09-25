@@ -39,12 +39,12 @@ class Scene;
 class Camera2D
 {
   public:
-	explicit Camera2D(const Camera2DConfig& config,
-					  const std::shared_ptr<Scene> scene = nullptr);
+	explicit Camera2D(const Camera2DConfig& config);
 
 	void Update();
 
-	void SetScene(const std::shared_ptr<Scene>& scene);
+	// Borrows the scene until the next call; the game owns it
+	void SetScene(Scene& scene);
 	const RayVector& GetRays() const;
 	const std::shared_ptr<Ray>& GetCrosshairRay() const;
 	// The rays bounding an object in the current frame, or nullptr if the
@@ -62,7 +62,7 @@ class Camera2D
 	double WorldAngleToCameraAngle(double angle) const;
 
 	Camera2DConfig config_;
-	std::shared_ptr<Scene> scene_;
+	Scene* scene_ = nullptr;
 	std::shared_ptr<Position2D> position_;
 	std::shared_ptr<Ray> crosshair_ray_;
 	RayCaster ray_cast_;

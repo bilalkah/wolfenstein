@@ -10,8 +10,7 @@ TriggeredSingleAnimation::TriggeredSingleAnimation(const uint16_t texture_id,
 												   const double animation_speed,
 												   int alpha_start,
 												   int alpha_end)
-	: texture(TextureManager::GetInstance().GetTexture(texture_id)),
-	  texture_id(texture_id),
+	: texture_id(texture_id),
 	  animation_speed(animation_speed),
 	  transparancy(alpha_start),
 	  alpha_start(alpha_start),
@@ -26,7 +25,11 @@ void TriggeredSingleAnimation::Update(const double& delta_time) {
 	transparancy =
 		static_cast<int>(alpha_start + (counter * direction * animation_speed) *
 										   abs(alpha_start - alpha_end));
-	SDL_SetTextureAlphaMod(texture.texture, transparancy);
+	// Looked up when used rather than held as a reference into
+	// TextureManager's storage from construction
+	SDL_SetTextureAlphaMod(
+		TextureManager::GetInstance().GetTexture(texture_id).texture,
+		static_cast<Uint8>(transparancy));
 
 	if (!is_animation_finished_once && transparancy == alpha_end) {
 		is_animation_finished_once = true;

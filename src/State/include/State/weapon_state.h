@@ -42,7 +42,8 @@ class WeaponState : public State<Weapon>
 	WeaponState& operator=(WeaponState&&) = default;
 
   public:
-	virtual void PullTrigger() {};
+	// True if the pull fired a shot
+	virtual bool PullTrigger() { return false; }
 	void Reset() override;
 	int GetCurrentFrame() const override;
 
@@ -59,7 +60,7 @@ class LoadedState : public WeaponState
 	void OnEnter() override;
 	WeaponStateType GetType() const override;
 
-	void PullTrigger() override;
+	bool PullTrigger() override;
 
   private:
 	bool trigger_pulled_{false};
@@ -76,7 +77,7 @@ class OutOfAmmoState : public WeaponState
 	void OnEnter() override;
 	WeaponStateType GetType() const override;
 
-	void PullTrigger() override;
+	bool PullTrigger() override;
 
   private:
 	bool trigger_pulled_{false};

@@ -1,5 +1,6 @@
 #include "Core/scene.h"
 #include "Profiler/profiler.h"
+#include <utility>
 namespace wolfenstein {
 
 namespace {
@@ -33,7 +34,7 @@ Scene::Scene(SceneCapacity capacity)
 
 std::expected<memory::Handle<Enemy>, memory::PoolError> Scene::AddEnemy(
 	const std::string& type, const CharacterConfig& config) {
-	auto handle = enemies_.Create(type, config);
+	auto handle = enemies_.Create(*this, type, config);
 	if (handle) {
 		Enemy* enemy = enemies_.Get(*handle);
 		enemy->SetId(ObjectId{static_cast<std::uint32_t>(objects_.size())});
@@ -56,12 +57,17 @@ Scene::AddDynamicObject(const vector2d& pose, const LoopedAnimation& animation,
 	return handle;
 }
 
-void Scene::SetMap(std::shared_ptr<Map> map) {
-	this->map = map;
+void Scene::SetMap(std::unique_ptr<Map> map) {
+	this->map = std::move(map);
 }
 
-void Scene::SetPlayer(std::shared_ptr<Player>& player) {
-	this->player = player;
+void Scene::SetPlayer(Player& player) {
+	this->player = &player;
+	player.EnterScene(*this);
+}
+
+void Scene::FinishLoading() {
+	navigation_.Build();
 }
 
 void Scene::SetNextScene(const std::string next_scene) {

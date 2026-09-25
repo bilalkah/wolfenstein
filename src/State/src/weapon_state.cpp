@@ -1,5 +1,4 @@
 #include "State/weapon_state.h"
-#include "ShootingManager/shooting_manager.h"
 #include "SoundManager/sound_manager.h"
 #include "State/state.h"
 #include "Strike/weapon.h"
@@ -48,16 +47,16 @@ void LoadedState::OnContextSet() {
 		LoopedAnimation(context_->GetWeaponName(), "loaded", fire_rate_);
 }
 
-void LoadedState::PullTrigger() {
+bool LoadedState::PullTrigger() {
 	if (trigger_pulled_) {
-		return;
+		return false;
 	}
 	SoundManager::GetInstance().PlayEffect(context_->GetSoundChannel(),
 										   SoundEffect::Shotgun);
 	trigger_pulled_ = true;
 	trigger_pull_time_ = 0;
 	context_->DecreaseAmmo();
-	ShootingManager::GetInstance().PlayerShoot(*context_);
+	return true;
 }
 
 // ########################################### OutOfAmmoState ###########################################
@@ -89,12 +88,12 @@ void OutOfAmmoState::OnContextSet() {
 		LoopedAnimation(context_->GetWeaponName(), "outofammo", fire_rate_);
 }
 
-void OutOfAmmoState::PullTrigger() {
-	if (trigger_pulled_) {
-		return;
+bool OutOfAmmoState::PullTrigger() {
+	if (!trigger_pulled_) {
+		trigger_pulled_ = true;
+		trigger_pull_time_ = 0;
 	}
-	trigger_pulled_ = true;
-	trigger_pull_time_ = 0;
+	return false;
 }
 
 // ########################################### ReloadingState ###########################################

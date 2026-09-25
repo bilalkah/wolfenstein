@@ -23,6 +23,7 @@
 namespace wolfenstein {
 
 class Camera2D;
+class Scene;
 class Ray;
 // Player.h
 class Player : public ICharacter, public IGameObject
@@ -34,6 +35,9 @@ class Player : public ICharacter, public IGameObject
 	void Update(double delta_time) override;
 
 	void SetWeapon(std::shared_ptr<Weapon> weapon);
+	// The player outlives levels; each level's scene hands itself over here
+	// and stays valid until the next one does
+	void EnterScene(Scene& scene) { scene_ = &scene; }
 	void SetPose(const vector2d& pose) override;
 	ObjectType GetObjectType() const override;
 	vector2d GetPose() const override;
@@ -57,6 +61,7 @@ class Player : public ICharacter, public IGameObject
 	void Rotate(double delta_time);
 	void ShootOrReload();
 
+	Scene* scene_ = nullptr;
 	bool is_alive_{true};
 	bool damaged_{false};
 	double rotation_speed_{};

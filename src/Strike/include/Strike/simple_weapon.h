@@ -13,64 +13,41 @@
 #define STRIKE_INCLUDE_STRIKE_SIMPLE_WEAPON_H
 
 #include "Camera/ray.h"
-#include "Strike/strike.h"
-#include <memory>
 #include <string>
+#include <string_view>
+#include <utility>
 
 namespace wolfenstein {
 
-class SimpleWeapon : public IStrike
+// An enemy's weapon: its stats and what its crosshair currently points at.
+// A plain value its enemy holds; firing is ResolveEnemyShot's job.
+class SimpleWeapon
 {
   public:
-	virtual ~SimpleWeapon() = default;
+	// The weapon an enemy type carries; exits for an unknown type
+	static SimpleWeapon ForEnemy(std::string_view enemy_type);
 
-  protected:
-	// Copies and moves only through derived classes: copying through the
-	// base would slice off the derived part
-	SimpleWeapon() = default;
-	SimpleWeapon(const SimpleWeapon&) = default;
-	SimpleWeapon& operator=(const SimpleWeapon&) = default;
-	SimpleWeapon(SimpleWeapon&&) = default;
-	SimpleWeapon& operator=(SimpleWeapon&&) = default;
+	void SetCrosshairRay(const Ray& ray) { crosshair_ray_ = ray; }
+	std::pair<double, double> GetAttackDamage() const { return attack_damage_; }
+	double GetAttackRange() const { return attack_range_; }
+	double GetAttackSpeed() const { return attack_speed_; }
+	double GetAttackRate() const { return attack_rate_; }
+	const Ray& GetCrosshair() const { return crosshair_ray_; }
+	const std::string& GetWeaponName() const { return weapon_name_; }
 
-  public:
-	void SetCrosshairRay(Ray ray);
-	std::pair<double, double> GetAttackDamage() const;
-	double GetAttackRange() const;
-	double GetAttackSpeed() const;
-	double GetAttackRate() const;
-	Ray GetCrosshair() const;
-	const std::string& GetWeaponName() const;
+  private:
+	SimpleWeapon(std::string weapon_name,
+				 std::pair<double, double> attack_damage, double attack_range,
+				 double attack_speed, double attack_rate);
 
-  protected:
-	std::pair<double, double> attack_damage;
-	double attack_range{};
-	double attack_speed{};
-	double attack_rate{};
-	Ray crosshair_ray;
-	std::string weapon_name;
-};
-
-class Melee : public SimpleWeapon
-{
-  public:
-	Melee();
-	void Attack() override;
-};
-
-class Rifle : public SimpleWeapon
-{
-  public:
-	Rifle();
-	void Attack() override;
-};
-
-class LaserGun : public SimpleWeapon
-{
-  public:
-	LaserGun();
-	void Attack() override;
+	std::string weapon_name_;
+	std::pair<double, double> attack_damage_;  // at point blank, at range
+	double attack_range_{};
+	double attack_speed_{};
+	double attack_rate_{};
+	Ray crosshair_ray_;
 };
 
 }  // namespace wolfenstein
+
 #endif	// STRIKE_INCLUDE_STRIKE_SIMPLE_WEAPON_H
