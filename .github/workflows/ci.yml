@@ -1,7 +1,10 @@
 name: CI
 
 on:
+  # Merges into master run here; branches are covered by their pull request,
+  # which tests them merged with master
   push:
+    branches: [master]
   pull_request:
     branches: [master]
 
