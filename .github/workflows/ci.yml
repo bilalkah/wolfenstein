@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  # Merges into master run here; branches are covered by their pull request,
+  # which tests them merged with master
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  native:
+    name: Native (${{ matrix.preset }})
+    runs-on: ubuntu-24.04
+    # Same toolchain as docker/dev.Dockerfile: Clang + libc++ on Ubuntu 26.04
+    container: ubuntu:26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [native-debug, native-asan]
+    env:
+      # Headless SDL for the benchmark scenario
+      SDL_VIDEODRIVER: offscreen
+      SDL_AUDIODRIVER: dummy
+      SDL_RENDER_DRIVER: software
+    steps:
+      - name: Install git (checkout needs it for LFS)
+        run: apt-get update && apt-get install -y --no-install-recommends ca-certificates git git-lfs
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - run: ./scripts/install_deps.sh
+      - run: cmake --preset ${{ matrix.preset }}
+      - run: cmake --build --preset ${{ matrix.preset }}
+      - run: ctest --preset ${{ matrix.preset }}
+      - name: Benchmark scenario (headless, 300 frames)
+        run: ./build/${{ matrix.preset }}/bin/wolfenstein --benchmark 300 | grep BENCHMARK_RESULT > /dev/null
+      - name: No heap allocations per frame (benchmark scenario)
+        # Only builds without sanitizers count allocations
+        if: matrix.preset == 'native-debug'
+        run: ./build/native-debug/bin/wolfenstein --benchmark 1000 | python3 scripts/alloc_breakdown.py --require-zero
+
+  web:
+    name: Web (Emscripten)
+    runs-on: ubuntu-24.04
+    container: emscripten/emsdk:6.0.10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - run: cmake --preset web-release
+      - run: cmake --build --preset web-release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build/web-release/bin
+
+  web-benchmark:
+    name: Web benchmark (headless Chromium)
+    needs: web
+    runs-on: ubuntu-24.04
+    # Keep the tag in step with playwright-core in benchmarks/package.json
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: build/web-release/bin
+      - name: Benchmark scenario (1000 frames)
+        working-directory: benchmarks
+        run: npm install --no-audit --no-fund && node run_web_benchmark.mjs ../build/web-release/bin 1000 ci
+      - name: No heap allocations per frame
+        # wasm32 differs from native (a 10-character short-string buffer
+        # instead of 22, 4-byte pointers), so the native gate is not enough
+        run: python3 scripts/alloc_breakdown.py --require-zero --report "$(ls docs/benchmarks/results/*.json)"
+
+  format:
+    name: Formatting
+    runs-on: ubuntu-24.04
+    container: ubuntu:26.04
+    steps:
+      - run: apt-get update && apt-get install -y --no-install-recommends ca-certificates git clang-format
+      - uses: actions/checkout@v4
+      - run: find app src tests -name '*.cpp' -o -name '*.h' | xargs clang-format --dry-run -Werror

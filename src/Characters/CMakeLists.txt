@@ -14,12 +14,14 @@ target_link_libraries(
     collision_manager
     enemy_state
     game_object
-    SDL2
+    wolfenstein::sdl2
     vector
     weapon
     camera
     single_raycaster
     simple_weapon
     sound_manager
+    profiler
+    settings
 )
 

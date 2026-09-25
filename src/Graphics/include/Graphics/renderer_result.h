@@ -25,7 +25,6 @@ class RendererResult
   public:
 	RendererResult(std::shared_ptr<RendererContext> context,
 				   const uint16_t texture_id);
-	~RendererResult() = default;
 
 	void Render();
 
@@ -33,7 +32,7 @@ class RendererResult
 	void ClearScreen();
 	void RenderScreen();
 	std::shared_ptr<RendererContext> context_;
-	std::unique_ptr<TriggeredSingleAnimation> result_animation_;
+	TriggeredSingleAnimation result_animation_;
 };
 
 }  // namespace wolfenstein

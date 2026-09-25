@@ -31,68 +31,71 @@ class WeaponState : public State<Weapon>
 {
   public:
 	virtual ~WeaponState() = default;
+
+  protected:
+	// Copies and moves only through derived classes: copying through the
+	// base would slice off the derived part
+	WeaponState() = default;
+	WeaponState(const WeaponState&) = default;
+	WeaponState& operator=(const WeaponState&) = default;
+	WeaponState(WeaponState&&) = default;
+	WeaponState& operator=(WeaponState&&) = default;
+
+  public:
 	virtual void PullTrigger() {};
 	void Reset() override;
 	int GetCurrentFrame() const override;
 
   protected:
-	std::unique_ptr<LoopedAnimation> animation_;
+	LoopedAnimation animation_;
 };
-
-typedef std::shared_ptr<WeaponState> WeaponStatePtr;
 
 // ########################################### LoadedState ###########################################
 class LoadedState : public WeaponState
 {
   public:
-	LoadedState();
-	~LoadedState();
-
 	void Update(const double&) override;
 	void OnContextSet() override;
+	void OnEnter() override;
 	WeaponStateType GetType() const override;
 
 	void PullTrigger() override;
 
   private:
-	bool trigger_pulled_;
-	double trigger_pull_time_;
-	double fire_rate_;
+	bool trigger_pulled_{false};
+	double trigger_pull_time_{0.0};
+	double fire_rate_{0.0};
 };
 
 // ########################################### OutOfAmmoState ###########################################
 class OutOfAmmoState : public WeaponState
 {
   public:
-	OutOfAmmoState();
-	~OutOfAmmoState();
-
 	void Update(const double&) override;
 	void OnContextSet() override;
+	void OnEnter() override;
 	WeaponStateType GetType() const override;
 
 	void PullTrigger() override;
 
   private:
-	bool trigger_pulled_;
-	double trigger_pull_time_;
-	double fire_rate_;
+	bool trigger_pulled_{false};
+	double trigger_pull_time_{0.0};
+	double fire_rate_{0.0};
 };
 
 // ########################################### ReloadingState ###########################################
 class ReloadingState : public WeaponState
 {
   public:
-	ReloadingState();
-	~ReloadingState();
-
 	void Update(const double&) override;
 	void OnContextSet() override;
+	void OnEnter() override;
 	WeaponStateType GetType() const override;
 
   private:
-	double reload_time_;
-	double reload_speed_;
+	double reload_time_{0.0};
+	double reload_speed_{0.0};
 };
 
 }  // namespace wolfenstein

@@ -12,8 +12,10 @@
 #ifndef CORE_INCLUDE_CORE_SCENE_LOADER_H_
 #define CORE_INCLUDE_CORE_SCENE_LOADER_H_
 
-#include "Core/json.hpp"
+#include "Core/level_data.h"
 #include "Core/scene.h"
+#include <memory>
+#include <string>
 
 namespace wolfenstein {
 
@@ -25,20 +27,17 @@ class SceneLoader
 	SceneLoader& operator=(const SceneLoader&) = delete;
 	static SceneLoader& GetInstance();
 
-	std::shared_ptr<Scene> Load(std::string json_path,
+	std::shared_ptr<Scene> Load(const std::string& json_path,
 								std::shared_ptr<Player> player);
 
   private:
 	SceneLoader();
-	void PreparePlayer(Scene& scene, nlohmann::json& player_data,
-					   std::shared_ptr<Player> player);
-	void PrepareEnemies(Scene& scene, nlohmann::json& enemies);
-	void PrepareDynamicObjects(Scene& scene, nlohmann::json& dynamic_objects);
-	void PrepareStaticObjects(Scene& scene, nlohmann::json& static_objects);
+	void PrepareEnemies(Scene& scene, const LevelData& level) const;
+	void PrepareDynamicObjects(Scene& scene, const LevelData& level) const;
 	void InitManagers(const std::shared_ptr<Scene>& scene);
 	static SceneLoader* instance_;
 	std::string asset_path;
-	nlohmann::json configs;
+	GameConfig config_;
 };	// class SceneLoader
 
 }  // namespace wolfenstein

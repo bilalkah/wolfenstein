@@ -12,7 +12,7 @@
 #ifndef GAME_OBJECTS_INCLUDE_DYNAMIC_OBJECT_H
 #define GAME_OBJECTS_INCLUDE_DYNAMIC_OBJECT_H
 
-#include "Animation/animation.h"
+#include "Animation/looped_animation.h"
 #include "GameObjects/game_object.h"
 #include <memory>
 
@@ -22,26 +22,23 @@ class DynamicObject : public IGameObject
 {
   public:
 	explicit DynamicObject(const vector2d& pose_,
-						   std::unique_ptr<IAnimation> animation_,
+						   const LoopedAnimation& animation_,
 						   const double width_, const double height_);
-	~DynamicObject();
 
 	void Update(double delta_time) override;
 
 	void SetPose(const vector2d& pose) override;
 	ObjectType GetObjectType() const override;
 	vector2d GetPose() const override;
-	std::string GetId() const override;
 	int GetTextureId() const override;
 	double GetWidth() const override;
 	double GetHeight() const override;
 
   protected:
 	vector2d pose;
-	std::unique_ptr<IAnimation> animation;
+	LoopedAnimation animation;
 	double width;
 	double height;
-	std::string id;
 };
 }  // namespace wolfenstein
 

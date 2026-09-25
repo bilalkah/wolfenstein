@@ -9,6 +9,6 @@ target_include_directories(sound_manager PUBLIC
 target_link_libraries(
     sound_manager
     PUBLIC
-    SDL2
-    SDL2_mixer
+    wolfenstein::sdl2
+    wolfenstein::sdl2_mixer
 )

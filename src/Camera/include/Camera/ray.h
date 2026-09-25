@@ -12,9 +12,8 @@
 #ifndef CAMERA_INCLUDE_CAMERA_RAY_H_
 #define CAMERA_INCLUDE_CAMERA_RAY_H_
 
+#include "GameObjects/object_id.h"
 #include "Math/vector.h"
-
-#include <string>
 #include <vector>
 
 namespace wolfenstein {
@@ -23,7 +22,6 @@ struct Ray
 {
 	Ray();
 	Ray(vector2d direction, double theta);
-	~Ray();
 
 	void Reset(const vector2d ray_orig, const double ray_theta);
 
@@ -36,7 +34,8 @@ struct Ray
 	double perpendicular_distance;
 
 	int wall_id;
-	std::string object_id;
+	// The enemy the ray hits, for the crosshair ray
+	ObjectId object_id;
 
 	bool is_hit;
 	bool is_hit_vertical;

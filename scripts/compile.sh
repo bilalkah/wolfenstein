@@ -1,2 +1,6 @@
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release --parallel 8
+#!/bin/bash
+# Native release build (Clang + libc++); see CMakePresets.json for others
+set -euo pipefail
+cd "$(dirname "$0")/.."
+cmake --preset native-release
+cmake --build --preset native-release

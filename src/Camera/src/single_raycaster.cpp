@@ -22,22 +22,24 @@ void SingleRayCasterService::InitService(
 	scene_ptr_ = scene_ptr;
 }
 
+// Line of sight from src to the player: visible if the ray reaches the
+// player's cell before any blocked cell. The loop always ends: cells outside
+// the map count as blocked, and the ray gives up once it has travelled past
+// the player's distance.
 Ray SingleRayCasterService::Cast(const vector2d& src) {
-
-	vector2d dest = dest_ptr_->pose;
-	auto& map_ = scene_ptr_->GetMap().GetRawMap();
-	const auto& row_size = scene_ptr_->GetMap().GetSizeX();
-	const auto& col_size = scene_ptr_->GetMap().GetSizeY();
+	const vector2d dest = dest_ptr_->pose;
+	const Map& map = scene_ptr_->GetMap();
 	Ray ray;
-	if (map_[src.x][src.y] != 0) {
+	if (map.IsBlocked(src)) {
 		ray.is_hit = false;
 		return ray;
 	}
 	vector2d ray_unit_step, ray_length_1d;
-	vector2i step, map_check, dest_i;
+	vector2i step, map_check;
 	PrepareRay(src, ray, ray_unit_step, ray_length_1d, step, map_check);
-	auto depth_ = src.Distance(dest);
-	while (!ray.is_hit) {
+	const auto depth = src.Distance(dest);
+	const vector2i dest_cell = ToVector2i(dest);
+	while (!ray.is_hit && ray.distance <= depth + 1.0) {
 		if (ray_length_1d.x < ray_length_1d.y) {
 			ray.is_hit_vertical = true;
 			ray.perpendicular_distance = ray_length_1d.x;
@@ -53,19 +55,16 @@ Ray SingleRayCasterService::Cast(const vector2d& src) {
 			map_check.y += step.y;
 		}
 
-		if (map_check.x >= 0 && map_check.x < row_size && map_check.y >= 0 &&
-			map_check.y < col_size) {
-			if (map_[map_check.x][map_check.y] != 0) {
-				ray.is_hit = false;
-				break;
-			}
-			else if (ToVector2i(dest) == map_check) {
-				ray.is_hit = true;
-				ray.hit_point = ray.origin + ray.direction * depth_;
-			}
+		if (map.IsBlocked(map_check.x, map_check.y)) {
+			ray.is_hit = false;
+			break;
+		}
+		if (map_check == dest_cell) {
+			ray.is_hit = true;
+			ray.hit_point = ray.origin + ray.direction * depth;
 		}
 	}
-	if (ToVector2i(dest) == ToVector2i(src)) {
+	if (dest_cell == ToVector2i(src)) {
 		ray.is_hit = true;
 		ray.hit_point = dest;
 	}

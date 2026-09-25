@@ -22,7 +22,6 @@ class StaticObject : public IGameObject
   public:
 	explicit StaticObject(const vector2d& pose_, const int texture_id_,
 						  const double width_, const double height_);
-	~StaticObject();
 
 	void Update(double delta_time) override;
 
@@ -30,7 +29,6 @@ class StaticObject : public IGameObject
 
 	ObjectType GetObjectType() const override;
 	vector2d GetPose() const override;
-	std::string GetId() const override;
 
 	int GetTextureId() const override;
 	double GetWidth() const override;
@@ -41,7 +39,6 @@ class StaticObject : public IGameObject
 	int texture_id;
 	double width;
 	double height;
-	std::string id;
 };
 
 }  // namespace wolfenstein

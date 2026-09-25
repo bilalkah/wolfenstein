@@ -33,98 +33,95 @@ class EnemyState : public State<Enemy>
   public:
 	virtual ~EnemyState() = default;
 
+  protected:
+	// Copies and moves only through derived classes: copying through the
+	// base would slice off the derived part
+	EnemyState() = default;
+	EnemyState(const EnemyState&) = default;
+	EnemyState& operator=(const EnemyState&) = default;
+	EnemyState(EnemyState&&) = default;
+	EnemyState& operator=(EnemyState&&) = default;
+
+  public:
 	void Reset() override;
 	int GetCurrentFrame() const override;
 
   protected:
-	std::unique_ptr<LoopedAnimation> animation_;
+	LoopedAnimation animation_;
 };
-
-typedef std::shared_ptr<EnemyState> EnemyStatePtr;
 
 // ########################################### IdleState ###########################################
 class IdleState : public EnemyState
 {
   public:
-	IdleState();
-	~IdleState();
-
 	void Update(const double& delta_time) override;
 	void OnContextSet() override;
 	EnemyStateType GetType() const override;
 
   private:
-	double animation_speed_;
-	double range_;
+	double animation_speed_{0.0};
+	double range_{0.0};
 };
 
 // ########################################### WalkState ###########################################
 class WalkState : public EnemyState
 {
   public:
-	WalkState();
-	~WalkState();
-
 	void Update(const double& delta_time) override;
 	void OnContextSet() override;
+	void OnEnter() override;
 	EnemyStateType GetType() const override;
 
   private:
-	double animation_speed_;
-	double range_max_;
-	double range_min_;
-	double attack_range_;
-	double attack_rate_;
-	double attack_counter_;
-	bool is_attacked_;
+	double animation_speed_{1.2};
+	double range_max_{5.0};
+	double range_min_{1.5};
+	double attack_range_{5.0};
+	double attack_rate_{1.0};
+	double attack_counter_{0.0};
+	bool is_attacked_{false};
 };
 
 // ########################################### AttackState ###########################################
 class AttackState : public EnemyState
 {
   public:
-	AttackState();
-	~AttackState();
-
 	void Update(const double& delta_time) override;
 	void OnContextSet() override;
+	void OnEnter() override;
 	EnemyStateType GetType() const override;
 
   private:
-	double animation_speed_;
-	double attack_counter_;
+	double animation_speed_{0.5};
+	double attack_counter_{0.0};
 };
 
 // ########################################### PainState ###########################################
 class PainState : public EnemyState
 {
   public:
-	PainState();
-	~PainState();
-
 	void Update(const double& delta_time) override;
 	void OnContextSet() override;
+	void OnEnter() override;
 	EnemyStateType GetType() const override;
 
   private:
-	double animation_speed_;
-	double counter;
+	double animation_speed_{0.2};
+	double counter{0.0};
 };
 
 // ########################################### DeathState ###########################################
 class DeathState : public EnemyState
 {
   public:
-	DeathState();
-	~DeathState();
-
 	void Update(const double& delta_time) override;
 	void OnContextSet() override;
+	void OnEnter() override;
 	EnemyStateType GetType() const override;
 
   private:
-	double animation_speed_;
-	double counter;
+	double animation_speed_{1.0};
+	double counter{0.0};
 };
 
 }  // namespace wolfenstein

@@ -17,52 +17,28 @@
 #include "Map/map.h"
 #include "Math/vector.h"
 
-#include <algorithm>
-#include <cmath>
-#include <functional>
-#include <memory>
-#include <thread>
-#include <vector>
-
 namespace wolfenstein {
 
+// Casts the camera's fan of rays through the map (DDA), one ray per screen
+// column pair
 class RayCaster
 {
   public:
-	RayCaster(const int num_ray, const double fov, const double depth,
-			  const bool make_parallel = true);
-	~RayCaster();
+	RayCaster(int num_ray, double fov, double depth);
 
-	void Update(const Map& map_ptr, const Position2D& position,
-				RayVector& rays);
-
+	void Update(const Map& map, const Position2D& position, RayVector& rays);
 	double GetDeltaTheta() const;
 
   private:
-	Ray Cast(const MapRaw& map_, const uint16_t row_size,
-			 const uint16_t col_size, const Position2D& position,
-			 const double ray_theta);
-
+	Ray Cast(Map::CellView cells, const Position2D& position,
+			 double ray_theta) const;
 	void PrepareRay(const Position2D& position, const double ray_angle,
 					Ray& ray, vector2d& ray_unit_step, vector2d& ray_length_1d,
-					vector2i& step, vector2i& map_check);
+					vector2i& step, vector2i& map_check) const;
 
-	void SequentialCast(const Map& map_ptr, const Position2D& position,
-						RayVector& rays);
-
-	void ParallelCast(const Map& map_ptr, const Position2D& position,
-					  RayVector& rays);
-	void CalculateRaySections(int batchSize);
-
-	int num_ray_;
 	double fov_;
 	double depth_;
 	double delta_theta_;
-	const bool make_parallel_;
-	std::function<void(const Map&, const Position2D&, RayVector&)>
-		cast_function_;
-	std::vector<std::thread> thread_container_;
-	std::vector<std::pair<int, int>> sections_;
 };
 
 }  // namespace wolfenstein

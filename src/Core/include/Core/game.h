@@ -26,10 +26,13 @@
 #include "TextureManager/texture_manager.h"
 #include "TimeManager/time_manager.h"
 #include <memory>
+#include <string>
 
 namespace wolfenstein {
 
 enum class RenderType { TEXTURE, LINE };
+
+enum class GameState { Menu, Playing, Paused, Result };
 
 struct GeneralConfig
 {
@@ -58,27 +61,65 @@ class Game
 {
   public:
 	Game(GeneralConfig& config);
-	~Game();
+	// The browser main loop keeps a pointer to the game
+	Game(const Game&) = delete;
+	Game& operator=(const Game&) = delete;
+	Game(Game&&) = delete;
+	Game& operator=(Game&&) = delete;
+	~Game() = default;
 
 	void Run();
+	// Runs a single frame; returns false once the game should close
+	bool Tick();
+	// Skips the menu and plays the given number of frames with a fixed time
+	// step, then prints a JSON performance report and stops
+	void StartBenchmark(int frames);
+	bool IsBenchmark() const;
 
   private:
 	void Init();
-	void CheckGameEvent();
-	void CheckMenuEvent();
+	// Fresh player and level 1, keeping the window, camera and menu
+	void NewGame(const std::string& weapon_name);
+	void ShowScene();
+	void EnterPlaying();
+	void Pause();
+	void HandleMenuAction(const MenuAction& action);
+	void ApplySettings();
+	void Present();
 
-	std::unique_ptr<IRenderer> renderer_;
+	void MenuTick();
+	void GameTick();
+	void PausedTick();
+	void ResultTick();
+	// Feeds the frame's events to the menu; returns false on window close
+	bool PollMenuEvents();
+
+	void UpdateAndRender();
+	void CheckGameEvent();
+	void CheckGameOver();
+	void BenchmarkStep();
+
+	// Both views are built once; switching between them (P) swaps the
+	// pointer instead of building a renderer each time
+	std::unique_ptr<Renderer3D> renderer_3d_;
+	std::unique_ptr<Renderer2D> renderer_2d_;
+	IRenderer* renderer_ = nullptr;
 	std::unique_ptr<Menu> menu_;
 	std::unique_ptr<RendererResult> renderer_result_;
 	std::shared_ptr<RendererContext> renderer_context_;
+	std::shared_ptr<Camera2D> camera_;
 	std::shared_ptr<Scene> scene_;
 	std::shared_ptr<Player> player_;
 
 	GeneralConfig config_;
-	bool is_running_;
-	bool is_menu_;
-	bool is_result_;
-	RenderType render_type_;
+	GameState state_ = GameState::Menu;
+	bool running_ = true;
+	RenderType render_type_ = RenderType::TEXTURE;
+	double level_transition_time_ = 0.0;
+	double result_delay_time_ = 0.0;
+	// Web: set once the browser grants pointer lock, so losing it pauses
+	bool had_pointer_lock_ = false;
+	int benchmark_frames_ = 0;
 };
 
 }  // namespace wolfenstein

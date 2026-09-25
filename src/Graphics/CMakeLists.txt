@@ -13,9 +13,9 @@ target_link_libraries(
     camera
     scene
     texture_manager
-    SDL2
-    SDL2_image
-    SDL2_ttf
+    wolfenstein::sdl2
+    wolfenstein::sdl2_image
+    wolfenstein::sdl2_ttf
 )
 
 add_library(
@@ -47,6 +47,8 @@ target_link_libraries(
     PUBLIC
     renderer_interface
     time_manager
+    profiler
+    settings
 )
 
 add_library(
@@ -62,6 +64,8 @@ target_link_libraries(
     renderer_menu
     PUBLIC
     renderer_interface
+    settings
+    ui
 )
 
 add_library(

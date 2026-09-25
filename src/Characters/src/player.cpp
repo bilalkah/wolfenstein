@@ -1,39 +1,40 @@
-#include "Camera/camera.h"
 #include "Characters/player.h"
+#include "Camera/camera.h"
 #include "CollisionManager/collision_manager.h"
 #include "Math/vector.h"
+#include "Profiler/profiler.h"
+#include "Settings/settings.h"
 #include "SoundManager/sound_manager.h"
 #include "State/weapon_state.h"
-#include "Utility/uuid_generator.h"
 #include <SDL2/SDL.h>
 #include <memory>
+#include <utility>
 
 namespace wolfenstein {
 
-Player::Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera)
+Player::Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera,
+			   std::shared_ptr<Weapon> weapon)
 	: rotation_speed_(config.rotation_speed),
 	  translation_speed_(config.translation_speed),
 	  width_(config.width),
 	  height_(config.height),
-	  health_(100) {
-	id_ = UuidGenerator::GetInstance().GenerateUuid().bytes();
+	  health_(100),
+	  sound_channel_(SoundManager::GetInstance().AllocateChannel()),
+	  damage_animation_(9, 1) {
 	camera_ = camera;
-	weapon_ = std::make_shared<Weapon>("mp5");
-	weapon_->Init();
 	position_ptr_ = std::make_shared<Position2D>(config.initial_position);
-	damage_animation_ptr_ = std::make_unique<TriggeredSingleAnimation>(9, 1);
+	SetWeapon(std::move(weapon));
 }
 
 void Player::Update(double delta_time) {
 
-	[this](double delta_time) {
-		static double time = 0;
-		time += delta_time;
-		if (time >= 1.0) {
-			time = 0.0;
-			IncreaseHealth(1);
-		}
-	}(delta_time);
+	// One health point per second; a member, not a function-local static,
+	// so a new game does not inherit the last one's timer
+	regen_time_ += delta_time;
+	if (regen_time_ >= 1.0) {
+		regen_time_ = 0.0;
+		IncreaseHealth(1);
+	}
 	if (!is_alive_) {
 		return;
 	}
@@ -41,12 +42,15 @@ void Player::Update(double delta_time) {
 	weapon_->Update(delta_time);
 	Move(delta_time);
 	Rotate(delta_time);
-	camera_->Update();
-	damage_animation_ptr_->Update(delta_time);
+	{
+		ScopedTimer timer(ProfileSection::Camera);
+		camera_->Update();
+	}
+	damage_animation_.Update(delta_time);
 }
 
 void Player::SetWeapon(std::shared_ptr<Weapon> weapon) {
-	weapon_ = weapon;
+	weapon_ = std::move(weapon);
 	weapon_->SetCrossHair(camera_->GetCrosshairRay());
 }
 
@@ -76,9 +80,10 @@ void Player::DecreaseHealth(double amount) {
 	if (health_ <= 0.0) {
 		is_alive_ = false;
 	}
-	SoundManager::GetInstance().PlayEffect(id_, "player_pain");
+	SoundManager::GetInstance().PlayEffect(sound_channel_,
+										   SoundEffect::PlayerPain);
 	damaged_ = true;
-	damage_animation_ptr_->Reset();
+	damage_animation_.Reset();
 }
 
 double Player::GetHealth() const {
@@ -89,16 +94,12 @@ Position2D Player::GetPosition() const {
 	return *position_ptr_;
 }
 
-std::string Player::GetId() const {
-	return id_;
-}
-
 int Player::GetTextureId() const {
 	return weapon_->GetTextureId();
 }
 
 int Player::GetDamageTextureId() const {
-	return damage_animation_ptr_->GetCurrentFrame();
+	return damage_animation_.GetCurrentFrame();
 };
 
 double Player::GetWidth() const {
@@ -161,18 +162,28 @@ void Player::Move(double delta_time) {
 }
 
 void Player::Rotate(double delta_time) {
-	if (SDL_ShowCursor(SDL_QUERY) == SDL_DISABLE) {
-		int x, y;
-		SDL_GetMouseState(&x, &y);
-		position_ptr_->theta = SumRadian(
-			position_ptr_->theta, (x - 400) * rotation_speed_ * delta_time);
-		if (position_ptr_->theta > M_PI) {
-			position_ptr_->theta -= 2 * M_PI;
-		}
-		else if (position_ptr_->theta < -M_PI) {
-			position_ptr_->theta += 2 * M_PI;
-		}
-		SDL_WarpMouseInWindow(nullptr, 400, 300);
+	constexpr double kKeyboardTurnSpeed = 2.5;	// rad/s
+	const Uint8* keystate = SDL_GetKeyboardState(NULL);
+	double turn = 0.0;
+	if (keystate[SDL_SCANCODE_LEFT]) {
+		turn -= kKeyboardTurnSpeed * delta_time;
+	}
+	if (keystate[SDL_SCANCODE_RIGHT]) {
+		turn += kKeyboardTurnSpeed * delta_time;
+	}
+
+	// Relative mouse mode reports motion since the last call, which also
+	// works under browser pointer lock (unlike warping the cursor). Mouse
+	// motion is already a distance, so it is not scaled by the frame time.
+	constexpr double kRadiansPerPixel = 0.005;
+	int dx = 0;
+	SDL_GetRelativeMouseState(&dx, nullptr);
+	if (SDL_GetRelativeMouseMode()) {
+		turn += dx * kRadiansPerPixel * Settings::Get().mouse_sensitivity;
+	}
+
+	if (turn != 0.0) {
+		position_ptr_->theta = SumRadian(position_ptr_->theta, turn);
 	}
 }
 
@@ -183,8 +194,9 @@ void Player::ShootOrReload() {
 		weapon_->Reload();
 	}
 
-	// If left mouse button is pressed, attack
-	if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_LMASK) {
+	// If left mouse button or left ctrl is pressed, attack
+	if ((SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_LMASK) ||
+		keystate[SDL_SCANCODE_LCTRL]) {
 		weapon_->Attack();
 	}
 }

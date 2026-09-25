@@ -1,6 +1,6 @@
+#include "ShootingManager/shooting_manager.h"
 #include "Math/vector.h"
 #include "ShootingManager/shooting_helper.h"
-#include "ShootingManager/shooting_manager.h"
 #include "Strike/simple_weapon.h"
 #include "Strike/weapon.h"
 #include <algorithm>
@@ -29,7 +29,7 @@ void ShootingManager::PlayerShoot(const Weapon& weapon) {
 	if (!weapon.GetCrosshair().is_hit) {
 		return;
 	}
-	auto enemies_ = scene_->GetEnemies();
+	const auto& enemies_ = scene_->GetEnemies();
 	auto enemy = std::find_if(
 		enemies_.begin(), enemies_.end(), [&weapon](const auto& enemy) {
 			return enemy->GetId() == weapon.GetCrosshair().object_id &&

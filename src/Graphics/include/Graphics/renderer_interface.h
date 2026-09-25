@@ -48,6 +48,11 @@ class RendererContext
 	explicit RendererContext(const std::string& window_name,
 							 const RenderConfig& config, Camera2D& camera);
 	~RendererContext();
+	// Owns the SDL window, renderer and font: a copy would destroy them twice
+	RendererContext(const RendererContext&) = delete;
+	RendererContext& operator=(const RendererContext&) = delete;
+	RendererContext(RendererContext&&) = delete;
+	RendererContext& operator=(RendererContext&&) = delete;
 	SDL_Renderer* GetRenderer() const;
 	TTF_Font* GetFont() const;
 	SDL_Window* GetWindow() const;
@@ -66,9 +71,18 @@ class RendererContext
 class IRenderer
 {
   public:
-	IRenderer(std::shared_ptr<RendererContext> context);
+	explicit IRenderer(std::shared_ptr<RendererContext> context);
 	virtual ~IRenderer() = default;
 
+  protected:
+	// Copies and moves only through derived classes: copying through the
+	// base would slice off the derived part
+	IRenderer(const IRenderer&) = default;
+	IRenderer& operator=(const IRenderer&) = default;
+	IRenderer(IRenderer&&) = default;
+	IRenderer& operator=(IRenderer&&) = default;
+
+  public:
 	virtual void RenderScene() = 0;
 	void SetScene(const std::shared_ptr<Scene>& scene_ptr);
 

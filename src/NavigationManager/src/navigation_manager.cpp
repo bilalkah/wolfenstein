@@ -1,12 +1,12 @@
+#include "NavigationManager/navigation_manager.h"
 #include "Characters/enemy.h"
 #include "Core/scene.h"
 #include "Map/map.h"
 #include "Math/vector.h"
-#include "NavigationManager/navigation_helper.h"
-#include "NavigationManager/navigation_manager.h"
-#include "common_planning.h"
+#include <algorithm>
+#include <cmath>
 #include <memory>
-#include <string>
+#include <span>
 #include <vector>
 
 namespace wolfenstein {
@@ -26,62 +26,90 @@ NavigationManager::~NavigationManager() {
 
 void NavigationManager::InitManager(const std::shared_ptr<Scene>& scene) {
 	scene_ = scene;
-	if (initialized_) {
-		return;
-	}
-	path_planner_ = std::make_unique<planning::grid_base::AStar>(0.6, 4);
-	initialized_ = true;
+
+	// Each map cell splits into cells_per_side^2 pathfinding cells, built
+	// straight into the path finder's grid
+	const Map& map = scene_->GetMap();
+	const int cells_per_side = static_cast<int>(1.0 / kCellSize);
+	path_finder_.SetGrid(map.GetSizeX() * cells_per_side,
+						 map.GetSizeY() * cells_per_side, [&](int x, int y) {
+							 return map.IsBlocked(x / cells_per_side,
+												  y / cells_per_side);
+						 });
+
+	// A path visits each free cell at most once, so the scratch path never
+	// grows during play
+	cells_.reserve(path_finder_.FreeCells());
+	obstacles_.reserve(2 * scene_->GetEnemies().size());
+	routes_.assign(scene_->GetObjects().size(), Route{});
 }
 
-//@Note apply caching mechanism later
+GridCell NavigationManager::ToCell(const vector2d& position) {
+	return {static_cast<int>(std::floor(position.x / kCellSize)),
+			static_cast<int>(std::floor(position.y / kCellSize))};
+}
+
+vector2d NavigationManager::CellCentre(GridCell cell) {
+	return vector2d{(cell.x + 0.5) * kCellSize, (cell.y + 0.5) * kCellSize};
+}
+
+void NavigationManager::CollectDynamicObstacles() {
+	obstacles_.clear();
+	for (const auto& enemy : scene_->GetEnemies()) {
+		if (!enemy->IsAlive()) {
+			continue;
+		}
+		obstacles_.push_back(ToCell(enemy->GetPose()));
+		const Route& route = routes_[ToIndex(enemy->GetId())];
+		if (route.size > 0) {
+			obstacles_.push_back(route.cells[0]);
+		}
+	}
+}
+
+// Returns the waypoint the enemy should head for: two cells along the path,
+// which smooths the movement, or the last cell of a shorter path. The start
+// of the remaining path is stored for the enemy.
 vector2d NavigationManager::FindPath(Position2D start, Position2D end,
-									 std::string id) {
-	const auto res = scene_->GetMap().GetResolution();
-	if (start.pose.Distance(end.pose) < (res * 0.9)) {
-		paths_[id] = {start.pose};
+									 ObjectId id) {
+	Route& route = routes_[ToIndex(id)];
+	const auto stay = [&] {
+		route.cells[0] = ToCell(start.pose);
+		route.size = 1;
 		return start.pose;
+	};
+	if (start.pose.Distance(end.pose) < kCellSize * 0.9) {
+		return stay();
 	}
 
-	planning::Node start_node = FromVector2d(start.pose / res);
-	planning::Node end_node = FromVector2d(end.pose / res);
-
-	auto path_map =
-		std::make_shared<planning::Map>(*(scene_->GetMap().GetPathFinderMap()));
-	ApplyDynamicObjects(*path_map);
-	path_map->SetNodeState(start_node, planning::NodeState::kStart);
-	planning::Path path =
-		path_planner_->FindPath(start_node, end_node, path_map);
-
-	if (path.empty()) {
-		paths_[id] = {start.pose};
-		return start.pose;
+	CollectDynamicObstacles();
+	if (!path_finder_.FindPath(ToCell(start.pose), ToCell(end.pose), obstacles_,
+							   cells_) ||
+		cells_.size() < 2) {
+		return stay();
 	}
-	std::vector<vector2d> path_vector;
-	path.erase(path.begin());
-	for (auto node : path) {
-		path_vector.push_back(FromNode(node) * res + vector2d{0.25, 0.25});
-	}
-	paths_[id] = path_vector;
-
-	if (path_vector.empty()) {
-		return start.pose;
-	}
-	path_vector.erase(path_vector.begin());
-	auto next = path_vector.front();
-
-	return next;
+	// Skip the start cell: the enemy is already there
+	const auto path = std::span(cells_).subspan(1);
+	route.size =
+		static_cast<std::uint32_t>(std::min(path.size(), Route::kCapacity));
+	std::ranges::copy(path.first(route.size), route.cells.begin());
+	return CellCentre(path[std::min<std::size_t>(1, path.size() - 1)]);
 }
 
-vector2d NavigationManager::FindPathToPlayer(Position2D start, std::string id) {
+vector2d NavigationManager::FindPathToPlayer(Position2D start, ObjectId id) {
 	return FindPath(start, *player_position_ptr_, id);
 }
 
-std::vector<vector2d> NavigationManager::GetPath(std::string id) {
-	return paths_[id];
+std::span<const GridCell> NavigationManager::GetPath(ObjectId id) const {
+	const auto index = ToIndex(id);
+	if (index >= routes_.size()) {
+		return {};
+	}
+	return std::span(routes_[index].cells).first(routes_[index].size);
 }
 
-void NavigationManager::ResetPath(std::string id) {
-	paths_[id].clear();
+void NavigationManager::ResetPath(ObjectId id) {
+	routes_[ToIndex(id)].size = 0;
 }
 
 void NavigationManager::SetPositionPtr(
@@ -97,25 +125,6 @@ double NavigationManager::EuclideanDistanceToPlayer(
 double NavigationManager::ManhattanDistanceToPlayer(
 	const Position2D& position) {
 	return player_position_ptr_->pose.MDistance(position.pose);
-}
-
-void NavigationManager::ApplyDynamicObjects(planning::Map& path_map) {
-	const auto res = scene_->GetMap().GetResolution();
-
-	for (const auto& e : scene_->GetEnemies()) {
-		if (e->IsAlive()) {
-			path_map.SetNodeState(FromVector2d(e->GetPose() / res),
-								  planning::NodeState::kOccupied);
-			const auto found = paths_.find(e->GetId());
-			if (found != paths_.end()) {
-				if (found->second.size() > 0) {
-					path_map.SetNodeState(
-						FromVector2d(found->second.front() / res),
-						planning::NodeState::kOccupied);
-				}
-			}
-		}
-	}
 }
 
 }  // namespace wolfenstein

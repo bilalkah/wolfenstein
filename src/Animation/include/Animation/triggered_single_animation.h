@@ -27,7 +27,6 @@ class TriggeredSingleAnimation : public IAnimation
 	TriggeredSingleAnimation(const uint16_t texture_id,
 							 const double animation_speed,
 							 int alpha_start = 128, int alpha_end = 0);
-	~TriggeredSingleAnimation() = default;
 
 	void Update(const double& delta_time) override;
 	void Reset() override;
@@ -37,14 +36,14 @@ class TriggeredSingleAnimation : public IAnimation
 
   private:
 	Texture& texture;
-	uint16_t texture_id;
-	double counter;
-	double animation_speed;
-	int transparancy;
-	int alpha_start;
-	int alpha_end;
-	int direction;
-	bool is_animation_finished_once;
+	uint16_t texture_id{};
+	double counter{};
+	double animation_speed{};
+	int transparancy{};
+	int alpha_start{};
+	int alpha_end{};
+	int direction{};
+	bool is_animation_finished_once{};
 };
 
 }  // namespace wolfenstein

@@ -28,20 +28,19 @@ void Renderer2D::RenderScene() {
 	RenderObjects();
 	RenderPaths();
 	RenderCrosshairs();
-	SDL_RenderPresent(context_->GetRenderer());
 }
 
 void Renderer2D::RenderMap() {
-	const auto& map_ptr = scene_->GetMap();
-	const auto& map = map_ptr.GetRawMap();
-	const auto& size_x = map_ptr.GetSizeX();
-	const auto& size_y = map_ptr.GetSizeY();
+	const auto cells = scene_->GetMap().GetCells();
+	const auto size_x = static_cast<int>(cells.extent(0));
+	const auto size_y = static_cast<int>(cells.extent(1));
 	const auto config = context_->GetConfig();
 
 	SetDrawColor({162, 117, 76, 255});
 	for (int i = 0; i < size_x; i++) {
 		for (int j = 0; j < size_y; j++) {
-			if (map[i][j] != 0) {
+			if (cells[static_cast<std::size_t>(i),
+					  static_cast<std::size_t>(j)] != 0) {
 				DrawFilledRectangle(
 					{config.scale * i, config.scale * j},
 					{config.scale * (i + 1), config.scale * (j + 1)});
@@ -59,7 +58,7 @@ void Renderer2D::RenderPlayer() {
 	const auto crosshair_ray = player_ptr.GetCrosshairRay();
 
 	SetDrawColor({00, 0xA5, 0, 1});
-	const auto rays = camera_ptr.GetRays();
+	const auto& rays = camera_ptr.GetRays();
 	for (unsigned int i = 0; i < rays.size(); i++) {
 		if (!rays[i].is_hit || i % 3 != 0) {
 			continue;
@@ -137,12 +136,11 @@ void Renderer2D::RenderPaths() {
 	for (const auto& enemy : enemies) {
 		const auto path =
 			NavigationManager::GetInstance().GetPath(enemy->GetId());
-		if (path.size() < 2) {
-			continue;
-		}
-		for (unsigned int i = 0; i < path.size() - 1; i++) {
-			DrawLine(ToVector2i(path[i] * config.scale),
-					 ToVector2i(path[i + 1] * config.scale));
+		for (std::size_t i = 1; i < path.size(); ++i) {
+			DrawLine(ToVector2i(NavigationManager::CellCentre(path[i - 1]) *
+								config.scale),
+					 ToVector2i(NavigationManager::CellCentre(path[i]) *
+								config.scale));
 		}
 	}
 }

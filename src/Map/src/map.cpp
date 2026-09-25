@@ -1,87 +1,107 @@
 #include "Map/map.h"
+#include <charconv>
+#include <cmath>
+#include <cstdlib>
+#include <fstream>
 #include <iostream>
-#include <string>
+#include <string_view>
 
 namespace wolfenstein {
 
-Map::Map(std::string map_path, double resolution) : res(resolution) {
-	LoadMap(map_path);
-	MapToPathFinderMap();
-}
+namespace {
 
-void Map::LoadMap(std::string map_path) {
-	std::ifstream infile(map_path);
-	std::string line;
-	std::getline(infile, line);
-	size_x_ = std::stoi(line.substr(std::string("height ").size()));
-	std::getline(infile, line);
-	size_y_ = std::stoi(line.substr(std::string("width ").size()));
-
-	while (std::getline(infile, line)) {
-		std::vector<uint16_t> row;
-		for (auto c : line) {
-			if (c == '0') {
-				row.push_back(0);
-			}
-			else if (c == '1') {
-				row.push_back(1);
-			}
-			else if (c == '2') {
-				row.push_back(2);
-			}
-			else if (c == '3') {
-				row.push_back(3);
-			}
-			else if (c == '4') {
-				row.push_back(4);
-			}
-			else if (c == '5') {
-				row.push_back(5);
-			}
-		}
-		map_.emplace_back(row);
+// Reads "<key> <number>" from a header line
+std::expected<std::uint16_t, std::string> ReadHeader(std::string_view line,
+													 std::string_view key) {
+	if (!line.starts_with(key) || line.size() <= key.size() ||
+		line[key.size()] != ' ') {
+		return std::unexpected("expected \"" + std::string(key) + " <n>\"");
 	}
-}
-
-void Map::MapToPathFinderMap() {
-	path_finder_map_ =
-		std::make_shared<planning::Map>(size_x_ / res, size_y_ / res);
-	for (uint16_t i = 0; i < size_x_; i++) {
-		for (uint16_t j = 0; j < size_y_; j++) {
-			if (map_[i][j] == 0) {
-				for (uint16_t k = 0; k < (1 / res); k++) {
-					for (uint16_t l = 0; l < (1 / res); l++) {
-						path_finder_map_->SetNodeState(
-							planning::Node(i / res + k, j / res + l),
-							planning::NodeState::kFree);
-					}
-				}
-			}
-		}
+	std::uint16_t value = 0;
+	const auto digits = line.substr(key.size() + 1);
+	const auto [end, error] =
+		std::from_chars(digits.data(), digits.data() + digits.size(), value);
+	if (error != std::errc{} || end != digits.data() + digits.size() ||
+		value == 0) {
+		return std::unexpected("bad " + std::string(key) + " \"" +
+							   std::string(digits) + "\"");
 	}
+	return value;
 }
 
-const MapRaw& Map::GetRawMap() const {
-	return map_;
+}  // namespace
+
+std::expected<Map, std::string> Map::FromFile(const std::string& path) {
+	std::ifstream file(path);
+	if (!file.is_open()) {
+		return std::unexpected("cannot open " + path);
+	}
+	Map map;
+	std::string line;  // reused for every line
+	std::getline(file, line);
+	const auto height = ReadHeader(line, "height");
+	std::getline(file, line);
+	const auto width = ReadHeader(line, "width");
+	if (!height || !width) {
+		return std::unexpected(path + ": " +
+							   (!height ? height.error() : width.error()));
+	}
+	map.size_x_ = *height;
+	map.size_y_ = *width;
+	map.cells_.reserve(std::size_t{map.size_x_} * map.size_y_);
+
+	std::size_t rows = 0;
+	while (std::getline(file, line)) {
+		if (line.ends_with('\r')) {
+			line.pop_back();
+		}
+		if (line.empty()) {
+			continue;
+		}
+		if (line.size() != map.size_y_ || rows == map.size_x_) {
+			return std::unexpected(path + ": row " + std::to_string(rows) +
+								   " does not fit a " +
+								   std::to_string(map.size_x_) + "x" +
+								   std::to_string(map.size_y_) + " map");
+		}
+		for (const char c : line) {
+			if (c < '0' || c > '5') {
+				return std::unexpected(path + ": unknown cell '" +
+									   std::string(1, c) + "'");
+			}
+			map.cells_.push_back(static_cast<std::uint16_t>(c - '0'));
+		}
+		++rows;
+	}
+	if (rows != map.size_x_) {
+		return std::unexpected(path + ": " + std::to_string(rows) +
+							   " rows, expected " +
+							   std::to_string(map.size_x_));
+	}
+	return map;
 }
 
-std::shared_ptr<planning::Map> Map::GetPathFinderMap() {
-	return path_finder_map_;
+Map::Map(const std::string& map_path) {
+	auto map = FromFile(map_path);
+	if (!map) {
+		std::cerr << "Cannot load map: " << map.error() << '\n';
+		std::exit(EXIT_FAILURE);
+	}
+	*this = std::move(*map);
 }
 
-const uint16_t Map::GetSizeX() const {
-	return size_x_;
-}
-const uint16_t Map::GetSizeY() const {
-	return size_y_;
+bool Map::Contains(int x, int y) const {
+	return x >= 0 && x < size_x_ && y >= 0 && y < size_y_;
 }
 
-double Map::GetResolution() {
-	return res;
+bool Map::IsBlocked(int x, int y) const {
+	return !Contains(x, y) || GetCells()[static_cast<std::size_t>(x),
+										 static_cast<std::size_t>(y)] != 0;
 }
 
-const std::vector<uint16_t>& Map::operator[](size_t i) const {
-	return map_[i];
+bool Map::IsBlocked(const vector2d& position) const {
+	return IsBlocked(static_cast<int>(std::floor(position.x)),
+					 static_cast<int>(std::floor(position.y)));
 }
 
 }  // namespace wolfenstein

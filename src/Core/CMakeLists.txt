@@ -14,12 +14,15 @@ target_link_libraries(
     navigation_manager
     collision_manager
     character
+    profiler
+    memory
 )
 
 add_library(
     scene_loader
     STATIC
     src/scene_loader.cpp
+    src/level_data.cpp
 )
 target_include_directories(scene_loader PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -28,6 +31,8 @@ target_link_libraries(
     scene_loader
     PUBLIC
     scene
+    PRIVATE
+    nlohmann_json::nlohmann_json
 )
 
 add_library(
@@ -52,9 +57,9 @@ target_link_libraries(
     texture_manager
     navigation_manager
     sound_manager
-    SDL2
-    SDL2_image
-    SDL2_ttf
+    wolfenstein::sdl2
+    wolfenstein::sdl2_image
+    wolfenstein::sdl2_ttf
     enemy_state
     single_raycaster
     renderer_interface
@@ -63,4 +68,5 @@ target_link_libraries(
     renderer_menu
     renderer_result
     scene_loader
+    profiler
 )

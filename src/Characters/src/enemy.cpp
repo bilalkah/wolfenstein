@@ -1,12 +1,14 @@
+#include "Characters/enemy.h"
 #include "Camera/ray.h"
 #include "Camera/single_raycaster.h"
-#include "Characters/enemy.h"
 #include "CollisionManager/collision_manager.h"
 #include "Math/vector.h"
+#include "Profiler/profiler.h"
+#include "SoundManager/sound_manager.h"
 #include "Strike/simple_weapon.h"
 #include "Strike/strike.h"
-#include "Utility/uuid_generator.h"
 #include <memory>
+#include <utility>
 
 namespace wolfenstein {
 
@@ -44,8 +46,7 @@ auto GetBotWeapon =
 }  // namespace
 
 Enemy::Enemy(std::string bot_name, CharacterConfig config)
-	: is_attacked_(false),
-	  is_alive_(true),
+	: is_alive_(true),
 	  rotation_speed_(config.rotation_speed),
 	  translation_speed_(config.translation_speed),
 	  width(config.width),
@@ -55,13 +56,39 @@ Enemy::Enemy(std::string bot_name, CharacterConfig config)
 	  next_pose(position_.pose),
 	  state_config_(GetBotStateConfig(bot_name)),
 	  bot_name_(bot_name),
-	  id_(UuidGenerator::GetInstance().GenerateUuid().bytes()),
+	  sound_channel_(SoundManager::GetInstance().AllocateChannel()),
 	  crosshair_ray(Ray{}),
-	  weapon_(GetBotWeapon(bot_name)) {}
+	  weapon_(GetBotWeapon(bot_name)) {
+	for (const auto type :
+		 {EnemyStateType::Idle, EnemyStateType::Walk, EnemyStateType::Attack,
+		  EnemyStateType::Pain, EnemyStateType::Death}) {
+		StateFor(type).SetContext(*this);
+	}
+	state_machine_.TransitionTo(idle_state_);
+}
 
-void Enemy::TransitionTo(EnemyStatePtr state) {
-	state_ = state;
-	state_->SetContext(shared_from_this());
+EnemyState& Enemy::StateFor(EnemyStateType type) {
+	switch (type) {
+		case EnemyStateType::Idle:
+			return idle_state_;
+		case EnemyStateType::Walk:
+			return walk_state_;
+		case EnemyStateType::Attack:
+			return attack_state_;
+		case EnemyStateType::Pain:
+			return pain_state_;
+		case EnemyStateType::Death:
+			return death_state_;
+	}
+	std::unreachable();
+}
+
+EnemyStateType Enemy::GetStateType() const {
+	return state_machine_.Current().GetType();
+}
+
+void Enemy::TransitionTo(EnemyStateType type) {
+	state_machine_.TransitionTo(StateFor(type));
 }
 
 bool Enemy::IsPlayerInShootingRange() const {
@@ -84,9 +111,13 @@ void Enemy::Update(double delta_time) {
 	if (!is_alive_) {
 		return;
 	}
-	crosshair_ray = SingleRayCasterService::GetInstance().Cast(position_.pose);
+	{
+		ScopedTimer timer(ProfileSection::LineOfSight);
+		crosshair_ray =
+			SingleRayCasterService::GetInstance().Cast(position_.pose);
+	}
 	weapon_->SetCrosshairRay(crosshair_ray);
-	state_->Update(delta_time);
+	state_machine_.Update(delta_time);
 	if (!(next_pose == position_.pose)) {
 		Move(delta_time);
 	}
@@ -124,11 +155,7 @@ Position2D Enemy::GetPosition() const {
 	return position_;
 }
 
-std::string Enemy::GetId() const {
-	return id_;
-}
-
-std::string Enemy::GetBotName() const {
+const std::string& Enemy::GetBotName() const {
 	return bot_name_;
 }
 
@@ -160,7 +187,7 @@ void Enemy::SetDeath() {
 }
 
 int Enemy::GetTextureId() const {
-	return state_->GetCurrentFrame();
+	return state_machine_.Current().GetCurrentFrame();
 }
 
 double Enemy::GetWidth() const {
@@ -184,13 +211,6 @@ const SimpleWeapon& Enemy::GetWeapon() const {
 
 SimpleWeapon& Enemy::GetWeapon() {
 	return *weapon_;
-}
-
-std::shared_ptr<Enemy> EnemyFactory::CreateEnemy(std::string bot_name,
-												 CharacterConfig config) {
-	auto enemy_ptr = std::make_shared<Enemy>(bot_name, config);
-	enemy_ptr->TransitionTo(std::make_shared<IdleState>());
-	return enemy_ptr;
 }
 
 }  // namespace wolfenstein

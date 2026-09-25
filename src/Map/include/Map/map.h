@@ -12,37 +12,51 @@
 #ifndef MAP_INCLUDE_MAP_MAP_H_
 #define MAP_INCLUDE_MAP_MAP_H_
 
-#include "path-planning/planning/utility/common_planning.h"
+#include "Math/vector.h"
+#include <cstddef>
 #include <cstdint>
-#include <memory>
+#include <expected>
+#include <mdspan>
+#include <string>
 #include <vector>
 
 namespace wolfenstein {
 
-typedef std::vector<std::vector<uint16_t>> MapRaw;
+// The level's grid of cells: 0 is free, anything else a wall whose value is
+// its texture id. Cells are stored in one row-major block (a vector of rows
+// would allocate once per row and scatter them across the heap) and read
+// through std::mdspan, so cell (x, y) is GetCells()[x, y].
 class Map
 {
   public:
-	Map(std::string map_path =
-			"/home/bikahraman/wolfenstein/assets/maps/map1.txt",
-		double resolution = 0.5);
+	using CellView =
+		std::mdspan<const std::uint16_t, std::dextents<std::size_t, 2>>;
 
-	const MapRaw& GetRawMap() const;
-	std::shared_ptr<planning::Map> GetPathFinderMap();
-	const uint16_t GetSizeX() const;
-	const uint16_t GetSizeY() const;
-	double GetResolution();
-	const std::vector<uint16_t>& operator[](size_t i) const;
+	// Reads a map file, or describes what is wrong with it
+	static std::expected<Map, std::string> FromFile(const std::string& path);
+	// Reads a map file and exits if it cannot: the level cannot run without
+	explicit Map(const std::string& map_path);
+
+	CellView GetCells() const {
+		return CellView(cells_.data(), size_x_, size_y_);
+	}
+	std::uint16_t GetSizeX() const { return size_x_; }
+	std::uint16_t GetSizeY() const { return size_y_; }
+	// Whether a cell is inside the map
+	bool Contains(int x, int y) const;
+	// Whether a cell blocks movement and line of sight. Cells outside the map
+	// count as blocked, so nothing walks or sees past its edge.
+	bool IsBlocked(int x, int y) const;
+	// The same for the cell containing a world position. Positions are
+	// floored, not truncated: truncation would map -0.5 to cell 0.
+	bool IsBlocked(const vector2d& position) const;
 
   private:
-	void LoadMap(std::string map_path);
-	void MapToPathFinderMap();
+	Map() = default;
 
-	uint16_t size_x_;
-	uint16_t size_y_;
-	std::shared_ptr<planning::Map> path_finder_map_;
-	MapRaw map_;
-	double res{0.5};
+	std::uint16_t size_x_{};  // rows
+	std::uint16_t size_y_{};  // columns
+	std::vector<std::uint16_t> cells_;
 };
 
 }  // namespace wolfenstein

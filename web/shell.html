@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wolfenstein</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #000;
+    color: #ccc;
+    font: 14px/1.4 system-ui, sans-serif;
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  /* Keep the game's 4:3 frame, scaled to the largest size that fits */
+  #canvas {
+    display: block;
+    width: min(100vw, calc(100vh * 4 / 3));
+    aspect-ratio: 4 / 3;
+    image-rendering: pixelated;
+    outline: none;
+  }
+  #status {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+</style>
+</head>
+<body>
+<div id="status">Loading…</div>
+<canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+<script>
+  const statusEl = document.getElementById('status');
+  const canvas = document.getElementById('canvas');
+
+  // ?benchmark[=frames] runs the performance benchmark (see benchmarks/)
+  const params = new URLSearchParams(location.search);
+  const benchmarkArgs = params.has('benchmark')
+    ? ['--benchmark', params.get('benchmark') || '']
+    : [];
+
+  var Module = {
+    arguments: benchmarkArgs,
+    canvas,
+    setStatus(text) {
+      statusEl.textContent = text;
+      statusEl.hidden = !text;
+    },
+    onRuntimeInitialized() {
+      // Read by the benchmark runner as the page's load time
+      window.runtimeReadyMs = performance.now();
+    },
+    monitorRunDependencies(left) {
+      if (left) Module.setStatus('Loading…');
+    },
+  };
+  window.onerror = () => Module.setStatus('Something went wrong, see the browser console.');
+
+  // Browsers start audio suspended until the page gets a user gesture
+  function resumeAudio() {
+    const ctx = Module.SDL2 && Module.SDL2.audioContext;
+    if (ctx && ctx.state === 'suspended') ctx.resume();
+  }
+  for (const type of ['keydown', 'mousedown']) {
+    document.addEventListener(type, resumeAudio);
+  }
+  canvas.addEventListener('mousedown', () => canvas.focus());
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>
