@@ -40,6 +40,7 @@ Enemy::Enemy(Scene& scene, std::string bot_name, CharacterConfig config)
 	  health_(100),
 	  position_(config.initial_position),
 	  next_pose(position_.pose),
+	  previous_pose_(position_.pose),
 	  state_config_(GetBotStateConfig(bot_name)),
 	  bot_name_(bot_name),
 	  sound_channel_(scene.Sound().AllocateChannel()),
@@ -98,6 +99,7 @@ void Enemy::Shoot() {
 }
 
 void Enemy::Update(double delta_time) {
+	previous_pose_ = position_.pose;
 	if (!is_alive_) {
 		return;
 	}
@@ -121,12 +123,17 @@ vector2d Enemy::GetPose() const {
 	return position_.pose;
 }
 
+vector2d Enemy::GetRenderPose(double alpha) const {
+	return Interpolate(previous_pose_, position_.pose, alpha);
+}
+
 ObjectType Enemy::GetObjectType() const {
 	return ObjectType::CHARACTER_ENEMY;
 }
 
 void Enemy::SetPosition(const Position2D position) {
 	position_ = position;
+	previous_pose_ = position.pose;
 }
 
 void Enemy::IncreaseHealth(double amount) {

@@ -41,12 +41,16 @@ class Camera2D
   public:
 	explicit Camera2D(const Camera2DConfig& config);
 
-	void Update();
+	// Casts the view from `eye` and places every object `alpha` of the way
+	// from its previous simulation tick to the latest; once per drawn frame
+	void Update(const Position2D& eye, double alpha);
 
 	// Borrows the scene until the next call; the game owns it
 	void SetScene(Scene& scene);
 	const RayVector& GetRays() const;
-	const std::shared_ptr<Ray>& GetCrosshairRay() const;
+	// The centre ray and what it points at, for drawing only: shots are
+	// resolved by the simulation (Aim), not from the view
+	const Ray& GetCrosshairRay() const { return crosshair_ray_; }
 	// The rays bounding an object in the current frame, or nullptr if the
 	// object is not visible
 	const RayPair* FindObjectRays(ObjectId id) const;
@@ -54,17 +58,15 @@ class Camera2D
 	double GetFov() const;
 	double GetDeltaAngle() const;
 
-	void SetPositionPtr(const std::shared_ptr<Position2D> position);
-
   private:
 	void InitRays();
-	void Calculate(const IGameObject& object);
+	void Calculate(const IGameObject& object, double alpha);
 	double WorldAngleToCameraAngle(double angle) const;
 
 	Camera2DConfig config_;
 	Scene* scene_ = nullptr;
-	std::shared_ptr<Position2D> position_;
-	std::shared_ptr<Ray> crosshair_ray_;
+	Position2D eye_;
+	Ray crosshair_ray_;
 	RayCaster ray_cast_;
 	RayVector rays_;
 	// Rays of each object, indexed by ObjectId and sized once per level (in

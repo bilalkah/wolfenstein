@@ -21,7 +21,6 @@ namespace wolfenstein {
 
 class TextureManager;
 
-struct Ray;
 struct WeaponConfig
 {
 	WeaponConfig(std::string weapon_name, size_t ammo_capacity,
@@ -63,7 +62,6 @@ class Weapon
 	void IncreaseAmmo(size_t amount);
 	void DecreaseAmmo();
 	void DecreaseAmmo(size_t amount);
-	void SetCrossHair(std::shared_ptr<Ray> crosshair);
 
 	size_t GetAmmo() const;
 	size_t GetAmmoCapacity() const;
@@ -77,7 +75,6 @@ class Weapon
 		sound_.PlayEffect(sound_channel_, effect);
 	}
 	int GetTextureId() const;
-	const Ray& GetCrosshair() const;
 
   private:
 	const TextureManager& textures_;
@@ -93,7 +90,6 @@ class Weapon
 	OutOfAmmoState out_of_ammo_state_;
 	ReloadingState reloading_state_;
 	StateMachine<WeaponState> state_machine_;
-	std::shared_ptr<Ray> crosshair_;
 };
 
 }  // namespace wolfenstein

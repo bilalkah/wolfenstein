@@ -14,6 +14,7 @@
 
 #include "Animation/triggered_single_animation.h"
 #include "Characters/character.h"
+#include "Characters/player_command.h"
 #include "GameObjects/game_object.h"
 #include "SoundManager/sound_manager.h"
 #include "Strike/weapon.h"
@@ -23,7 +24,6 @@
 
 namespace wolfenstein {
 
-class Camera2D;
 class Scene;
 struct Ray;
 // Player.h
@@ -31,8 +31,8 @@ class Player : public ICharacter, public IGameObject
 {
   public:
 	// Borrows the sound it plays, which outlives it
-	Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera,
-		   std::shared_ptr<Weapon> weapon, SoundManager& sound);
+	Player(CharacterConfig& config, std::shared_ptr<Weapon> weapon,
+		   SoundManager& sound);
 
 	void Update(double delta_time) override;
 
@@ -40,6 +40,8 @@ class Player : public ICharacter, public IGameObject
 	// The player outlives levels; each level's scene hands itself over here
 	// and stays valid until the next one does
 	void EnterScene(Scene& scene) { scene_ = &scene; }
+	// What to do from the next update on; the player reads no input device
+	void SetCommand(const PlayerCommand& command);
 	void SetPose(const vector2d& pose) override;
 	ObjectType GetObjectType() const override;
 	vector2d GetPose() const override;
@@ -51,11 +53,11 @@ class Player : public ICharacter, public IGameObject
 	int GetTextureId() const override;
 	double GetWidth() const override;
 	double GetHeight() const override;
-	const Ray& GetCrosshairRay() const;
 	bool IsDamaged() const;
 	bool IsAlive() const;
 	const Weapon& GetWeapon() const;
-	const std::shared_ptr<Position2D>& GetPositionPtr();
+	// Where to draw the view `alpha` of the way from the previous tick
+	Position2D GetRenderPosition(double alpha) const;
 	int GetDamageTextureId() const;
 	// Opacity of the damage overlay, fading out after a hit
 	std::uint8_t GetDamageAlpha() const { return damage_animation_.GetAlpha(); }
@@ -66,6 +68,7 @@ class Player : public ICharacter, public IGameObject
 	void ShootOrReload();
 
 	Scene* scene_ = nullptr;
+	PlayerCommand command_;
 	bool is_alive_{true};
 	bool damaged_{false};
 	double translation_speed_{};
@@ -75,8 +78,8 @@ class Player : public ICharacter, public IGameObject
 	double regen_time_{};
 	SoundManager& sound_;
 	SoundChannel sound_channel_;
-	std::shared_ptr<Position2D> position_ptr_;
-	std::shared_ptr<Camera2D> camera_;
+	Position2D position_;
+	Position2D previous_position_;
 	std::shared_ptr<Weapon> weapon_;
 	TriggeredSingleAnimation damage_animation_;
 };

@@ -33,7 +33,7 @@ World::World(const TextureManager& textures, SceneLoader loader,
 	  sound_(std::move(sound)) {}
 
 std::expected<void, std::string> World::NewGame(
-	const std::string& weapon_name, std::shared_ptr<Camera2D>& camera) {
+	const std::string& weapon_name) {
 	// The old level borrows the old player: it goes first
 	scene_.reset();
 	const CharacterStats& stats = loader_.Config().player;
@@ -41,8 +41,8 @@ std::expected<void, std::string> World::NewGame(
 	CharacterConfig config(Position2D(), stats.translation_speed,
 						   stats.rotation_speed, stats.width, stats.height);
 	player_ = std::make_unique<Player>(
-		config, camera,
-		std::make_shared<Weapon>(weapon_name, textures_, *sound_), *sound_);
+		config, std::make_shared<Weapon>(weapon_name, textures_, *sound_),
+		*sound_);
 	return LoadLevel(kFirstLevel);
 }
 

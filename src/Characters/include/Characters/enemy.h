@@ -63,6 +63,7 @@ class Enemy : public ICharacter, public IGameObject
 
 	ObjectType GetObjectType() const override;
 	vector2d GetPose() const override;
+	vector2d GetRenderPose(double alpha) const override;
 	Position2D GetPosition() const override;
 	const std::string& GetBotName() const;
 	// Plays on the enemy's own channel, cutting off its previous sound
@@ -86,6 +87,7 @@ class Enemy : public ICharacter, public IGameObject
 	double health_{};
 	Position2D position_;
 	vector2d next_pose;
+	vector2d previous_pose_;
 	StateConfig state_config_;
 	std::string bot_name_;
 	SoundChannel sound_channel_;

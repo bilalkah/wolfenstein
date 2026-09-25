@@ -2,7 +2,6 @@
 // from fresh per-visit data. This drives a real enemy through being hit
 // twice and then killed.
 
-#include "Camera/camera.h"
 #include "Characters/enemy.h"
 #include "Characters/player.h"
 #include "Core/scene.h"
@@ -35,11 +34,9 @@ class EnemyStateTest : public ::testing::Test
 	}
 
 	// The scene borrows the player, so the player is declared first
-	std::shared_ptr<Camera2D> camera_ =
-		std::make_shared<Camera2D>(Camera2DConfig(64, 1.0, 10.0));
 	CharacterConfig player_config_{Position2D({1.5, 4.5}, 0.0), 1.0, 1.0, 0.4,
 								   0.4};
-	Player player_{player_config_, camera_,
+	Player player_{player_config_,
 				   std::make_shared<Weapon>("mp5", testing::TestTextures(),
 											testing::TestSound()),
 				   testing::TestSound()};

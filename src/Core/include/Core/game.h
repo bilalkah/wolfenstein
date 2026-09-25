@@ -95,6 +95,7 @@ class Game
 	// Feeds the frame's events to the menu; returns false on window close
 	bool PollMenuEvents();
 
+	PlayerCommand SampleCommand() const;
 	void UpdateAndRender();
 	void CheckGameEvent();
 	void CheckGameOver();
@@ -115,6 +116,8 @@ class Game
 	std::unique_ptr<RendererResult> renderer_result_;
 
 	FrameClock clock_;
+	// The simulation runs at 60 ticks per second whatever the frame rate
+	FixedStep step_{1.0 / 60.0, 0.25};
 	GeneralConfig config_;
 	GameState state_ = GameState::Menu;
 	bool running_ = true;

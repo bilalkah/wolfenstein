@@ -3,7 +3,6 @@
 // through level loads.
 
 #include "Core/world.h"
-#include "Camera/camera.h"
 #include "test_services.h"
 #include <gtest/gtest.h>
 #include <memory>
@@ -18,16 +17,11 @@ std::unique_ptr<World> MakeWorld() {
 								   std::make_unique<SoundManager>());
 }
 
-std::shared_ptr<Camera2D> MakeCamera() {
-	return std::make_shared<Camera2D>(Camera2DConfig(64, 1.0, 10.0));
-}
-
 TEST(World, NewGameLoadsTheFirstLevelWithThePlayerInIt) {
 	auto world = MakeWorld();
-	auto camera = MakeCamera();
 	ASSERT_FALSE(world->HasLevel());
 
-	const auto started = world->NewGame("mp5", camera);
+	const auto started = world->NewGame("mp5");
 	ASSERT_TRUE(started) << started.error();
 	Scene& level = world->CurrentLevel();
 	EXPECT_EQ(level.GetEnemies().size(), 10u);
@@ -40,8 +34,7 @@ TEST(World, NewGameLoadsTheFirstLevelWithThePlayerInIt) {
 // the finished one and the player moves into it
 TEST(World, NextLevelReplacesTheFinishedOne) {
 	auto world = MakeWorld();
-	auto camera = MakeCamera();
-	ASSERT_TRUE(world->NewGame("shotgun", camera));
+	ASSERT_TRUE(world->NewGame("shotgun"));
 
 	const auto next = world->NextLevel();
 	ASSERT_TRUE(next) << next.error();
@@ -53,11 +46,10 @@ TEST(World, NextLevelReplacesTheFinishedOne) {
 // A new game replaces both the level and the player it borrows
 TEST(World, NewGameStartsOver) {
 	auto world = MakeWorld();
-	auto camera = MakeCamera();
-	ASSERT_TRUE(world->NewGame("mp5", camera));
+	ASSERT_TRUE(world->NewGame("mp5"));
 	ASSERT_TRUE(world->NextLevel());
 
-	ASSERT_TRUE(world->NewGame("mp5", camera));
+	ASSERT_TRUE(world->NewGame("mp5"));
 	EXPECT_EQ(world->CurrentLevel().GetEnemies().size(), 10u);
 	EXPECT_TRUE(world->HasNextLevel());
 }
@@ -67,9 +59,8 @@ TEST(World, NewGameStartsOver) {
 TEST(World, WorldsAreIndependent) {
 	auto first = MakeWorld();
 	auto second = MakeWorld();
-	auto camera = MakeCamera();
-	ASSERT_TRUE(first->NewGame("mp5", camera));
-	ASSERT_TRUE(second->NewGame("mp5", camera));
+	ASSERT_TRUE(first->NewGame("mp5"));
+	ASSERT_TRUE(second->NewGame("mp5"));
 	ASSERT_TRUE(second->NextLevel());
 
 	EXPECT_EQ(first->CurrentLevel().GetEnemies().size(), 10u);

@@ -76,17 +76,17 @@ void Game::ShowLevel() {
 	renderer_2d_->SetScene(world_->CurrentLevel());
 	// Loading is not a frame: the next frame starts timing from here
 	clock_.Restart();
+	step_.Reset();
 }
 
 void Game::NewGame(const std::string& weapon_name) {
-	if (auto started = world_->NewGame(weapon_name, camera_); !started) {
+	if (auto started = world_->NewGame(weapon_name); !started) {
 		std::cerr << "Cannot start a game: " << started.error() << '\n';
 		std::exit(EXIT_FAILURE);
 	}
 	render_type_ = RenderType::TEXTURE;
 	renderer_ = renderer_3d_.get();
 	ShowLevel();
-	camera_->SetPositionPtr(world_->GetPlayer().GetPositionPtr());
 
 	renderer_result_.reset();
 	level_transition_time_ = 0.0;
@@ -266,13 +266,59 @@ void Game::GameTick() {
 #endif
 }
 
+// Reads this frame's player input from the keyboard and mouse
+PlayerCommand Game::SampleCommand() const {
+	const Uint8* keys = SDL_GetKeyboardState(nullptr);
+	const auto axis = [keys](SDL_Scancode positive, SDL_Scancode negative) {
+		return static_cast<std::int8_t>(keys[positive] - keys[negative]);
+	};
+	PlayerCommand command;
+	command.forward = axis(SDL_SCANCODE_W, SDL_SCANCODE_S);
+	command.strafe = axis(SDL_SCANCODE_D, SDL_SCANCODE_A);
+	command.turn = axis(SDL_SCANCODE_RIGHT, SDL_SCANCODE_LEFT);
+
+	// Relative mouse mode reports motion since the last call, which also
+	// works under browser pointer lock (unlike warping the cursor)
+	constexpr double kRadiansPerPixel = 0.005;
+	int dx = 0;
+	SDL_GetRelativeMouseState(&dx, nullptr);
+	if (SDL_GetRelativeMouseMode()) {
+		command.look =
+			dx * kRadiansPerPixel * Settings::Get().mouse_sensitivity;
+	}
+
+	command.fire =
+		(SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON_LMASK) != 0 ||
+		keys[SDL_SCANCODE_LCTRL] != 0;
+	command.reload = keys[SDL_SCANCODE_R] != 0;
+	return command;
+}
+
 void Game::UpdateAndRender() {
 	CheckGameEvent();
 	if (state_ != GameState::Playing) {
 		return;
 	}
 	clock_.Tick();
-	world_->CurrentLevel().Update(clock_.DeltaTime());
+	// The benchmark plays without input, so a run cannot depend on what the
+	// keyboard or mouse happen to do
+	world_->GetPlayer().SetCommand(IsBenchmark() ? PlayerCommand{}
+												 : SampleCommand());
+
+	// The simulation advances in fixed ticks, whatever the frame rate, so
+	// the same commands always play out the same way. A long stall (a
+	// breakpoint, a hidden browser tab) is dropped rather than caught up in
+	// a burst of ticks.
+	for (int ticks = step_.Advance(clock_.DeltaTime()); ticks > 0; --ticks) {
+		world_->CurrentLevel().Update(step_.TickSeconds());
+	}
+	// Frames fall between ticks: the view is drawn this far from the last
+	// tick towards the next, so motion stays smooth at any frame rate
+	const double alpha = step_.Alpha();
+	{
+		ScopedTimer timer(ProfileSection::Camera);
+		camera_->Update(world_->GetPlayer().GetRenderPosition(alpha), alpha);
+	}
 	renderer_->RenderScene(clock_.DeltaTime());
 	ScopedTimer timer(ProfileSection::Present);
 	Present();
