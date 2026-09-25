@@ -17,6 +17,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <expected>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -37,17 +39,26 @@ static_assert(std::to_underlying(SoundEffect::Shotgun) + 1 ==
 // cuts off its previous one, never another source's
 enum class SoundChannel : int {};
 
+// The audio device, the sound effects and the music. Owned by the World,
+// which destroys it (closing the device) before SDL shuts down.
 class SoundManager
 {
 
   public:
-	static SoundManager& GetInstance();
-
+	// Silent: no audio device, so effects and volume changes do nothing
+	// (tests and headless tools)
+	SoundManager() = default;
+	// Opens the audio device, loads every sound from sound_dir and starts the
+	// music; the error says what failed
+	static std::expected<std::unique_ptr<SoundManager>, std::string> Open(
+		const std::string& sound_dir);
+	~SoundManager();
+	// Owns the device and the loaded sounds
 	SoundManager(const SoundManager&) = delete;
 	SoundManager& operator=(const SoundManager&) = delete;
-	~SoundManager();
+	SoundManager(SoundManager&&) = delete;
+	SoundManager& operator=(SoundManager&&) = delete;
 
-	void InitManager();
 	// 0 (silent) to 1 (full); scales music and effects together
 	void SetMasterVolume(double volume);
 	// A channel for a new sound source (an enemy, the player, a weapon), kept
@@ -59,13 +70,12 @@ class SoundManager
 	void PlayEffect(SoundChannel channel, SoundEffect effect);
 
   private:
-	SoundManager() = default;
-	void LoadSound(SoundEffect effect, const std::string& sound_path,
-				   int volume);
+	std::expected<void, std::string> LoadSound(SoundEffect effect,
+											   const std::string& sound_path,
+											   int volume);
 
-	static SoundManager* instance_;
-	bool initialized_{false};
-	// Mixer channels allocated in InitManager
+	bool open_{false};
+	// Mixer channels allocated when the device is opened
 	static constexpr int kChannels = 16;
 	int next_channel_{};
 	std::array<Mix_Chunk*, kSoundEffectCount> chunks_{};

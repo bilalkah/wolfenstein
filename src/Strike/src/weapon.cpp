@@ -1,6 +1,5 @@
 #include "Strike/weapon.h"
 #include "State/weapon_state.h"
-#include "TimeManager/time_manager.h"
 #include <cstddef>
 #include <iostream>
 #include <memory>
@@ -23,9 +22,12 @@ auto GetWeaponConfig = [](const std::string& weapon_name) -> WeaponConfig {
 };
 }  // namespace
 
-Weapon::Weapon(std::string weapon_name)
-	: weapon_properties_(GetWeaponConfig(weapon_name)),
-	  sound_channel_(SoundManager::GetInstance().AllocateChannel()) {
+Weapon::Weapon(std::string weapon_name, const TextureManager& textures,
+			   SoundManager& sound)
+	: textures_(textures),
+	  sound_(sound),
+	  weapon_properties_(GetWeaponConfig(weapon_name)),
+	  sound_channel_(sound.AllocateChannel()) {
 	ammo_ = weapon_properties_.ammo_capacity;
 	for (const auto type : {WeaponStateType::Loaded, WeaponStateType::OutOfAmmo,
 							WeaponStateType::Reloading}) {
@@ -46,8 +48,8 @@ WeaponState& Weapon::StateFor(WeaponStateType type) {
 	std::unreachable();
 }
 
-void Weapon::Attack() {
-	state_machine_.Current().PullTrigger();
+bool Weapon::Attack() {
+	return state_machine_.Current().PullTrigger();
 }
 
 void Weapon::Update(double delta_time) {
@@ -88,10 +90,6 @@ void Weapon::DecreaseAmmo(size_t amount) {
 	ammo_ -= amount;
 }
 
-void Weapon::SetCrossHair(const std::shared_ptr<Ray> crosshair) {
-	crosshair_ = crosshair;
-}
-
 size_t Weapon::GetAmmo() const {
 	return ammo_;
 }
@@ -122,10 +120,6 @@ const std::string& Weapon::GetWeaponName() const {
 
 int Weapon::GetTextureId() const {
 	return state_machine_.Current().GetCurrentFrame();
-}
-
-const Ray& Weapon::GetCrosshair() const {
-	return *crosshair_;
 }
 
 }  // namespace wolfenstein

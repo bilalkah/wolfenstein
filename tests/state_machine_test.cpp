@@ -1,6 +1,7 @@
 #include "Profiler/profiler.h"
 #include "State/state.h"
 #include "Strike/weapon.h"
+#include "test_services.h"
 #include <gtest/gtest.h>
 #include <string>
 #include <vector>
@@ -105,7 +106,7 @@ TEST(StateMachine, EnteringAStateResetsIt) {
 // A weapon owns all of its states: reloading and returning to loaded switch
 // between them without touching the heap
 TEST(StateMachine, WeaponTransitionsDoNotAllocate) {
-	Weapon weapon("mp5");
+	Weapon weapon("mp5", testing::TestTextures(), testing::TestSound());
 	const auto before = AllocationStats::count;
 	for (int i = 0; i < 100; ++i) {
 		weapon.Reload();

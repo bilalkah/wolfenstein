@@ -3,7 +3,6 @@
 #include "Profiler/profiler.h"
 #include "Settings/settings.h"
 #include "TextureManager/texture_manager.h"
-#include "TimeManager/time_manager.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -44,7 +43,7 @@ Renderer3D::Renderer3D(std::shared_ptr<RendererContext> context)
 	render_queue_.reserve(
 		static_cast<std::size_t>(context_->GetConfig().width) / 2 +
 		kExtraCommands);
-	hud_digits_ = TextureManager::GetInstance().GetTextureCollection("digits");
+	hud_digits_ = context_->Textures().GetTextureCollection("digits");
 
 	// SDL queues draw calls, and grows its command pool and vertex buffer
 	// whenever a frame queues more of them than any frame before: the first
@@ -53,8 +52,7 @@ Renderer3D::Renderer3D(std::shared_ptr<RendererContext> context)
 	// keep their capacity). The copies land in the back buffer, which the
 	// next frame clears.
 	auto* renderer = context_->GetRenderer();
-	const auto& warm_up =
-		TextureManager::GetInstance().GetTexture(hud_digits_[0]);
+	const auto& warm_up = context_->Textures().GetTexture(hud_digits_[0]);
 	const SDL_Rect pixel{0, 0, 1, 1};
 	for (std::size_t i = 0; i < render_queue_.capacity() * 3 / 2; ++i) {
 		SDL_RenderCopy(renderer, warm_up.texture, &pixel, &pixel);
@@ -86,7 +84,7 @@ void Renderer3D::Enqueue(int texture_id, const SDL_Rect& src_rect,
 							 static_cast<std::uint32_t>(render_queue_.size())});
 }
 
-void Renderer3D::RenderScene() {
+void Renderer3D::RenderScene(double delta_time) {
 	ScopedTimer render_timer(ProfileSection::Render);
 	render_queue_.clear();
 	ClearScreen();
@@ -105,14 +103,14 @@ void Renderer3D::RenderScene() {
 		RenderTextures();
 	}
 	ScopedTimer timer(ProfileSection::RenderHud);
-	RenderHUD();
+	RenderHUD(delta_time);
 }
 
 void Renderer3D::RenderBackground() {
 	const auto config = context_->GetConfig();
 	auto renderer_ = context_->GetRenderer();
 	// Render sky
-	auto sky_texture = TextureManager::GetInstance().GetTexture(0);
+	auto sky_texture = context_->Textures().GetTexture(0);
 	SDL_Rect src_rect = {0, 0, sky_texture.width, sky_texture.height};
 	SDL_Rect dest_rect = {0, 0, config.width, config.height / 2};
 	SDL_RenderCopy(renderer_, sky_texture.texture, &src_rect, &dest_rect);
@@ -149,9 +147,9 @@ void Renderer3D::RenderIfRayHit(const int& horizontal_slice, const Ray& ray) {
 	auto hit_point = ray.is_hit_vertical ? ray.hit_point.y : ray.hit_point.x;
 	hit_point = std::fmod(hit_point, 1.0);
 	const auto texture_height =
-		TextureManager::GetInstance().GetTexture(ray.wall_id).height;
+		context_->Textures().GetTexture(ray.wall_id).height;
 	const auto texture_width =
-		TextureManager::GetInstance().GetTexture(ray.wall_id).width;
+		context_->Textures().GetTexture(ray.wall_id).width;
 	int texture_point = static_cast<int>(hit_point * texture_width);
 
 	SDL_Rect src_rect = {texture_point, 0, 2, texture_height};
@@ -164,8 +162,7 @@ void Renderer3D::RenderIfRayHitNot(const int& horizontal_slice) {
 	const auto [line_height, draw_start, draw_end] =
 		CalculateVerticalSlice(config_.view_distance);
 
-	SDL_Rect src_rect = {0, 0, 2,
-						 TextureManager::GetInstance().GetTexture(7).height};
+	SDL_Rect src_rect = {0, 0, 2, context_->Textures().GetTexture(7).height};
 	SDL_Rect dest_rect = {horizontal_slice, draw_start, 2, line_height};
 	Enqueue(7, src_rect, dest_rect, config_.view_distance);
 }
@@ -186,13 +183,13 @@ void Renderer3D::RenderObjects() {
 		auto [line_height, draw_start, draw_end] =
 			CalculateVerticalSlice(first.perpendicular_distance);
 		const auto height = object->GetHeight();
-		line_height = line_height * height;
+		line_height = static_cast<int>(line_height * height);
 		draw_start = draw_end - line_height;
 
 		const auto texture_height =
-			TextureManager::GetInstance().GetTexture(first.wall_id).height;
+			context_->Textures().GetTexture(first.wall_id).height;
 		const auto texture_width =
-			TextureManager::GetInstance().GetTexture(first.wall_id).width;
+			context_->Textures().GetTexture(first.wall_id).width;
 
 		const auto first_slice = CalculateHorizontalSlice(first.theta);
 
@@ -232,14 +229,15 @@ void Renderer3D::RenderWeapon() {
 	const auto config_ = context_->GetConfig();
 
 	// Render crosshair
-	auto crosshair_texture = TextureManager::GetInstance().GetTexture(6);
+	auto crosshair_texture = context_->Textures().GetTexture(6);
 	const auto crosshair_height = crosshair_texture.height;
 	const auto crosshair_width = crosshair_texture.width;
 	SDL_Rect crosshair_src_rect{0, 0, crosshair_width, crosshair_height};
 	const double crosshair_ratio =
 		static_cast<double>(crosshair_height) / crosshair_width;
 	const int crosshair_width_slice = config_.width / 40;
-	const int crosshair_height_slice = crosshair_width_slice * crosshair_ratio;
+	const int crosshair_height_slice =
+		static_cast<int>(crosshair_width_slice * crosshair_ratio);
 	SDL_Rect crosshair_dest_rect{
 		config_.width / 2 - crosshair_width_slice / 2,
 		config_.height / 2 - crosshair_height_slice / 2, crosshair_width_slice,
@@ -248,12 +246,12 @@ void Renderer3D::RenderWeapon() {
 
 	auto texture_id = player_ptr.GetTextureId();
 	const auto texture_height =
-		TextureManager::GetInstance().GetTexture(texture_id).height;
+		context_->Textures().GetTexture(texture_id).height;
 	const auto texture_width =
-		TextureManager::GetInstance().GetTexture(texture_id).width;
+		context_->Textures().GetTexture(texture_id).width;
 	const double ratio = static_cast<double>(texture_height) / texture_width;
-	const int width_slice = config_.width / 1.3;
-	const int height_slice = width_slice * ratio;
+	const int width_slice = static_cast<int>(config_.width / 1.3);
+	const int height_slice = static_cast<int>(width_slice * ratio);
 	SDL_Rect src_rect{0, 0, texture_width, texture_height};
 	SDL_Rect dest_rect{config_.width / 2 - width_slice / 2 + 100,
 					   config_.height - height_slice, width_slice,
@@ -262,11 +260,13 @@ void Renderer3D::RenderWeapon() {
 
 	// Check if player is damaged
 	if (player_ptr.IsDamaged()) {
-		auto& damage_texture = TextureManager::GetInstance().GetTexture(
-			player_ptr.GetDamageTextureId());
+		auto& damage_texture =
+			context_->Textures().GetTexture(player_ptr.GetDamageTextureId());
 		SDL_Rect damage_src_rect{0, 0, damage_texture.width,
 								 damage_texture.height};
 		SDL_Rect damage_dest_rect{0, 0, config_.width, config_.height};
+		SDL_SetTextureAlphaMod(damage_texture.texture,
+							   player_ptr.GetDamageAlpha());
 		Enqueue(9, damage_src_rect, damage_dest_rect, -1.0);
 	}
 }
@@ -284,16 +284,16 @@ void Renderer3D::RenderTextures() {
 	auto* renderer = context_->GetRenderer();
 	for (const RenderCommand& command : render_queue_) {
 		const auto& texture =
-			TextureManager::GetInstance().GetTexture(command.texture_id);
+			context_->Textures().GetTexture(command.texture_id);
 		SDL_RenderCopy(renderer, texture.texture, &command.src_rect,
 					   &command.dest_rect);
 	}
 }
 
-void Renderer3D::RenderHUD() {
+void Renderer3D::RenderHUD(double delta_time) {
 	const auto& player = scene_->GetPlayer();
 	const auto config = context_->GetConfig();
-	auto& textures = TextureManager::GetInstance();
+	auto& textures = context_->Textures();
 	const int digit_width = config.width / 40;
 
 	const auto draw_digit = [&](int digit, int x) {
@@ -329,14 +329,14 @@ void Renderer3D::RenderHUD() {
 	}
 
 	if (Settings::Get().show_fps) {
-		RenderFps();
+		RenderFps(delta_time);
 	}
 }
 
 // Averages the frame rate over kFpsRefreshSeconds so the number is readable,
 // and draws it from the pre-rendered digits
-void Renderer3D::RenderFps() {
-	fps_elapsed_ += TimeManager::GetInstance().GetDeltaTime();
+void Renderer3D::RenderFps(double delta_time) {
+	fps_elapsed_ += delta_time;
 	++fps_frames_;
 	if (fps_elapsed_ >= kFpsRefreshSeconds) {
 		shown_fps_ = static_cast<int>(std::lround(fps_frames_ / fps_elapsed_));

@@ -12,14 +12,14 @@
 #ifndef NAVIGATION_MANAGER_INCLUDE_NAVIGATION_MANAGER_NAVIGATION_MANAGER_H
 #define NAVIGATION_MANAGER_INCLUDE_NAVIGATION_MANAGER_NAVIGATION_MANAGER_H
 
-#include "Characters/enemy.h"
+#include "Characters/character.h"
 #include "GameObjects/object_id.h"
 #include "Math/vector.h"
 #include "NavigationManager/grid_path_finder.h"
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <memory>
+#include <memory_resource>
 #include <span>
 #include <vector>
 
@@ -27,6 +27,9 @@ namespace wolfenstein {
 
 class Scene;
 
+// Plans the enemies' paths through one level. The level's Scene owns it and
+// it borrows the scene (the map, the enemies, the player), so it lives and
+// dies with its level: nothing to re-initialise when the next one loads.
 class NavigationManager
 {
   public:
@@ -35,13 +38,20 @@ class NavigationManager
 	// around one another inside a corridor
 	static constexpr double kCellSize = 0.5;
 
-	static NavigationManager& GetInstance();
+	// Takes every buffer from `memory` (the level's arena)
+	NavigationManager(const Scene& scene, std::pmr::memory_resource* memory);
+
+	// Bytes Build takes from the memory resource for a map this size with
+	// this many objects and enemies: what the level's arena budgets for it
+	static std::size_t MemoryFor(int map_rows, int map_cols,
+								 std::size_t objects, std::size_t enemies);
+	// Refers to its scene
 	NavigationManager(const NavigationManager&) = delete;
 	NavigationManager& operator=(const NavigationManager&) = delete;
-	~NavigationManager();
 
-	// Builds the pathfinding grid for the scene's map (once per level)
-	void InitManager(const std::shared_ptr<Scene>& scene);
+	// Builds the pathfinding grid from the scene's map and sizes the per-enemy
+	// routes; call once the level's map and objects are in place
+	void Build();
 	// Plans a path for the enemy with the given id and returns the point it
 	// should head for next
 	vector2d FindPath(Position2D start, Position2D end, ObjectId id);
@@ -51,21 +61,15 @@ class NavigationManager
 	void ResetPath(ObjectId id);
 	// World position of a cell's centre
 	static vector2d CellCentre(GridCell cell);
-	void SetPositionPtr(const std::shared_ptr<Position2D>& position);
-	double EuclideanDistanceToPlayer(const Position2D& position);
-	double ManhattanDistanceToPlayer(const Position2D& position);
+	double EuclideanDistanceToPlayer(const Position2D& position) const;
 
   private:
-	NavigationManager() = default;
-
 	static GridCell ToCell(const vector2d& position);
 	// Other enemies and the cells they are about to enter block the path
 	void CollectDynamicObstacles();
 
-	static NavigationManager* instance_;
-	std::shared_ptr<Scene> scene_;
-	// Weight 0.6: f = 0.4 g + 0.6 h, the tuning the game has always used
-	GridPathFinder path_finder_{0.6};
+	const Scene& scene_;
+	GridPathFinder path_finder_;
 	// The start of an enemy's current path, stored inline. Only the next
 	// cell or two steer the enemy (and its next cell blocks the others); the
 	// rest is for the 2D view. Reserving room for a path through every free
@@ -77,11 +81,10 @@ class NavigationManager
 		std::uint32_t size = 0;
 	};
 	// Indexed by ObjectId, sized once per level
-	std::vector<Route> routes_;
+	std::pmr::vector<Route> routes_;
 	// Scratch buffers reused by every query
-	std::vector<GridCell> obstacles_;
-	std::vector<GridCell> cells_;
-	std::shared_ptr<Position2D> player_position_ptr_;
+	std::pmr::vector<GridCell> obstacles_;
+	std::pmr::vector<GridCell> cells_;
 };
 
 }  // namespace wolfenstein

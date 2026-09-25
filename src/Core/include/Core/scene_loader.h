@@ -14,31 +14,39 @@
 
 #include "Core/level_data.h"
 #include "Core/scene.h"
+#include <expected>
 #include <memory>
 #include <string>
 
 namespace wolfenstein {
 
+// Builds levels from the files under the asset directory. Owned by the
+// World; it keeps the game configuration read when it was opened.
 class SceneLoader
 {
   public:
-	~SceneLoader();
-	SceneLoader(const SceneLoader&) = delete;
-	SceneLoader& operator=(const SceneLoader&) = delete;
-	static SceneLoader& GetInstance();
+	// Reads the game configuration; the error says what is missing or wrong
+	static std::expected<SceneLoader, std::string> Open(std::string asset_dir);
 
-	std::shared_ptr<Scene> Load(const std::string& json_path,
-								std::shared_ptr<Player> player);
+	// Builds the level described by levels/<level_file>; the caller owns it.
+	// The scene borrows the player, the textures and the sound. The error
+	// says what is wrong with the level's files.
+	std::expected<std::unique_ptr<Scene>, std::string> Load(
+		const std::string& level_file, Player& player,
+		const TextureManager& textures, SoundManager& sound) const;
+
+	const GameConfig& Config() const { return config_; }
 
   private:
-	SceneLoader();
-	void PrepareEnemies(Scene& scene, const LevelData& level) const;
-	void PrepareDynamicObjects(Scene& scene, const LevelData& level) const;
-	void InitManagers(const std::shared_ptr<Scene>& scene);
-	static SceneLoader* instance_;
-	std::string asset_path;
+	SceneLoader(std::string asset_dir, GameConfig config);
+	std::expected<void, std::string> PrepareEnemies(
+		Scene& scene, const LevelData& level) const;
+	std::expected<void, std::string> PrepareDynamicObjects(
+		Scene& scene, const LevelData& level) const;
+
+	std::string asset_dir_;
 	GameConfig config_;
-};	// class SceneLoader
+};
 
 }  // namespace wolfenstein
 

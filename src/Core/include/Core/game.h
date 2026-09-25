@@ -14,8 +14,8 @@
 
 #include "Camera/camera.h"
 #include "Characters/player.h"
-#include "CollisionManager/collision_manager.h"
 #include "Core/scene.h"
+#include "Core/world.h"
 #include "Graphics/renderer_2d.h"
 #include "Graphics/renderer_3d.h"
 #include "Graphics/renderer_interface.h"
@@ -80,7 +80,8 @@ class Game
 	void Init();
 	// Fresh player and level 1, keeping the window, camera and menu
 	void NewGame(const std::string& weapon_name);
-	void ShowScene();
+	// Points every view at the world's current level
+	void ShowLevel();
 	void EnterPlaying();
 	void Pause();
 	void HandleMenuAction(const MenuAction& action);
@@ -94,11 +95,18 @@ class Game
 	// Feeds the frame's events to the menu; returns false on window close
 	bool PollMenuEvents();
 
+	PlayerCommand SampleCommand() const;
 	void UpdateAndRender();
 	void CheckGameEvent();
 	void CheckGameOver();
 	void BenchmarkStep();
 
+	// Declared in dependency order, destroyed in the reverse: the views,
+	// which borrow the world, then the world (level, player, sound), then
+	// the renderer context (textures, then the SDL renderer and SDL itself)
+	std::shared_ptr<Camera2D> camera_;
+	std::shared_ptr<RendererContext> renderer_context_;
+	std::unique_ptr<World> world_;
 	// Both views are built once; switching between them (P) swaps the
 	// pointer instead of building a renderer each time
 	std::unique_ptr<Renderer3D> renderer_3d_;
@@ -106,11 +114,10 @@ class Game
 	IRenderer* renderer_ = nullptr;
 	std::unique_ptr<Menu> menu_;
 	std::unique_ptr<RendererResult> renderer_result_;
-	std::shared_ptr<RendererContext> renderer_context_;
-	std::shared_ptr<Camera2D> camera_;
-	std::shared_ptr<Scene> scene_;
-	std::shared_ptr<Player> player_;
 
+	FrameClock clock_;
+	// The simulation runs at 60 ticks per second whatever the frame rate
+	FixedStep step_{1.0 / 60.0, 0.25};
 	GeneralConfig config_;
 	GameState state_ = GameState::Menu;
 	bool running_ = true;

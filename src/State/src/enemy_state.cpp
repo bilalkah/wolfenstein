@@ -1,8 +1,8 @@
 #include "State/enemy_state.h"
 #include "Characters/enemy.h"
+#include "Core/scene.h"
 #include "NavigationManager/navigation_manager.h"
 #include "Profiler/profiler.h"
-#include "ShootingManager/shooting_manager.h"
 #include "SoundManager/sound_manager.h"
 #include "TextureManager/texture_manager.h"
 
@@ -22,7 +22,7 @@ void IdleState::Update(const double& delta_time) {
 	animation_.Update(delta_time);
 
 	if (context_->IsPlayerInShootingRange() &&
-		NavigationManager::GetInstance().EuclideanDistanceToPlayer(
+		context_->GetScene().GetNavigation().EuclideanDistanceToPlayer(
 			context_->GetPosition()) <= range_ + 2.0) {
 		context_->TransitionTo(EnemyStateType::Walk);
 		return;
@@ -40,7 +40,8 @@ void IdleState::OnContextSet() {
 	// Idle holds each frame for animation_speed_, where other clips spread
 	// their duration over all frames
 	animation_ =
-		LoopedAnimation(LoopedAnimation::Clip(context_->GetBotName(), "idle"),
+		LoopedAnimation(LoopedAnimation::Clip(context_->GetScene().Textures(),
+											  context_->GetBotName(), "idle"),
 						animation_speed_);
 }
 
@@ -53,17 +54,17 @@ EnemyStateType IdleState::GetType() const {
 void WalkState::Update(const double& delta_time) {
 	const auto bot_position = context_->GetPosition();
 	const auto distance =
-		NavigationManager::GetInstance().EuclideanDistanceToPlayer(
+		context_->GetScene().GetNavigation().EuclideanDistanceToPlayer(
 			bot_position);
 	if (context_->IsAttacked()) {
-		NavigationManager::GetInstance().ResetPath(context_->GetId());
+		context_->GetScene().GetNavigation().ResetPath(context_->GetId());
 		context_->SetNextPose(bot_position.pose);
 		context_->TransitionTo(EnemyStateType::Pain);
 		return;
 	}
 	if (!context_->IsPlayerInShootingRange()) {
 		if (distance > range_max_) {
-			NavigationManager::GetInstance().ResetPath(context_->GetId());
+			context_->GetScene().GetNavigation().ResetPath(context_->GetId());
 			context_->TransitionTo(EnemyStateType::Idle);
 			return;
 		}
@@ -79,12 +80,13 @@ void WalkState::Update(const double& delta_time) {
 	if ((!context_->IsPlayerInShootingRange()) ||
 		((distance > range_min_) && context_->IsPlayerInShootingRange())) {
 		ScopedTimer timer(ProfileSection::Pathfinding);
-		auto next_position = NavigationManager::GetInstance().FindPathToPlayer(
-			bot_position, context_->GetId());
+		auto next_position =
+			context_->GetScene().GetNavigation().FindPathToPlayer(
+				bot_position, context_->GetId());
 		context_->SetNextPose(next_position);
 	}
 	else {
-		NavigationManager::GetInstance().ResetPath(context_->GetId());
+		context_->GetScene().GetNavigation().ResetPath(context_->GetId());
 		context_->SetNextPose(bot_position.pose);
 	}
 
@@ -94,7 +96,8 @@ void WalkState::OnContextSet() {
 	attack_rate_ = context_->GetWeapon().GetAttackRate();
 	attack_range_ = context_->GetWeapon().GetAttackRange();
 	animation_ =
-		LoopedAnimation(context_->GetBotName(), "walk", animation_speed_);
+		LoopedAnimation(context_->GetScene().Textures(), context_->GetBotName(),
+						"walk", animation_speed_);
 }
 
 void WalkState::OnEnter() {
@@ -128,14 +131,14 @@ void AttackState::Update(const double& delta_time) {
 void AttackState::OnContextSet() {
 	animation_speed_ = context_->GetWeapon().GetAttackSpeed();
 	animation_ =
-		LoopedAnimation(context_->GetBotName(), "attack", animation_speed_);
+		LoopedAnimation(context_->GetScene().Textures(), context_->GetBotName(),
+						"attack", animation_speed_);
 }
 
 void AttackState::OnEnter() {
 	EnemyState::OnEnter();
 	attack_counter_ = 0.0;
-	SoundManager::GetInstance().PlayEffect(context_->GetSoundChannel(),
-										   SoundEffect::NpcAttack);
+	context_->PlaySound(SoundEffect::NpcAttack);
 }
 
 EnemyStateType AttackState::GetType() const {
@@ -149,7 +152,7 @@ void PainState::Update(const double& delta_time) {
 	counter += delta_time;
 	if (counter > animation_speed_) {
 		if (context_->GetHealth() <= 0) {
-			NavigationManager::GetInstance().ResetPath(context_->GetId());
+			context_->GetScene().GetNavigation().ResetPath(context_->GetId());
 			context_->TransitionTo(EnemyStateType::Death);
 			return;
 		}
@@ -161,14 +164,14 @@ void PainState::Update(const double& delta_time) {
 
 void PainState::OnContextSet() {
 	animation_ =
-		LoopedAnimation(context_->GetBotName(), "pain", animation_speed_);
+		LoopedAnimation(context_->GetScene().Textures(), context_->GetBotName(),
+						"pain", animation_speed_);
 }
 
 void PainState::OnEnter() {
 	EnemyState::OnEnter();
 	counter = 0.0;
-	SoundManager::GetInstance().PlayEffect(context_->GetSoundChannel(),
-										   SoundEffect::NpcPain);
+	context_->PlaySound(SoundEffect::NpcPain);
 }
 
 EnemyStateType PainState::GetType() const {
@@ -190,14 +193,14 @@ void DeathState::Update(const double& delta_time) {
 
 void DeathState::OnContextSet() {
 	animation_ =
-		LoopedAnimation(context_->GetBotName(), "death", animation_speed_);
+		LoopedAnimation(context_->GetScene().Textures(), context_->GetBotName(),
+						"death", animation_speed_);
 }
 
 void DeathState::OnEnter() {
 	EnemyState::OnEnter();
 	counter = 0.0;
-	SoundManager::GetInstance().PlayEffect(context_->GetSoundChannel(),
-										   SoundEffect::NpcDeath);
+	context_->PlaySound(SoundEffect::NpcDeath);
 }
 
 EnemyStateType DeathState::GetType() const {

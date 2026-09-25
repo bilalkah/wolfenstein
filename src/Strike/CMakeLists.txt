@@ -10,7 +10,6 @@ target_link_libraries(
     weapon
     PUBLIC
     animation
-    time_manager
     texture_manager
     weapon_state
     sound_manager
@@ -27,6 +26,5 @@ target_include_directories(simple_weapon PUBLIC
 target_link_libraries(
     simple_weapon
     PUBLIC
-    shooting_manager
     ray
 )

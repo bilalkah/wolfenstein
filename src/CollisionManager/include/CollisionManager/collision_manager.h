@@ -12,35 +12,19 @@
 #ifndef COLLISION_MANAGER_INCLUDE_COLLISION_MANAGER_H
 #define COLLISION_MANAGER_INCLUDE_COLLISION_MANAGER_H
 
-#include "GameObjects/game_object.h"
+#include "Map/map.h"
 #include "Math/vector.h"
-#include <memory>
+
 namespace wolfenstein {
 
-namespace {
-constexpr double kCollisionDistance = 0.2;
-}
+// How close a character's centre may come to a wall
+inline constexpr double kCollisionDistance = 0.2;
 
-class Scene;
+// Whether moving from pose in the direction of delta_pose would bring a
+// character within kCollisionDistance of a wall
+bool CheckWallCollision(const Map& map, const vector2d& pose,
+						const vector2d& delta_pose);
 
-class CollisionManager
-{
-  public:
-	static CollisionManager& GetInstance();
-
-	CollisionManager(const CollisionManager&) = delete;
-	CollisionManager& operator=(const CollisionManager&) = delete;
-	~CollisionManager();
-
-	void InitManager(const std::shared_ptr<Scene>& scene_ptr);
-	bool CheckWallCollision(const vector2d& pose, const vector2d& delta_pose);
-
-  private:
-	CollisionManager() = default;
-
-	static CollisionManager* instance_;
-	std::shared_ptr<Scene> scene_ptr_;
-};
 }  // namespace wolfenstein
 
 #endif	// COLLISION_MANAGER_INCLUDE_COLLISION_MANAGER_H

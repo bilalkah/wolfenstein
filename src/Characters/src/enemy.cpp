@@ -1,13 +1,14 @@
 #include "Characters/enemy.h"
 #include "Camera/ray.h"
 #include "Camera/single_raycaster.h"
+#include "Characters/player.h"
 #include "CollisionManager/collision_manager.h"
+#include "Core/scene.h"
 #include "Math/vector.h"
 #include "Profiler/profiler.h"
+#include "ShootingManager/shooting_manager.h"
 #include "SoundManager/sound_manager.h"
-#include "Strike/simple_weapon.h"
-#include "Strike/strike.h"
-#include <memory>
+#include <stdexcept>
 #include <utility>
 
 namespace wolfenstein {
@@ -28,37 +29,23 @@ auto GetBotStateConfig = [](const std::string& bot_name) -> StateConfig {
 	}
 };
 
-auto GetBotWeapon =
-	[](const std::string& bot_name) -> std::shared_ptr<SimpleWeapon> {
-	if (bot_name == "soldier") {
-		return std::move(std::make_shared<Rifle>());
-	}
-	else if (bot_name == "caco_demon") {
-		return std::move(std::make_shared<Melee>());
-	}
-	else if (bot_name == "cyber_demon") {
-		return std::move(std::make_shared<LaserGun>());
-	}
-	else {
-		throw std::invalid_argument("Invalid bot name");
-	}
-};
 }  // namespace
 
-Enemy::Enemy(std::string bot_name, CharacterConfig config)
-	: is_alive_(true),
-	  rotation_speed_(config.rotation_speed),
+Enemy::Enemy(Scene& scene, std::string bot_name, CharacterConfig config)
+	: scene_(scene),
+	  is_alive_(true),
 	  translation_speed_(config.translation_speed),
 	  width(config.width),
 	  height(config.height),
 	  health_(100),
 	  position_(config.initial_position),
 	  next_pose(position_.pose),
+	  previous_pose_(position_.pose),
 	  state_config_(GetBotStateConfig(bot_name)),
 	  bot_name_(bot_name),
-	  sound_channel_(SoundManager::GetInstance().AllocateChannel()),
+	  sound_channel_(scene.Sound().AllocateChannel()),
 	  crosshair_ray(Ray{}),
-	  weapon_(GetBotWeapon(bot_name)) {
+	  weapon_(SimpleWeapon::ForEnemy(bot_name)) {
 	for (const auto type :
 		 {EnemyStateType::Idle, EnemyStateType::Walk, EnemyStateType::Attack,
 		  EnemyStateType::Pain, EnemyStateType::Death}) {
@@ -103,20 +90,25 @@ bool Enemy::IsAlive() const {
 	return is_alive_;
 }
 
+void Enemy::PlaySound(SoundEffect effect) {
+	scene_.Sound().PlayEffect(sound_channel_, effect);
+}
+
 void Enemy::Shoot() {
-	weapon_->Attack();
+	ResolveEnemyShot(scene_.GetPlayer(), weapon_);
 }
 
 void Enemy::Update(double delta_time) {
+	previous_pose_ = position_.pose;
 	if (!is_alive_) {
 		return;
 	}
 	{
 		ScopedTimer timer(ProfileSection::LineOfSight);
-		crosshair_ray =
-			SingleRayCasterService::GetInstance().Cast(position_.pose);
+		crosshair_ray = CastLineOfSight(scene_.GetMap(), position_.pose,
+										scene_.GetPlayer().GetPosition().pose);
 	}
-	weapon_->SetCrosshairRay(crosshair_ray);
+	weapon_.SetCrosshairRay(crosshair_ray);
 	state_machine_.Update(delta_time);
 	if (!(next_pose == position_.pose)) {
 		Move(delta_time);
@@ -131,12 +123,17 @@ vector2d Enemy::GetPose() const {
 	return position_.pose;
 }
 
+vector2d Enemy::GetRenderPose(double alpha) const {
+	return Interpolate(previous_pose_, position_.pose, alpha);
+}
+
 ObjectType Enemy::GetObjectType() const {
 	return ObjectType::CHARACTER_ENEMY;
 }
 
 void Enemy::SetPosition(const Position2D position) {
 	position_ = position;
+	previous_pose_ = position.pose;
 }
 
 void Enemy::IncreaseHealth(double amount) {
@@ -163,12 +160,11 @@ void Enemy::Move(double delta_time) {
 	vector2d direction = next_pose - position_.pose;
 	direction.Norm();
 	vector2d delta_movement = direction * translation_speed_ * delta_time;
-	if (!CollisionManager::GetInstance().CheckWallCollision(
-			position_.pose, {delta_movement.x, 0})) {
+	const Map& map = scene_.GetMap();
+	if (!CheckWallCollision(map, position_.pose, {delta_movement.x, 0})) {
 		position_.pose.x += delta_movement.x;
 	}
-	if (!CollisionManager::GetInstance().CheckWallCollision(
-			position_.pose, {0, delta_movement.y})) {
+	if (!CheckWallCollision(map, position_.pose, {0, delta_movement.y})) {
 		position_.pose.y += delta_movement.y;
 	}
 }
@@ -206,11 +202,7 @@ const Ray& Enemy::GetCrosshairRay() const {
 }
 
 const SimpleWeapon& Enemy::GetWeapon() const {
-	return *weapon_;
-}
-
-SimpleWeapon& Enemy::GetWeapon() {
-	return *weapon_;
+	return weapon_;
 }
 
 }  // namespace wolfenstein

@@ -13,6 +13,8 @@
 #define CHARACTERS_INCLUDE_CHARACTER_H
 
 #include "Math/vector.h"
+#include <cmath>
+#include <numbers>
 
 namespace wolfenstein {
 
@@ -24,6 +26,20 @@ struct Position2D
 	vector2d pose;
 	double theta;
 };
+
+// The state `alpha` of the way from `from` to `to` (0 to 1), turning the
+// short way round: what is drawn between two simulation ticks
+inline vector2d Interpolate(const vector2d& from, const vector2d& to,
+							double alpha) {
+	return from + (to - from) * alpha;
+}
+inline Position2D Interpolate(const Position2D& from, const Position2D& to,
+							  double alpha) {
+	const double turn =
+		std::remainder(to.theta - from.theta, 2.0 * std::numbers::pi);
+	return Position2D(Interpolate(from.pose, to.pose, alpha),
+					  from.theta + turn * alpha);
+}
 
 struct CharacterConfig
 {

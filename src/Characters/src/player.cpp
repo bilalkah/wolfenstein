@@ -1,28 +1,27 @@
 #include "Characters/player.h"
-#include "Camera/camera.h"
 #include "CollisionManager/collision_manager.h"
+#include "Core/scene.h"
 #include "Math/vector.h"
 #include "Profiler/profiler.h"
-#include "Settings/settings.h"
+#include "ShootingManager/shooting_manager.h"
 #include "SoundManager/sound_manager.h"
 #include "State/weapon_state.h"
-#include <SDL2/SDL.h>
 #include <memory>
 #include <utility>
 
 namespace wolfenstein {
 
-Player::Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera,
-			   std::shared_ptr<Weapon> weapon)
-	: rotation_speed_(config.rotation_speed),
-	  translation_speed_(config.translation_speed),
+Player::Player(CharacterConfig& config, std::shared_ptr<Weapon> weapon,
+			   SoundManager& sound)
+	: translation_speed_(config.translation_speed),
 	  width_(config.width),
 	  height_(config.height),
 	  health_(100),
-	  sound_channel_(SoundManager::GetInstance().AllocateChannel()),
+	  sound_(sound),
+	  sound_channel_(sound.AllocateChannel()),
+	  position_(config.initial_position),
+	  previous_position_(config.initial_position),
 	  damage_animation_(9, 1) {
-	camera_ = camera;
-	position_ptr_ = std::make_shared<Position2D>(config.initial_position);
 	SetWeapon(std::move(weapon));
 }
 
@@ -35,6 +34,7 @@ void Player::Update(double delta_time) {
 		regen_time_ = 0.0;
 		IncreaseHealth(1);
 	}
+	previous_position_ = position_;
 	if (!is_alive_) {
 		return;
 	}
@@ -42,24 +42,19 @@ void Player::Update(double delta_time) {
 	weapon_->Update(delta_time);
 	Move(delta_time);
 	Rotate(delta_time);
-	{
-		ScopedTimer timer(ProfileSection::Camera);
-		camera_->Update();
-	}
 	damage_animation_.Update(delta_time);
 }
 
 void Player::SetWeapon(std::shared_ptr<Weapon> weapon) {
 	weapon_ = std::move(weapon);
-	weapon_->SetCrossHair(camera_->GetCrosshairRay());
 }
 
 void Player::SetPose(const vector2d& pose) {
-	position_ptr_->pose = pose;
+	position_.pose = pose;
 }
 
 vector2d Player::GetPose() const {
-	return position_ptr_->pose;
+	return position_.pose;
 }
 
 ObjectType Player::GetObjectType() const {
@@ -67,7 +62,9 @@ ObjectType Player::GetObjectType() const {
 }
 
 void Player::SetPosition(const Position2D position) {
-	*position_ptr_ = position;
+	position_ = position;
+	// A teleport, not a move: nothing to interpolate across
+	previous_position_ = position;
 }
 
 void Player::IncreaseHealth(double amount) {
@@ -80,8 +77,7 @@ void Player::DecreaseHealth(double amount) {
 	if (health_ <= 0.0) {
 		is_alive_ = false;
 	}
-	SoundManager::GetInstance().PlayEffect(sound_channel_,
-										   SoundEffect::PlayerPain);
+	sound_.PlayEffect(sound_channel_, SoundEffect::PlayerPain);
 	damaged_ = true;
 	damage_animation_.Reset();
 }
@@ -91,7 +87,11 @@ double Player::GetHealth() const {
 }
 
 Position2D Player::GetPosition() const {
-	return *position_ptr_;
+	return position_;
+}
+
+Position2D Player::GetRenderPosition(double alpha) const {
+	return Interpolate(previous_position_, position_, alpha);
 }
 
 int Player::GetTextureId() const {
@@ -109,10 +109,6 @@ double Player::GetHeight() const {
 	return height_;
 }
 
-const Ray& Player::GetCrosshairRay() const {
-	return weapon_->GetCrosshair();
-}
-
 bool Player::IsDamaged() const {
 	return damaged_;
 }
@@ -125,79 +121,43 @@ const Weapon& Player::GetWeapon() const {
 	return *weapon_;
 }
 
-const std::shared_ptr<Position2D>& Player::GetPositionPtr() {
-	return position_ptr_;
+void Player::SetCommand(const PlayerCommand& command) {
+	command_ = command;
 }
-void Player::Move(double delta_time) {
-	std::pair<double, double> delta_movement = {0.0, 0.0};
-	double speed = translation_speed_ * delta_time;
-	double speed_sin = speed * std::sin(position_ptr_->theta);
-	double speed_cos = speed * std::cos(position_ptr_->theta);
-	const Uint8* keystate = SDL_GetKeyboardState(NULL);
 
-	if (keystate[SDL_SCANCODE_W]) {
-		delta_movement.first += speed_cos;
-		delta_movement.second += speed_sin;
+void Player::Move(double delta_time) {
+	const double speed = translation_speed_ * delta_time;
+	const vector2d facing{std::cos(position_.theta), std::sin(position_.theta)};
+	const vector2d right{-facing.y, facing.x};
+	const vector2d delta_movement =
+		facing * (command_.forward * speed) + right * (command_.strafe * speed);
+	const Map& map = scene_->GetMap();
+	if (!CheckWallCollision(map, position_.pose, {delta_movement.x, 0})) {
+		position_.pose.x += delta_movement.x;
 	}
-	if (keystate[SDL_SCANCODE_A]) {
-		delta_movement.first += speed_sin;
-		delta_movement.second -= speed_cos;
-	}
-	if (keystate[SDL_SCANCODE_S]) {
-		delta_movement.first -= speed_cos;
-		delta_movement.second -= speed_sin;
-	}
-	if (keystate[SDL_SCANCODE_D]) {
-		delta_movement.first -= speed_sin;
-		delta_movement.second += speed_cos;
-	}
-	if (!CollisionManager::GetInstance().CheckWallCollision(
-			position_ptr_->pose, {delta_movement.first, 0})) {
-		position_ptr_->pose.x += delta_movement.first;
-	}
-	if (!CollisionManager::GetInstance().CheckWallCollision(
-			position_ptr_->pose, {0, delta_movement.second})) {
-		position_ptr_->pose.y += delta_movement.second;
+	if (!CheckWallCollision(map, position_.pose, {0, delta_movement.y})) {
+		position_.pose.y += delta_movement.y;
 	}
 }
 
 void Player::Rotate(double delta_time) {
 	constexpr double kKeyboardTurnSpeed = 2.5;	// rad/s
-	const Uint8* keystate = SDL_GetKeyboardState(NULL);
-	double turn = 0.0;
-	if (keystate[SDL_SCANCODE_LEFT]) {
-		turn -= kKeyboardTurnSpeed * delta_time;
-	}
-	if (keystate[SDL_SCANCODE_RIGHT]) {
-		turn += kKeyboardTurnSpeed * delta_time;
-	}
-
-	// Relative mouse mode reports motion since the last call, which also
-	// works under browser pointer lock (unlike warping the cursor). Mouse
-	// motion is already a distance, so it is not scaled by the frame time.
-	constexpr double kRadiansPerPixel = 0.005;
-	int dx = 0;
-	SDL_GetRelativeMouseState(&dx, nullptr);
-	if (SDL_GetRelativeMouseMode()) {
-		turn += dx * kRadiansPerPixel * Settings::Get().mouse_sensitivity;
-	}
-
+	// Mouse motion is already a distance, so it is not scaled by the time
+	// step, and it is spent by the first tick that applies it
+	const double turn =
+		command_.turn * kKeyboardTurnSpeed * delta_time + command_.look;
+	command_.look = 0.0;
 	if (turn != 0.0) {
-		position_ptr_->theta = SumRadian(position_ptr_->theta, turn);
+		position_.theta = SumRadian(position_.theta, turn);
 	}
 }
 
 void Player::ShootOrReload() {
-	// If R is pressed, reload
-	const Uint8* keystate = SDL_GetKeyboardState(NULL);
-	if (keystate[SDL_SCANCODE_R]) {
+	if (command_.reload) {
 		weapon_->Reload();
 	}
-
-	// If left mouse button or left ctrl is pressed, attack
-	if ((SDL_GetMouseState(NULL, NULL) & SDL_BUTTON_LMASK) ||
-		keystate[SDL_SCANCODE_LCTRL]) {
-		weapon_->Attack();
+	if (command_.fire && weapon_->Attack()) {
+		ResolvePlayerShot(*scene_, *weapon_, position_);
 	}
 }
 

@@ -26,7 +26,7 @@ GridPathFinder MakeFinder(std::initializer_list<std::string_view> rows) {
 
 // A path must start and end at the given cells and move one free cell at a
 // time
-void ExpectValidPath(const std::vector<GridCell>& path, GridCell start,
+void ExpectValidPath(const std::pmr::vector<GridCell>& path, GridCell start,
 					 GridCell goal,
 					 std::initializer_list<std::string_view> rows) {
 	ASSERT_FALSE(path.empty());
@@ -47,7 +47,7 @@ void ExpectValidPath(const std::vector<GridCell>& path, GridCell start,
 
 TEST(GridPathFinder, FindsTheStraightPath) {
 	auto finder = MakeFinder({".....", ".....", "....."});
-	std::vector<GridCell> path;
+	std::pmr::vector<GridCell> path;
 	ASSERT_TRUE(finder.FindPath({1, 0}, {1, 4}, {}, path));
 	ExpectValidPath(path, {1, 0}, {1, 4}, {".....", ".....", "....."});
 	EXPECT_EQ(path.size(), 5u);
@@ -57,7 +57,7 @@ TEST(GridPathFinder, GoesAroundWalls) {
 	const std::initializer_list<std::string_view> rows = {".#...", ".#.#.",
 														  "...#."};
 	auto finder = MakeFinder(rows);
-	std::vector<GridCell> path;
+	std::pmr::vector<GridCell> path;
 	ASSERT_TRUE(finder.FindPath({0, 0}, {0, 4}, {}, path));
 	ExpectValidPath(path, {0, 0}, {0, 4}, rows);
 	EXPECT_EQ(path.size(),
@@ -66,7 +66,7 @@ TEST(GridPathFinder, GoesAroundWalls) {
 
 TEST(GridPathFinder, ReportsAnUnreachableGoal) {
 	auto finder = MakeFinder({"..#..", "..#..", "..#.."});
-	std::vector<GridCell> path{{9, 9}};
+	std::pmr::vector<GridCell> path{{9, 9}};
 	EXPECT_FALSE(finder.FindPath({1, 0}, {1, 4}, {}, path));
 	EXPECT_TRUE(path.empty());
 }
@@ -74,7 +74,7 @@ TEST(GridPathFinder, ReportsAnUnreachableGoal) {
 TEST(GridPathFinder, ExtraBlockedCellsLastOneQuery) {
 	const std::initializer_list<std::string_view> rows = {"...", "...", "..."};
 	auto finder = MakeFinder(rows);
-	std::vector<GridCell> path;
+	std::pmr::vector<GridCell> path;
 	const std::vector<GridCell> blocked = {{1, 1}};
 
 	ASSERT_TRUE(finder.FindPath({1, 0}, {1, 2}, blocked, path));
@@ -87,14 +87,14 @@ TEST(GridPathFinder, ExtraBlockedCellsLastOneQuery) {
 
 TEST(GridPathFinder, StartAndGoalAreAlwaysPassable) {
 	auto finder = MakeFinder({"#.#"});
-	std::vector<GridCell> path;
+	std::pmr::vector<GridCell> path;
 	ASSERT_TRUE(finder.FindPath({0, 0}, {0, 2}, {}, path));
 	EXPECT_EQ(path.size(), 3u);
 }
 
 TEST(GridPathFinder, HandlesTrivialAndOutOfBoundsQueries) {
 	auto finder = MakeFinder({"...", "..."});
-	std::vector<GridCell> path;
+	std::pmr::vector<GridCell> path;
 	ASSERT_TRUE(finder.FindPath({1, 1}, {1, 1}, {}, path));
 	EXPECT_EQ(path.size(), 1u);
 	EXPECT_FALSE(finder.FindPath({0, 0}, {5, 0}, {}, path));
@@ -107,7 +107,7 @@ TEST(GridPathFinder, HandlesTrivialAndOutOfBoundsQueries) {
 TEST(GridPathFinder, QueriesDoNotAllocate) {
 	auto finder = MakeFinder(
 		{"..........", ".########.", "..........", ".########.", ".........."});
-	std::vector<GridCell> path;
+	std::pmr::vector<GridCell> path;
 	const std::vector<GridCell> blocked = {{2, 5}};
 	ASSERT_TRUE(finder.FindPath({0, 0}, {4, 0}, blocked, path));  // warm-up
 

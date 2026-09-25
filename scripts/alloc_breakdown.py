@@ -27,7 +27,7 @@ TREE = [
     ("pathfinding", 2),
     ("line_of_sight", 2),
     ("update_player", 1),
-    ("camera", 2),
+    ("camera", 1),
     ("render", 1),
     ("render_walls", 2),
     ("render_objects", 2),

@@ -21,7 +21,7 @@ std::vector<vector2i> GenerateCirclePoints(vector2i center, int radius,
 
 }  // namespace
 
-void Renderer2D::RenderScene() {
+void Renderer2D::RenderScene(double /*delta_time*/) {
 	ClearScreen();
 	RenderMap();
 	RenderPlayer();
@@ -55,7 +55,7 @@ void Renderer2D::RenderPlayer() {
 	const auto& camera_ptr = context_->GetCamera();
 
 	const auto position = player_ptr.GetPosition();
-	const auto crosshair_ray = player_ptr.GetCrosshairRay();
+	const auto& crosshair_ray = camera_ptr.GetCrosshairRay();
 
 	SetDrawColor({00, 0xA5, 0, 1});
 	const auto& rays = camera_ptr.GetRays();
@@ -69,9 +69,9 @@ void Renderer2D::RenderPlayer() {
 	}
 
 	SetDrawColor({255, 0, 0, 255});
-	const auto circle_points =
-		GenerateCirclePoints(ToVector2i(position.pose * config.scale),
-							 config.scale * player_ptr.GetWidth() / 2, 20);
+	const auto circle_points = GenerateCirclePoints(
+		ToVector2i(position.pose * config.scale),
+		static_cast<int>(config.scale * player_ptr.GetWidth() / 2), 20);
 	for (unsigned int i = 0; i < circle_points.size(); i++) {
 		SDL_RenderDrawPoint(context_->GetRenderer(), circle_points[i].x,
 							circle_points[i].y);
@@ -92,8 +92,9 @@ void Renderer2D::RenderObjects() {
 		const auto object_pose = object->GetPose();
 		const auto w = object->GetWidth();
 
-		const auto object_points = GenerateCirclePoints(
-			ToVector2i(object_pose * config.scale), config.scale * w / 2, 20);
+		const auto object_points =
+			GenerateCirclePoints(ToVector2i(object_pose * config.scale),
+								 static_cast<int>(config.scale * w / 2), 20);
 		for (unsigned int i = 0; i < object_points.size(); i++) {
 			SDL_RenderDrawPoint(renderer_, object_points[i].x,
 								object_points[i].y);
@@ -134,8 +135,7 @@ void Renderer2D::RenderPaths() {
 	const auto config = context_->GetConfig();
 	SetDrawColor({0, 0, 255, 255});
 	for (const auto& enemy : enemies) {
-		const auto path =
-			NavigationManager::GetInstance().GetPath(enemy->GetId());
+		const auto path = scene_->GetNavigation().GetPath(enemy->GetId());
 		for (std::size_t i = 1; i < path.size(); ++i) {
 			DrawLine(ToVector2i(NavigationManager::CellCentre(path[i - 1]) *
 								config.scale),

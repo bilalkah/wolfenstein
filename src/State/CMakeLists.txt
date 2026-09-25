@@ -34,6 +34,5 @@ target_link_libraries(
     PUBLIC
     weapon
     texture_manager
-    shooting_manager
     sound_manager
 )

@@ -15,6 +15,13 @@ Position2D ToPosition(const json& position) {
 		position.at("theta").get<double>());
 }
 
+CharacterStats ToStats(const json& stats) {
+	return {.translation_speed = stats.at("t_speed").get<double>(),
+			.rotation_speed = stats.at("r_speed").get<double>(),
+			.width = stats.at("width").get<double>(),
+			.height = stats.at("height").get<double>()};
+}
+
 vector2d ToPoint(const json& position) {
 	return {position.at("x").get<double>(), position.at("y").get<double>()};
 }
@@ -38,14 +45,9 @@ std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 	return Parse(input, [](const json& root) {
 		GameConfig config;
 		for (const auto& [type, stats] : root.at("config_enemy").items()) {
-			config.enemies.emplace(
-				type,
-				CharacterStats{
-					.translation_speed = stats.at("t_speed").get<double>(),
-					.rotation_speed = stats.at("r_speed").get<double>(),
-					.width = stats.at("width").get<double>(),
-					.height = stats.at("height").get<double>()});
+			config.enemies.emplace(type, ToStats(stats));
 		}
+		config.player = ToStats(root.at("player_config"));
 		const auto& light = root.at("config_dynamic").at("light");
 		config.light = {
 			.animation_speed = light.at("animation_speed").get<double>(),

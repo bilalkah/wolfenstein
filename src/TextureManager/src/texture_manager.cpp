@@ -7,30 +7,19 @@
 
 namespace wolfenstein {
 
-TextureManager* TextureManager::instance_ = nullptr;
-
-TextureManager& TextureManager::GetInstance() {
-	if (instance_ == nullptr) {
-		instance_ = new TextureManager();
-	}
-	return *instance_;
-}
-
-TextureManager::~TextureManager() {
-	for (auto& texture : textures_) {
-		SDL_DestroyTexture(texture.texture);
-	}
-	delete instance_;
-}
-
-void TextureManager::InitManager(SDL_Renderer* renderer) {
-	t_count_ = 0;
-	renderer_ = renderer;
-
+TextureManager::TextureManager(SDL_Renderer* renderer) : renderer_(renderer) {
 	LoadStaticTextures();
 	LoadSpriteTextures();
 	LoadNpcTextures();
 	LoadWeaponTextures();
+}
+
+TextureManager::~TextureManager() {
+	for (auto& texture : textures_) {
+		if (texture.texture != nullptr) {
+			SDL_DestroyTexture(texture.texture);
+		}
+	}
 }
 
 void TextureManager::LoadTexture(uint16_t texture_id,
