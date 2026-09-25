@@ -15,13 +15,13 @@
 #include <memory>
 #include <vector>
 
+#include "Allocators/monotonic_arena.h"
+#include "Allocators/object_pool.h"
 #include "Characters/enemy.h"
 #include "Characters/player.h"
+#include "GameMap/map.h"
 #include "GameObjects/dynamic_object.h"
 #include "GameObjects/game_object.h"
-#include "Map/map.h"
-#include "Memory/monotonic_arena.h"
-#include "Memory/object_pool.h"
 #include "NavigationManager/navigation_manager.h"
 #include <cstdint>
 #include <expected>
@@ -61,7 +61,7 @@ class Scene
 	Scene& operator=(Scene&&) = delete;
 
 	std::expected<memory::Handle<Enemy>, memory::PoolError> AddEnemy(
-		const std::string& type, const CharacterConfig& config);
+		const EnemyConfig& config, const Position2D& position);
 	std::expected<memory::Handle<DynamicObject>, memory::PoolError>
 	AddDynamicObject(const vector2d& pose, const LoopedAnimation& animation,
 					 double width, double height);

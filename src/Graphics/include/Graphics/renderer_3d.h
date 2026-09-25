@@ -72,8 +72,12 @@ class Renderer3D : public IRenderer
 		int height = 0;
 	};
 	std::array<Glyph, 10> fps_digits_;
-	// The HUD's digit textures, looked up once rather than every frame
+	// Textures looked up by name once, when the renderer is built
 	std::span<const std::uint16_t> hud_digits_;
+	int sky_texture_ = 0;
+	int far_texture_ = 0;  // where no wall is in view
+	int crosshair_texture_ = 0;
+	int damage_texture_ = 0;
 	int shown_fps_ = 0;
 	double fps_elapsed_ = 0.0;
 	int fps_frames_ = 0;

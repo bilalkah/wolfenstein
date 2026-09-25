@@ -14,8 +14,8 @@
  * overflow rather than use-after-poison.
  */
 
-#ifndef MEMORY_INCLUDE_MEMORY_ASAN_H
-#define MEMORY_INCLUDE_MEMORY_ASAN_H
+#ifndef ALLOCATORS_INCLUDE_ALLOCATORS_ASAN_H
+#define ALLOCATORS_INCLUDE_ALLOCATORS_ASAN_H
 
 #include <cstddef>
 
@@ -49,4 +49,4 @@ inline void UnpoisonRegion([[maybe_unused]] const void* address,
 
 }  // namespace wolfenstein::memory
 
-#endif	// MEMORY_INCLUDE_MEMORY_ASAN_H
+#endif	// ALLOCATORS_INCLUDE_ALLOCATORS_ASAN_H

@@ -32,9 +32,32 @@ TEST(LevelData, ParsesTheGameConfig) {
 	const auto config = ParseGameConfig(file);
 	ASSERT_TRUE(config) << config.error();
 	ASSERT_TRUE(config->enemies.contains("soldier"));
-	EXPECT_DOUBLE_EQ(config->enemies.at("soldier").width, 0.3);
+	const EnemyConfig& soldier = config->enemies.at("soldier");
+	EXPECT_DOUBLE_EQ(soldier.width, 0.3);
+	EXPECT_EQ(soldier.weapon.weapon_name, "rifle");
+	EXPECT_DOUBLE_EQ(soldier.behaviour.follow_range, 5.0);
+
+	ASSERT_EQ(config->weapons.size(), 2u);
+	const WeaponConfig* shotgun = config->FindWeapon("shotgun");
+	ASSERT_NE(shotgun, nullptr);
+	EXPECT_EQ(shotgun->ammo_capacity, 2u);
+	EXPECT_EQ(shotgun->falloff, DamageFalloff::Exponential);
+	EXPECT_EQ(config->FindWeapon("bazooka"), nullptr);
 	EXPECT_DOUBLE_EQ(config->light.animation_speed, 0.3);
 	EXPECT_DOUBLE_EQ(config->player.translation_speed, 2.0);
+}
+
+TEST(LevelData, RejectsAnUnknownDamageFalloff) {
+	std::istringstream config(R"({
+		"player_config": {"t_speed": 2, "r_speed": 0.4, "width": 0.4, "height": 1},
+		"weapons": [{"name": "x", "label": "X", "description": "", "ammo": 1,
+					 "damage": [1, 1], "range": 1, "attack_speed": 1,
+					 "reload_speed": 1, "falloff": "quadratic"}],
+		"config_enemy": {},
+		"config_dynamic": {"light": {"animation_speed": 1, "width": 1, "height": 1}}})");
+	const auto parsed = ParseGameConfig(config);
+	ASSERT_FALSE(parsed);
+	EXPECT_NE(parsed.error().find("quadratic"), std::string::npos);
 }
 
 TEST(LevelData, ReportsMalformedFilesAsErrors) {

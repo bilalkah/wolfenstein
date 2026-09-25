@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef MAP_INCLUDE_MAP_MAP_H_
-#define MAP_INCLUDE_MAP_MAP_H_
+#ifndef GAME_MAP_INCLUDE_GAME_MAP_MAP_H_
+#define GAME_MAP_INCLUDE_GAME_MAP_MAP_H_
 
 #include "Math/vector.h"
 #include <cstddef>
@@ -61,4 +61,4 @@ class Map
 
 }  // namespace wolfenstein
 
-#endif	// MAP_INCLUDE_MAP_MAP_H_
+#endif	// GAME_MAP_INCLUDE_GAME_MAP_MAP_H_

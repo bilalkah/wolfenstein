@@ -58,7 +58,6 @@ class Player : public ICharacter, public IGameObject
 	const Weapon& GetWeapon() const;
 	// Where to draw the view `alpha` of the way from the previous tick
 	Position2D GetRenderPosition(double alpha) const;
-	int GetDamageTextureId() const;
 	// Opacity of the damage overlay, fading out after a hit
 	std::uint8_t GetDamageAlpha() const { return damage_animation_.GetAlpha(); }
 

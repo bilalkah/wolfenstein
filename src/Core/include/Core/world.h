@@ -56,6 +56,7 @@ class World
 	Scene& CurrentLevel() { return *scene_; }
 	Player& GetPlayer() { return *player_; }
 	SoundManager& Sound() { return *sound_; }
+	const GameConfig& Config() const { return loader_.Config(); }
 
   private:
 	std::expected<void, std::string> LoadLevel(const std::string& level_file);

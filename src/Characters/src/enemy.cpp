@@ -8,44 +8,26 @@
 #include "Profiler/profiler.h"
 #include "ShootingManager/shooting_manager.h"
 #include "SoundManager/sound_manager.h"
-#include <stdexcept>
 #include <utility>
 
 namespace wolfenstein {
 
-namespace {
-auto GetBotStateConfig = [](const std::string& bot_name) -> StateConfig {
-	if (bot_name == "soldier") {
-		return {{0.8}, 5.0, 1.0};
-	}
-	else if (bot_name == "caco_demon") {
-		return {{0.8}, 5.0, 1.0};
-	}
-	else if (bot_name == "cyber_demon") {
-		return {{0.8}, 5.0, 1.0};
-	}
-	else {
-		throw std::invalid_argument("Invalid bot name");
-	}
-};
-
-}  // namespace
-
-Enemy::Enemy(Scene& scene, std::string bot_name, CharacterConfig config)
+Enemy::Enemy(Scene& scene, const EnemyConfig& config,
+			 const Position2D& position)
 	: scene_(scene),
 	  is_alive_(true),
 	  translation_speed_(config.translation_speed),
 	  width(config.width),
 	  height(config.height),
 	  health_(100),
-	  position_(config.initial_position),
+	  position_(position),
 	  next_pose(position_.pose),
 	  previous_pose_(position_.pose),
-	  state_config_(GetBotStateConfig(bot_name)),
-	  bot_name_(bot_name),
+	  state_config_(config.behaviour),
+	  bot_name_(config.type),
 	  sound_channel_(scene.Sound().AllocateChannel()),
 	  crosshair_ray(Ray{}),
-	  weapon_(SimpleWeapon::ForEnemy(bot_name)) {
+	  weapon_(config.weapon) {
 	for (const auto type :
 		 {EnemyStateType::Idle, EnemyStateType::Walk, EnemyStateType::Attack,
 		  EnemyStateType::Pain, EnemyStateType::Death}) {

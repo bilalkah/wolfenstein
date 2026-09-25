@@ -20,7 +20,7 @@ TEST(Menu, FramesDoNotAllocateOnceTheirTextIsDrawn) {
 	const auto context = std::make_shared<RendererContext>(
 		"menu test", RenderConfig(1280, 720, 0, 32, 0, 20.0, 1.0, false),
 		camera);
-	Menu menu(context, testing::TestSound());
+	Menu menu(context, testing::TestSound(), testing::GameData().weapons);
 	constexpr double kFrame = 1.0 / 60.0;
 
 	for (const MenuScreen screen :

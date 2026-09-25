@@ -3,10 +3,10 @@
  * @brief Fixed-capacity object pool addressed by generational handles
  */
 
-#ifndef MEMORY_INCLUDE_MEMORY_OBJECT_POOL_H
-#define MEMORY_INCLUDE_MEMORY_OBJECT_POOL_H
+#ifndef ALLOCATORS_INCLUDE_ALLOCATORS_OBJECT_POOL_H
+#define ALLOCATORS_INCLUDE_ALLOCATORS_OBJECT_POOL_H
 
-#include "Memory/asan.h"
+#include "Allocators/asan.h"
 #include <cstddef>
 #include <cstdint>
 #include <expected>
@@ -177,4 +177,4 @@ class ObjectPool
 
 }  // namespace wolfenstein::memory
 
-#endif	// MEMORY_INCLUDE_MEMORY_OBJECT_POOL_H
+#endif	// ALLOCATORS_INCLUDE_ALLOCATORS_OBJECT_POOL_H

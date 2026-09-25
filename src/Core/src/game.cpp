@@ -30,8 +30,6 @@ namespace wolfenstein {
 
 namespace {
 
-constexpr int kGameOverTexture = 10;
-constexpr int kWinTexture = 11;
 // Time between the end of a level (or death) and what follows it
 constexpr double kEndOfLevelDelay = 2.0;
 
@@ -63,7 +61,8 @@ void Game::Init() {
 		std::exit(EXIT_FAILURE);
 	}
 	world_ = std::move(*world);
-	menu_ = std::make_unique<Menu>(renderer_context_, world_->Sound());
+	menu_ = std::make_unique<Menu>(renderer_context_, world_->Sound(),
+								   world_->Config().weapons);
 	renderer_3d_ = std::make_unique<Renderer3D>(renderer_context_);
 	renderer_2d_ = std::make_unique<Renderer2D>(renderer_context_);
 	ApplySettings();
@@ -378,8 +377,9 @@ void Game::CheckGameEvent() {
 void Game::CheckGameOver() {
 	const double delta_time = clock_.DeltaTime();
 	if (!world_->GetPlayer().IsAlive() && !renderer_result_) {
-		renderer_result_ = std::make_unique<RendererResult>(renderer_context_,
-															kGameOverTexture);
+		renderer_result_ = std::make_unique<RendererResult>(
+			renderer_context_,
+			renderer_context_->Textures().GetTextureId("game_over"));
 	}
 	if (world_->CurrentLevel().GetNumberOfAliveEnemies() == 0 &&
 		!renderer_result_) {
@@ -397,7 +397,8 @@ void Game::CheckGameOver() {
 		}
 		else {
 			renderer_result_ = std::make_unique<RendererResult>(
-				renderer_context_, kWinTexture);
+				renderer_context_,
+				renderer_context_->Textures().GetTextureId("win"));
 		}
 	}
 

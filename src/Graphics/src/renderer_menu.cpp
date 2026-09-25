@@ -12,23 +12,9 @@ namespace wolfenstein {
 
 namespace {
 
-constexpr int kMenuBackgroundTexture = 8;
-
 constexpr int kButtonWidth = 420;
 constexpr int kButtonHeight = 72;
 constexpr int kButtonGap = 18;
-
-struct WeaponInfo
-{
-	const char* name;
-	const char* title;
-	const char* description;
-};
-
-constexpr std::array<WeaponInfo, 2> kWeapons = {{
-	{"mp5", "MP5", "Fast and steady. A big magazine, lighter hits."},
-	{"shotgun", "SHOTGUN", "Two shells, devastating up close."},
-}};
 
 // A column of equally sized buttons centred horizontally, starting at top
 SDL_Rect ButtonRect(int screen_width, int top, int index) {
@@ -39,15 +25,18 @@ SDL_Rect ButtonRect(int screen_width, int top, int index) {
 
 }  // namespace
 
-Menu::Menu(std::shared_ptr<RendererContext> context, SoundManager& sound)
+Menu::Menu(std::shared_ptr<RendererContext> context, SoundManager& sound,
+		   std::span<const WeaponConfig> weapons)
 	: context_(std::move(context)),
 	  ui_(std::make_unique<ui::Ui>(
 		  context_->GetRenderer(),
 		  std::string(RESOURCE_DIR) + "font/EternalAncient.ttf",
-		  std::string(RESOURCE_DIR) + "font/Roboto-Light.ttf")) {
-	for (const auto& info : kWeapons) {
+		  std::string(RESOURCE_DIR) + "font/Roboto-Light.ttf")),
+	  weapon_configs_(weapons) {
+	background_texture_ = context_->Textures().GetTextureId("menu_background");
+	for (const WeaponConfig& config : weapon_configs_) {
 		weapons_.push_back(
-			std::make_shared<Weapon>(info.name, context_->Textures(), sound));
+			std::make_shared<Weapon>(config, context_->Textures(), sound));
 	}
 }
 
@@ -189,7 +178,7 @@ MenuAction Menu::WeaponSelectScreen(double delta_time) {
 		bool focused = false;
 		if (ui_->Selectable(card, focused)) {
 			action.type = MenuAction::Type::StartGame;
-			action.weapon = kWeapons[i].name;
+			action.weapon = weapon_configs_[i].weapon_name;
 		}
 		if (focused) {
 			focused_card = static_cast<int>(i);
@@ -233,15 +222,13 @@ void Menu::DrawWeaponCard(const SDL_Rect& rect, const Weapon& weapon,
 					   &dest);
 	}
 
-	const auto it = std::ranges::find_if(kWeapons, [&](const WeaponInfo& info) {
-		return weapon.GetWeaponName() == info.name;
-	});
-	const WeaponInfo& info = *it;
+	const auto info = std::ranges::find(weapon_configs_, weapon.GetWeaponName(),
+										&WeaponConfig::weapon_name);
 	int y = preview.y + preview.h + 22;
-	ui_->Text(info.title, rect.x + kPadding, y, ui::FontStyle::Heading,
+	ui_->Text(info->label, rect.x + kPadding, y, ui::FontStyle::Heading,
 			  focused ? ui::color::kText : ui::color::kMuted);
 	y += 62;
-	ui_->Text(info.description, rect.x + kPadding, y, ui::FontStyle::Small,
+	ui_->Text(info->description, rect.x + kPadding, y, ui::FontStyle::Small,
 			  ui::color::kMuted);
 	y += 44;
 
@@ -414,10 +401,9 @@ MenuAction Menu::ResultScreen() {
 }
 
 void Menu::DrawBackground() {
-	SDL_RenderCopy(
-		context_->GetRenderer(),
-		context_->Textures().GetTexture(kMenuBackgroundTexture).texture,
-		nullptr, nullptr);
+	SDL_RenderCopy(context_->GetRenderer(),
+				   context_->Textures().GetTexture(background_texture_).texture,
+				   nullptr, nullptr);
 }
 
 void Menu::DrawDimmer(Uint8 alpha) {
