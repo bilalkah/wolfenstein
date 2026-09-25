@@ -89,6 +89,7 @@ class TextureManager
 	// renderer is built, not per frame. Exits for an unknown name: the
 	// manifest and the code disagree.
 	int GetTextureId(std::string_view name) const;
+	int TextureCount() const { return static_cast<int>(textures_.size()); }
 	// The texture of a map wall cell (1 and up); exits for a cell the
 	// manifest has no wall for
 	int GetWallTexture(int cell) const;

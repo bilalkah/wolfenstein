@@ -25,9 +25,12 @@
 #include "Math/vector.h"
 #include "TextureManager/texture_manager.h"
 #include "TimeManager/time_manager.h"
+#include <array>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 
 namespace wolfenstein {
 
@@ -76,11 +79,16 @@ class Game
 	// step, then prints a JSON performance report and stops
 	void StartBenchmark(int frames);
 	bool IsBenchmark() const;
+	// Plays a scripted session of at least 1000 frames through every screen
+	// and view, a level transition, a death and a new game, then prints a
+	// SOAK_RESULT line with the allocations made after startup and stops
+	void StartSoak(int frames);
 
   private:
 	void Init();
 	// Fresh player and level 1, keeping the window, camera and menu
-	void NewGame(const std::string& weapon_name);
+	// A fresh game with the named weapon, in the campaign (or in `level`)
+	void NewGame(std::string_view weapon_name, std::string_view level = {});
 	// Points every view at the world's current level
 	void ShowLevel();
 	void EnterPlaying();
@@ -100,7 +108,12 @@ class Game
 	void UpdateAndRender();
 	void CheckGameEvent();
 	void CheckGameOver();
+	void AdvanceTransition(double delta_time);
+	void DrawTransition();
 	void BenchmarkStep();
+	void SoakStep();
+	// Benchmark or soak: no input devices, a fixed time step
+	bool IsScripted() const;
 
 	// Declared in dependency order, destroyed in the reverse: the views,
 	// which borrow the world, then the world (level, player, sound), then
@@ -114,7 +127,8 @@ class Game
 	std::unique_ptr<Renderer2D> renderer_2d_;
 	IRenderer* renderer_ = nullptr;
 	std::unique_ptr<Menu> menu_;
-	std::unique_ptr<RendererResult> renderer_result_;
+	// Built in place when a game ends, so it needs no allocation
+	std::optional<RendererResult> renderer_result_;
 
 	FrameClock clock_;
 	// The simulation runs at 60 ticks per second whatever the frame rate
@@ -123,11 +137,24 @@ class Game
 	GameState state_ = GameState::Menu;
 	bool running_ = true;
 	RenderType render_type_ = RenderType::TEXTURE;
-	double level_transition_time_ = 0.0;
 	double result_delay_time_ = 0.0;
+	// Between levels: fading out of the cleared one, or into the next
+	enum class Fade : std::uint8_t { None, Out, In };
+	Fade fade_ = Fade::None;
+	double fade_time_ = 0.0;
+	double cleared_time_ = 0.0;	 // since the level's last enemy died
 	// Web: set once the browser grants pointer lock, so losing it pauses
 	bool had_pointer_lock_ = false;
 	int benchmark_frames_ = 0;
+	int soak_frames_ = 0;
+	int soak_frame_ = 0;
+	std::uint64_t soak_allocations_ = 0;
+	std::uint64_t soak_bytes_ = 0;
+	std::size_t soak_phase_ = 0;
+	std::size_t soak_max_level_ = 0;
+	bool soak_saw_result_ = false;
+	int soak_first_allocation_ = -1;
+	std::array<std::uint64_t, 9> soak_phase_start_{};
 };
 
 }  // namespace wolfenstein

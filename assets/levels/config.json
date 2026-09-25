@@ -5,6 +5,13 @@
         "width": 0.4,
         "height": 1.0
     },
+    "levels": [
+        "level1.json",
+        "level2.json",
+        "level3.json",
+        "level4.json"
+    ],
+    "benchmark_level": "benchmark.json",
     "weapons": [
         {
             "name": "mp5",

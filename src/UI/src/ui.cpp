@@ -2,16 +2,37 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
-#include <format>
 #include <iostream>
 
 namespace wolfenstein::ui {
 
 namespace {
 
-// Text textures are created once and reused; the cache is cleared if a screen
-// ever produces this many distinct strings
-constexpr std::size_t kMaxCachedTexts = 512;
+// The characters rasterised at startup, as Latin-1 codes
+constexpr int kFirstPrintable = 32;
+constexpr int kLastPrintable = 126;
+constexpr std::uint8_t kMiddleDot = 0xB7;  // "·"
+constexpr std::uint8_t kUnknown = '?';
+
+// The next character of UTF-8 text as a Latin-1 code; characters outside
+// Latin-1 become kUnknown
+std::uint8_t NextCode(std::string_view text, std::size_t& i) {
+	const auto lead = static_cast<std::uint8_t>(text[i++]);
+	if (lead < 0x80) {
+		return lead;
+	}
+	// Two-byte sequences 0xC2/0xC3 xx cover U+0080 to U+00FF
+	if ((lead == 0xC2 || lead == 0xC3) && i < text.size()) {
+		const auto trail = static_cast<std::uint8_t>(text[i++]);
+		return static_cast<std::uint8_t>(((lead & 0x1F) << 6) | (trail & 0x3F));
+	}
+	// Skip the rest of a longer sequence
+	while (i < text.size() &&
+		   (static_cast<std::uint8_t>(text[i]) & 0xC0) == 0x80) {
+		++i;
+	}
+	return kUnknown;
+}
 
 struct FontSpec
 {
@@ -109,11 +130,73 @@ Ui::Ui(SDL_Renderer* renderer, const std::string& display_font_path,
 			std::exit(EXIT_FAILURE);
 		}
 	}
+	RasteriseGlyphs();
+}
+
+void Ui::RasteriseGlyphs() {
+	const SDL_Color white{255, 255, 255, 255};
+	for (std::size_t style = 0; style < fonts_.size(); ++style) {
+		TTF_Font* font = fonts_[style];
+		line_heights_[style] = TTF_FontHeight(font);
+		const auto rasterise = [&](std::uint8_t code) {
+			// The character as UTF-8
+			std::array<char, 3> text{};
+			if (code < 0x80) {
+				text[0] = static_cast<char>(code);
+			}
+			else {
+				text[0] = static_cast<char>(0xC0 | (code >> 6));
+				text[1] = static_cast<char>(0x80 | (code & 0x3F));
+			}
+			SDL_Surface* surface =
+				TTF_RenderUTF8_Blended(font, text.data(), white);
+			if (surface == nullptr) {
+				return;
+			}
+			Glyph& glyph = glyphs_[style][code];
+			glyph.texture = SDL_CreateTextureFromSurface(renderer_, surface);
+			glyph.width = surface->w;
+			glyph.height = surface->h;
+			int advance = surface->w;
+			if (TTF_GlyphMetrics(font, code, nullptr, nullptr, nullptr, nullptr,
+								 &advance) != 0) {
+				advance = surface->w;
+			}
+			glyph.advance = advance;
+			SDL_FreeSurface(surface);
+		};
+		for (int code = kFirstPrintable; code <= kLastPrintable; ++code) {
+			rasterise(static_cast<std::uint8_t>(code));
+		}
+		rasterise(kMiddleDot);
+	}
+	// Draw each glyph once, tinted, so any work a driver defers to a
+	// texture's first draw is done now rather than on a menu's first frame
+	const SDL_Rect pixel{0, 0, 1, 1};
+	for (const GlyphSet& set : glyphs_) {
+		for (const Glyph& glyph : set) {
+			if (glyph.texture != nullptr) {
+				SDL_SetTextureColorMod(glyph.texture, 255, 255, 255);
+				SDL_SetTextureAlphaMod(glyph.texture, 255);
+				SDL_RenderCopy(renderer_, glyph.texture, nullptr, &pixel);
+			}
+		}
+	}
+	SDL_RenderFlush(renderer_);
+}
+
+const Ui::Glyph& Ui::GlyphFor(FontStyle style, std::uint8_t code) const {
+	const GlyphSet& set = glyphs_[static_cast<std::size_t>(style)];
+	return set[code].texture != nullptr ? set[code] : set[kUnknown];
 }
 
 Ui::~Ui() {
-	for (auto& [key, text] : text_cache_) {
-		SDL_DestroyTexture(text.texture);
+	for (auto& set : glyphs_) {
+		for (Glyph& glyph : set) {
+			if (glyph.texture != nullptr) {
+				SDL_DestroyTexture(glyph.texture);
+			}
+		}
 	}
 	for (TTF_Font* font : fonts_) {
 		TTF_CloseFont(font);
@@ -172,79 +255,55 @@ void Ui::FillRect(const SDL_Rect& rect, SDL_Color c) {
 	SDL_RenderFillRect(renderer_, &rect);
 }
 
+// Four filled bands rather than SDL_RenderDrawRect, whose outline goes
+// through SDL's line drawing, which allocates on some renderers (WebGL)
 void Ui::DrawRect(const SDL_Rect& rect, SDL_Color c, int thickness) {
 	SDL_SetRenderDrawColor(renderer_, c.r, c.g, c.b, c.a);
-	for (int i = 0; i < thickness; ++i) {
-		const SDL_Rect r{rect.x + i, rect.y + i, rect.w - 2 * i,
-						 rect.h - 2 * i};
-		SDL_RenderDrawRect(renderer_, &r);
+	const int t = std::min({thickness, rect.w / 2, rect.h / 2});
+	const std::array<SDL_Rect, 4> bands = {{
+		{rect.x, rect.y, rect.w, t},						   // top
+		{rect.x, rect.y + rect.h - t, rect.w, t},			   // bottom
+		{rect.x, rect.y + t, t, rect.h - 2 * t},			   // left
+		{rect.x + rect.w - t, rect.y + t, t, rect.h - 2 * t},  // right
+	}};
+	for (const SDL_Rect& band : bands) {
+		SDL_RenderFillRect(renderer_, &band);
 	}
-}
-
-std::size_t Ui::TextKeyHash::operator()(const TextKeyView& key) const noexcept {
-	const std::size_t text = std::hash<std::string_view>{}(key.text);
-	// 64 bits even where size_t is 32 (wasm32)
-	const std::uint64_t style_and_colour =
-		(static_cast<std::uint64_t>(key.style) << 32) | key.rgba;
-	// Combines the two as boost::hash_combine does
-	return text ^ (std::hash<std::uint64_t>{}(style_and_colour) + 0x9e3779b9 +
-				   (text << 6) + (text >> 2));
-}
-
-const Ui::CachedText& Ui::GetText(std::string_view text, FontStyle style,
-								  SDL_Color c) {
-	const std::uint32_t rgba = (std::uint32_t{c.r} << 24) |
-							   (std::uint32_t{c.g} << 16) |
-							   (std::uint32_t{c.b} << 8) | c.a;
-	const TextKeyView key{style, rgba, text};
-	if (const auto it = text_cache_.find(key); it != text_cache_.end()) {
-		return it->second;
-	}
-	if (text_cache_.size() >= kMaxCachedTexts) {
-		for (auto& [cached_key, cached] : text_cache_) {
-			SDL_DestroyTexture(cached.texture);
-		}
-		text_cache_.clear();
-	}
-
-	CachedText cached;
-	std::string owned(text);
-	SDL_Surface* surface = TTF_RenderUTF8_Blended(
-		fonts_[static_cast<std::size_t>(style)], owned.c_str(), c);
-	if (surface != nullptr) {
-		cached.texture = SDL_CreateTextureFromSurface(renderer_, surface);
-		cached.width = surface->w;
-		cached.height = surface->h;
-		SDL_FreeSurface(surface);
-	}
-	return text_cache_.emplace(TextKey{style, rgba, std::move(owned)}, cached)
-		.first->second;
 }
 
 SDL_Point Ui::MeasureText(std::string_view text, FontStyle style) {
-	const auto& cached = GetText(text, style, color::kText);
-	return {cached.width, cached.height};
+	int width = 0;
+	for (std::size_t i = 0; i < text.size();) {
+		width += GlyphFor(style, NextCode(text, i)).advance;
+	}
+	return {width, line_heights_[static_cast<std::size_t>(style)]};
 }
 
+// Draws glyph by glyph from the atlas, tinted to the colour
 SDL_Point Ui::Text(std::string_view text, int x, int y, FontStyle style,
 				   SDL_Color c, Align align) {
 	if (text.empty()) {
 		return {0, 0};
 	}
-	const auto& cached = GetText(text, style, c);
-	if (cached.texture == nullptr) {
-		return {0, 0};
-	}
-	int left = x;
+	const SDL_Point size = MeasureText(text, style);
+	int pen = x;
 	if (align == Align::Center) {
-		left = x - cached.width / 2;
+		pen = x - size.x / 2;
 	}
 	else if (align == Align::Right) {
-		left = x - cached.width;
+		pen = x - size.x;
 	}
-	const SDL_Rect dest{left, y, cached.width, cached.height};
-	SDL_RenderCopy(renderer_, cached.texture, nullptr, &dest);
-	return {cached.width, cached.height};
+	for (std::size_t i = 0; i < text.size();) {
+		const Glyph& glyph = GlyphFor(style, NextCode(text, i));
+		if (glyph.texture != nullptr) {
+			SDL_SetTextureColorMod(glyph.texture, c.r, c.g, c.b);
+			SDL_SetTextureAlphaMod(glyph.texture, c.a);
+			const SDL_Rect dest{pen, y, glyph.width, glyph.height};
+			SDL_RenderCopy(renderer_, glyph.texture, nullptr, &dest);
+		}
+		pen += glyph.advance;
+	}
+	return size;
 }
 
 bool Ui::Contains(const SDL_Rect& rect, int x, int y) const {

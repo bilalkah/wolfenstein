@@ -41,11 +41,12 @@
   const statusEl = document.getElementById('status');
   const canvas = document.getElementById('canvas');
 
-  // ?benchmark[=frames] runs the performance benchmark (see benchmarks/)
+  // ?benchmark[=frames] runs the performance benchmark, ?soak the scripted
+  // session that checks nothing allocates after startup (see benchmarks/)
   const params = new URLSearchParams(location.search);
   const benchmarkArgs = params.has('benchmark')
     ? ['--benchmark', params.get('benchmark') || '']
-    : [];
+    : params.has('soak') ? ['--soak'] : [];
 
   var Module = {
     arguments: benchmarkArgs,

@@ -97,6 +97,11 @@ std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 		for (const auto& weapon : root.at("weapons")) {
 			config.weapons.push_back(ToWeapon(weapon));
 		}
+		config.levels = root.at("levels").get<std::vector<std::string>>();
+		if (config.levels.empty()) {
+			throw json::other_error::create(502, "no levels listed", &root);
+		}
+		config.benchmark_level = root.at("benchmark_level").get<std::string>();
 		config.player = ToStats(root.at("player_config"));
 		const auto& light = root.at("config_dynamic").at("light");
 		config.light = {
@@ -151,8 +156,8 @@ class LevelReader final : public nlohmann::json_sax<json>
 				if (frame.key == Key::Map) {
 					return take(level_.map, kMap);
 				}
-				if (frame.key == Key::NextLevel) {
-					return take(level_.next_level, 0);
+				if (frame.key == Key::Name) {
+					return take(level_.name, 0);
 				}
 				break;
 			case Kind::Enemy:
@@ -283,10 +288,10 @@ class LevelReader final : public nlohmann::json_sax<json>
 	enum class Key : std::uint8_t {
 		None,
 		Map,
+		Name,
 		Player,
 		Enemies,
 		DynamicObjects,
-		NextLevel,
 		Type,
 		Position,
 		X,
@@ -315,14 +320,14 @@ class LevelReader final : public nlohmann::json_sax<json>
 			case Kind::Root:
 				if (name == "map")
 					return Key::Map;
+				if (name == "name")
+					return Key::Name;
 				if (name == "player")
 					return Key::Player;
 				if (name == "enemies")
 					return Key::Enemies;
 				if (name == "dynamicObjects")
 					return Key::DynamicObjects;
-				if (name == "next_level")
-					return Key::NextLevel;
 				break;
 			case Kind::Player:
 				if (name == "position")

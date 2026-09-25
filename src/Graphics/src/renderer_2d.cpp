@@ -1,25 +1,20 @@
 #include "Graphics/renderer_2d.h"
 #include "NavigationManager/navigation_manager.h"
+#include <array>
 #include <cmath>
 #include <numbers>
 
 namespace wolfenstein {
 
 namespace {
-// Draws a circle as num_points points, straight to the renderer: collecting
-// the points in a vector first allocated for every circle, every frame
-void DrawCircle(SDL_Renderer* renderer, vector2i center, int radius,
-				int num_points) {
-	const double increment = 2 * std::numbers::pi / num_points;
-	for (int i = 0; i < num_points; ++i) {
-		const double angle = i * increment;
-		SDL_RenderDrawPoint(
-			renderer, static_cast<int>(center.x + radius * std::cos(angle)),
-			static_cast<int>(center.y + radius * std::sin(angle)));
-	}
-}
+constexpr int kCirclePoints = 20;
 
 }  // namespace
+
+Renderer2D::Renderer2D(RendererContext& context) : IRenderer(context) {
+	vertices_.reserve(kVertexCapacity);
+	indices_.reserve(kVertexCapacity / 4 * 6);
+}
 
 void Renderer2D::RenderScene(double /*delta_time*/) {
 	ClearScreen();
@@ -28,6 +23,7 @@ void Renderer2D::RenderScene(double /*delta_time*/) {
 	RenderObjects();
 	RenderPaths();
 	RenderCrosshairs();
+	Flush();
 }
 
 void Renderer2D::RenderMap() {
@@ -69,9 +65,8 @@ void Renderer2D::RenderPlayer() {
 	}
 
 	SetDrawColor({255, 0, 0, 255});
-	DrawCircle(context_->GetRenderer(),
-			   ToVector2i(position.pose * config.scale),
-			   static_cast<int>(config.scale * player_ptr.GetWidth() / 2), 20);
+	DrawCircle(ToVector2i(position.pose * config.scale),
+			   static_cast<int>(config.scale * player_ptr.GetWidth() / 2));
 	DrawLine(ToVector2i(crosshair_ray.origin * config.scale),
 			 ToVector2i(crosshair_ray.hit_point * config.scale));
 }
@@ -80,7 +75,6 @@ void Renderer2D::RenderObjects() {
 	const auto& objects = scene_->GetObjects();
 	const auto& config = context_->GetConfig();
 	const auto& camera_ptr = context_->GetCamera();
-	auto renderer_ = context_->GetRenderer();
 
 	for (const auto& object : objects) {
 
@@ -88,8 +82,8 @@ void Renderer2D::RenderObjects() {
 		const auto object_pose = object->GetPose();
 		const auto w = object->GetWidth();
 
-		DrawCircle(renderer_, ToVector2i(object_pose * config.scale),
-				   static_cast<int>(config.scale * w / 2), 20);
+		DrawCircle(ToVector2i(object_pose * config.scale),
+				   static_cast<int>(config.scale * w / 2));
 
 		const auto object_angle =
 			std::atan2(object_pose.y - camera_ptr.GetPosition().pose.y,
@@ -106,9 +100,9 @@ void Renderer2D::RenderObjects() {
 		DrawLine(ToVector2i(left_vertex * config.scale),
 				 ToVector2i(right_vertex * config.scale));
 		SetDrawColor({0xFF, 0, 0, 255});
-		DrawCircle(renderer_, ToVector2i(left_vertex * config.scale), 1, 20);
+		DrawCircle(ToVector2i(left_vertex * config.scale), 1);
 		SetDrawColor({0, 0xFF, 0, 255});
-		DrawCircle(renderer_, ToVector2i(right_vertex * config.scale), 1, 20);
+		DrawCircle(ToVector2i(right_vertex * config.scale), 1);
 	}
 }
 
@@ -141,18 +135,70 @@ void Renderer2D::RenderCrosshairs() {
 	}
 }
 
-void Renderer2D::DrawLine(vector2i start, vector2i end) {
-	SDL_RenderDrawLine(context_->GetRenderer(), start.x, start.y, end.x, end.y);
+void Renderer2D::SetDrawColor(SDL_Color color) {
+	color_ = color;
 }
 
-void Renderer2D::SetDrawColor(SDL_Color color) {
-	SDL_SetRenderDrawColor(context_->GetRenderer(), color.r, color.g, color.b,
-						   color.a);
+void Renderer2D::AddQuad(SDL_FPoint a, SDL_FPoint b, SDL_FPoint c,
+						 SDL_FPoint d) {
+	if (vertices_.size() + 4 > kVertexCapacity) {
+		Flush();
+	}
+	const int first = static_cast<int>(vertices_.size());
+	for (const SDL_FPoint corner : {a, b, c, d}) {
+		vertices_.push_back({corner, color_, {0.0f, 0.0f}});
+	}
+	for (const int corner : {0, 1, 2, 0, 2, 3}) {
+		indices_.push_back(first + corner);
+	}
+}
+
+void Renderer2D::Flush() {
+	if (vertices_.empty()) {
+		return;
+	}
+	SDL_RenderGeometry(context_->GetRenderer(), nullptr, vertices_.data(),
+					   static_cast<int>(vertices_.size()), indices_.data(),
+					   static_cast<int>(indices_.size()));
+	vertices_.clear();
+	indices_.clear();
 }
 
 void Renderer2D::DrawFilledRectangle(vector2i start, vector2i end) {
-	SDL_Rect rect{start.x, start.y, end.x - start.x, end.y - start.y};
-	SDL_RenderFillRect(context_->GetRenderer(), &rect);
+	const auto x0 = static_cast<float>(start.x);
+	const auto y0 = static_cast<float>(start.y);
+	const auto x1 = static_cast<float>(end.x);
+	const auto y1 = static_cast<float>(end.y);
+	AddQuad({x0, y0}, {x1, y0}, {x1, y1}, {x0, y1});
+}
+
+// A one-pixel-wide quad along the segment
+void Renderer2D::DrawLine(vector2i start, vector2i end) {
+	const auto dx = static_cast<float>(end.x - start.x);
+	const auto dy = static_cast<float>(end.y - start.y);
+	const float length = std::hypot(dx, dy);
+	if (length == 0.0f) {
+		return;
+	}
+	const float nx = -dy / length * 0.5f;
+	const float ny = dx / length * 0.5f;
+	const auto x0 = static_cast<float>(start.x);
+	const auto y0 = static_cast<float>(start.y);
+	const auto x1 = static_cast<float>(end.x);
+	const auto y1 = static_cast<float>(end.y);
+	AddQuad({x0 + nx, y0 + ny}, {x1 + nx, y1 + ny}, {x1 - nx, y1 - ny},
+			{x0 - nx, y0 - ny});
+}
+
+// kCirclePoints one-pixel dots around the centre
+void Renderer2D::DrawCircle(vector2i center, int radius) {
+	const double increment = 2 * std::numbers::pi / kCirclePoints;
+	for (int i = 0; i < kCirclePoints; ++i) {
+		const double angle = i * increment;
+		const auto x = static_cast<float>(center.x + radius * std::cos(angle));
+		const auto y = static_cast<float>(center.y + radius * std::sin(angle));
+		AddQuad({x, y}, {x + 1, y}, {x + 1, y + 1}, {x, y + 1});
+	}
 }
 
 }  // namespace wolfenstein

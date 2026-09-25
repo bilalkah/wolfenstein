@@ -40,6 +40,26 @@ Menu::Menu(RendererContext& context, SoundManager& sound,
 	}
 }
 
+void Menu::DrawLevelBanner(std::string_view title, std::string_view name,
+						   Uint8 alpha) {
+	if (alpha == 0) {
+		return;
+	}
+	const auto& config = context_->GetConfig();
+	const int centre_x = config.width / 2;
+	const int top = config.height / 2 - 110;
+	SDL_Color heading = ui::color::kText;
+	heading.a = alpha;
+	ui_->Text(title, centre_x, top, ui::FontStyle::Title, heading,
+			  ui::Align::Center);
+	if (!name.empty()) {
+		SDL_Color accent = ui::color::kAccentBright;
+		accent.a = alpha;
+		ui_->Text(name, centre_x, top + 118, ui::FontStyle::Heading, accent,
+				  ui::Align::Center);
+	}
+}
+
 void Menu::Open(MenuScreen screen) {
 	if (screen == MenuScreen::Controls || screen == MenuScreen::Settings) {
 		return_screen_ = screen_;

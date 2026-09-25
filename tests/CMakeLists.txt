@@ -23,6 +23,7 @@ add_executable(unit_tests
     animation_test.cpp
     world_test.cpp
     menu_test.cpp
+    level_design_test.cpp
     simulation_test.cpp
     fixed_step_test.cpp
     aim_test.cpp

@@ -47,6 +47,9 @@ class Camera2D
 
 	// Borrows the scene until the next call; the game owns it
 	void SetScene(Scene& scene);
+	// Makes room for this many objects' views up front, so SetScene never
+	// grows them
+	void ReserveViews(std::size_t objects) { views_.reserve(objects); }
 	const RayVector& GetRays() const;
 	// The centre ray and what it points at, for drawing only: shots are
 	// resolved by the simulation (Aim), not from the view

@@ -11,20 +11,15 @@ std::ifstream OpenLevelFile(const std::string& name) {
 	return std::ifstream(std::string(RESOURCE_DIR) + "levels/" + name);
 }
 
-TEST(LevelData, ParsesTheShippedLevels) {
-	auto file = OpenLevelFile("level1.json");
+// The benchmark's level is fixed, so benchmark runs stay comparable
+TEST(LevelData, ParsesTheBenchmarkLevel) {
+	auto file = OpenLevelFile("benchmark.json");
 	const auto level = ParseLevel(file);
 	ASSERT_TRUE(level) << level.error();
 	EXPECT_EQ(level->map, "map1.txt");
 	EXPECT_EQ(level->enemies.size(), 10u);
 	EXPECT_EQ(level->dynamic_objects.size(), 6u);
-	EXPECT_EQ(level->next_level, "level2.json");
 	EXPECT_DOUBLE_EQ(level->player.pose.x, 3.0);
-
-	auto last = OpenLevelFile("level2.json");
-	const auto level2 = ParseLevel(last);
-	ASSERT_TRUE(level2) << level2.error();
-	EXPECT_TRUE(level2->next_level.empty());
 }
 
 TEST(LevelData, ParsesTheGameConfig) {
@@ -94,7 +89,6 @@ TEST(LevelData, IgnoresUnknownFields) {
 	EXPECT_DOUBLE_EQ(level->enemies[0].position.pose.y, 4.0);
 	ASSERT_EQ(level->dynamic_objects.size(), 1u);
 	EXPECT_EQ(level->dynamic_objects[0].type, "red_light");
-	EXPECT_TRUE(level->next_level.empty());
 }
 
 TEST(LevelData, AnEnemyNeedsAFullPosition) {

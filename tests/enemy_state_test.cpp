@@ -35,20 +35,19 @@ class EnemyStateTest : public ::testing::Test
 	// The scene borrows the player, so the player is declared first
 	CharacterConfig player_config_{Position2D({1.5, 4.5}, 0.0), 1.0, 1.0, 0.4,
 								   0.4};
-	Player player_{
-		player_config_,
-		std::make_unique<Weapon>(testing::Weapon("mp5"),
-								 testing::TestTextures(), testing::TestSound()),
-		testing::TestSound()};
-	Scene scene_{testing::TestTextures(), testing::TestSound(),
-				 Map(testing::WriteMapFile(
-						 "wolfenstein_enemy_state_test.txt",
-						 // Two chambers split by a wall: the enemy cannot see
-						 // the player, so only hits drive its state (a visible
-						 // player would make an idle enemy walk first)
-						 {"3333333", "3003003", "3003003", "3333333"})
-						 .string()),
-				 SceneCapacity{.enemies = 1}};
+	Player player_{player_config_, testing::Weapon("mp5"),
+				   testing::TestTextures(), testing::TestSound()};
+	static constexpr SceneCapacity kCapacity{.enemies = 1};
+	Map map_{testing::WriteMapFile(
+				 "wolfenstein_enemy_state_test.txt",
+				 // Two chambers split by a wall: the enemy cannot see the
+				 // player, so only hits drive its state (a visible player
+				 // would make an idle enemy walk first)
+				 {"3333333", "3003003", "3003003", "3333333"})
+				 .string()};
+	memory::MonotonicArena arena_{Scene::MemoryFor(map_, kCapacity)};
+	Scene scene_{testing::TestTextures(), testing::TestSound(), map_, kCapacity,
+				 arena_};
 	Enemy* enemy_ = nullptr;
 };
 

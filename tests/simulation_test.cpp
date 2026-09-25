@@ -26,7 +26,8 @@ struct Game
 		world =
 			std::make_unique<World>(testing::TestTextures(), std::move(*loader),
 									std::make_unique<SoundManager>());
-		EXPECT_TRUE(world->NewGame("mp5"));
+		// The benchmark level: the script walks its route
+		EXPECT_TRUE(world->NewGame("mp5", world->Config().benchmark_level));
 	}
 
 	void Tick(const PlayerCommand& command) const {
