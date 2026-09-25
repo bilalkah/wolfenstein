@@ -34,7 +34,6 @@ auto GetBotStateConfig = [](const std::string& bot_name) -> StateConfig {
 Enemy::Enemy(Scene& scene, std::string bot_name, CharacterConfig config)
 	: scene_(scene),
 	  is_alive_(true),
-	  rotation_speed_(config.rotation_speed),
 	  translation_speed_(config.translation_speed),
 	  width(config.width),
 	  height(config.height),

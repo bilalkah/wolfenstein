@@ -51,8 +51,9 @@ class Scene
 {
   public:
 	// Borrows the textures its objects' animations play from and the sound
-	// they play; both outlive every level
-	Scene(const TextureManager& textures, SoundManager& sound,
+	// they play; both outlive every level. The map and the capacity size the
+	// level's arena, which also holds the navigation data.
+	Scene(const TextureManager& textures, SoundManager& sound, Map map,
 		  SceneCapacity capacity = {});
 	Scene(const Scene&) = delete;
 	Scene& operator=(const Scene&) = delete;
@@ -64,11 +65,10 @@ class Scene
 	std::expected<memory::Handle<DynamicObject>, memory::PoolError>
 	AddDynamicObject(const vector2d& pose, const LoopedAnimation& animation,
 					 double width, double height);
-	void SetMap(std::unique_ptr<Map> map);
 	// Borrows the player for the scene's life and lets it act in this scene
 	void SetPlayer(Player& player);
 	// Builds what depends on the finished level (the navigation grid): call
-	// once the map and every object are in place
+	// once every object is in place
 	void FinishLoading();
 	void SetNextScene(const std::string next_scene);
 	void DecreaseAliveEnemies();
@@ -96,6 +96,7 @@ class Scene
   private:
 	const TextureManager& textures_;
 	SoundManager& sound_;
+	Map map_;
 	// Declared first of what the scene owns, so it is destroyed last, after
 	// everything living in it
 	memory::MonotonicArena arena_;
@@ -103,9 +104,8 @@ class Scene
 	memory::ObjectPool<DynamicObject> dynamic_objects_;
 	std::pmr::vector<IGameObject*> objects_;
 	std::pmr::vector<Enemy*> enemy_list_;
-	std::unique_ptr<Map> map;
-	Player* player = nullptr;
-	NavigationManager navigation_{*this};
+	Player* player_ = nullptr;
+	NavigationManager navigation_{*this, &arena_};
 	size_t number_of_alive_enemies{};
 	std::string next_scene_str;
 };

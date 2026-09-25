@@ -14,7 +14,9 @@ namespace {
 // pool must build it in place from arguments
 struct Tracked
 {
-	Tracked(int value, int& live) : value(value), live(&live) { ++live; }
+	Tracked(int initial, int& counter) : value(initial), live(&counter) {
+		++counter;
+	}
 	~Tracked() { --*live; }
 	Tracked(const Tracked&) = delete;
 	Tracked& operator=(const Tracked&) = delete;

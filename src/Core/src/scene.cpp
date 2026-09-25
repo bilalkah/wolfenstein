@@ -5,9 +5,10 @@ namespace wolfenstein {
 
 namespace {
 
-// Size of the level arena: the pools' storage and bookkeeping and the two
-// object lists, each with room for alignment padding. Exceeding it throws.
-std::size_t LevelArenaBytes(SceneCapacity capacity) {
+// Size of the level arena: the pools' storage and bookkeeping, the two
+// object lists and the navigation data, each with room for alignment padding.
+// Exceeding it throws.
+std::size_t LevelArenaBytes(const Map& map, SceneCapacity capacity) {
 	constexpr std::size_t kSlack = 256;
 	constexpr std::size_t kBookkeeping =
 		sizeof(std::uint32_t) * 2 + sizeof(std::uint8_t);
@@ -17,16 +18,19 @@ std::size_t LevelArenaBytes(SceneCapacity capacity) {
 		   capacity.dynamic_objects *
 			   (sizeof(DynamicObject) + alignof(DynamicObject) + kBookkeeping) +
 		   objects * sizeof(IGameObject*) + enemies * sizeof(Enemy*) +
+		   NavigationManager::MemoryFor(map.GetSizeX(), map.GetSizeY(), objects,
+										enemies) +
 		   8 * kSlack;
 }
 
 }  // namespace
 
-Scene::Scene(const TextureManager& textures, SoundManager& sound,
+Scene::Scene(const TextureManager& textures, SoundManager& sound, Map map,
 			 SceneCapacity capacity)
 	: textures_(textures),
 	  sound_(sound),
-	  arena_(LevelArenaBytes(capacity)),
+	  map_(std::move(map)),
+	  arena_(LevelArenaBytes(map_, capacity)),
 	  enemies_(capacity.enemies, &arena_),
 	  dynamic_objects_(capacity.dynamic_objects, &arena_),
 	  objects_(&arena_),
@@ -60,12 +64,8 @@ Scene::AddDynamicObject(const vector2d& pose, const LoopedAnimation& animation,
 	return handle;
 }
 
-void Scene::SetMap(std::unique_ptr<Map> map) {
-	this->map = std::move(map);
-}
-
 void Scene::SetPlayer(Player& player) {
-	this->player = &player;
+	player_ = &player;
 	player.EnterScene(*this);
 }
 
@@ -90,23 +90,23 @@ void Scene::Update(double delta_time) {
 	}
 
 	ScopedTimer timer(ProfileSection::UpdatePlayer);
-	player->Update(delta_time);
+	player_->Update(delta_time);
 }
 
 const Map& Scene::GetMap() const {
-	return *map;
+	return map_;
 }
 
 Map& Scene::GetMap() {
-	return *map;
+	return map_;
 }
 
 const Player& Scene::GetPlayer() const {
-	return *player;
+	return *player_;
 }
 
 Player& Scene::GetPlayer() {
-	return *player;
+	return *player_;
 }
 
 size_t Scene::GetNumberOfAliveEnemies() const {

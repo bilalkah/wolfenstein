@@ -16,8 +16,7 @@ namespace wolfenstein {
 
 Player::Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera,
 			   std::shared_ptr<Weapon> weapon, SoundManager& sound)
-	: rotation_speed_(config.rotation_speed),
-	  translation_speed_(config.translation_speed),
+	: translation_speed_(config.translation_speed),
 	  width_(config.width),
 	  height_(config.height),
 	  health_(100),

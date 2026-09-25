@@ -54,12 +54,11 @@ std::expected<std::unique_ptr<Scene>, std::string> SceneLoader::Load(
 	// The level file says how many objects the scene must hold, so its pools
 	// and arena are sized exactly, once
 	auto scene = std::make_unique<Scene>(
-		textures, sound,
+		textures, sound, std::move(*map),
 		SceneCapacity{
 			.enemies = static_cast<std::uint32_t>(level->enemies.size()),
 			.dynamic_objects =
 				static_cast<std::uint32_t>(level->dynamic_objects.size())});
-	scene->SetMap(std::make_unique<Map>(std::move(*map)));
 
 	player.SetPosition(level->player);
 	player.IncreaseHealth(100);

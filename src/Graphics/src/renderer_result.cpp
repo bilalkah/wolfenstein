@@ -17,8 +17,7 @@ void RendererResult::RenderScreen(double delta_time) {
 	result_animation_.Update(delta_time);
 
 	SDL_Texture* texture = context_->Textures()
-							   .GetTexture(static_cast<std::uint16_t>(
-								   result_animation_.GetCurrentFrame()))
+							   .GetTexture(result_animation_.GetCurrentFrame())
 							   .texture;
 	SDL_SetTextureAlphaMod(texture, result_animation_.GetAlpha());
 	SDL_RenderCopy(context_->GetRenderer(), texture, nullptr, nullptr);

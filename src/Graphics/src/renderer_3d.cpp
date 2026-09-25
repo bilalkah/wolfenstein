@@ -183,7 +183,7 @@ void Renderer3D::RenderObjects() {
 		auto [line_height, draw_start, draw_end] =
 			CalculateVerticalSlice(first.perpendicular_distance);
 		const auto height = object->GetHeight();
-		line_height = line_height * height;
+		line_height = static_cast<int>(line_height * height);
 		draw_start = draw_end - line_height;
 
 		const auto texture_height =
@@ -236,7 +236,8 @@ void Renderer3D::RenderWeapon() {
 	const double crosshair_ratio =
 		static_cast<double>(crosshair_height) / crosshair_width;
 	const int crosshair_width_slice = config_.width / 40;
-	const int crosshair_height_slice = crosshair_width_slice * crosshair_ratio;
+	const int crosshair_height_slice =
+		static_cast<int>(crosshair_width_slice * crosshair_ratio);
 	SDL_Rect crosshair_dest_rect{
 		config_.width / 2 - crosshair_width_slice / 2,
 		config_.height / 2 - crosshair_height_slice / 2, crosshair_width_slice,
@@ -249,8 +250,8 @@ void Renderer3D::RenderWeapon() {
 	const auto texture_width =
 		context_->Textures().GetTexture(texture_id).width;
 	const double ratio = static_cast<double>(texture_height) / texture_width;
-	const int width_slice = config_.width / 1.3;
-	const int height_slice = width_slice * ratio;
+	const int width_slice = static_cast<int>(config_.width / 1.3);
+	const int height_slice = static_cast<int>(width_slice * ratio);
 	SDL_Rect src_rect{0, 0, texture_width, texture_height};
 	SDL_Rect dest_rect{config_.width / 2 - width_slice / 2 + 100,
 					   config_.height - height_slice, width_slice,

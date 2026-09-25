@@ -57,9 +57,12 @@ class TextureManager
 	// Textures are stored by id, which runs densely from 0, so a lookup is
 	// an index rather than a hash (it runs for every draw call). References
 	// stay valid once the constructor has loaded everything.
-	Texture& GetTexture(uint16_t texture_id) {
-		assert(texture_id < textures_.size() && "texture not loaded");
-		return textures_[texture_id];
+	// Ids come from maps, animations and rays as int
+	Texture& GetTexture(int texture_id) {
+		assert(texture_id >= 0 &&
+			   static_cast<std::size_t>(texture_id) < textures_.size() &&
+			   "texture not loaded");
+		return textures_[static_cast<std::size_t>(texture_id)];
 	}
 	// The frames of a named animation clip ("soldier_walk"). The ids live
 	// here for the program's life, so every animation playing the clip shares

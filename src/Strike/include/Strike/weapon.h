@@ -21,7 +21,7 @@ namespace wolfenstein {
 
 class TextureManager;
 
-class Ray;
+struct Ray;
 struct WeaponConfig
 {
 	WeaponConfig(std::string weapon_name, size_t ammo_capacity,
@@ -93,8 +93,6 @@ class Weapon
 	OutOfAmmoState out_of_ammo_state_;
 	ReloadingState reloading_state_;
 	StateMachine<WeaponState> state_machine_;
-	bool cooldown_{};
-	double attack_time_{};
 	std::shared_ptr<Ray> crosshair_;
 };
 

@@ -16,7 +16,8 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "clang",
         "CMAKE_CXX_COMPILER": "clang++",
-        "CMAKE_CXX_FLAGS": "-stdlib=libc++"
+        "CMAKE_CXX_FLAGS": "-stdlib=libc++",
+        "WOLFENSTEIN_WARNINGS_AS_ERRORS": "ON"
       }
     },
     {
@@ -42,7 +43,10 @@
       "name": "web-release",
       "inherits": "base",
       "toolchainFile": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
-      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "WOLFENSTEIN_WARNINGS_AS_ERRORS": "ON"
+      }
     }
   ],
   "buildPresets": [

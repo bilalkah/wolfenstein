@@ -84,16 +84,16 @@ void Camera2D::Calculate(const IGameObject& object) {
 
 	const auto object_pose = object.GetPose();
 	const auto width = object.GetWidth();
-	const auto position_ = *this->position_;
+	const auto position = *position_;
 	// check if object is in the camera view
-	auto object_distance = object_pose.Distance(position_.pose);
+	auto object_distance = object_pose.Distance(position.pose);
 	if (object_distance > config_.depth) {
 		return;
 	}
 
 	// Object center angle
 	const auto object_center_angle = std::atan2(
-		object_pose.y - position_.pose.y, object_pose.x - position_.pose.x);
+		object_pose.y - position.pose.y, object_pose.x - position.pose.x);
 
 	// Object left edge point and angle
 	auto object_left_edge_angle =
@@ -102,8 +102,8 @@ void Camera2D::Calculate(const IGameObject& object) {
 		object_pose + vector2d{width / 2 * std::cos(object_left_edge_angle),
 							   width / 2 * std::sin(object_left_edge_angle)};
 	const auto left_edge_angle =
-		std::atan2(left_edge_point.y - position_.pose.y,
-				   left_edge_point.x - position_.pose.x);
+		std::atan2(left_edge_point.y - position.pose.y,
+				   left_edge_point.x - position.pose.x);
 	const auto camera_angle_left = WorldAngleToCameraAngle(left_edge_angle);
 
 	// Object right edge point and angle
@@ -113,8 +113,8 @@ void Camera2D::Calculate(const IGameObject& object) {
 		object_pose + vector2d{width / 2 * std::cos(object_right_edge_angle),
 							   width / 2 * std::sin(object_right_edge_angle)};
 	const auto right_edge_angle =
-		std::atan2(right_edge_point.y - position_.pose.y,
-				   right_edge_point.x - position_.pose.x);
+		std::atan2(right_edge_point.y - position.pose.y,
+				   right_edge_point.x - position.pose.x);
 	const auto camera_angle_right = WorldAngleToCameraAngle(right_edge_angle);
 
 	// Check if object is in the camera view
@@ -126,13 +126,13 @@ void Camera2D::Calculate(const IGameObject& object) {
 
 	// Calculate object raypair
 	RayPair object_ray_pair;
-	object_ray_pair.first.Reset(position_.pose, camera_angle_left);
+	object_ray_pair.first.Reset(position.pose, camera_angle_left);
 	object_ray_pair.first.is_hit = true;
 	object_ray_pair.first.perpendicular_distance =
 		object_distance * std::cos(camera_angle_left);
 	object_ray_pair.first.wall_id = texture_id;
 
-	object_ray_pair.second.Reset(position_.pose, camera_angle_right);
+	object_ray_pair.second.Reset(position.pose, camera_angle_right);
 	object_ray_pair.second.is_hit = true;
 	object_ray_pair.second.perpendicular_distance =
 		object_distance * std::cos(camera_angle_right);

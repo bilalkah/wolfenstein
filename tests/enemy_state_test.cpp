@@ -20,14 +20,6 @@ class EnemyStateTest : public ::testing::Test
 {
   protected:
 	void SetUp() override {
-		scene_.SetMap(std::make_unique<Map>(
-			testing::WriteMapFile("wolfenstein_enemy_state_test.txt",
-								  // Two chambers split by a wall: the enemy
-								  // cannot see the player, so only hits drive
-								  // its state (a visible player would make an
-								  // idle enemy walk first)
-								  {"3333333", "3003003", "3003003", "3333333"})
-				.string()));
 		scene_.SetPlayer(player_);
 		ASSERT_TRUE(scene_.AddEnemy(
 			"soldier",
@@ -52,6 +44,13 @@ class EnemyStateTest : public ::testing::Test
 											testing::TestSound()),
 				   testing::TestSound()};
 	Scene scene_{testing::TestTextures(), testing::TestSound(),
+				 Map(testing::WriteMapFile(
+						 "wolfenstein_enemy_state_test.txt",
+						 // Two chambers split by a wall: the enemy cannot see
+						 // the player, so only hits drive its state (a visible
+						 // player would make an idle enemy walk first)
+						 {"3333333", "3003003", "3003003", "3333333"})
+						 .string()),
 				 SceneCapacity{.enemies = 1}};
 	Enemy* enemy_ = nullptr;
 };

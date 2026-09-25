@@ -69,9 +69,9 @@ void Renderer2D::RenderPlayer() {
 	}
 
 	SetDrawColor({255, 0, 0, 255});
-	const auto circle_points =
-		GenerateCirclePoints(ToVector2i(position.pose * config.scale),
-							 config.scale * player_ptr.GetWidth() / 2, 20);
+	const auto circle_points = GenerateCirclePoints(
+		ToVector2i(position.pose * config.scale),
+		static_cast<int>(config.scale * player_ptr.GetWidth() / 2), 20);
 	for (unsigned int i = 0; i < circle_points.size(); i++) {
 		SDL_RenderDrawPoint(context_->GetRenderer(), circle_points[i].x,
 							circle_points[i].y);
@@ -92,8 +92,9 @@ void Renderer2D::RenderObjects() {
 		const auto object_pose = object->GetPose();
 		const auto w = object->GetWidth();
 
-		const auto object_points = GenerateCirclePoints(
-			ToVector2i(object_pose * config.scale), config.scale * w / 2, 20);
+		const auto object_points =
+			GenerateCirclePoints(ToVector2i(object_pose * config.scale),
+								 static_cast<int>(config.scale * w / 2), 20);
 		for (unsigned int i = 0; i < object_points.size(); i++) {
 			SDL_RenderDrawPoint(renderer_, object_points[i].x,
 								object_points[i].y);
