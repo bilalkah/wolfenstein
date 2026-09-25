@@ -1,5 +1,5 @@
-#include "ShootingManager/shooting_manager.h"
 #include "Strike/simple_weapon.h"
+#include "ShootingManager/shooting_manager.h"
 
 namespace wolfenstein {
 
@@ -27,7 +27,7 @@ Ray SimpleWeapon::GetCrosshair() const {
 	return crosshair_ray;
 }
 
-std::string SimpleWeapon::GetWeaponName() const {
+const std::string& SimpleWeapon::GetWeaponName() const {
 	return weapon_name;
 }
 

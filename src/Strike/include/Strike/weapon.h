@@ -12,6 +12,7 @@
 #ifndef STRIKE_INCLUDE_STRIKE_WEAPON_H
 #define STRIKE_INCLUDE_STRIKE_WEAPON_H
 
+#include "SoundManager/sound_manager.h"
 #include "State/weapon_state.h"
 #include "Strike/strike.h"
 #include <cstddef>
@@ -32,25 +33,24 @@ struct WeaponConfig
 		  attack_speed(attack_speed),
 		  reload_speed(reload_speed) {}
 	std::string weapon_name;
-	size_t ammo_capacity;
+	size_t ammo_capacity{};
 	std::pair<double, double> attack_damage;
-	double attack_range;
-	double attack_speed;
-	double reload_speed;
+	double attack_range{};
+	double attack_speed{};
+	double reload_speed{};
 };
 
-class Weapon : public IStrike, public std::enable_shared_from_this<Weapon>
+// Pinned (not copyable or movable): its states point back to it
+class Weapon : public IStrike
 {
   public:
-	Weapon(std::string weapon_name);
-	~Weapon();
-	void Init();
+	explicit Weapon(std::string weapon_name);
 
 	void Attack() override;
 	void Update(double delta_time);
 	void Charge();
 	void Reload();
-	void TransitionTo(WeaponStatePtr state);
+	void TransitionTo(WeaponStateType type);
 
 	void SetAmmo(size_t ammo);
 	void IncreaseAmmo();
@@ -65,16 +65,25 @@ class Weapon : public IStrike, public std::enable_shared_from_this<Weapon>
 	double GetAttackRange() const;
 	double GetAttackSpeed() const;
 	double GetReloadSpeed() const;
-	std::string GetWeaponName() const;
+	const std::string& GetWeaponName() const;
+	SoundChannel GetSoundChannel() const { return sound_channel_; }
 	int GetTextureId() const;
 	const Ray& GetCrosshair() const;
 
   private:
 	WeaponConfig weapon_properties_;
-	size_t ammo_;
-	WeaponStatePtr state_;
-	bool cooldown_;
-	double attack_time_;
+	SoundChannel sound_channel_;
+	size_t ammo_{};
+	WeaponState& StateFor(WeaponStateType type);
+
+	// Every state the weapon can be in, set up once: transitions allocate
+	// nothing
+	LoadedState loaded_state_;
+	OutOfAmmoState out_of_ammo_state_;
+	ReloadingState reloading_state_;
+	StateMachine<WeaponState> state_machine_;
+	bool cooldown_{};
+	double attack_time_{};
 	std::shared_ptr<Ray> crosshair_;
 };
 

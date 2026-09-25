@@ -40,7 +40,7 @@ Welcome to the Wolfenstein project! This README provides an overview of the game
 
 ## Technical Highlights
 
-- **Pathfinding and Navigation**: A* algorithm is used for efficient enemy movement and navigation. For more details on the implementation, see my [path-planning](https://github.com/bilalkah/path-planning) project.
+- **Pathfinding and Navigation**: Enemies navigate with an in-house weighted A* on a grid twice as fine as the map. It allocates nothing per query: per-cell arrays are reused and a generation counter replaces clearing them. It grew out of my [path-planning](https://github.com/bilalkah/path-planning) project.
 - **Ray Casting with DDA**: The Digital Differential Analyzer (DDA) algorithm is used for efficient ray casting, creating realistic field of view.
 - **Templates and Type Traits**: Advanced template programming ensures modular and reusable code.
 - **Instant State Transitions**: Transitions between states happen instantly, ensuring smooth gameplay.
@@ -49,36 +49,71 @@ Welcome to the Wolfenstein project! This README provides an overview of the game
 
 ## Setup Instructions
 
-### Prerequisites
-1. **C++ Compiler**: Ensure you have a modern C++ compiler (C++17 or higher).
-2. **SDL Library**: Install SDL for rendering, sound, and input handling.
+Clone the repository with its assets, which are stored with [Git LFS](https://git-lfs.com):
+```bash
+git lfs install
+git clone https://github.com/bilalkah/wolfenstein
+cd wolfenstein
+```
 
-### Build Instructions
-1. Clone the repository:
+### Play in the Browser (WebAssembly)
+
+The game compiles to WebAssembly with [Emscripten](https://emscripten.org) and runs in any desktop browser.
+
+1. Build it. This uses your local Emscripten SDK if `emcmake` is on your `PATH`, otherwise the `emscripten/emsdk` Docker image:
    ```bash
-   git clone https://github.com/bilalkah/wolfenstein --recurse-submodules
-   cd wolfenstein
+   ./scripts/build_web.sh
    ```
-2. Install dependencies:
+2. Serve it and open http://localhost:8000:
    ```bash
-   ./scripts/install_deps.sh
+   ./scripts/run_web.sh
    ```
-3. Build the project using `cmake` or your preferred build system:
-   ```bash
-   ./scripts/compile.sh # or you can your own way to build
-   ```
-4. Run the executable:
-   ```bash
-   ./build/bin/wolfenstein
-   ```
+
+The output in `build/web-release/bin` is a static site (`index.html`, `.js`, `.wasm`, `.data`), so it can also be hosted as is, for example on GitHub Pages.
+
+### Benchmark
+
+`index.html?benchmark=2000` runs a fixed, reproducible scenario instead of the game: the player walks a set route through level 1 at a fixed time step while enemies chase and attack. It reports per-frame timings for each part of the frame (AI, pathfinding, raycasting, rendering) and heap allocations per frame.
+
+```bash
+./scripts/bench_web.sh [frames] [label]
+```
+
+This builds the web version, runs the benchmark in headless Chromium (Docker), saves the full report to `docs/benchmarks/results/`, appends a row to `docs/benchmarks/results.md` (both git-ignored, local records) and prints the change against the previous run. Natively, `./scripts/dev.sh ./build/native-release/bin/wolfenstein --benchmark 2000 | ./scripts/alloc_breakdown.py` shows where each frame's heap allocations come from, section by section.
+
+### Native Build
+
+The native build uses **Clang with libc++** (the same standard library as the web and macOS builds) and CMake presets.
+
+The easiest way is the toolchain container, which only needs Docker:
+```bash
+./scripts/dev.sh cmake --preset native-debug          # configure
+./scripts/dev.sh cmake --build --preset native-debug  # build
+./scripts/dev.sh ctest --preset native-debug          # unit tests
+```
+
+On Ubuntu 26.04 you can also install the toolchain directly with `./scripts/install_deps.sh` and drop the `./scripts/dev.sh` prefix.
+
+| Preset | Purpose |
+|---|---|
+| `native-debug` | Development build with tests |
+| `native-release` | Optimised build with debug info (`./scripts/compile.sh`) |
+| `native-asan` | AddressSanitizer + UndefinedBehaviorSanitizer |
+| `web-release` | WebAssembly build (`./scripts/build_web.sh`) |
+
+The game binary is `build/<preset>/bin/wolfenstein`; `--benchmark 300` runs the headless benchmark scenario. Static analysis: `./scripts/dev.sh ./scripts/tidy.sh`.
 
 ---
 
 ## How to Play
 
 - **Movement**: Use `W`, `A`, `S`, `D` to move around.
-- **Attack**: Use `Left Click` to attack enemies.
+- **Turn**: Move the mouse, or use `Left Arrow` and `Right Arrow`.
+- **Attack**: Use `Left Click` or `Left Ctrl` to attack enemies.
+- **Reload**: Press `R`.
 - **Select Weapon**: Use `Left Arrow`, `Right Arrow`, and `Space` to navigate and select your weapon.
+- **Map View**: Press `P` to toggle the top-down view.
+- **Browser**: Click the game to capture the mouse; `Esc` releases it.
 
 ---
 

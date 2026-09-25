@@ -19,6 +19,16 @@ class IStrike
   public:
 	virtual ~IStrike() = default;
 
+  protected:
+	// Copies and moves only through derived classes: copying through the
+	// base would slice off the derived part
+	IStrike() = default;
+	IStrike(const IStrike&) = default;
+	IStrike& operator=(const IStrike&) = default;
+	IStrike(IStrike&&) = default;
+	IStrike& operator=(IStrike&&) = default;
+
+  public:
 	virtual void Attack() = 0;
 };
 

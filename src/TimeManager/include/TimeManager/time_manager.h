@@ -28,6 +28,9 @@ class TimeManager
 
 	void InitClock();
 	void CalculateDeltaTime();
+	// A positive value makes every frame advance by exactly this many
+	// seconds, which makes runs reproducible (used by the benchmark)
+	void SetFixedDeltaTime(double seconds);
 	void SleepForHz(double hz);
 
 	double GetDeltaTime();
@@ -40,7 +43,8 @@ class TimeManager
 	TimeManager() = default;
 	static TimeManager* instance_;
 
-	std::chrono::duration<double> delta_time;
+	std::chrono::duration<double> delta_time{};
+	std::chrono::duration<double> fixed_delta_time{0.0};
 	std::chrono::time_point<std::chrono::high_resolution_clock>
 		previos_time_point;
 	std::chrono::time_point<std::chrono::high_resolution_clock>

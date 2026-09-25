@@ -1,48 +1,70 @@
 #include "Animation/looped_animation.h"
 #include "TextureManager/texture_manager.h"
+#include <algorithm>
+#include <array>
+#include <cstdlib>
+#include <iostream>
+
 namespace wolfenstein {
 
-LoopedAnimation::LoopedAnimation(const std::vector<uint16_t>& textures,
-								 const double animation_speed)
-	: textures(textures),
-	  textures_size(textures.size()),
-	  current_frame(0),
-	  animation_speed(animation_speed),
-	  counter(0),
-	  is_animation_finished_once(false) {}
+// The name is built on the stack: as a std::string, a name longer than the
+// short-string buffer (10 characters on wasm32, e.g. "soldier_walk") would
+// allocate
+std::span<const std::uint16_t> LoopedAnimation::Clip(std::string_view owner,
+													 std::string_view clip) {
+	std::array<char, 64> name;
+	const std::size_t size = owner.size() + 1 + clip.size();
+	if (size > name.size()) {
+		std::cerr << "Animation clip name too long: " << owner << '_' << clip
+				  << '\n';
+		std::exit(EXIT_FAILURE);
+	}
+	auto* out = std::ranges::copy(owner, name.data()).out;
+	*out++ = '_';
+	std::ranges::copy(clip, out);
+	return TextureManager::GetInstance().GetTextureCollection(
+		std::string_view(name.data(), size));
+}
 
-LoopedAnimation::LoopedAnimation(const std::string collection_name,
-								 const double animation_speed)
-	: textures(
-		  TextureManager::GetInstance().GetTextureCollection(collection_name)),
-	  textures_size(textures.size()),
-	  current_frame(0),
-	  animation_speed(animation_speed / textures_size),
-	  counter(0),
-	  is_animation_finished_once(false) {}
+LoopedAnimation::LoopedAnimation(std::span<const std::uint16_t> frames,
+								 double frame_seconds)
+	: frames_(frames), frame_seconds_(frame_seconds) {}
+
+LoopedAnimation::LoopedAnimation(std::string_view clip, double cycle_seconds)
+	: LoopedAnimation(TextureManager::GetInstance().GetTextureCollection(clip),
+					  0.0) {
+	frame_seconds_ = cycle_seconds / static_cast<double>(frames_.size());
+}
+
+LoopedAnimation::LoopedAnimation(std::string_view owner, std::string_view clip,
+								 double cycle_seconds)
+	: LoopedAnimation(Clip(owner, clip), 0.0) {
+	frame_seconds_ = cycle_seconds / static_cast<double>(frames_.size());
+}
 
 void LoopedAnimation::Update(const double& delta_time) {
-	counter += delta_time;
-	if (counter >= animation_speed) {
-		current_frame = (current_frame + 1) % textures_size;
-		counter = 0;
-		if (!is_animation_finished_once && current_frame == textures_size - 1) {
-			is_animation_finished_once = true;
+	counter_ += delta_time;
+	if (counter_ >= frame_seconds_) {
+		current_frame_ = (current_frame_ + 1) % frames_.size();
+		counter_ = 0;
+		if (!finished_once_ && current_frame_ == frames_.size() - 1) {
+			finished_once_ = true;
 		}
 	}
 }
 
 void LoopedAnimation::Reset() {
-	current_frame = 0;
-	counter = 0;
+	current_frame_ = 0;
+	counter_ = 0;
+	finished_once_ = false;
 }
 
 int LoopedAnimation::GetCurrentFrame() const {
-	return textures[current_frame];
+	return frames_[current_frame_];
 }
 
 bool LoopedAnimation::IsAnimationFinishedOnce() const {
-	return is_animation_finished_once;
+	return finished_once_;
 }
 
 }  // namespace wolfenstein

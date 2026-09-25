@@ -12,8 +12,8 @@
 #ifndef GAME_OBJECTS_INCLUDE_GAME_OBJECT_H
 #define GAME_OBJECTS_INCLUDE_GAME_OBJECT_H
 
+#include "GameObjects/object_id.h"
 #include "Math/vector.h"
-#include <string>
 
 namespace wolfenstein {
 
@@ -29,16 +29,32 @@ class IGameObject
   public:
 	virtual ~IGameObject() = default;
 
+  protected:
+	// Copies and moves only through derived classes: copying through the
+	// base would slice off the derived part
+	IGameObject() = default;
+	IGameObject(const IGameObject&) = default;
+	IGameObject& operator=(const IGameObject&) = default;
+	IGameObject(IGameObject&&) = default;
+	IGameObject& operator=(IGameObject&&) = default;
+
+  public:
 	virtual void Update(double delta_time) = 0;
 
 	virtual void SetPose(const vector2d& pose) = 0;
 
 	virtual ObjectType GetObjectType() const = 0;
 	virtual vector2d GetPose() const = 0;
-	virtual std::string GetId() const = 0;
 	virtual int GetTextureId() const = 0;
 	virtual double GetWidth() const = 0;
 	virtual double GetHeight() const = 0;
+
+	ObjectId GetId() const { return id_; }
+	// Set by the scene when it takes the object in
+	void SetId(ObjectId id) { id_ = id; }
+
+  private:
+	ObjectId id_ = ObjectId::None;
 };
 }  // namespace wolfenstein
 

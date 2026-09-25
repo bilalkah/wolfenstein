@@ -1,11 +1,12 @@
-#include "State/weapon_state.h"
 #include "Strike/weapon.h"
+#include "State/weapon_state.h"
 #include "TimeManager/time_manager.h"
 #include <cstddef>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <utility>
 namespace wolfenstein {
 
 namespace {
@@ -23,23 +24,34 @@ auto GetWeaponConfig = [](const std::string& weapon_name) -> WeaponConfig {
 }  // namespace
 
 Weapon::Weapon(std::string weapon_name)
-	: weapon_properties_(GetWeaponConfig(weapon_name)) {
+	: weapon_properties_(GetWeaponConfig(weapon_name)),
+	  sound_channel_(SoundManager::GetInstance().AllocateChannel()) {
 	ammo_ = weapon_properties_.ammo_capacity;
-	state_ = std::make_shared<LoadedState>();
+	for (const auto type : {WeaponStateType::Loaded, WeaponStateType::OutOfAmmo,
+							WeaponStateType::Reloading}) {
+		StateFor(type).SetContext(*this);
+	}
+	state_machine_.TransitionTo(loaded_state_);
 }
 
-Weapon::~Weapon() {}
-
-void Weapon::Init() {
-	state_->SetContext(shared_from_this());
+WeaponState& Weapon::StateFor(WeaponStateType type) {
+	switch (type) {
+		case WeaponStateType::Loaded:
+			return loaded_state_;
+		case WeaponStateType::OutOfAmmo:
+			return out_of_ammo_state_;
+		case WeaponStateType::Reloading:
+			return reloading_state_;
+	}
+	std::unreachable();
 }
 
 void Weapon::Attack() {
-	state_->PullTrigger();
+	state_machine_.Current().PullTrigger();
 }
 
 void Weapon::Update(double delta_time) {
-	state_->Update(delta_time);
+	state_machine_.Update(delta_time);
 }
 
 void Weapon::Charge() {
@@ -47,14 +59,13 @@ void Weapon::Charge() {
 }
 
 void Weapon::Reload() {
-	if (state_->GetType() != WeaponStateType::Reloading) {
-		TransitionTo(std::make_shared<ReloadingState>());
+	if (state_machine_.Current().GetType() != WeaponStateType::Reloading) {
+		TransitionTo(WeaponStateType::Reloading);
 	}
 }
 
-void Weapon::TransitionTo(WeaponStatePtr state) {
-	state_ = state;
-	state_->SetContext(shared_from_this());
+void Weapon::TransitionTo(WeaponStateType type) {
+	state_machine_.TransitionTo(StateFor(type));
 }
 
 void Weapon::SetAmmo(size_t ammo) {
@@ -105,12 +116,12 @@ double Weapon::GetReloadSpeed() const {
 	return weapon_properties_.reload_speed;
 }
 
-std::string Weapon::GetWeaponName() const {
+const std::string& Weapon::GetWeaponName() const {
 	return weapon_properties_.weapon_name;
 }
 
 int Weapon::GetTextureId() const {
-	return state_->GetCurrentFrame();
+	return state_machine_.Current().GetCurrentFrame();
 }
 
 const Ray& Weapon::GetCrosshair() const {

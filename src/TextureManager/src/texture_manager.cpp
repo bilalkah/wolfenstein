@@ -1,6 +1,8 @@
 #include "TextureManager/texture_manager.h"
 #include <SDL2/SDL_image.h>
+#include <cstdlib>
 #include <iostream>
+#include <numeric>
 #include <string>
 
 namespace wolfenstein {
@@ -16,7 +18,7 @@ TextureManager& TextureManager::GetInstance() {
 
 TextureManager::~TextureManager() {
 	for (auto& texture : textures_) {
-		SDL_DestroyTexture(texture.second.texture);
+		SDL_DestroyTexture(texture.texture);
 	}
 	delete instance_;
 }
@@ -37,16 +39,21 @@ void TextureManager::LoadTexture(uint16_t texture_id,
 	texture.texture = IMG_LoadTexture(renderer_, texture_path.c_str());
 	SDL_QueryTexture(texture.texture, nullptr, nullptr, &texture.width,
 					 &texture.height);
+	if (texture_id >= textures_.size()) {
+		textures_.resize(texture_id + 1u);
+	}
 	textures_[texture_id] = texture;
 }
 
-Texture& TextureManager::GetTexture(uint16_t texture_id) {
-	return textures_[texture_id];
-}
-
-std::vector<uint16_t>& TextureManager::GetTextureCollection(
-	const std::string collection_name) {
-	return texture_collections_[collection_name];
+std::span<const std::uint16_t> TextureManager::GetTextureCollection(
+	std::string_view collection_name) const {
+	const auto found = texture_collections_.find(collection_name);
+	if (found == texture_collections_.end() || found->second.empty()) {
+		// An empty clip would divide by zero in every animation using it
+		std::cerr << "Unknown texture collection: " << collection_name << '\n';
+		std::exit(EXIT_FAILURE);
+	}
+	return found->second;
 }
 
 void TextureManager::LoadStaticTextures() {
@@ -77,7 +84,7 @@ void TextureManager::LoadStaticTextures() {
 	LoadTexture(t_count_++, texture_path + "digits/8.png");
 	LoadTexture(t_count_++, texture_path + "digits/9.png");
 	LoadTexture(t_count_++, texture_path + "digits/10.png");
-	FillAscendingIds("digits", begin, t_count_);
+	DefineCollection("digits", begin, t_count_);
 }
 
 void TextureManager::LoadSpriteTextures() {
@@ -91,13 +98,13 @@ void TextureManager::LoadSpriteTextures() {
 	LoadTexture(t_count_++, sprite_path + "animated_sprites/green_light/1.png");
 	LoadTexture(t_count_++, sprite_path + "animated_sprites/green_light/2.png");
 	LoadTexture(t_count_++, sprite_path + "animated_sprites/green_light/3.png");
-	FillAscendingIds("green_light", begin, t_count_);
+	DefineCollection("green_light", begin, t_count_);
 	begin = t_count_;
 	LoadTexture(t_count_++, sprite_path + "animated_sprites/red_light/0.png");
 	LoadTexture(t_count_++, sprite_path + "animated_sprites/red_light/1.png");
 	LoadTexture(t_count_++, sprite_path + "animated_sprites/red_light/2.png");
 	LoadTexture(t_count_++, sprite_path + "animated_sprites/red_light/3.png");
-	FillAscendingIds("red_light", begin, t_count_);
+	DefineCollection("red_light", begin, t_count_);
 }
 
 void TextureManager::LoadNpcTextures() {
@@ -111,7 +118,7 @@ void TextureManager::LoadNpcTextures() {
 	LoadTexture(t_count_++, npc_path + "caco_demon/attack/3.png");
 	LoadTexture(t_count_++, npc_path + "caco_demon/attack/4.png");
 	LoadTexture(t_count_++, npc_path + "caco_demon/attack/0.png");
-	FillAscendingIds("caco_demon_attack", begin, t_count_);
+	DefineCollection("caco_demon_attack", begin, t_count_);
 	// Caco demon Death
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "caco_demon/death/0.png");
@@ -120,7 +127,7 @@ void TextureManager::LoadNpcTextures() {
 	LoadTexture(t_count_++, npc_path + "caco_demon/death/3.png");
 	LoadTexture(t_count_++, npc_path + "caco_demon/death/4.png");
 	LoadTexture(t_count_++, npc_path + "caco_demon/death/5.png");
-	FillAscendingIds("caco_demon_death", begin, t_count_);
+	DefineCollection("caco_demon_death", begin, t_count_);
 	// Caco demon Idle
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "caco_demon/idle/0.png");
@@ -135,24 +142,24 @@ void TextureManager::LoadNpcTextures() {
 	// LoadTexture(t_count_++, npc_path + "caco_demon/idle/4.png");
 	// LoadTexture(t_count_++, npc_path + "caco_demon/idle/3.png");
 	// LoadTexture(t_count_++, npc_path + "caco_demon/idle/5.png");
-	FillAscendingIds("caco_demon_idle", begin, t_count_);
+	DefineCollection("caco_demon_idle", begin, t_count_);
 	// Caco demon Pain
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "caco_demon/pain/0.png");
 	LoadTexture(t_count_++, npc_path + "caco_demon/pain/1.png");
-	FillAscendingIds("caco_demon_pain", begin, t_count_);
+	DefineCollection("caco_demon_pain", begin, t_count_);
 	// Caco demon Walk
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "caco_demon/walk/0.png");
 	LoadTexture(t_count_++, npc_path + "caco_demon/walk/1.png");
 	LoadTexture(t_count_++, npc_path + "caco_demon/walk/2.png");
-	FillAscendingIds("caco_demon_walk", begin, t_count_);
+	DefineCollection("caco_demon_walk", begin, t_count_);
 	// Cyber demon Attack
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "cyber_demon/attack/0.png");
 	LoadTexture(t_count_++, npc_path + "cyber_demon/attack/1.png");
 	LoadTexture(t_count_++, npc_path + "cyber_demon/attack/0.png");
-	FillAscendingIds("cyber_demon_attack", begin, t_count_);
+	DefineCollection("cyber_demon_attack", begin, t_count_);
 	// Cyber demon Death
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "cyber_demon/death/0.png");
@@ -164,7 +171,7 @@ void TextureManager::LoadNpcTextures() {
 	LoadTexture(t_count_++, npc_path + "cyber_demon/death/6.png");
 	LoadTexture(t_count_++, npc_path + "cyber_demon/death/7.png");
 	LoadTexture(t_count_++, npc_path + "cyber_demon/death/8.png");
-	FillAscendingIds("cyber_demon_death", begin, t_count_);
+	DefineCollection("cyber_demon_death", begin, t_count_);
 	// Cyber demon Idle
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "cyber_demon/idle/0.png");
@@ -175,26 +182,26 @@ void TextureManager::LoadNpcTextures() {
 	// LoadTexture(t_count_++, npc_path + "cyber_demon/idle/5.png");
 	// LoadTexture(t_count_++, npc_path + "cyber_demon/idle/6.png");
 	LoadTexture(t_count_++, npc_path + "cyber_demon/idle/7.png");
-	FillAscendingIds("cyber_demon_idle", begin, t_count_);
+	DefineCollection("cyber_demon_idle", begin, t_count_);
 	// Cyber demon Pain
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "cyber_demon/pain/0.png");
 	LoadTexture(t_count_++, npc_path + "cyber_demon/pain/1.png");
-	FillAscendingIds("cyber_demon_pain", begin, t_count_);
+	DefineCollection("cyber_demon_pain", begin, t_count_);
 	// Cyber demon Walk
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "cyber_demon/walk/0.png");
 	LoadTexture(t_count_++, npc_path + "cyber_demon/walk/1.png");
 	LoadTexture(t_count_++, npc_path + "cyber_demon/walk/3.png");
 	LoadTexture(t_count_++, npc_path + "cyber_demon/walk/4.png");
-	FillAscendingIds("cyber_demon_walk", begin, t_count_);
+	DefineCollection("cyber_demon_walk", begin, t_count_);
 
 	// Soldier Attack
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "soldier/attack/0.png");
 	LoadTexture(t_count_++, npc_path + "soldier/attack/1.png");
 	LoadTexture(t_count_++, npc_path + "soldier/attack/0.png");
-	FillAscendingIds("soldier_attack", begin, t_count_);
+	DefineCollection("soldier_attack", begin, t_count_);
 	// Soldier Death
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "soldier/death/0.png");
@@ -206,7 +213,7 @@ void TextureManager::LoadNpcTextures() {
 	LoadTexture(t_count_++, npc_path + "soldier/death/6.png");
 	LoadTexture(t_count_++, npc_path + "soldier/death/7.png");
 	LoadTexture(t_count_++, npc_path + "soldier/death/8.png");
-	FillAscendingIds("soldier_death", begin, t_count_);
+	DefineCollection("soldier_death", begin, t_count_);
 	// Soldier Idle
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "soldier/idle/0.png");
@@ -217,18 +224,18 @@ void TextureManager::LoadNpcTextures() {
 	// LoadTexture(t_count_++, npc_path + "soldier/idle/5.png");
 	// LoadTexture(t_count_++, npc_path + "soldier/idle/6.png");
 	LoadTexture(t_count_++, npc_path + "soldier/idle/7.png");
-	FillAscendingIds("soldier_idle", begin, t_count_);
+	DefineCollection("soldier_idle", begin, t_count_);
 	// Soldier Pain
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "soldier/pain/0.png");
-	FillAscendingIds("soldier_pain", begin, t_count_);
+	DefineCollection("soldier_pain", begin, t_count_);
 	// Soldier Walk
 	begin = t_count_;
 	LoadTexture(t_count_++, npc_path + "soldier/walk/0.png");
 	LoadTexture(t_count_++, npc_path + "soldier/walk/1.png");
 	LoadTexture(t_count_++, npc_path + "soldier/walk/2.png");
 	LoadTexture(t_count_++, npc_path + "soldier/walk/3.png");
-	FillAscendingIds("soldier_walk", begin, t_count_);
+	DefineCollection("soldier_walk", begin, t_count_);
 }
 
 void TextureManager::LoadWeaponTextures() {
@@ -242,14 +249,14 @@ void TextureManager::LoadWeaponTextures() {
 	LoadTexture(t_count_++, weapon_path + "/mp5/loaded/" + "3.png");
 	LoadTexture(t_count_++, weapon_path + "/mp5/loaded/" + "4.png");
 	LoadTexture(t_count_++, weapon_path + "/mp5/loaded/" + "5.png");
-	FillAscendingIds("mp5_loaded", begin, t_count_);
+	DefineCollection("mp5_loaded", begin, t_count_);
 	// outofammo
 	begin = t_count_;
 	LoadTexture(t_count_++, weapon_path + "/mp5/outofammo/" + "0.png");
 	LoadTexture(t_count_++, weapon_path + "/mp5/outofammo/" + "1.png");
 	LoadTexture(t_count_++, weapon_path + "/mp5/outofammo/" + "2.png");
 	LoadTexture(t_count_++, weapon_path + "/mp5/outofammo/" + "3.png");
-	FillAscendingIds("mp5_outofammo", begin, t_count_);
+	DefineCollection("mp5_outofammo", begin, t_count_);
 	// reload
 	begin = t_count_;
 	LoadTexture(t_count_++, weapon_path + "/mp5/reload/" + "0.png");
@@ -268,7 +275,7 @@ void TextureManager::LoadWeaponTextures() {
 	LoadTexture(t_count_++, weapon_path + "/mp5/reload/" + "13.png");
 	LoadTexture(t_count_++, weapon_path + "/mp5/reload/" + "14.png");
 	LoadTexture(t_count_++, weapon_path + "/mp5/reload/" + "15.png");
-	FillAscendingIds("mp5_reload", begin, t_count_);
+	DefineCollection("mp5_reload", begin, t_count_);
 
 	// Shotgun sprites
 	// Loaded
@@ -283,7 +290,7 @@ void TextureManager::LoadWeaponTextures() {
 	LoadTexture(t_count_++, weapon_path + "/shotgun/loaded/" + "7.png");
 	LoadTexture(t_count_++, weapon_path + "/shotgun/loaded/" + "8.png");
 	LoadTexture(t_count_++, weapon_path + "/shotgun/loaded/" + "9.png");
-	FillAscendingIds("shotgun_loaded", begin, t_count_);
+	DefineCollection("shotgun_loaded", begin, t_count_);
 	// outofammo
 	begin = t_count_;
 	LoadTexture(t_count_++, weapon_path + "/shotgun/outofammo/" + "0.png");
@@ -294,7 +301,7 @@ void TextureManager::LoadWeaponTextures() {
 	LoadTexture(t_count_++, weapon_path + "/shotgun/outofammo/" + "5.png");
 	LoadTexture(t_count_++, weapon_path + "/shotgun/outofammo/" + "6.png");
 	LoadTexture(t_count_++, weapon_path + "/shotgun/outofammo/" + "7.png");
-	FillAscendingIds("shotgun_outofammo", begin, t_count_);
+	DefineCollection("shotgun_outofammo", begin, t_count_);
 	// reload
 	begin = t_count_;
 	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "0.png");
@@ -355,16 +362,14 @@ void TextureManager::LoadWeaponTextures() {
 	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "55.png");
 	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "56.png");
 	LoadTexture(t_count_++, weapon_path + "/shotgun/reload/" + "57.png");
-	FillAscendingIds("shotgun_reload", begin, t_count_);
+	DefineCollection("shotgun_reload", begin, t_count_);
 }
 
-void TextureManager::FillAscendingIds(std::string key, uint16_t begin,
+void TextureManager::DefineCollection(std::string key, uint16_t begin,
 									  uint16_t end) {
-	std::vector<uint16_t> textures;
-	for (uint16_t i = begin; i < end; i++) {
-		textures.push_back(i);
-	}
-	texture_collections_[key] = textures;
+	auto& ids = texture_collections_[std::move(key)];
+	ids.resize(end - begin);
+	std::iota(ids.begin(), ids.end(), begin);
 }
 
 }  // namespace wolfenstein

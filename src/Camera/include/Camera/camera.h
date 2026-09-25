@@ -16,9 +16,10 @@
 #include "Camera/raycaster.h"
 #include "GameObjects/game_object.h"
 
+#include <cstdint>
+#include <limits>
 #include <memory>
-#include <optional>
-#include <unordered_map>
+#include <vector>
 
 namespace wolfenstein {
 
@@ -40,14 +41,15 @@ class Camera2D
   public:
 	explicit Camera2D(const Camera2DConfig& config,
 					  const std::shared_ptr<Scene> scene = nullptr);
-	~Camera2D() = default;
 
 	void Update();
 
 	void SetScene(const std::shared_ptr<Scene>& scene);
 	const RayVector& GetRays() const;
 	const std::shared_ptr<Ray>& GetCrosshairRay() const;
-	const std::optional<RayPair> GetObjectRay(const std::string id) const;
+	// The rays bounding an object in the current frame, or nullptr if the
+	// object is not visible
+	const RayPair* FindObjectRays(ObjectId id) const;
 	Position2D GetPosition() const;
 	double GetFov() const;
 	double GetDeltaAngle() const;
@@ -63,9 +65,17 @@ class Camera2D
 	std::shared_ptr<Scene> scene_;
 	std::shared_ptr<Position2D> position_;
 	std::shared_ptr<Ray> crosshair_ray_;
-	std::unique_ptr<RayCaster> ray_cast_;
-	std::unique_ptr<RayVector> rays_;
-	std::unordered_map<std::string, RayPair> objects_;
+	RayCaster ray_cast_;
+	RayVector rays_;
+	// Rays of each object, indexed by ObjectId and sized once per level (in
+	// SetScene); an entry is current only if it was written in this frame
+	struct ObjectView
+	{
+		RayPair rays;
+		std::uint64_t frame = std::numeric_limits<std::uint64_t>::max();
+	};
+	std::vector<ObjectView> views_;
+	std::uint64_t frame_ = 0;
 };
 
 }  // namespace wolfenstein

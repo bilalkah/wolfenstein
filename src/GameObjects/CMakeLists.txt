@@ -11,6 +11,5 @@ target_link_libraries(
     game_object
     PUBLIC
     vector
-    uuid_generator
     animation
 )

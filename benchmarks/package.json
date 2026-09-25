@@ -1,0 +1,9 @@
+{
+  "name": "wolfenstein-benchmarks",
+  "private": true,
+  "type": "module",
+  "description": "Runs the WebAssembly build's benchmark mode in headless Chromium",
+  "dependencies": {
+    "playwright-core": "1.63.0"
+  }
+}

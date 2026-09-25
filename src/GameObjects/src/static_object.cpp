@@ -1,15 +1,10 @@
 #include "GameObjects/static_object.h"
-#include "Utility/uuid_generator.h"
 
 namespace wolfenstein {
 
 StaticObject::StaticObject(const vector2d& pose_, const int texture_id_,
 						   const double width_, const double height_)
-	: pose(pose_), texture_id(texture_id_), width(width_), height(height_) {
-	id = UuidGenerator::GetInstance().GenerateUuid().bytes();
-}
-
-StaticObject::~StaticObject() {}
+	: pose(pose_), texture_id(texture_id_), width(width_), height(height_) {}
 
 void StaticObject::Update(double delta_time) {
 	(void)delta_time;
@@ -29,10 +24,6 @@ vector2d StaticObject::GetPose() const {
 
 int StaticObject::GetTextureId() const {
 	return texture_id;
-}
-
-std::string StaticObject::GetId() const {
-	return id;
 }
 
 double StaticObject::GetWidth() const {

@@ -1,3 +1,7 @@
 .cache/
 .vscode/
 build/
+benchmarks/node_modules/
+benchmarks/package-lock.json
+# Local documents and records (plans, benchmark results); never committed
+docs/

@@ -1,12 +1,14 @@
+#include "Core/scene_loader.h"
 #include "Camera/single_raycaster.h"
 #include "CollisionManager/collision_manager.h"
-#include "Core/scene_loader.h"
 #include "GameObjects/dynamic_object.h"
 #include "NavigationManager/navigation_manager.h"
 #include "ShootingManager/shooting_manager.h"
 #include "SoundManager/sound_manager.h"
 #include "TimeManager/time_manager.h"
 
+#include <cstdint>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -15,17 +17,31 @@ namespace wolfenstein {
 
 SceneLoader* SceneLoader::instance_ = nullptr;
 
-SceneLoader::SceneLoader() {
-	asset_path = std::string(RESOURCE_DIR);
-	std::ifstream file(asset_path + "levels/config.json");
-	if (!file.is_open()) {
-		std::cerr << "Unable to open config.json.\n";
-		exit(EXIT_FAILURE);
-	}
+namespace {
 
-	file >> configs;
-	file.close();
+// Opens and parses a file under the asset directory, exiting with the
+// parser's message if it is missing or malformed: the game cannot run
+// without its data
+template <typename Parse>
+auto LoadOrExit(const std::string& path, Parse parse) {
+	std::ifstream file(path);
+	if (!file.is_open()) {
+		std::cerr << "Unable to open " << path << '\n';
+		std::exit(EXIT_FAILURE);
+	}
+	auto parsed = parse(file);
+	if (!parsed) {
+		std::cerr << path << ": " << parsed.error() << '\n';
+		std::exit(EXIT_FAILURE);
+	}
+	return std::move(*parsed);
 }
+
+}  // namespace
+
+SceneLoader::SceneLoader()
+	: asset_path(RESOURCE_DIR),
+	  config_(LoadOrExit(asset_path + "levels/config.json", ParseGameConfig)) {}
 
 SceneLoader::~SceneLoader() {
 	delete instance_;
@@ -38,81 +54,64 @@ SceneLoader& SceneLoader::GetInstance() {
 	return *instance_;
 }
 
-std::shared_ptr<Scene> SceneLoader::Load(std::string json_path,
+std::shared_ptr<Scene> SceneLoader::Load(const std::string& json_path,
 										 std::shared_ptr<Player> player) {
-	// Open the JSON file
-	std::ifstream file(asset_path + "levels/" + json_path);
-	if (!file.is_open()) {
-		std::cerr << "Unable to open file.\n";
-		exit(EXIT_FAILURE);
-	}
+	const LevelData level =
+		LoadOrExit(asset_path + "levels/" + json_path, ParseLevel);
 
-	nlohmann::json level_data;
-	file >> level_data;
-	file.close();
+	// The level file says how many objects the scene must hold, so its pools
+	// and arena are sized exactly, once
+	auto scene = std::make_shared<Scene>(SceneCapacity{
+		.enemies = static_cast<std::uint32_t>(level.enemies.size()),
+		.dynamic_objects =
+			static_cast<std::uint32_t>(level.dynamic_objects.size())});
 
-	auto scene = std::make_shared<Scene>();
+	scene->SetMap(std::make_shared<Map>(asset_path + "maps/" + level.map));
 
-	scene->SetMap(std::make_shared<Map>(asset_path + "maps/" +
-										level_data["map"].get<std::string>()));
+	player->SetPosition(level.player);
+	player->IncreaseHealth(100);
+	scene->SetPlayer(player);
+	PrepareEnemies(*scene, level);
+	PrepareDynamicObjects(*scene, level);
 
-	PreparePlayer(*scene, level_data["player"], player);
-	PrepareEnemies(*scene, level_data["enemies"]);
-	PrepareDynamicObjects(*scene, level_data["dynamicObjects"]);
-	PrepareStaticObjects(*scene, level_data["staticObjects"]);
-
-	scene->SetNextScene(level_data["next_level"].get<std::string>());
+	scene->SetNextScene(level.next_level);
 	InitManagers(scene);
 	TimeManager::GetInstance().InitClock();
 	return scene;
 }
 
-void SceneLoader::PreparePlayer(Scene& scene, nlohmann::json& player_data,
-								std::shared_ptr<Player> player) {
-	player->SetPosition(
-		Position2D({player_data["position"]["x"].get<double>(),
-					player_data["position"]["y"].get<double>()},
-				   player_data["position"]["theta"].get<double>()));
-	player->IncreaseHealth(100);
-	scene.SetPlayer(player);
-}
-
-void SceneLoader::PrepareEnemies(Scene& scene, nlohmann::json& enemies) {
-	for (const auto& enemy : enemies) {
-		const auto enemy_config =
-			configs["config_enemy"][enemy["type"].get<std::string>()];
-		auto bot = EnemyFactory::CreateEnemy(
-			enemy["type"].get<std::string>(),
-			CharacterConfig(
-				Position2D({enemy["position"]["x"].get<double>(),
-							enemy["position"]["y"].get<double>()},
-						   enemy["position"]["theta"].get<double>()),
-				enemy_config["t_speed"].get<double>(),
-				enemy_config["r_speed"].get<double>(),
-				enemy_config["width"].get<double>(),
-				enemy_config["height"].get<double>()));
-		scene.AddObject(bot);
+void SceneLoader::PrepareEnemies(Scene& scene, const LevelData& level) const {
+	for (const auto& spawn : level.enemies) {
+		const auto stats = config_.enemies.find(spawn.type);
+		if (stats == config_.enemies.end()) {
+			std::cerr << "Unknown enemy type in level: " << spawn.type << '\n';
+			std::exit(EXIT_FAILURE);
+		}
+		const auto added = scene.AddEnemy(
+			spawn.type,
+			CharacterConfig(spawn.position, stats->second.translation_speed,
+							stats->second.rotation_speed, stats->second.width,
+							stats->second.height));
+		if (!added) {
+			std::cerr << "Level has more enemies than its scene can hold\n";
+			std::exit(EXIT_FAILURE);
+		}
 	}
 }
 
 void SceneLoader::PrepareDynamicObjects(Scene& scene,
-										nlohmann::json& dynamic_objects) {
-	const auto config_dynamic = configs["config_dynamic"]["light"];
-
-	for (const auto& dynamic : dynamic_objects) {
-		scene.AddObject(std::make_shared<DynamicObject>(
-			vector2d(dynamic["position"]["x"].get<double>(),
-					 dynamic["position"]["y"].get<double>()),
-			std::make_unique<LoopedAnimation>(
-				dynamic["type"].get<std::string>(),
-				config_dynamic["animation_speed"].get<double>()),
-			config_dynamic["width"].get<double>(),
-			config_dynamic["height"].get<double>()));
+										const LevelData& level) const {
+	const auto& light = config_.light;
+	for (const auto& spawn : level.dynamic_objects) {
+		const auto added = scene.AddDynamicObject(
+			spawn.position, LoopedAnimation(spawn.type, light.animation_speed),
+			light.width, light.height);
+		if (!added) {
+			std::cerr << "Level has more objects than its scene can hold\n";
+			std::exit(EXIT_FAILURE);
+		}
 	}
 }
-
-void SceneLoader::PrepareStaticObjects(Scene& scene,
-									   nlohmann::json& static_objects) {}
 
 void SceneLoader::InitManagers(const std::shared_ptr<Scene>& scene) {
 	CollisionManager::GetInstance().InitManager(scene);

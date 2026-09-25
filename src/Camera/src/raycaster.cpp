@@ -1,89 +1,26 @@
 #include "Camera/raycaster.h"
+#include <cmath>
+#include <cstddef>
 
 namespace wolfenstein {
 
-RayCaster::RayCaster(const int num_ray, const double fov, const double depth,
-					 const bool make_parallel)
-	: num_ray_(num_ray),
-	  fov_(fov),
-	  depth_(depth),
-	  delta_theta_(fov_ / num_ray),
-	  make_parallel_(make_parallel) {
-	using namespace std::placeholders;
-	int batch_size = 100;
-	if (make_parallel_ && false) {
-		CalculateRaySections(batch_size);
-		cast_function_ = std::bind(&RayCaster::ParallelCast, this, _1, _2, _3);
-	}
-	else {
-		cast_function_ =
-			std::bind(&RayCaster::SequentialCast, this, _1, _2, _3);
-	}
-}
+RayCaster::RayCaster(int num_ray, double fov, double depth)
+	: fov_(fov), depth_(depth), delta_theta_(fov_ / num_ray) {}
 
-RayCaster::~RayCaster() {
-	for (auto& thread : thread_container_) {
-		if (thread.joinable()) {
-			thread.join();
-		}
-	}
-}
-
-void RayCaster::Update(const Map& map_ptr, const Position2D& position,
+void RayCaster::Update(const Map& map, const Position2D& position,
 					   RayVector& rays) {
-
-	cast_function_(map_ptr, position, rays);
-}
-
-void RayCaster::SequentialCast(const Map& map_ptr, const Position2D& position,
-							   RayVector& rays) {
-	const auto map_ = map_ptr.GetRawMap();
-	const auto& row_size = map_ptr.GetSizeX();
-	const auto& col_size = map_ptr.GetSizeY();
+	const auto cells = map.GetCells();
 	double ray_theta = position.theta - (fov_ / 2);
 	for (auto& ray : rays) {
-		ray = Cast(map_, row_size, col_size, position, ray_theta);
+		ray = Cast(cells, position, ray_theta);
 		ray_theta += delta_theta_;
 	}
 }
 
-/// @note Add parallel feature
-void RayCaster::ParallelCast(const Map& map_ptr, const Position2D& position,
-							 RayVector& rays) {
-	const auto map_ = map_ptr.GetRawMap();
-	const auto& row_size = map_ptr.GetSizeX();
-	const auto& col_size = map_ptr.GetSizeY();
-	double ray_theta = position.theta - (fov_ / 2);
-
-	for (const auto pair : sections_) {
-
-		thread_container_.emplace_back(
-			std::thread([this, &map_, &row_size, &col_size, &ray_theta,
-						 &position, &rays, &pair]() {
-				const auto start = pair.first;
-				const auto end = pair.second;
-				double theta = ray_theta + (start * delta_theta_);
-				for (int i = start; i < end; i++) {
-					rays[i] = Cast(map_, row_size, col_size, position, theta);
-					theta += delta_theta_;
-				}
-			}));
-	}
-}
-
-void RayCaster::CalculateRaySections(int batchSize) {
-	int start = 0;
-	while (start < num_ray_) {
-		int end = std::min(start + batchSize,
-						   num_ray_);  // Ensure we don't exceed total rays
-		sections_.emplace_back(start, end);
-		start = end;
-	}
-}
-
-Ray RayCaster::Cast(const MapRaw& map_, const uint16_t row_size,
-					const uint16_t col_size, const Position2D& position,
-					const double ray_theta) {
+Ray RayCaster::Cast(Map::CellView cells, const Position2D& position,
+					double ray_theta) const {
+	const auto row_size = static_cast<int>(cells.extent(0));
+	const auto col_size = static_cast<int>(cells.extent(1));
 	Ray ray;
 	vector2d ray_unit_step, ray_length_1d;
 	vector2i step, map_check;
@@ -108,10 +45,12 @@ Ray RayCaster::Cast(const MapRaw& map_, const uint16_t row_size,
 
 		if (map_check.x >= 0 && map_check.x < row_size && map_check.y >= 0 &&
 			map_check.y < col_size) {
-			if (map_[map_check.x][map_check.y] != 0) {
+			const auto cell = cells[static_cast<std::size_t>(map_check.x),
+									static_cast<std::size_t>(map_check.y)];
+			if (cell != 0) {
 				ray.is_hit = true;
 				ray.hit_point = ray.origin + ray.direction * ray.distance;
-				ray.wall_id = map_[map_check.x][map_check.y];
+				ray.wall_id = cell;
 			}
 		}
 	}
@@ -125,7 +64,7 @@ double RayCaster::GetDeltaTheta() const {
 void RayCaster::PrepareRay(const Position2D& position, const double ray_theta,
 						   Ray& ray, vector2d& ray_unit_step,
 						   vector2d& ray_length_1d, vector2i& step,
-						   vector2i& map_check) {
+						   vector2i& map_check) const {
 
 	ray.Reset(position.pose, ray_theta);
 
