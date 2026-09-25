@@ -27,19 +27,216 @@
     image-rendering: pixelated;
     outline: none;
   }
-  #status {
+  #loader {
     position: absolute;
     top: 50%;
-    transform: translateY(-50%);
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(360px, 80vw);
+    text-align: center;
   }
+  #loader[hidden] { display: none; }
+  #loader h1 {
+    margin: 0 0 20px;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    color: #c8201e;
+  }
+  #bar {
+    height: 6px;
+    background: #222;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  #fill {
+    width: 0;
+    height: 100%;
+    background: #c8201e;
+    transition: width 0.15s linear;
+  }
+  #status {
+    margin-top: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  #loader.failed #fill { background: #555; }
 </style>
 </head>
 <body>
-<div id="status">Loading…</div>
+<div id="loader">
+  <h1>WOLFENSTEIN</h1>
+  <div id="bar"><div id="fill"></div></div>
+  <div id="status">Loading…</div>
+</div>
 <canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
 <script>
+  const loaderEl = document.getElementById('loader');
+  const fillEl = document.getElementById('fill');
   const statusEl = document.getElementById('status');
   const canvas = document.getElementById('canvas');
+
+  // Download progress in bytes, [loaded, total], of the two big files
+  const progress = { wasm: [0, 0], data: [0, 0] };
+  let shownFraction = 0;
+  const megabytes = (bytes) => (bytes / 1048576).toFixed(1);
+  function showProgress() {
+    // A download of unknown size (no Content-Length) is left out
+    const known = [progress.wasm, progress.data].filter(([, total]) => total);
+    const loaded = known.reduce((sum, [bytes]) => sum + bytes, 0);
+    const total = known.reduce((sum, [, bytes]) => sum + bytes, 0);
+    if (!total) return;
+    // Totals become known one download at a time: never move backwards
+    shownFraction = Math.max(shownFraction, Math.min(loaded / total, 1));
+    fillEl.style.width = `${shownFraction * 100}%`;
+    statusEl.textContent = loaded >= total
+      ? 'Starting…'
+      : `Loading ${megabytes(loaded)} / ${megabytes(total)} MB`;
+  }
+
+  // Downloads the big files in chunks over several connections at once, the
+  // way download managers do: on some networks one connection stalls while
+  // the others run at full speed, and a stalled chunk is simply asked for
+  // again. A server that ignores ranges sends the whole file in one piece.
+  const nativeFetch = window.fetch.bind(window);
+  const kChunkBytes = 512 * 1024;
+  const kStallMs = 1000;  // no bytes for this long: drop the connection
+  const kMaxRetries = 20;
+
+  // The connections the downloads share: a browser opens 6 per server, and
+  // a request waiting for one must not count as stalled
+  let freeConnections = 6;
+  const waiting = [];
+  async function withConnection(work) {
+    if (freeConnections) {
+      --freeConnections;
+    }
+    else {
+      await new Promise((resolve) => waiting.push(resolve));
+    }
+    try {
+      return await work();
+    } finally {
+      const next = waiting.shift();
+      if (next) next();
+      else ++freeConnections;
+    }
+  }
+
+  // Bytes [start, end] of `url` in one request; throws if it stalls
+  async function fetchRange(url, start, end, onBytes) {
+    const controller = new AbortController();
+    let timer = 0;
+    const rearm = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => controller.abort(), kStallMs);
+    };
+    rearm();
+    try {
+      const response = await nativeFetch(url, {
+        signal: controller.signal,
+        headers: { Range: `bytes=${start}-${end}` },
+      });
+      if (!response.ok) {
+        throw Object.assign(new Error(`${url}: HTTP ${response.status}`), { fatal: true });
+      }
+      const reader = response.body.getReader();
+      const parts = [];
+      let length = 0;
+      for (;;) {
+        rearm();
+        const { done, value } = await reader.read();
+        if (done) break;
+        parts.push(value);
+        length += value.length;
+        onBytes(length);
+      }
+      const bytes = new Uint8Array(length);
+      let offset = 0;
+      for (const part of parts) {
+        bytes.set(part, offset);
+        offset += part.length;
+      }
+      return { response, bytes };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function fetchRangeRetrying(url, start, end, onBytes) {
+    for (let attempt = 0; ; ++attempt) {
+      try {
+        return await withConnection(() => fetchRange(url, start, end, onBytes));
+      } catch (error) {
+        onBytes(0);
+        if (error.fatal || attempt >= kMaxRetries) throw error;
+        console.warn(`${url}: bytes ${start}-${end} stalled, asking again`);
+      }
+    }
+  }
+
+  // `url` as a Response whose body streams in order as the chunks arrive
+  async function chunkedFetch(url, type, onProgress) {
+    let total = 0;
+    const received = [];
+    const report = () => onProgress(received.reduce((sum, bytes) => sum + bytes, 0), total);
+    const counter = (index) => (bytes) => {
+      received[index] = bytes;
+      report();
+    };
+
+    // The first chunk tells the file's size, or brings the whole file
+    const first = await fetchRangeRetrying(url, 0, kChunkBytes - 1, counter(0));
+    const size = /\/(\d+)$/.exec(first.response.headers.get('Content-Range') ?? '');
+    const chunks = [Promise.resolve(first.bytes)];
+    if (first.response.status === 206 && size) {
+      total = Number(size[1]);
+      for (let start = kChunkBytes; start < total; start += kChunkBytes) {
+        const end = Math.min(start + kChunkBytes, total) - 1;
+        const chunk = fetchRangeRetrying(url, start, end, counter(chunks.length))
+          .then(({ bytes }) => bytes);
+        chunk.catch(() => {});  // reported when the stream reaches it
+        chunks.push(chunk);
+      }
+    }
+    else {
+      total = first.bytes.length;
+    }
+    report();
+
+    let next = 0;
+    const body = new ReadableStream({
+      async pull(stream) {
+        if (next === chunks.length) {
+          stream.close();
+          return;
+        }
+        try {
+          stream.enqueue(await chunks[next++]);
+        } catch (error) {
+          stream.error(error);
+        }
+      },
+    });
+    return new Response(body, {
+      headers: { 'Content-Type': type, 'Content-Length': String(total) },
+    });
+  }
+
+  // The data package is fetched by Emscripten's loader: give it the
+  // chunked download too
+  window.fetch = (input, init) =>
+    typeof input === 'string' && input.endsWith('index.data')
+      ? chunkedFetch(input, 'application/octet-stream', (loaded, total) => {
+          progress.data = [loaded, total];
+          showProgress();
+        })
+      : nativeFetch(input, init);
+
+  function fail(text) {
+    loaderEl.hidden = false;
+    loaderEl.classList.add('failed');
+    statusEl.textContent = text;
+  }
 
   // ?benchmark[=frames] runs the performance benchmark, ?soak the scripted
   // session that checks nothing allocates after startup (see benchmarks/)
@@ -52,18 +249,29 @@
     arguments: benchmarkArgs,
     canvas,
     setStatus(text) {
-      statusEl.textContent = text;
-      statusEl.hidden = !text;
+      // Downloads report their own progress; "" once the game runs
+      if (!text) loaderEl.hidden = true;
+    },
+    // Streams the wasm in, compiling while it downloads
+    instantiateWasm(imports, done) {
+      chunkedFetch('index.wasm', 'application/wasm', (loaded, total) => {
+        progress.wasm = [loaded, total];
+        showProgress();
+      })
+        .then((response) => WebAssembly.instantiateStreaming(response, imports))
+        .then(({ instance, module }) => done(instance, module))
+        .catch((error) => {
+          console.error(error);
+          fail('Could not load the game, see the browser console.');
+        });
+      return {};
     },
     onRuntimeInitialized() {
       // Read by the benchmark runner as the page's load time
       window.runtimeReadyMs = performance.now();
     },
-    monitorRunDependencies(left) {
-      if (left) Module.setStatus('Loading…');
-    },
   };
-  window.onerror = () => Module.setStatus('Something went wrong, see the browser console.');
+  window.onerror = () => fail('Something went wrong, see the browser console.');
 
   // Browsers start audio suspended until the page gets a user gesture
   function resumeAudio() {

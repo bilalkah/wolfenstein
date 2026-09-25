@@ -1,7 +1,7 @@
 #!/bin/bash
 # Builds the web version (incrementally) and serves it at http://localhost:8000
-# (browsers refuse to load WebAssembly from file:// URLs). PORT overrides the
-# port.
+# and to the local network (browsers refuse to load WebAssembly from file://
+# URLs). PORT overrides the port.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -16,5 +16,4 @@ if python3 -c "import socket,sys; s=socket.socket(); sys.exit(s.connect_ex(('127
 	exit 1
 fi
 
-echo "Open http://localhost:$PORT"
-exec python3 -m http.server "$PORT" --directory build/web-release/bin
+exec python3 scripts/serve_web.py build/web-release/bin "$PORT"
