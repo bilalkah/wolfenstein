@@ -43,7 +43,7 @@ Enemy::Enemy(Scene& scene, std::string bot_name, CharacterConfig config)
 	  next_pose(position_.pose),
 	  state_config_(GetBotStateConfig(bot_name)),
 	  bot_name_(bot_name),
-	  sound_channel_(SoundManager::GetInstance().AllocateChannel()),
+	  sound_channel_(scene.Sound().AllocateChannel()),
 	  crosshair_ray(Ray{}),
 	  weapon_(SimpleWeapon::ForEnemy(bot_name)) {
 	for (const auto type :
@@ -88,6 +88,10 @@ bool Enemy::IsAttacked() const {
 
 bool Enemy::IsAlive() const {
 	return is_alive_;
+}
+
+void Enemy::PlaySound(SoundEffect effect) {
+	scene_.Sound().PlayEffect(sound_channel_, effect);
 }
 
 void Enemy::Shoot() {

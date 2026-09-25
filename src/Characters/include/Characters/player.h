@@ -17,6 +17,7 @@
 #include "GameObjects/game_object.h"
 #include "SoundManager/sound_manager.h"
 #include "Strike/weapon.h"
+#include <cstdint>
 #include <functional>
 #include <memory>
 
@@ -29,8 +30,9 @@ class Ray;
 class Player : public ICharacter, public IGameObject
 {
   public:
+	// Borrows the sound it plays, which outlives it
 	Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera,
-		   std::shared_ptr<Weapon> weapon);
+		   std::shared_ptr<Weapon> weapon, SoundManager& sound);
 
 	void Update(double delta_time) override;
 
@@ -55,6 +57,8 @@ class Player : public ICharacter, public IGameObject
 	const Weapon& GetWeapon() const;
 	const std::shared_ptr<Position2D>& GetPositionPtr();
 	int GetDamageTextureId() const;
+	// Opacity of the damage overlay, fading out after a hit
+	std::uint8_t GetDamageAlpha() const { return damage_animation_.GetAlpha(); }
 
   private:
 	void Move(double delta_time);
@@ -70,6 +74,7 @@ class Player : public ICharacter, public IGameObject
 	double height_{};
 	double health_{};
 	double regen_time_{};
+	SoundManager& sound_;
 	SoundChannel sound_channel_;
 	std::shared_ptr<Position2D> position_ptr_;
 	std::shared_ptr<Camera2D> camera_;

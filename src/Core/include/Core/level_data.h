@@ -42,6 +42,7 @@ struct GameConfig
 {
 	// By enemy type ("soldier"); std::less<> allows string_view lookups
 	std::map<std::string, CharacterStats, std::less<>> enemies;
+	CharacterStats player;
 	DynamicObjectStats light;
 };
 

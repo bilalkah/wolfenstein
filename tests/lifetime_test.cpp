@@ -5,6 +5,7 @@
 #include "Characters/enemy.h"
 #include "Core/scene.h"
 #include "Strike/weapon.h"
+#include "test_services.h"
 #include <gtest/gtest.h>
 #include <memory>
 
@@ -12,7 +13,8 @@ namespace wolfenstein {
 namespace {
 
 TEST(Lifetime, WeaponIsDestroyedWithItsLastOwner) {
-	auto weapon = std::make_shared<Weapon>("mp5");
+	auto weapon = std::make_shared<Weapon>("mp5", testing::TestTextures(),
+										   testing::TestSound());
 	weapon->Reload();  // switch state once, as in play
 	const std::weak_ptr<Weapon> observer = weapon;
 
@@ -23,7 +25,8 @@ TEST(Lifetime, WeaponIsDestroyedWithItsLastOwner) {
 // Enemies live in the scene's pool, inside the level arena; a level cannot
 // hold more than it declared
 TEST(Lifetime, EnemiesLiveInTheLevelArena) {
-	Scene scene(SceneCapacity{.enemies = 2});
+	Scene scene(testing::TestTextures(), testing::TestSound(),
+				SceneCapacity{.enemies = 2});
 	const std::size_t before = scene.LevelMemory().Used();
 	const CharacterConfig config(Position2D({2.5, 2.5}, 0.0), 1.0, 1.0, 0.5,
 								 0.5);

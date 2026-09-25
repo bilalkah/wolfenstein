@@ -1,6 +1,5 @@
 #include "Strike/weapon.h"
 #include "State/weapon_state.h"
-#include "TimeManager/time_manager.h"
 #include <cstddef>
 #include <iostream>
 #include <memory>
@@ -23,9 +22,12 @@ auto GetWeaponConfig = [](const std::string& weapon_name) -> WeaponConfig {
 };
 }  // namespace
 
-Weapon::Weapon(std::string weapon_name)
-	: weapon_properties_(GetWeaponConfig(weapon_name)),
-	  sound_channel_(SoundManager::GetInstance().AllocateChannel()) {
+Weapon::Weapon(std::string weapon_name, const TextureManager& textures,
+			   SoundManager& sound)
+	: textures_(textures),
+	  sound_(sound),
+	  weapon_properties_(GetWeaponConfig(weapon_name)),
+	  sound_channel_(sound.AllocateChannel()) {
 	ammo_ = weapon_properties_.ammo_capacity;
 	for (const auto type : {WeaponStateType::Loaded, WeaponStateType::OutOfAmmo,
 							WeaponStateType::Reloading}) {

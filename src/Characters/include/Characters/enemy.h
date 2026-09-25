@@ -65,7 +65,8 @@ class Enemy : public ICharacter, public IGameObject
 	vector2d GetPose() const override;
 	Position2D GetPosition() const override;
 	const std::string& GetBotName() const;
-	SoundChannel GetSoundChannel() const { return sound_channel_; }
+	// Plays on the enemy's own channel, cutting off its previous sound
+	void PlaySound(SoundEffect effect);
 	int GetTextureId() const override;
 	double GetWidth() const override;
 	double GetHeight() const override;

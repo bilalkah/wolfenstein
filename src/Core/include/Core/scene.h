@@ -50,7 +50,10 @@ struct SceneCapacity
 class Scene
 {
   public:
-	explicit Scene(SceneCapacity capacity = {});
+	// Borrows the textures its objects' animations play from and the sound
+	// they play; both outlive every level
+	Scene(const TextureManager& textures, SoundManager& sound,
+		  SceneCapacity capacity = {});
 	Scene(const Scene&) = delete;
 	Scene& operator=(const Scene&) = delete;
 	Scene(Scene&&) = delete;
@@ -81,6 +84,8 @@ class Scene
 	Map& GetMap();
 	const Player& GetPlayer() const;
 	Player& GetPlayer();
+	const TextureManager& Textures() const { return textures_; }
+	SoundManager& Sound() { return sound_; }
 	NavigationManager& GetNavigation() { return navigation_; }
 	const NavigationManager& GetNavigation() const { return navigation_; }
 
@@ -89,7 +94,10 @@ class Scene
 	const memory::MonotonicArena& LevelMemory() const { return arena_; }
 
   private:
-	// Declared first so it is destroyed last, after everything living in it
+	const TextureManager& textures_;
+	SoundManager& sound_;
+	// Declared first of what the scene owns, so it is destroyed last, after
+	// everything living in it
 	memory::MonotonicArena arena_;
 	memory::ObjectPool<Enemy> enemies_;
 	memory::ObjectPool<DynamicObject> dynamic_objects_;

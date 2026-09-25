@@ -42,10 +42,12 @@ RendererContext::RendererContext(const std::string& window_name,
 		SDL_SetWindowFullscreen(window_, SDL_WINDOW_FULLSCREEN_DESKTOP);
 	}
 
-	TextureManager::GetInstance().InitManager(renderer_);
+	textures_.emplace(renderer_);
 }
 
 RendererContext::~RendererContext() {
+	// Textures belong to the renderer: they go first
+	textures_.reset();
 	SDL_DestroyRenderer(renderer_);
 	TTF_CloseFont(font_);
 	SDL_DestroyWindow(window_);

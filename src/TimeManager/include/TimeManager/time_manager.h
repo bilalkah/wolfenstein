@@ -13,42 +13,35 @@
 #define TIME_MANAGER_INCLUDE_TIME_MANAGER_H_
 
 #include <chrono>
-#include <string>
 
 namespace wolfenstein {
 
-class TimeManager
+// Measures the time between frames. The game owns it and hands each frame's
+// delta to whatever advances with it, instead of everything reading a global
+// clock.
+class FrameClock
 {
   public:
-	static TimeManager& GetInstance();
+	FrameClock();
 
-	TimeManager(const TimeManager&) = delete;
-	TimeManager& operator=(const TimeManager&) = delete;
-	~TimeManager();
-
-	void InitClock();
-	void CalculateDeltaTime();
+	// Times afresh from now, so time spent loading is not one long frame
+	void Restart();
+	// Ends a frame: the delta becomes the time since the previous Tick
+	void Tick();
 	// A positive value makes every frame advance by exactly this many
 	// seconds, which makes runs reproducible (used by the benchmark)
 	void SetFixedDeltaTime(double seconds);
-	void SleepForHz(double hz);
-
-	double GetDeltaTime();
-	double GetFramePerSecond();
-	double GetCurrentTime();
-
-	std::string GetTime();
+	// Sleeps so that frames are at least 1 / hz seconds apart (0: no limit)
+	void SleepForHz(double hz) const;
+	// Seconds the last frame took
+	double DeltaTime() const { return delta_.count(); }
 
   private:
-	TimeManager() = default;
-	static TimeManager* instance_;
+	using Clock = std::chrono::steady_clock;
 
-	std::chrono::duration<double> delta_time{};
-	std::chrono::duration<double> fixed_delta_time{0.0};
-	std::chrono::time_point<std::chrono::high_resolution_clock>
-		previos_time_point;
-	std::chrono::time_point<std::chrono::high_resolution_clock>
-		initial_time_point;
+	Clock::time_point previous_;
+	std::chrono::duration<double> delta_{};
+	std::chrono::duration<double> fixed_delta_{};
 };
 
 }  // namespace wolfenstein

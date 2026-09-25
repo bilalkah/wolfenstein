@@ -36,6 +36,24 @@ target_link_libraries(
 )
 
 add_library(
+    world
+    STATIC
+    src/world.cpp
+)
+target_include_directories(world PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(
+    world
+    PUBLIC
+    scene_loader
+    scene
+    character
+    weapon
+    sound_manager
+)
+
+add_library(
     game
     STATIC
     src/game.cpp
@@ -68,5 +86,6 @@ target_link_libraries(
     renderer_menu
     renderer_result
     scene_loader
+    world
     profiler
 )

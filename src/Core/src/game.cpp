@@ -1,7 +1,6 @@
 #include "Core/game.h"
 #include "Animation/looped_animation.h"
 #include "Characters/enemy.h"
-#include "Core/scene_loader.h"
 #include "GameObjects/dynamic_object.h"
 #include "GameObjects/static_object.h"
 #include "Math/vector.h"
@@ -58,37 +57,36 @@ void Game::Init() {
 
 	renderer_context_ = std::make_shared<RendererContext>(
 		"Wolfenstein", render_config, *camera_);
-	menu_ = std::make_unique<Menu>(renderer_context_);
+	auto world = World::Create(renderer_context_->Textures(), RESOURCE_DIR);
+	if (!world) {
+		std::cerr << "Cannot start the game: " << world.error() << '\n';
+		std::exit(EXIT_FAILURE);
+	}
+	world_ = std::move(*world);
+	menu_ = std::make_unique<Menu>(renderer_context_, world_->Sound());
 	renderer_3d_ = std::make_unique<Renderer3D>(renderer_context_);
 	renderer_2d_ = std::make_unique<Renderer2D>(renderer_context_);
-
-	// Starts the music, so it already plays in the menu
-	SoundManager::GetInstance().InitManager();
 	ApplySettings();
 }
 
-// Makes `scene` the current level. Both renderers (and through them the
-// camera) are pointed at it before the previous scene is destroyed, so no
-// view is ever left borrowing a dead scene.
-void Game::ShowScene(std::unique_ptr<Scene> scene) {
-	renderer_3d_->SetScene(*scene);
-	renderer_2d_->SetScene(*scene);
-	scene_ = std::move(scene);
+// The world has just replaced its level, destroying the previous one: every
+// view is pointed at the new one before anything draws again
+void Game::ShowLevel() {
+	renderer_3d_->SetScene(world_->CurrentLevel());
+	renderer_2d_->SetScene(world_->CurrentLevel());
+	// Loading is not a frame: the next frame starts timing from here
+	clock_.Restart();
 }
 
 void Game::NewGame(const std::string& weapon_name) {
-	CharacterConfig player_config = {Position2D({3, 1.5}, 1.50), 2.0, 0.4, 0.4,
-									 1.0};
-	// The old level borrows the old player: it goes first
-	scene_.reset();
-	player_ = std::make_unique<Player>(player_config, camera_,
-									   std::make_shared<Weapon>(weapon_name));
-
+	if (auto started = world_->NewGame(weapon_name, camera_); !started) {
+		std::cerr << "Cannot start a game: " << started.error() << '\n';
+		std::exit(EXIT_FAILURE);
+	}
 	render_type_ = RenderType::TEXTURE;
 	renderer_ = renderer_3d_.get();
-	ShowScene(SceneLoader::GetInstance().Load("level1.json", *player_));
-
-	camera_->SetPositionPtr(player_->GetPositionPtr());
+	ShowLevel();
+	camera_->SetPositionPtr(world_->GetPlayer().GetPositionPtr());
 
 	renderer_result_.reset();
 	level_transition_time_ = 0.0;
@@ -135,7 +133,7 @@ void Game::HandleMenuAction(const MenuAction& action) {
 }
 
 void Game::ApplySettings() {
-	SoundManager::GetInstance().SetMasterVolume(Settings::Get().volume);
+	world_->Sound().SetMasterVolume(Settings::Get().volume);
 }
 
 void Game::Present() {
@@ -145,7 +143,7 @@ void Game::Present() {
 void Game::StartBenchmark(int frames) {
 	constexpr double kFrameTime = 1.0 / 60.0;
 	benchmark_frames_ = frames;
-	TimeManager::GetInstance().SetFixedDeltaTime(kFrameTime);
+	clock_.SetFixedDeltaTime(kFrameTime);
 	Profiler::GetInstance().Enable(frames);
 	// Loading the level counts towards startup, as it did before the menu
 	// started games on demand
@@ -215,11 +213,10 @@ void Game::MenuTick() {
 	if (!PollMenuEvents()) {
 		return;
 	}
-	TimeManager::GetInstance().CalculateDeltaTime();
+	clock_.Tick();
 	SDL_SetRenderDrawColor(renderer_context_->GetRenderer(), 0, 0, 0, 255);
 	SDL_RenderClear(renderer_context_->GetRenderer());
-	const auto action =
-		menu_->Update(TimeManager::GetInstance().GetDeltaTime());
+	const auto action = menu_->Update(clock_.DeltaTime());
 	Present();
 	HandleMenuAction(action);
 }
@@ -229,10 +226,9 @@ void Game::PausedTick() {
 	if (!PollMenuEvents()) {
 		return;
 	}
-	TimeManager::GetInstance().CalculateDeltaTime();
-	renderer_->RenderScene();
-	const auto action =
-		menu_->Update(TimeManager::GetInstance().GetDeltaTime());
+	clock_.Tick();
+	renderer_->RenderScene(clock_.DeltaTime());
+	const auto action = menu_->Update(clock_.DeltaTime());
 	Present();
 	HandleMenuAction(action);
 }
@@ -241,10 +237,9 @@ void Game::ResultTick() {
 	if (!PollMenuEvents()) {
 		return;
 	}
-	TimeManager::GetInstance().CalculateDeltaTime();
-	renderer_result_->Render();
-	const auto action =
-		menu_->Update(TimeManager::GetInstance().GetDeltaTime());
+	clock_.Tick();
+	renderer_result_->Render(clock_.DeltaTime());
+	const auto action = menu_->Update(clock_.DeltaTime());
 	Present();
 	HandleMenuAction(action);
 }
@@ -267,7 +262,7 @@ void Game::GameTick() {
 	}
 #ifndef __EMSCRIPTEN__
 	// In the browser requestAnimationFrame already paces the frames
-	TimeManager::GetInstance().SleepForHz(config_.fps);
+	clock_.SleepForHz(config_.fps);
 #endif
 }
 
@@ -276,9 +271,9 @@ void Game::UpdateAndRender() {
 	if (state_ != GameState::Playing) {
 		return;
 	}
-	TimeManager::GetInstance().CalculateDeltaTime();
-	scene_->Update(TimeManager::GetInstance().GetDeltaTime());
-	renderer_->RenderScene();
+	clock_.Tick();
+	world_->CurrentLevel().Update(clock_.DeltaTime());
+	renderer_->RenderScene(clock_.DeltaTime());
 	ScopedTimer timer(ProfileSection::Present);
 	Present();
 }
@@ -335,17 +330,22 @@ void Game::CheckGameEvent() {
 }
 
 void Game::CheckGameOver() {
-	const double delta_time = TimeManager::GetInstance().GetDeltaTime();
-	if (!player_->IsAlive() && !renderer_result_) {
+	const double delta_time = clock_.DeltaTime();
+	if (!world_->GetPlayer().IsAlive() && !renderer_result_) {
 		renderer_result_ = std::make_unique<RendererResult>(renderer_context_,
 															kGameOverTexture);
 	}
-	if (scene_->GetNumberOfAliveEnemies() == 0 && !renderer_result_) {
-		if (!scene_->GetNextScene().empty()) {
+	if (world_->CurrentLevel().GetNumberOfAliveEnemies() == 0 &&
+		!renderer_result_) {
+		if (world_->HasNextLevel()) {
 			level_transition_time_ += delta_time;
 			if (level_transition_time_ >= kEndOfLevelDelay) {
-				ShowScene(SceneLoader::GetInstance().Load(
-					scene_->GetNextScene(), *player_));
+				if (auto next = world_->NextLevel(); !next) {
+					std::cerr << "Cannot load the next level: " << next.error()
+							  << '\n';
+					std::exit(EXIT_FAILURE);
+				}
+				ShowLevel();
 				level_transition_time_ = 0.0;
 			}
 		}
@@ -383,10 +383,10 @@ void Game::BenchmarkStep() {
 	constexpr double kWalkSpeed = 2.0;	// map units per second
 	constexpr std::size_t kWarmupFrames = 60;
 
-	player_->IncreaseHealth(100.0);
+	world_->GetPlayer().IncreaseHealth(100.0);
 
 	auto& profiler = Profiler::GetInstance();
-	const double frame_time = TimeManager::GetInstance().GetDeltaTime();
+	const double frame_time = clock_.DeltaTime();
 	double distance =
 		kWalkSpeed * frame_time * static_cast<double>(profiler.GetFrameCount());
 	double route_length = 0.0;
@@ -406,7 +406,7 @@ void Game::BenchmarkStep() {
 		if (distance <= length || i == kRoute.size() - 1) {
 			const double t = std::min(distance / length, 1.0);
 			const double direction = backwards ? -1.0 : 1.0;
-			player_->SetPosition(Position2D(
+			world_->GetPlayer().SetPosition(Position2D(
 				{x0 + (x1 - x0) * t, y0 + (y1 - y0) * t},
 				std::atan2(direction * (y1 - y0), direction * (x1 - x0))));
 			break;

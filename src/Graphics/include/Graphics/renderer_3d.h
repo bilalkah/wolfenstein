@@ -26,7 +26,7 @@ class Renderer3D : public IRenderer
 {
   public:
 	explicit Renderer3D(std::shared_ptr<RendererContext> context);
-	void RenderScene() override;
+	void RenderScene(double delta_time) override;
 
   private:
 	// One textured rectangle to draw. The queue is drawn back to front;
@@ -56,8 +56,8 @@ class Renderer3D : public IRenderer
 	std::tuple<int, int, int> CalculateVerticalSlice(const double& distance);
 	void RenderWeapon();
 	void RenderTextures();
-	void RenderHUD();
-	void RenderFps();
+	void RenderHUD(double delta_time);
+	void RenderFps(double delta_time);
 
 	// Reused every frame: clear() keeps the capacity, so after the first
 	// frame queueing never allocates

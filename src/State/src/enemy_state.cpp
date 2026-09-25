@@ -40,7 +40,8 @@ void IdleState::OnContextSet() {
 	// Idle holds each frame for animation_speed_, where other clips spread
 	// their duration over all frames
 	animation_ =
-		LoopedAnimation(LoopedAnimation::Clip(context_->GetBotName(), "idle"),
+		LoopedAnimation(LoopedAnimation::Clip(context_->GetScene().Textures(),
+											  context_->GetBotName(), "idle"),
 						animation_speed_);
 }
 
@@ -95,7 +96,8 @@ void WalkState::OnContextSet() {
 	attack_rate_ = context_->GetWeapon().GetAttackRate();
 	attack_range_ = context_->GetWeapon().GetAttackRange();
 	animation_ =
-		LoopedAnimation(context_->GetBotName(), "walk", animation_speed_);
+		LoopedAnimation(context_->GetScene().Textures(), context_->GetBotName(),
+						"walk", animation_speed_);
 }
 
 void WalkState::OnEnter() {
@@ -129,14 +131,14 @@ void AttackState::Update(const double& delta_time) {
 void AttackState::OnContextSet() {
 	animation_speed_ = context_->GetWeapon().GetAttackSpeed();
 	animation_ =
-		LoopedAnimation(context_->GetBotName(), "attack", animation_speed_);
+		LoopedAnimation(context_->GetScene().Textures(), context_->GetBotName(),
+						"attack", animation_speed_);
 }
 
 void AttackState::OnEnter() {
 	EnemyState::OnEnter();
 	attack_counter_ = 0.0;
-	SoundManager::GetInstance().PlayEffect(context_->GetSoundChannel(),
-										   SoundEffect::NpcAttack);
+	context_->PlaySound(SoundEffect::NpcAttack);
 }
 
 EnemyStateType AttackState::GetType() const {
@@ -162,14 +164,14 @@ void PainState::Update(const double& delta_time) {
 
 void PainState::OnContextSet() {
 	animation_ =
-		LoopedAnimation(context_->GetBotName(), "pain", animation_speed_);
+		LoopedAnimation(context_->GetScene().Textures(), context_->GetBotName(),
+						"pain", animation_speed_);
 }
 
 void PainState::OnEnter() {
 	EnemyState::OnEnter();
 	counter = 0.0;
-	SoundManager::GetInstance().PlayEffect(context_->GetSoundChannel(),
-										   SoundEffect::NpcPain);
+	context_->PlaySound(SoundEffect::NpcPain);
 }
 
 EnemyStateType PainState::GetType() const {
@@ -191,14 +193,14 @@ void DeathState::Update(const double& delta_time) {
 
 void DeathState::OnContextSet() {
 	animation_ =
-		LoopedAnimation(context_->GetBotName(), "death", animation_speed_);
+		LoopedAnimation(context_->GetScene().Textures(), context_->GetBotName(),
+						"death", animation_speed_);
 }
 
 void DeathState::OnEnter() {
 	EnemyState::OnEnter();
 	counter = 0.0;
-	SoundManager::GetInstance().PlayEffect(context_->GetSoundChannel(),
-										   SoundEffect::NpcDeath);
+	context_->PlaySound(SoundEffect::NpcDeath);
 }
 
 EnemyStateType DeathState::GetType() const {

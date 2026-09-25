@@ -19,6 +19,8 @@
 #include <string>
 namespace wolfenstein {
 
+class TextureManager;
+
 class Ray;
 struct WeaponConfig
 {
@@ -43,7 +45,11 @@ struct WeaponConfig
 class Weapon
 {
   public:
-	explicit Weapon(std::string weapon_name);
+	// Borrows the textures its animations play from and the sound it plays;
+	// both outlive it
+	Weapon(std::string weapon_name, const TextureManager& textures,
+		   SoundManager& sound);
+	const TextureManager& GetTextures() const { return textures_; }
 
 	// Pulls the trigger; true if a shot was fired (the caller resolves it)
 	bool Attack();
@@ -66,11 +72,16 @@ class Weapon
 	double GetAttackSpeed() const;
 	double GetReloadSpeed() const;
 	const std::string& GetWeaponName() const;
-	SoundChannel GetSoundChannel() const { return sound_channel_; }
+	// Plays on the weapon's own channel
+	void PlaySound(SoundEffect effect) {
+		sound_.PlayEffect(sound_channel_, effect);
+	}
 	int GetTextureId() const;
 	const Ray& GetCrosshair() const;
 
   private:
+	const TextureManager& textures_;
+	SoundManager& sound_;
 	WeaponConfig weapon_properties_;
 	SoundChannel sound_channel_;
 	size_t ammo_{};

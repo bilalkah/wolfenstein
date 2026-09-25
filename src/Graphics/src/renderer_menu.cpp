@@ -39,14 +39,15 @@ SDL_Rect ButtonRect(int screen_width, int top, int index) {
 
 }  // namespace
 
-Menu::Menu(std::shared_ptr<RendererContext> context)
+Menu::Menu(std::shared_ptr<RendererContext> context, SoundManager& sound)
 	: context_(std::move(context)),
 	  ui_(std::make_unique<ui::Ui>(
 		  context_->GetRenderer(),
 		  std::string(RESOURCE_DIR) + "font/EternalAncient.ttf",
 		  std::string(RESOURCE_DIR) + "font/Roboto-Light.ttf")) {
 	for (const auto& info : kWeapons) {
-		weapons_.push_back(std::make_shared<Weapon>(info.name));
+		weapons_.push_back(
+			std::make_shared<Weapon>(info.name, context_->Textures(), sound));
 	}
 }
 
@@ -218,8 +219,7 @@ void Menu::DrawWeaponCard(const SDL_Rect& rect, const Weapon& weapon,
 	// Weapon sprite, scaled to fit the preview area and kept in proportion
 	const SDL_Rect preview{rect.x + kPadding, rect.y + kPadding,
 						   rect.w - 2 * kPadding, 230};
-	const auto texture =
-		TextureManager::GetInstance().GetTexture(weapon.GetTextureId());
+	const auto texture = context_->Textures().GetTexture(weapon.GetTextureId());
 	if (texture.texture != nullptr && texture.width > 0 && texture.height > 0) {
 		const double scale =
 			std::min(static_cast<double>(preview.w) / texture.width,
@@ -413,11 +413,10 @@ MenuAction Menu::ResultScreen() {
 }
 
 void Menu::DrawBackground() {
-	SDL_RenderCopy(context_->GetRenderer(),
-				   TextureManager::GetInstance()
-					   .GetTexture(kMenuBackgroundTexture)
-					   .texture,
-				   nullptr, nullptr);
+	SDL_RenderCopy(
+		context_->GetRenderer(),
+		context_->Textures().GetTexture(kMenuBackgroundTexture).texture,
+		nullptr, nullptr);
 }
 
 void Menu::DrawDimmer(Uint8 alpha) {
