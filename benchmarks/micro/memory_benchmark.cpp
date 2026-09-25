@@ -41,7 +41,8 @@ void BM_LevelNewDelete(benchmark::State& state) {
 			delete object;
 		}
 	}
-	state.SetItemsProcessed(state.iterations() * kObjects);
+	state.SetItemsProcessed(state.iterations() *
+							static_cast<std::int64_t>(kObjects));
 }
 BENCHMARK(BM_LevelNewDelete);
 
@@ -56,7 +57,8 @@ void BM_LevelMonotonicArena(benchmark::State& state) {
 		benchmark::DoNotOptimize(objects.data());
 		arena.Reset();
 	}
-	state.SetItemsProcessed(state.iterations() * kObjects);
+	state.SetItemsProcessed(state.iterations() *
+							static_cast<std::int64_t>(kObjects));
 }
 BENCHMARK(BM_LevelMonotonicArena);
 
@@ -72,7 +74,8 @@ void BM_LevelStdMonotonicBuffer(benchmark::State& state) {
 		}
 		benchmark::DoNotOptimize(objects.data());
 	}
-	state.SetItemsProcessed(state.iterations() * kObjects);
+	state.SetItemsProcessed(state.iterations() *
+							static_cast<std::int64_t>(kObjects));
 }
 BENCHMARK(BM_LevelStdMonotonicBuffer);
 

@@ -25,7 +25,7 @@ namespace wolfenstein {
 
 class Camera2D;
 class Scene;
-class Ray;
+struct Ray;
 // Player.h
 class Player : public ICharacter, public IGameObject
 {
@@ -68,7 +68,6 @@ class Player : public ICharacter, public IGameObject
 	Scene* scene_ = nullptr;
 	bool is_alive_{true};
 	bool damaged_{false};
-	double rotation_speed_{};
 	double translation_speed_{};
 	double width_{};
 	double height_{};

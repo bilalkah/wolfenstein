@@ -144,7 +144,7 @@ void Game::StartBenchmark(int frames) {
 	constexpr double kFrameTime = 1.0 / 60.0;
 	benchmark_frames_ = frames;
 	clock_.SetFixedDeltaTime(kFrameTime);
-	Profiler::GetInstance().Enable(frames);
+	Profiler::GetInstance().Enable(static_cast<std::size_t>(frames));
 	// Loading the level counts towards startup, as it did before the menu
 	// started games on demand
 	const auto load_start = std::chrono::steady_clock::now();

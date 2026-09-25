@@ -80,7 +80,6 @@ class Enemy : public ICharacter, public IGameObject
 	Scene& scene_;
 	bool is_attacked_{};
 	bool is_alive_{};
-	double rotation_speed_{};
 	double translation_speed_{};
 	double width{};
 	double height{};

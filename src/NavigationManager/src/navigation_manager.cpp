@@ -10,17 +10,41 @@
 
 namespace wolfenstein {
 
-NavigationManager::NavigationManager(const Scene& scene) : scene_(scene) {}
+namespace {
+constexpr int kCellsPerSide =
+	static_cast<int>(1.0 / NavigationManager::kCellSize);
+}  // namespace
+
+NavigationManager::NavigationManager(const Scene& scene,
+									 std::pmr::memory_resource* memory)
+	: scene_(scene),
+	  // Weight 0.6: f = 0.4 g + 0.6 h, the tuning the game has always used
+	  path_finder_(0.6, memory),
+	  routes_(memory),
+	  obstacles_(memory),
+	  cells_(memory) {}
+
+std::size_t NavigationManager::MemoryFor(int map_rows, int map_cols,
+										 std::size_t objects,
+										 std::size_t enemies) {
+	const int height = map_rows * kCellsPerSide;
+	const int width = map_cols * kCellsPerSide;
+	const auto cells =
+		static_cast<std::size_t>(height) * static_cast<std::size_t>(width);
+	constexpr std::size_t kPadding = alignof(std::max_align_t);
+	return GridPathFinder::MemoryFor(height, width) + objects * sizeof(Route) +
+		   2 * enemies * sizeof(GridCell) + cells * sizeof(GridCell) +
+		   3 * kPadding;
+}
 
 void NavigationManager::Build() {
-	// Each map cell splits into cells_per_side^2 pathfinding cells, built
+	// Each map cell splits into kCellsPerSide^2 pathfinding cells, built
 	// straight into the path finder's grid
 	const Map& map = scene_.GetMap();
-	const int cells_per_side = static_cast<int>(1.0 / kCellSize);
-	path_finder_.SetGrid(map.GetSizeX() * cells_per_side,
-						 map.GetSizeY() * cells_per_side, [&](int x, int y) {
-							 return map.IsBlocked(x / cells_per_side,
-												  y / cells_per_side);
+	path_finder_.SetGrid(map.GetSizeX() * kCellsPerSide,
+						 map.GetSizeY() * kCellsPerSide, [&](int x, int y) {
+							 return map.IsBlocked(x / kCellsPerSide,
+												  y / kCellsPerSide);
 						 });
 
 	// A path visits each free cell at most once, so the scratch path never

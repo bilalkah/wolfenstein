@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
 #include <limits>
 
 namespace wolfenstein {
@@ -21,8 +22,26 @@ float Heuristic(GridCell from, GridCell to) {
 
 }  // namespace
 
-GridPathFinder::GridPathFinder(double heuristic_weight)
-	: heuristic_weight_(heuristic_weight) {}
+GridPathFinder::GridPathFinder(double heuristic_weight,
+							   std::pmr::memory_resource* memory)
+	: heuristic_weight_(heuristic_weight),
+	  walls_(memory),
+	  blocked_stamp_(memory),
+	  seen_stamp_(memory),
+	  closed_stamp_(memory),
+	  g_(memory),
+	  parent_(memory),
+	  open_(memory) {}
+
+std::size_t GridPathFinder::MemoryFor(int height, int width) {
+	const auto cells =
+		static_cast<std::size_t>(height) * static_cast<std::size_t>(width);
+	constexpr std::size_t kArrays = 7;
+	constexpr std::size_t kPadding = alignof(std::max_align_t);
+	return cells * (sizeof(std::uint8_t) + 3 * sizeof(std::uint32_t) +
+					sizeof(float) + sizeof(std::int32_t)) +
+		   (cells * kSteps.size() + 1) * sizeof(OpenEntry) + kArrays * kPadding;
+}
 
 void GridPathFinder::SetGrid(int height, int width,
 							 std::span<const std::uint8_t> blocked) {
@@ -70,7 +89,7 @@ void GridPathFinder::NextGeneration() {
 
 bool GridPathFinder::FindPath(GridCell start, GridCell goal,
 							  std::span<const GridCell> extra_blocked,
-							  std::vector<GridCell>& path) {
+							  std::pmr::vector<GridCell>& path) {
 	path.clear();
 	if (!Contains(start) || !Contains(goal)) {
 		return false;

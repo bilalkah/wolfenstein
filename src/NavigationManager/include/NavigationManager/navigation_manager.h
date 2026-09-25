@@ -19,6 +19,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory_resource>
 #include <span>
 #include <vector>
 
@@ -37,7 +38,13 @@ class NavigationManager
 	// around one another inside a corridor
 	static constexpr double kCellSize = 0.5;
 
-	explicit NavigationManager(const Scene& scene);
+	// Takes every buffer from `memory` (the level's arena)
+	NavigationManager(const Scene& scene, std::pmr::memory_resource* memory);
+
+	// Bytes Build takes from the memory resource for a map this size with
+	// this many objects and enemies: what the level's arena budgets for it
+	static std::size_t MemoryFor(int map_rows, int map_cols,
+								 std::size_t objects, std::size_t enemies);
 	// Refers to its scene
 	NavigationManager(const NavigationManager&) = delete;
 	NavigationManager& operator=(const NavigationManager&) = delete;
@@ -62,8 +69,7 @@ class NavigationManager
 	void CollectDynamicObstacles();
 
 	const Scene& scene_;
-	// Weight 0.6: f = 0.4 g + 0.6 h, the tuning the game has always used
-	GridPathFinder path_finder_{0.6};
+	GridPathFinder path_finder_;
 	// The start of an enemy's current path, stored inline. Only the next
 	// cell or two steer the enemy (and its next cell blocks the others); the
 	// rest is for the 2D view. Reserving room for a path through every free
@@ -75,10 +81,10 @@ class NavigationManager
 		std::uint32_t size = 0;
 	};
 	// Indexed by ObjectId, sized once per level
-	std::vector<Route> routes_;
+	std::pmr::vector<Route> routes_;
 	// Scratch buffers reused by every query
-	std::vector<GridCell> obstacles_;
-	std::vector<GridCell> cells_;
+	std::pmr::vector<GridCell> obstacles_;
+	std::pmr::vector<GridCell> cells_;
 };
 
 }  // namespace wolfenstein

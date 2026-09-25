@@ -15,6 +15,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <memory_resource>
 #include <span>
 #include <vector>
 
@@ -33,11 +34,18 @@ struct GridCell
 //
 // Queries do not allocate once the grid is set: every per-cell array is sized
 // by SetGrid and reused, and a generation counter marks which entries belong
-// to the current query, so nothing is cleared between queries.
+// to the current query, so nothing is cleared between queries. The arrays
+// come from the memory resource it is given (a level's arena, in the game).
 class GridPathFinder
 {
   public:
-	explicit GridPathFinder(double heuristic_weight);
+	explicit GridPathFinder(
+		double heuristic_weight,
+		std::pmr::memory_resource* memory = std::pmr::get_default_resource());
+
+	// Bytes one SetGrid of this size takes from the memory resource,
+	// alignment padding included: what an arena must budget for it
+	static std::size_t MemoryFor(int height, int width);
 
 	// blocked is row-major (x * width + y); non-zero cells are walls.
 	// Allocates only when the grid grows.
@@ -63,7 +71,7 @@ class GridPathFinder
 	// query only. Start and goal are always passable.
 	bool FindPath(GridCell start, GridCell goal,
 				  std::span<const GridCell> extra_blocked,
-				  std::vector<GridCell>& path);
+				  std::pmr::vector<GridCell>& path);
 
 	int Height() const { return height_; }
 	int Width() const { return width_; }
@@ -86,15 +94,15 @@ class GridPathFinder
 	double heuristic_weight_;
 	int height_ = 0;
 	int width_ = 0;
-	std::vector<std::uint8_t> walls_;
+	std::pmr::vector<std::uint8_t> walls_;
 	// A cell's entry is valid for the current query only when its stamp
 	// equals generation_
-	std::vector<std::uint32_t> blocked_stamp_;
-	std::vector<std::uint32_t> seen_stamp_;
-	std::vector<std::uint32_t> closed_stamp_;
-	std::vector<float> g_;
-	std::vector<std::int32_t> parent_;
-	std::vector<OpenEntry> open_;  // binary min-heap on f
+	std::pmr::vector<std::uint32_t> blocked_stamp_;
+	std::pmr::vector<std::uint32_t> seen_stamp_;
+	std::pmr::vector<std::uint32_t> closed_stamp_;
+	std::pmr::vector<float> g_;
+	std::pmr::vector<std::int32_t> parent_;
+	std::pmr::vector<OpenEntry> open_;	// binary min-heap on f
 	std::uint32_t generation_ = 0;
 };
 

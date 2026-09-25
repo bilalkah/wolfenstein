@@ -10,8 +10,8 @@ void StaticObject::Update(double delta_time) {
 	(void)delta_time;
 }
 
-void StaticObject::SetPose(const vector2d& pose) {
-	this->pose = pose;
+void StaticObject::SetPose(const vector2d& new_pose) {
+	pose = new_pose;
 }
 
 ObjectType StaticObject::GetObjectType() const {
