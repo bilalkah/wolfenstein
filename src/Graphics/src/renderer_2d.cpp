@@ -21,7 +21,7 @@ std::vector<vector2i> GenerateCirclePoints(vector2i center, int radius,
 
 }  // namespace
 
-void Renderer2D::RenderScene() {
+void Renderer2D::RenderScene(double /*delta_time*/) {
 	ClearScreen();
 	RenderMap();
 	RenderPlayer();

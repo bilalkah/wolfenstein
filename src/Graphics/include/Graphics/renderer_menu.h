@@ -40,7 +40,7 @@ struct MenuAction
 class Menu
 {
   public:
-	explicit Menu(std::shared_ptr<RendererContext> context);
+	Menu(std::shared_ptr<RendererContext> context, SoundManager& sound);
 
 	void Open(MenuScreen screen);
 	MenuScreen GetScreen() const { return screen_; }

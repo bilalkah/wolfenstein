@@ -20,7 +20,7 @@ class Renderer2D : public IRenderer
 {
   public:
 	using IRenderer::IRenderer;
-	void RenderScene() override;
+	void RenderScene(double delta_time) override;
 
   private:
 	void RenderMap();

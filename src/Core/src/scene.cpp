@@ -22,8 +22,11 @@ std::size_t LevelArenaBytes(SceneCapacity capacity) {
 
 }  // namespace
 
-Scene::Scene(SceneCapacity capacity)
-	: arena_(LevelArenaBytes(capacity)),
+Scene::Scene(const TextureManager& textures, SoundManager& sound,
+			 SceneCapacity capacity)
+	: textures_(textures),
+	  sound_(sound),
+	  arena_(LevelArenaBytes(capacity)),
 	  enemies_(capacity.enemies, &arena_),
 	  dynamic_objects_(capacity.dynamic_objects, &arena_),
 	  objects_(&arena_),

@@ -44,15 +44,15 @@ WeaponStateType LoadedState::GetType() const {
 void LoadedState::OnContextSet() {
 	fire_rate_ = context_->GetAttackSpeed();
 	animation_ =
-		LoopedAnimation(context_->GetWeaponName(), "loaded", fire_rate_);
+		LoopedAnimation(context_->GetTextures(), context_->GetWeaponName(),
+						"loaded", fire_rate_);
 }
 
 bool LoadedState::PullTrigger() {
 	if (trigger_pulled_) {
 		return false;
 	}
-	SoundManager::GetInstance().PlayEffect(context_->GetSoundChannel(),
-										   SoundEffect::Shotgun);
+	context_->PlaySound(SoundEffect::Shotgun);
 	trigger_pulled_ = true;
 	trigger_pull_time_ = 0;
 	context_->DecreaseAmmo();
@@ -85,7 +85,8 @@ WeaponStateType OutOfAmmoState::GetType() const {
 void OutOfAmmoState::OnContextSet() {
 	fire_rate_ = context_->GetAttackSpeed();
 	animation_ =
-		LoopedAnimation(context_->GetWeaponName(), "outofammo", fire_rate_);
+		LoopedAnimation(context_->GetTextures(), context_->GetWeaponName(),
+						"outofammo", fire_rate_);
 }
 
 bool OutOfAmmoState::PullTrigger() {
@@ -121,7 +122,8 @@ WeaponStateType ReloadingState::GetType() const {
 void ReloadingState::OnContextSet() {
 	reload_speed_ = context_->GetReloadSpeed();
 	animation_ =
-		LoopedAnimation(context_->GetWeaponName(), "reload", reload_speed_);
+		LoopedAnimation(context_->GetTextures(), context_->GetWeaponName(),
+						"reload", reload_speed_);
 }
 
 }  // namespace wolfenstein

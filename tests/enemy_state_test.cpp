@@ -9,6 +9,7 @@
 #include "Map/map.h"
 #include "Strike/weapon.h"
 #include "test_map.h"
+#include "test_services.h"
 #include <gtest/gtest.h>
 #include <memory>
 
@@ -46,8 +47,12 @@ class EnemyStateTest : public ::testing::Test
 		std::make_shared<Camera2D>(Camera2DConfig(64, 1.0, 10.0));
 	CharacterConfig player_config_{Position2D({1.5, 4.5}, 0.0), 1.0, 1.0, 0.4,
 								   0.4};
-	Player player_{player_config_, camera_, std::make_shared<Weapon>("mp5")};
-	Scene scene_{SceneCapacity{.enemies = 1}};
+	Player player_{player_config_, camera_,
+				   std::make_shared<Weapon>("mp5", testing::TestTextures(),
+											testing::TestSound()),
+				   testing::TestSound()};
+	Scene scene_{testing::TestTextures(), testing::TestSound(),
+				 SceneCapacity{.enemies = 1}};
 	Enemy* enemy_ = nullptr;
 };
 

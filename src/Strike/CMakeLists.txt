@@ -10,7 +10,6 @@ target_link_libraries(
     weapon
     PUBLIC
     animation
-    time_manager
     texture_manager
     weapon_state
     sound_manager

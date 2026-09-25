@@ -34,6 +34,7 @@ TEST(LevelData, ParsesTheGameConfig) {
 	ASSERT_TRUE(config->enemies.contains("soldier"));
 	EXPECT_DOUBLE_EQ(config->enemies.at("soldier").width, 0.3);
 	EXPECT_DOUBLE_EQ(config->light.animation_speed, 0.3);
+	EXPECT_DOUBLE_EQ(config->player.translation_speed, 2.0);
 }
 
 TEST(LevelData, ReportsMalformedFilesAsErrors) {

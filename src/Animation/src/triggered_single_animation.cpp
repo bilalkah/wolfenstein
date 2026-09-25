@@ -1,8 +1,6 @@
 #include "Animation/triggered_single_animation.h"
-#include "TextureManager/texture_manager.h"
-#include <cassert>
-
-#define assertm(exp, msg) assert((void(msg), exp))
+#include <algorithm>
+#include <cmath>
 
 namespace wolfenstein {
 
@@ -12,34 +10,15 @@ TriggeredSingleAnimation::TriggeredSingleAnimation(const uint16_t texture_id,
 												   int alpha_end)
 	: texture_id(texture_id),
 	  animation_speed(animation_speed),
-	  transparancy(alpha_start),
 	  alpha_start(alpha_start),
-	  alpha_end(alpha_end),
-	  direction((alpha_end - alpha_start) / abs((alpha_end - alpha_start))) {}
+	  alpha_end(alpha_end) {}
 
 void TriggeredSingleAnimation::Update(const double& delta_time) {
-	if (is_animation_finished_once) {
-		return;
-	}
-	counter += delta_time;
-	transparancy =
-		static_cast<int>(alpha_start + (counter * direction * animation_speed) *
-										   abs(alpha_start - alpha_end));
-	// Looked up when used rather than held as a reference into
-	// TextureManager's storage from construction
-	SDL_SetTextureAlphaMod(
-		TextureManager::GetInstance().GetTexture(texture_id).texture,
-		static_cast<Uint8>(transparancy));
-
-	if (!is_animation_finished_once && transparancy == alpha_end) {
-		is_animation_finished_once = true;
-	}
-}  // namespace wolfenstein
+	progress_ = std::min(progress_ + delta_time * animation_speed, 1.0);
+}
 
 void TriggeredSingleAnimation::Reset() {
-	counter = 0;
-	transparancy = alpha_start;
-	is_animation_finished_once = false;
+	progress_ = 0.0;
 }
 
 int TriggeredSingleAnimation::GetCurrentFrame() const {
@@ -47,7 +26,12 @@ int TriggeredSingleAnimation::GetCurrentFrame() const {
 }
 
 bool TriggeredSingleAnimation::IsAnimationFinishedOnce() const {
-	return is_animation_finished_once;
+	return progress_ >= 1.0;
+}
+
+std::uint8_t TriggeredSingleAnimation::GetAlpha() const {
+	const double alpha = alpha_start + (alpha_end - alpha_start) * progress_;
+	return static_cast<std::uint8_t>(std::clamp(std::lround(alpha), 0L, 255L));
 }
 
 }  // namespace wolfenstein

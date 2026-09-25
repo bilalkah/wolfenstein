@@ -15,13 +15,14 @@
 namespace wolfenstein {
 
 Player::Player(CharacterConfig& config, std::shared_ptr<Camera2D>& camera,
-			   std::shared_ptr<Weapon> weapon)
+			   std::shared_ptr<Weapon> weapon, SoundManager& sound)
 	: rotation_speed_(config.rotation_speed),
 	  translation_speed_(config.translation_speed),
 	  width_(config.width),
 	  height_(config.height),
 	  health_(100),
-	  sound_channel_(SoundManager::GetInstance().AllocateChannel()),
+	  sound_(sound),
+	  sound_channel_(sound.AllocateChannel()),
 	  damage_animation_(9, 1) {
 	camera_ = camera;
 	position_ptr_ = std::make_shared<Position2D>(config.initial_position);
@@ -82,8 +83,7 @@ void Player::DecreaseHealth(double amount) {
 	if (health_ <= 0.0) {
 		is_alive_ = false;
 	}
-	SoundManager::GetInstance().PlayEffect(sound_channel_,
-										   SoundEffect::PlayerPain);
+	sound_.PlayEffect(sound_channel_, SoundEffect::PlayerPain);
 	damaged_ = true;
 	damage_animation_.Reset();
 }
