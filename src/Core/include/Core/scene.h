@@ -134,6 +134,12 @@ class Scene
 
 	size_t GetNumberOfAliveEnemies() const;
 	LevelStats GetStats() const;
+	// Whether no living enemy is engaged with the player
+	bool IsQuiet() const;
+	// Putting back what a saved game recorded: the level's enemy `index`
+	// (in level file order) lying dead, and the level's clock
+	void RestoreKilled(std::size_t index);
+	void RestoreSeconds(double seconds) { elapsed_ = seconds; }
 	const memory::MonotonicArena& LevelMemory() const { return arena_; }
 
 	// How long a door takes to open or close, and stays open

@@ -5,6 +5,7 @@
 #include "Settings/storage.h"
 #include <array>
 #include <gtest/gtest.h>
+#include <string>
 #include <string_view>
 
 namespace wolfenstein {
@@ -25,6 +26,39 @@ TEST(SavedGame, SurvivesARoundTrip) {
 	const auto parsed = SavedGame::Parse(std::string_view(buffer.data(), size));
 	ASSERT_TRUE(parsed);
 	EXPECT_EQ(parsed.value_or(SavedGame{}), kSaved);
+}
+
+// A save made mid-level carries where the player stood and what is done
+TEST(SavedGame, CarriesASnapshotOfTheLevel) {
+	SavedGame snapshot = kSaved;
+	snapshot.has_position = true;
+	snapshot.x = 13.5;
+	snapshot.y = 2.25;
+	snapshot.theta = -1.5;
+	snapshot.seconds = 87.25;
+	snapshot.killed = 0b1011;
+	snapshot.taken = 0b100;
+	snapshot.explored_cells = 20;
+	snapshot.explored[0] = 0xA5;
+	snapshot.explored[2] = 0x0F;
+	std::array<char, 1024> buffer{};
+	const std::size_t size = snapshot.Format(buffer);
+	ASSERT_GT(size, 0u);
+	const auto parsed = SavedGame::Parse(std::string_view(buffer.data(), size));
+	ASSERT_TRUE(parsed);
+	EXPECT_EQ(parsed.value_or(SavedGame{}), snapshot);
+}
+
+TEST(SavedGame, APositionIsAllThreeOrNone) {
+	const std::string_view base =
+		"level=1\nweapon=0\ndifficulty=1\nhealth=100\nammo=18\nreserve=54\n";
+	EXPECT_FALSE(SavedGame::Parse(std::string(base) + "x=1.5\ny=2.5\n"));
+	const auto whole =
+		SavedGame::Parse(std::string(base) + "x=1.5\ny=2.5\ntheta=0\n");
+	ASSERT_TRUE(whole);
+	EXPECT_TRUE(whole.value_or(SavedGame{}).has_position);
+	EXPECT_FALSE(SavedGame::Parse(base).value_or(SavedGame{}).has_position);
+	EXPECT_FALSE(SavedGame::Parse(std::string(base) + "explored=zz\n"));
 }
 
 TEST(SavedGame, AnIncompleteOrBrokenRecordIsNoSave) {

@@ -64,6 +64,14 @@ class RecordWriter
 		return *this;
 	}
 
+	RecordWriter& LineText(std::string_view key, std::string_view value) {
+		Append(key);
+		Append("=");
+		Append(value);
+		Append("\n");
+		return *this;
+	}
+
 	// The lines written, or empty if they did not all fit
 	std::string_view Text() const {
 		return failed_ ? std::string_view{}

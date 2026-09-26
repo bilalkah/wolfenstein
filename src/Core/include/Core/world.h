@@ -9,6 +9,7 @@
 #include "Characters/player.h"
 #include "Core/scene.h"
 #include "Core/scene_loader.h"
+#include "Settings/saved_game.h"
 #include "SoundManager/sound_manager.h"
 #include <cassert>
 #include <cstddef>
@@ -61,11 +62,16 @@ class World
 	std::expected<void, std::string> NewGame(
 		std::string_view weapon_name, std::string_view level = {},
 		std::string_view difficulty = "normal");
-	// The same, but at the campaign's level `level_index` (from 0): going on
-	// with a saved game
-	std::expected<void, std::string> ContinueGame(std::string_view weapon_name,
-												  std::string_view difficulty,
-												  std::size_t level_index);
+	// Goes on with a saved game: its level, with the player where it stood
+	// and carrying what it carried, and the level as it was left (enemies
+	// killed, pickups taken, the map explored, the clock)
+	std::expected<void, std::string> ContinueGame(const SavedGame& saved);
+	// The campaign as it stands, to save; nullopt outside the campaign.
+	// Allocates nothing: games are saved while they run.
+	std::optional<SavedGame> Capture() const;
+	// Whether it is a moment to save: nothing is fighting the player, and
+	// nothing has hurt it for a little while
+	bool IsQuiet() const;
 	// Replaces the finished level with the campaign's next one (same caveat)
 	std::expected<void, std::string> NextLevel();
 	bool HasNextLevel() const;

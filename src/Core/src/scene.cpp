@@ -290,6 +290,20 @@ size_t Scene::GetNumberOfAliveEnemies() const {
 	return number_of_alive_enemies;
 }
 
+bool Scene::IsQuiet() const {
+	return std::ranges::all_of(enemy_list_, &Enemy::IsCalm);
+}
+
+void Scene::RestoreKilled(std::size_t index) {
+	Enemy* enemy = enemy_list_[index];
+	if (!enemy->IsAlive()) {
+		return;
+	}
+	enemy->RestoreDead();
+	navigation_.ResetPath(enemy->GetId());
+	DecreaseAliveEnemies();
+}
+
 LevelStats Scene::GetStats() const {
 	const auto taken = static_cast<std::size_t>(
 		std::ranges::count_if(pickup_list_, &Pickup::IsTaken));

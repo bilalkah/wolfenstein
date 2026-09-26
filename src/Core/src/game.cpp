@@ -135,16 +135,10 @@ void Game::ContinueSavedGame() {
 	if (!saved_game_) {
 		return;
 	}
-	const SavedGame saved = *saved_game_;
-	const GameConfig& config = world_->Config();
-	if (auto started = world_->ContinueGame(
-			config.weapons[saved.weapon].weapon_name,
-			config.difficulties[saved.difficulty].name, saved.level);
-		!started) {
+	if (auto started = world_->ContinueGame(*saved_game_); !started) {
 		std::cerr << "Cannot continue the game: " << started.error() << '\n';
 		std::exit(EXIT_FAILURE);
 	}
-	world_->GetPlayer().Restore(saved.health, saved.ammo, saved.reserve);
 	BeginGame();
 }
 
@@ -166,32 +160,33 @@ void Game::BeginGame() {
 	SaveProgress();
 }
 
-// The campaign so far, as this level starts; scripted runs leave the
-// player's saved game alone
+// The campaign as it stands; scripted runs leave the player's saved game
+// alone. Allocates nothing: it happens while the game runs.
 void Game::SaveProgress() {
-	if (IsScripted() || !world_->InCampaign()) {
+	if (IsScripted()) {
 		return;
 	}
-	const GameConfig& config = world_->Config();
-	const Player& player = world_->GetPlayer();
-	const Weapon& weapon = player.GetWeapon();
-	SavedGame saved{.level = world_->LevelNumber() - 1,
-					.health = player.GetHealth(),
-					.ammo = weapon.GetAmmo(),
-					.reserve = weapon.GetReserve()};
-	for (std::size_t i = 0; i < config.weapons.size(); ++i) {
-		if (config.weapons[i].weapon_name == weapon.GetWeaponName()) {
-			saved.weapon = i;
-		}
+	const auto saved = world_->Capture();
+	if (!saved) {
+		return;
 	}
-	for (std::size_t i = 0; i < config.difficulties.size(); ++i) {
-		if (&config.difficulties[i] == &world_->Difficulty()) {
-			saved.difficulty = i;
-		}
-	}
-	saved.Save();
+	saved->Save();
 	saved_game_ = saved;
+	since_save_ = 0.0;
 	DescribeSavedGame();
+}
+
+// Saves now and then while nothing is fighting the player, so a later
+// session goes on from about where this one stopped, never mid-fight
+void Game::AutoSave(double delta_time) {
+	constexpr double kAutoSaveSeconds = 5.0;
+	since_save_ += delta_time;
+	if (since_save_ >= kAutoSaveSeconds && fade_ == Fade::None &&
+		!renderer_result_ &&
+		world_->CurrentLevel().GetNumberOfAliveEnemies() > 0 &&
+		world_->IsQuiet()) {
+		SaveProgress();
+	}
 }
 
 // Offers the saved game on the main menu, by its level and difficulty
@@ -235,6 +230,10 @@ void Game::HandleMenuAction(const MenuAction& action) {
 			EnterPlaying();
 			break;
 		case MenuAction::Type::QuitToMenu:
+			// Where the player left off, unless in the middle of a fight
+			if (world_->IsQuiet() && fade_ == Fade::None && !renderer_result_) {
+				SaveProgress();
+			}
 			state_ = GameState::Menu;
 			SDL_SetRelativeMouseMode(SDL_FALSE);
 			menu_->Open(MenuScreen::Main);
@@ -618,6 +617,7 @@ void Game::UpdateAndRender() {
 		camera_->Update(world_->GetPlayer().GetRenderPosition(alpha), alpha);
 		camera_->ExploreView();
 	}
+	AutoSave(clock_.DeltaTime());
 	RenderView(alpha);
 	DrawTransition();
 	ScopedTimer timer(ProfileSection::Present);

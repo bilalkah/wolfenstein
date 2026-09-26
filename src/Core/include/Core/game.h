@@ -103,6 +103,7 @@ class Game
 	// What every game does as it starts, new or continued
 	void BeginGame();
 	void SaveProgress();
+	void AutoSave(double delta_time);
 	void DescribeSavedGame();
 	// Points every view at the world's current level
 	void ShowLevel();
@@ -149,6 +150,7 @@ class Game
 	// The explored part of the level, in a corner or large (M)
 	// The campaign the player can go on with, if any
 	std::optional<SavedGame> saved_game_;
+	double since_save_ = 0.0;
 	// The difficulties a new game offers
 	std::vector<DifficultyChoice> difficulty_choices_;
 	std::unique_ptr<Minimap> minimap_;
