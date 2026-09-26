@@ -46,6 +46,25 @@ TEST_F(AimTest, MissesWhenAimingAside) {
 	EXPECT_FALSE(Aim(scene_, Position2D({1.5, 1.5}, kFacingDown + 0.5)).is_hit);
 }
 
+// Shot dead, an enemy falls for a while (pain, then its death) before it
+// stops being alive. Shots at it meanwhile must not count it again: a count
+// below zero wrapped round, and the level never ended.
+TEST_F(AimTest, AFallingEnemyIsKilledOnce) {
+	const Weapon weapon(testing::Weapon("mp5"), testing::TestTextures(),
+						testing::TestSound());
+	const Position2D eye({1.5, 1.5}, kFacingDown);
+	ASSERT_EQ(scene_.GetNumberOfAliveEnemies(), 1u);
+	for (int shot = 0; shot < 40; ++shot) {	 // many more than it takes
+		ResolvePlayerShot(scene_, weapon, eye);
+	}
+	const Enemy& enemy = *scene_.GetEnemies().front();
+	EXPECT_LE(enemy.GetHealth(), 0.0);
+	EXPECT_TRUE(enemy.IsAlive());  // still falling: no update ran
+	EXPECT_EQ(scene_.GetNumberOfAliveEnemies(), 0u);
+	// Shots pass through it now
+	EXPECT_FALSE(Aim(scene_, eye).is_hit);
+}
+
 class AimThroughWallTest : public AimTest
 {
   protected:

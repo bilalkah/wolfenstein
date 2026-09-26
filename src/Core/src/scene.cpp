@@ -1,5 +1,6 @@
 #include "Core/scene.h"
 #include "Profiler/profiler.h"
+#include <cassert>
 #include <utility>
 namespace wolfenstein {
 
@@ -100,7 +101,12 @@ void Scene::FinishLoading() {
 }
 
 void Scene::DecreaseAliveEnemies() {
-	number_of_alive_enemies--;
+	// Counting a kill twice would wrap the count, and the level would never
+	// end
+	assert(number_of_alive_enemies > 0 && "an enemy killed twice");
+	if (number_of_alive_enemies > 0) {
+		--number_of_alive_enemies;
+	}
 }
 
 void Scene::Update(double delta_time) {
