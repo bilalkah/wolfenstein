@@ -311,11 +311,12 @@ MenuAction Menu::ControlsScreen() {
 		const char* action;
 		const char* keys;
 	};
-	constexpr std::array<Binding, 7> kBindings = {{
+	constexpr std::array<Binding, 8> kBindings = {{
 		{"Move", "W  A  S  D"},
 		{"Turn", "Mouse, or Left / Right arrows"},
 		{"Fire", "Left click, or Left Ctrl"},
 		{"Reload", "R"},
+		{"Open door", "E, or Space"},
 		{"Map", "M"},
 		{"Pause", "Esc"},
 		{"Menus", "Arrow keys, Enter, Esc"},
@@ -329,7 +330,7 @@ MenuAction Menu::ControlsScreen() {
 				  ui::color::kMuted);
 		ui_->Text(binding.keys, panel.x + panel.w - 48, y, ui::FontStyle::Body,
 				  ui::color::kText, ui::Align::Right);
-		y += 56;
+		y += 52;
 	}
 #ifdef __EMSCRIPTEN__
 	ui_->Text(

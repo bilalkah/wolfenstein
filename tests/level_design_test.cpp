@@ -33,7 +33,7 @@ std::set<Cell> Reachable(const Map& map, Cell start) {
 		queue.pop_front();
 		for (const Cell next :
 			 {Cell{x + 1, y}, Cell{x - 1, y}, Cell{x, y + 1}, Cell{x, y - 1}}) {
-			if (!map.IsBlocked(next.first, next.second) &&
+			if (!map.IsWall(next.first, next.second) &&
 				seen.insert(next).second) {
 				queue.push_back(next);
 			}

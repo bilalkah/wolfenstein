@@ -13,10 +13,38 @@ void PrepareRay(const Position2D& position, const double ray_theta, Ray& ray,
 				vector2d& ray_unit_step, vector2d& ray_length_1d,
 				vector2i& step, vector2i& map_check);
 
-// DDA through the cells from `position` at `ray_theta`, until a wall or
-// `depth`
-Ray Cast(Map::CellView cells, const Position2D& position, double ray_theta,
+// Where the ray meets a door's plane, if that is inside the door's cell and
+// on the part of the doorway the door still covers
+bool HitDoor(Ray& ray, const Door& door) {
+	const double plane = (door.across_x ? door.x : door.y) + 0.5;
+	const double origin = door.across_x ? ray.origin.x : ray.origin.y;
+	const double direction = door.across_x ? ray.direction.x : ray.direction.y;
+	if (direction == 0.0) {
+		return false;  // along the door, never through it
+	}
+	const double t = (plane - origin) / direction;
+	if (t <= 0.0) {
+		return false;
+	}
+	const vector2d point = ray.origin + ray.direction * t;
+	const double along = door.across_x ? point.y - door.y : point.x - door.x;
+	if (along < door.openness || along >= 1.0) {
+		return false;  // through the open part
+	}
+	ray.is_hit = true;
+	ray.distance = t;
+	ray.perpendicular_distance = t;
+	ray.hit_point = point;
+	ray.is_hit_vertical = door.across_x;
+	ray.texture_shift = door.openness;
+	return true;
+}
+
+// DDA through the cells from `position` at `ray_theta`, until a wall, a
+// closed part of a door or `depth`
+Ray Cast(const Map& map, const Position2D& position, double ray_theta,
 		 double depth) {
+	const auto cells = map.GetCells();
 	const auto row_size = static_cast<int>(cells.extent(0));
 	const auto col_size = static_cast<int>(cells.extent(1));
 	Ray ray;
@@ -45,7 +73,12 @@ Ray Cast(Map::CellView cells, const Position2D& position, double ray_theta,
 			map_check.y < col_size) {
 			const auto cell = cells[static_cast<std::size_t>(map_check.x),
 									static_cast<std::size_t>(map_check.y)];
-			if (cell != 0) {
+			if (Map::IsDoorCell(cell)) {
+				if (HitDoor(ray, map.GetDoors()[cell - Map::kDoorCell])) {
+					ray.wall_id = cell;
+				}
+			}
+			else if (cell != 0) {
 				ray.is_hit = true;
 				ray.hit_point = ray.origin + ray.direction * ray.distance;
 				ray.wall_id = cell;
@@ -94,17 +127,16 @@ void PrepareRay(const Position2D& position, const double ray_theta, Ray& ray,
 
 void RayCaster::Update(const Map& map, const Position2D& position,
 					   RayVector& rays) const {
-	const auto cells = map.GetCells();
 	double ray_theta = position.theta - (fov_ / 2);
 	for (auto& ray : rays) {
-		ray = Cast(cells, position, ray_theta, depth_);
+		ray = Cast(map, position, ray_theta, depth_);
 		ray_theta += delta_theta_;
 	}
 }
 
 Ray CastRay(const Map& map, const Position2D& from, double theta,
 			double depth) {
-	return Cast(map.GetCells(), from, theta, depth);
+	return Cast(map, from, theta, depth);
 }
 
 double RayCaster::GetDeltaTheta() const {

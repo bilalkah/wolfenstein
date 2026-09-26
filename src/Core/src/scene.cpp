@@ -1,6 +1,8 @@
 #include "Core/scene.h"
 #include "Profiler/profiler.h"
+#include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <utility>
 namespace wolfenstein {
 
@@ -32,7 +34,8 @@ std::size_t LevelArenaBytes(const Map& map, SceneCapacity capacity) {
 }  // namespace
 
 std::size_t Scene::MemoryFor(const Map& map, SceneCapacity capacity) {
-	return LevelArenaBytes(map, capacity);
+	return LevelArenaBytes(map, capacity) +
+		   map.GetDoors().size() * sizeof(DoorMotion) + alignof(DoorMotion);
 }
 
 Scene::Scene(const TextureManager& textures, SoundManager& sound,
@@ -48,7 +51,8 @@ Scene::Scene(const TextureManager& textures, SoundManager& sound,
 	  objects_(&arena_),
 	  enemy_list_(&arena_),
 	  pickup_list_(&arena_),
-	  explored_(std::size_t{map.GetSizeX()} * map.GetSizeY(), 0, &arena_) {
+	  explored_(std::size_t{map.GetSizeX()} * map.GetSizeY(), 0, &arena_),
+	  doors_(map.GetDoors().size(), DoorMotion{}, &arena_) {
 	objects_.reserve(capacity.enemies + capacity.dynamic_objects +
 					 capacity.pickups);
 	enemy_list_.reserve(capacity.enemies);
@@ -122,6 +126,98 @@ void Scene::Update(double delta_time) {
 	ScopedTimer timer(ProfileSection::UpdatePlayer);
 	player_->Update(delta_time);
 	CollectPickups();
+	UpdateDoors(delta_time);
+}
+
+void Scene::OpenDoor(std::size_t door) {
+	DoorMotion& motion = doors_[door];
+	if (motion.phase == DoorMotion::Phase::Closed ||
+		motion.phase == DoorMotion::Phase::Closing) {
+		motion.phase = DoorMotion::Phase::Opening;
+	}
+}
+
+bool Scene::IsDoorwayOccupied(const Door& door) const {
+	// Anyone whose body reaches into the door's cell
+	constexpr double kReach = 0.8;
+	const vector2d centre{door.x + 0.5, door.y + 0.5};
+	const auto near = [&](const vector2d& pose) {
+		return std::abs(pose.x - centre.x) < kReach &&
+			   std::abs(pose.y - centre.y) < kReach;
+	};
+	if (player_->IsAlive() && near(player_->GetPose())) {
+		return true;
+	}
+	return std::ranges::any_of(enemy_list_, [&](const Enemy* enemy) {
+		return enemy->IsAlive() && near(enemy->GetPose());
+	});
+}
+
+void Scene::UpdateDoors(double delta_time) {
+	const auto doors = map_.GetDoors();
+	if (doors.empty()) {
+		return;
+	}
+	// The player opens the door just ahead
+	if (player_->IsAlive() && player_->IsUsing()) {
+		const Position2D& eye = player_->GetPosition();
+		const vector2d facing{std::cos(eye.theta), std::sin(eye.theta)};
+		for (const double reach : {0.6, 1.2}) {
+			const vector2d point = eye.pose + facing * reach;
+			if (const Door* door =
+					map_.FindDoor(static_cast<int>(std::floor(point.x)),
+								  static_cast<int>(std::floor(point.y)))) {
+				OpenDoor(static_cast<std::size_t>(door - doors.data()));
+				break;
+			}
+		}
+	}
+	// Enemies open the doors they walk up to
+	constexpr double kEnemyReach = 1.2;
+	for (std::size_t i = 0; i < doors.size(); ++i) {
+		const vector2d centre{doors[i].x + 0.5, doors[i].y + 0.5};
+		if (std::ranges::any_of(enemy_list_, [&](const Enemy* enemy) {
+				return enemy->IsAlive() &&
+					   enemy->GetPose().Distance(centre) < kEnemyReach;
+			})) {
+			OpenDoor(i);
+		}
+	}
+
+	const double step = delta_time / kDoorMoveSeconds;
+	for (std::size_t i = 0; i < doors.size(); ++i) {
+		DoorMotion& motion = doors_[i];
+		const double openness = doors[i].openness;
+		switch (motion.phase) {
+			case DoorMotion::Phase::Closed:
+				break;
+			case DoorMotion::Phase::Opening:
+				map_.SetDoorOpenness(i, openness + step);
+				if (openness + step >= 1.0) {
+					motion.phase = DoorMotion::Phase::Open;
+					motion.open_time = 0.0;
+				}
+				break;
+			case DoorMotion::Phase::Open:
+				motion.open_time += delta_time;
+				if (motion.open_time >= kDoorOpenSeconds &&
+					!IsDoorwayOccupied(doors[i])) {
+					motion.phase = DoorMotion::Phase::Closing;
+				}
+				break;
+			case DoorMotion::Phase::Closing:
+				// Never onto someone: it opens again for them
+				if (IsDoorwayOccupied(doors[i])) {
+					motion.phase = DoorMotion::Phase::Opening;
+					break;
+				}
+				map_.SetDoorOpenness(i, openness - step);
+				if (openness - step <= 0.0) {
+					motion.phase = DoorMotion::Phase::Closed;
+				}
+				break;
+		}
+	}
 }
 
 void Scene::CollectPickups() {

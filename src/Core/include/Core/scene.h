@@ -82,6 +82,8 @@ class Scene
 	// once every object is in place
 	void FinishLoading();
 	void DecreaseAliveEnemies();
+	// Starts opening the door with this index in the map (if not open)
+	void OpenDoor(std::size_t door);
 
 	void Update(double delta_time);
 
@@ -108,9 +110,25 @@ class Scene
 	size_t GetNumberOfAliveEnemies() const;
 	const memory::MonotonicArena& LevelMemory() const { return arena_; }
 
+	// How long a door takes to open or close, and stays open
+	static constexpr double kDoorMoveSeconds = 0.5;
+	static constexpr double kDoorOpenSeconds = 4.0;
+
   private:
 	// The player takes every pickup it stands on and has a use for
 	void CollectPickups();
+	// Opens doors the player uses or an enemy reaches, and moves every door
+	// on: open doors close again once their doorway is clear
+	void UpdateDoors(double delta_time);
+	// Whether a living character stands in or at the door's cell
+	bool IsDoorwayOccupied(const Door& door) const;
+
+	struct DoorMotion
+	{
+		enum class Phase : std::uint8_t { Closed, Opening, Open, Closing };
+		Phase phase = Phase::Closed;
+		double open_time = 0.0;	 // how long it has stood open
+	};
 
 	const TextureManager& textures_;
 	SoundManager& sound_;
@@ -126,6 +144,8 @@ class Scene
 	std::pmr::vector<Pickup*> pickup_list_;
 	// One flag per map cell, row by row
 	std::pmr::vector<std::uint8_t> explored_;
+	// One per door of the map, in its order
+	std::pmr::vector<DoorMotion> doors_;
 	Player* player_ = nullptr;
 	NavigationManager navigation_{*this, &arena_};
 	size_t number_of_alive_enemies{};
