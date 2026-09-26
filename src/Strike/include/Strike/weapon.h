@@ -64,9 +64,9 @@ class Weapon
 	void TransitionTo(WeaponStateType type);
 
 	void DecreaseAmmo();
-	// Adds the rounds of `boxes` ammo boxes to the reserve, up to its most;
-	// false (nothing taken) if the reserve is already full
-	bool AddAmmoBoxes(size_t boxes);
+	// Adds the rounds of `boxes` ammo boxes, times `scale`, to the reserve,
+	// up to its most; false (nothing taken) if the reserve is already full
+	bool AddAmmoBoxes(size_t boxes, double scale = 1.0);
 
 	size_t GetAmmo() const;
 	size_t GetAmmoCapacity() const;

@@ -22,6 +22,9 @@ struct Settings
 	double mouse_sensitivity = 1.0;	 // multiplier on the base turn rate
 	double volume = 0.8;			 // master volume, 0 to 1
 	bool show_fps = true;
+	// Index into the configuration's difficulties, from easiest; 1 is the
+	// second (normal). Clamped by whoever reads it.
+	int difficulty = 1;
 
 	// Process-wide settings, loaded from storage on first use
 	static Settings& Get();

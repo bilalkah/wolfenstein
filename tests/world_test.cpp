@@ -64,6 +64,24 @@ TEST(World, NextLevelPlaysTheCampaignInOrder) {
 	EXPECT_FALSE(world->HasNextLevel());  // the last level ends the campaign
 }
 
+// The difficulty sets how much health enemies start with, in every level
+TEST(World, DifficultyScalesEnemyHealth) {
+	auto world = MakeWorld();
+	for (const auto& [difficulty, health] :
+		 {std::pair{"easy", 75.0}, std::pair{"normal", 100.0},
+		  std::pair{"hard", 130.0}}) {
+		ASSERT_TRUE(world->NewGame("mp5", {}, difficulty));
+		EXPECT_DOUBLE_EQ(
+			world->CurrentLevel().GetEnemies().front()->GetHealth(), health)
+			<< difficulty;
+		ASSERT_TRUE(world->NextLevel());
+		EXPECT_DOUBLE_EQ(
+			world->CurrentLevel().GetEnemies().front()->GetHealth(), health)
+			<< difficulty << ", level 2";
+	}
+	EXPECT_FALSE(world->NewGame("mp5", {}, "impossible"));
+}
+
 // A new game replaces both the level and the player it borrows
 TEST(World, NewGameStartsOver) {
 	auto world = MakeWorld();

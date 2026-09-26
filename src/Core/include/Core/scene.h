@@ -32,6 +32,15 @@
 
 namespace wolfenstein {
 
+// How hard a game is: multipliers on the damage enemies deal, the health
+// they start with and what pickups give
+struct Difficulty
+{
+	double enemy_damage = 1.0;
+	double enemy_health = 1.0;
+	double supplies = 1.0;
+};
+
 // How the player did in a level: shown on the HUD and when it is cleared
 struct LevelStats
 {
@@ -87,6 +96,11 @@ class Scene
 	std::expected<memory::Handle<Pickup>, memory::PoolError> AddPickup(
 		const vector2d& pose, int texture_id, double width, double height,
 		const PickupEffect& effect);
+	// Applies to enemies added after it and to every pickup taken
+	void SetDifficulty(const Difficulty& difficulty) {
+		difficulty_ = difficulty;
+	}
+	const Difficulty& GetDifficulty() const { return difficulty_; }
 	// Borrows the player for the scene's life and lets it act in this scene
 	void SetPlayer(Player& player);
 	// Builds what depends on the finished level (the navigation grid): call
@@ -161,6 +175,7 @@ class Scene
 	std::size_t explored_open_cells_ = 0;
 	// Simulated time in the level, until it is cleared
 	double elapsed_ = 0.0;
+	Difficulty difficulty_;
 	// One per door of the map, in its order
 	std::pmr::vector<DoorMotion> doors_;
 	Player* player_ = nullptr;

@@ -55,11 +55,12 @@ class World
 	~World() = default;
 
 	// A fresh player carrying the named weapon, in the campaign's first level
-	// (or in `level`, e.g. the benchmark's). The previous level and player
-	// are gone afterwards: views borrowing them must be pointed at the new
-	// level before they draw again.
-	std::expected<void, std::string> NewGame(std::string_view weapon_name,
-											 std::string_view level = {});
+	// (or in `level`, e.g. the benchmark's), at the named difficulty. The
+	// previous level and player are gone afterwards: views borrowing them
+	// must be pointed at the new level before they draw again.
+	std::expected<void, std::string> NewGame(
+		std::string_view weapon_name, std::string_view level = {},
+		std::string_view difficulty = "normal");
 	// Replaces the finished level with the campaign's next one (same caveat)
 	std::expected<void, std::string> NextLevel();
 	bool HasNextLevel() const;
@@ -94,6 +95,7 @@ class World
 	memory::MonotonicArena level_memory_;
 	std::optional<Player> player_;
 	std::optional<Scene> scene_;
+	const DifficultyConfig* difficulty_ = nullptr;
 	const PreparedLevel* level_ = nullptr;
 	std::size_t level_index_ = 0;
 	bool in_campaign_ = true;

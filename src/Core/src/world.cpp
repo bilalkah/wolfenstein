@@ -30,11 +30,18 @@ World::World(const TextureManager& textures, SceneLoader loader,
 	  level_memory_(loader_.LargestLevelMemory()) {}
 
 std::expected<void, std::string> World::NewGame(std::string_view weapon_name,
-												std::string_view level) {
+												std::string_view level,
+												std::string_view difficulty) {
 	const WeaponConfig* weapon = loader_.Config().FindWeapon(weapon_name);
 	if (weapon == nullptr) {
 		return std::unexpected("unknown weapon " + std::string(weapon_name));
 	}
+	const DifficultyConfig* chosen =
+		loader_.Config().FindDifficulty(difficulty);
+	if (chosen == nullptr) {
+		return std::unexpected("unknown difficulty " + std::string(difficulty));
+	}
+	difficulty_ = chosen;
 	// The old level borrows the old player: it goes first
 	scene_.reset();
 	const CharacterStats& stats = loader_.Config().player;
@@ -77,6 +84,9 @@ std::expected<void, std::string> World::StartLevel(
 	scene_.emplace(textures_, *sound_, level->map, level->capacity,
 				   level_memory_);
 	level_ = level;
+	scene_->SetDifficulty({.enemy_damage = difficulty_->enemy_damage,
+						   .enemy_health = difficulty_->enemy_health,
+						   .supplies = difficulty_->supplies});
 	return loader_.Populate(*scene_, *level, *player_);
 }
 

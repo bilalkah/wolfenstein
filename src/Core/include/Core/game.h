@@ -32,6 +32,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace wolfenstein {
 
@@ -136,6 +137,8 @@ class Game
 	std::unique_ptr<Renderer3D> renderer_3d_;
 	std::unique_ptr<Renderer2D> renderer_2d_;
 	// The explored part of the level, in a corner or large (M)
+	// The difficulties' labels, for the settings screen
+	std::vector<std::string> difficulty_labels_;
 	std::unique_ptr<Minimap> minimap_;
 	bool map_expanded_ = false;
 	bool debug_view_ = false;

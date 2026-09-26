@@ -420,6 +420,48 @@ bool Ui::Toggle(std::string_view label, const SDL_Rect& rect, bool& value) {
 	return changed;
 }
 
+bool Ui::Choice(std::string_view label, std::span<const std::string> options,
+				const SDL_Rect& rect, int& value) {
+	const int index = NextWidget(rect);
+	const bool focused = IsFocused(index);
+	const bool clicked = input_.mouse_released && pressed_widget_ == index &&
+						 Contains(rect, input_.mouse_x, input_.mouse_y);
+	const int count = static_cast<int>(options.size());
+	const int before = value;
+	if (count > 0) {
+		if (focused && input_.left) {
+			--value;
+		}
+		if (clicked || (focused && (input_.right || input_.activate))) {
+			++value;
+		}
+		value = ((value % count) + count) % count;
+	}
+
+	constexpr int kPadding = 24;
+	FillRect(rect, focused ? color::kPanelFocused : color::kPanel);
+	DrawRect(rect, focused ? color::kAccent : color::kBorder, focused ? 2 : 1);
+	const auto label_size = MeasureText(label, FontStyle::Body);
+	const int text_y = rect.y + (rect.h - label_size.y) / 2;
+	Text(label, rect.x + kPadding, text_y, FontStyle::Body,
+		 focused ? color::kText : color::kMuted);
+	if (count > 0) {
+		const std::string& option = options[static_cast<std::size_t>(value)];
+		const int right = rect.x + rect.w - kPadding;
+		// The option between arrows that say it can be changed
+		Text(">", right, text_y, FontStyle::Body,
+			 focused ? color::kAccentBright : color::kMuted, Align::Right);
+		const int arrow = MeasureText(">", FontStyle::Body).x;
+		const int option_right = right - arrow - 16;
+		Text(option, option_right, text_y, FontStyle::Body, color::kText,
+			 Align::Right);
+		const int option_width = MeasureText(option, FontStyle::Body).x;
+		Text("<", option_right - option_width - 16, text_y, FontStyle::Body,
+			 focused ? color::kAccentBright : color::kMuted, Align::Right);
+	}
+	return value != before;
+}
+
 bool Ui::Selectable(const SDL_Rect& rect, bool& focused) {
 	const int index = NextWidget(rect);
 	focused = IsFocused(index);

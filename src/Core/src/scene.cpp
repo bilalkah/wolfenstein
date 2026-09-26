@@ -240,7 +240,7 @@ void Scene::CollectPickups() {
 		const double reach = (player_->GetWidth() + pickup->GetWidth()) / 2;
 		if (!pickup->IsTaken() &&
 			pickup->GetPose().Distance(position) <= reach &&
-			player_->TryPickUp(pickup->GetEffect())) {
+			player_->TryPickUp(pickup->GetEffect(), difficulty_.supplies)) {
 			pickup->Take();
 		}
 	}

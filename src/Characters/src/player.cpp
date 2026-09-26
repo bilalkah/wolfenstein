@@ -90,13 +90,14 @@ double Player::GetHeight() const {
 	return height_;
 }
 
-bool Player::TryPickUp(const PickupEffect& effect) {
+bool Player::TryPickUp(const PickupEffect& effect, double supplies) {
 	bool taken = false;
 	if (effect.health > 0.0 && health_ < 100.0) {
-		IncreaseHealth(effect.health);
+		IncreaseHealth(effect.health * supplies);
 		taken = true;
 	}
-	if (effect.ammo_boxes > 0 && weapon_.AddAmmoBoxes(effect.ammo_boxes)) {
+	if (effect.ammo_boxes > 0 &&
+		weapon_.AddAmmoBoxes(effect.ammo_boxes, supplies)) {
 		taken = true;
 	}
 	if (taken) {

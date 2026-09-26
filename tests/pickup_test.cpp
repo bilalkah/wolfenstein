@@ -74,6 +74,19 @@ TEST_F(PickupTest, HealthNeverGoesPastFull) {
 	EXPECT_DOUBLE_EQ(player_.GetHealth(), 100.0);
 }
 
+// On an easy game pickups give more
+TEST_F(PickupTest, TheDifficultyScalesWhatPickupsGive) {
+	scene_.SetDifficulty({.supplies = 1.5});
+	Place("medkit", {1.5, 1.5});
+	Place("ammo_box", {1.5, 1.5});
+	player_.DecreaseHealth(50);
+	scene_.Update(kTick);
+	EXPECT_DOUBLE_EQ(player_.GetHealth(), 50.0 + 25.0 * 1.5);
+	const WeaponConfig& mp5 = testing::Weapon("mp5");
+	EXPECT_EQ(player_.GetWeapon().GetReserve(),
+			  mp5.reserve_start + mp5.box_rounds * 3 / 2);
+}
+
 TEST_F(PickupTest, AtFullHealthAMedkitIsLeftLying) {
 	Pickup& medkit = Place("medkit", {1.5, 1.5});
 	scene_.Update(kTick);

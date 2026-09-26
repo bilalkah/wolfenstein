@@ -19,7 +19,7 @@ Enemy::Enemy(Scene& scene, const EnemyConfig& config,
 	  translation_speed_(config.translation_speed),
 	  width(config.width),
 	  height(config.height),
-	  health_(100),
+	  health_(100 * scene.GetDifficulty().enemy_health),
 	  position_(position),
 	  next_pose(position_.pose),
 	  previous_pose_(position_.pose),
@@ -76,7 +76,8 @@ void Enemy::PlaySound(SoundEffect effect) {
 }
 
 void Enemy::Shoot() {
-	ResolveEnemyShot(scene_.GetPlayer(), weapon_);
+	ResolveEnemyShot(scene_.GetPlayer(), weapon_,
+					 scene_.GetDifficulty().enemy_damage);
 }
 
 void Enemy::Update(double delta_time) {
