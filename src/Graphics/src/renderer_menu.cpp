@@ -28,14 +28,15 @@ SDL_Rect ButtonRect(int screen_width, int top, int index) {
 
 Menu::Menu(RendererContext& context, SoundManager& sound,
 		   std::span<const WeaponConfig> weapons,
-		   std::span<const std::string> difficulties)
+		   std::span<const DifficultyChoice> difficulties)
 	: context_(&context),
 	  ui_(std::make_unique<ui::Ui>(
 		  context_->GetRenderer(),
 		  std::string(RESOURCE_DIR) + "font/EternalAncient.ttf",
 		  std::string(RESOURCE_DIR) + "font/Roboto-Light.ttf")),
 	  weapon_configs_(weapons),
-	  difficulties_(difficulties) {
+	  difficulties_(difficulties),
+	  chosen_difficulty_(difficulties.size() > 1 ? 1 : 0) {
 	background_texture_ = context_->Textures().GetTextureId("menu_background");
 	for (const WeaponConfig& config : weapon_configs_) {
 		weapons_.push_back(
@@ -124,6 +125,11 @@ void Menu::Open(MenuScreen screen) {
 		}
 		previewed_weapon_ = -1;
 	}
+	if (screen == MenuScreen::DifficultySelect) {
+		// On the one chosen last (at first the middle one)
+		ui_->ResetFocus(static_cast<int>(chosen_difficulty_));
+		return;
+	}
 	ui_->ResetFocus();
 }
 
@@ -139,7 +145,10 @@ void Menu::SetPreviewedWeapon(int index) {
 	}
 	previewed_weapon_ = index;
 	if (index >= 0) {
-		weapons_[static_cast<std::size_t>(index)]->Reload();
+		// Straight into the animation: a reload with a full magazine is
+		// refused
+		weapons_[static_cast<std::size_t>(index)]->TransitionTo(
+			WeaponStateType::Reloading);
 	}
 }
 
@@ -148,8 +157,11 @@ void Menu::GoBack() {
 		Settings::Get().Save();
 	}
 	// Land on the button that opened the screen we are leaving; both the main
-	// and pause screens list Controls second and Settings third
-	const int opener = screen_ == MenuScreen::Controls ? 1 : 2;
+	// and pause screens list Controls second and Settings third, the main
+	// screen one lower when it offers CONTINUE first
+	const int opener =
+		(screen_ == MenuScreen::Controls ? 1 : 2) +
+		(return_screen_ == MenuScreen::Main && has_saved_game_ ? 1 : 0);
 	screen_ = return_screen_;
 	ui_->ResetFocus(opener);
 }
@@ -164,6 +176,9 @@ MenuAction Menu::Update(double delta_time) {
 	switch (screen_) {
 		case MenuScreen::Main:
 			action = MainScreen();
+			break;
+		case MenuScreen::DifficultySelect:
+			action = DifficultySelectScreen();
 			break;
 		case MenuScreen::WeaponSelect:
 			action = WeaponSelectScreen(delta_time);
@@ -210,7 +225,8 @@ MenuAction Menu::MainScreen() {
 	}
 	if (ui_->Button(has_saved_game_ ? "NEW GAME" : "PLAY",
 					ButtonRect(width, kTop, row++))) {
-		Open(MenuScreen::WeaponSelect);
+		Open(difficulties_.empty() ? MenuScreen::WeaponSelect
+								   : MenuScreen::DifficultySelect);
 	}
 	if (ui_->Button("CONTROLS", ButtonRect(width, kTop, row++))) {
 		Open(MenuScreen::Controls);
@@ -226,6 +242,48 @@ MenuAction Menu::MainScreen() {
 #endif
 	DrawHint("Arrow keys or mouse to choose  ·  Enter to select");
 	return action;
+}
+
+// A new game's difficulty, chosen once for the whole campaign
+MenuAction Menu::DifficultySelectScreen() {
+	const int width = context_->GetConfig().width;
+	DrawBackground();
+	DrawDimmer(190);
+	ui_->Text("CHOOSE DIFFICULTY", width / 2, 70, ui::FontStyle::Heading,
+			  ui::color::kText, ui::Align::Center);
+	ui_->Text("It holds for the whole campaign.", width / 2, 150,
+			  ui::FontStyle::Body, ui::color::kMuted, ui::Align::Center);
+
+	constexpr int kCardWidth = 760;
+	constexpr int kCardHeight = 120;
+	constexpr int kCardGap = 24;
+	const int left = (width - kCardWidth) / 2;
+	int y = 230;
+	for (std::size_t i = 0; i < difficulties_.size(); ++i) {
+		const SDL_Rect card{left, y, kCardWidth, kCardHeight};
+		bool focused = false;
+		if (ui_->Selectable(card, focused)) {
+			chosen_difficulty_ = i;
+			Open(MenuScreen::WeaponSelect);
+		}
+		ui_->FillRect(card,
+					  focused ? ui::color::kPanelFocused : ui::color::kPanel);
+		ui_->DrawRect(card, focused ? ui::color::kAccent : ui::color::kBorder,
+					  focused ? 3 : 1);
+		ui_->Text(difficulties_[i].label, card.x + 32, card.y + 18,
+				  ui::FontStyle::Button,
+				  focused ? ui::color::kText : ui::color::kMuted);
+		ui_->Text(difficulties_[i].description, card.x + 32, card.y + 72,
+				  ui::FontStyle::Small, ui::color::kMuted);
+		y += kCardHeight + kCardGap;
+	}
+
+	if (ui_->Button("BACK", {(width - 300) / 2, y + 20, 300, 64}) ||
+		input_.back) {
+		Open(MenuScreen::Main);
+	}
+	DrawHint("Choose with the arrow keys or mouse  ·  Enter to go on");
+	return {};
 }
 
 MenuAction Menu::WeaponSelectScreen(double delta_time) {
@@ -262,6 +320,7 @@ MenuAction Menu::WeaponSelectScreen(double delta_time) {
 		if (ui_->Selectable(card, focused)) {
 			action.type = MenuAction::Type::StartGame;
 			action.weapon = weapon_configs_[i].weapon_name;
+			action.difficulty = chosen_difficulty_;
 		}
 		if (focused) {
 			focused_card = static_cast<int>(i);
@@ -276,7 +335,8 @@ MenuAction Menu::WeaponSelectScreen(double delta_time) {
 	}
 
 	if (ui_->Button("BACK", {(width - 300) / 2, 760, 300, 64}) || input_.back) {
-		Open(MenuScreen::Main);
+		Open(difficulties_.empty() ? MenuScreen::Main
+								   : MenuScreen::DifficultySelect);
 	}
 	DrawHint("Click a weapon or press Enter to start  ·  Esc to go back");
 	return action;
@@ -442,17 +502,6 @@ MenuAction Menu::SettingsScreen() {
 	if (ui_->Toggle("Show FPS", {left, y, kRowWidth, kRowHeight},
 					settings.show_fps)) {
 		action.type = MenuAction::Type::SettingsChanged;
-	}
-	y += kRowHeight + kButtonGap;
-	// Applies from the next game
-	if (!difficulties_.empty()) {
-		settings.difficulty = std::clamp(
-			settings.difficulty, 0, static_cast<int>(difficulties_.size()) - 1);
-		if (ui_->Choice("Difficulty", difficulties_,
-						{left, y, kRowWidth, kRowHeight},
-						settings.difficulty)) {
-			action.type = MenuAction::Type::SettingsChanged;
-		}
 	}
 
 	if (ui_->Button("BACK", {(width - 300) / 2, 720, 300, 64}) || input_.back) {

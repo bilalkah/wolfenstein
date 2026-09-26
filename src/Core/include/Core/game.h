@@ -94,7 +94,10 @@ class Game
 	void Init();
 	// Fresh player and level 1, keeping the window, camera and menu
 	// A fresh game with the named weapon, in the campaign (or in `level`)
-	void NewGame(std::string_view weapon_name, std::string_view level = {});
+	// `difficulty`: index into the configuration's difficulties; scripted
+	// runs always play the normal one
+	void NewGame(std::string_view weapon_name, std::string_view level = {},
+				 std::size_t difficulty = 0);
 	// Goes on with the saved game, at the level it was saved at
 	void ContinueSavedGame();
 	// What every game does as it starts, new or continued
@@ -146,8 +149,8 @@ class Game
 	// The explored part of the level, in a corner or large (M)
 	// The campaign the player can go on with, if any
 	std::optional<SavedGame> saved_game_;
-	// The difficulties' labels, for the settings screen
-	std::vector<std::string> difficulty_labels_;
+	// The difficulties a new game offers
+	std::vector<DifficultyChoice> difficulty_choices_;
 	std::unique_ptr<Minimap> minimap_;
 	bool map_expanded_ = false;
 	bool debug_view_ = false;

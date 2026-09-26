@@ -60,9 +60,6 @@ void Settings::Load() {
 		else if (key == "show_fps") {
 			show_fps = number != 0.0;
 		}
-		else if (key == "difficulty") {
-			difficulty = std::clamp(static_cast<int>(number), 0, 9);
-		}
 	}
 }
 
@@ -72,8 +69,7 @@ void Settings::Save() const {
 	RecordWriter writer(buffer);
 	writer.Line("mouse_sensitivity", mouse_sensitivity)
 		.Line("volume", volume)
-		.Line("show_fps", show_fps ? 1 : 0)
-		.Line("difficulty", difficulty);
+		.Line("show_fps", show_fps ? 1 : 0);
 	if (!writer.Text().empty()) {
 		WriteRecord(Record::Settings, writer.Text());
 	}

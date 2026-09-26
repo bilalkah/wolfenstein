@@ -81,11 +81,12 @@ void Game::Init() {
 	// grow the camera's per-object views
 	camera_->ReserveViews(world_->LargestLevelObjects());
 	for (const DifficultyConfig& difficulty : world_->Config().difficulties) {
-		difficulty_labels_.push_back(difficulty.label);
+		difficulty_choices_.push_back(
+			{.label = difficulty.label, .description = difficulty.description});
 	}
 	menu_ =
 		std::make_unique<Menu>(*renderer_context_, world_->Sound(),
-							   world_->Config().weapons, difficulty_labels_);
+							   world_->Config().weapons, difficulty_choices_);
 	// A saved game made with other content (fewer levels, weapons or
 	// difficulties) cannot be gone on with
 	saved_game_ = SavedGame::Load();
@@ -114,17 +115,14 @@ void Game::ShowLevel() {
 	step_.Reset();
 }
 
-void Game::NewGame(std::string_view weapon_name, std::string_view level) {
+void Game::NewGame(std::string_view weapon_name, std::string_view level,
+				   std::size_t difficulty_index) {
 	// Scripted runs play the normal game, so their results stay comparable
 	const auto& difficulties = world_->Config().difficulties;
 	const std::string_view difficulty =
-		IsScripted()
+		IsScripted() || difficulty_index >= difficulties.size()
 			? std::string_view("normal")
-			: std::string_view(
-				  difficulties[static_cast<std::size_t>(std::clamp(
-								   Settings::Get().difficulty, 0,
-								   static_cast<int>(difficulties.size()) - 1))]
-					  .name);
+			: std::string_view(difficulties[difficulty_index].name);
 	if (auto started = world_->NewGame(weapon_name, level, difficulty);
 		!started) {
 		std::cerr << "Cannot start a game: " << started.error() << '\n';
@@ -230,7 +228,7 @@ void Game::HandleMenuAction(const MenuAction& action) {
 		case MenuAction::Type::None:
 			break;
 		case MenuAction::Type::StartGame:
-			NewGame(action.weapon);
+			NewGame(action.weapon, {}, action.difficulty);
 			EnterPlaying();
 			break;
 		case MenuAction::Type::Resume:
@@ -326,7 +324,8 @@ void Game::SoakStep() {
 		soak_bytes_ = AllocationStats::bytes;
 		HandleMenuAction(
 			{.type = MenuAction::Type::StartGame,
-			 .weapon = world_->Config().weapons.front().weapon_name});
+			 .weapon = world_->Config().weapons.front().weapon_name,
+			 .difficulty = 0});
 	}
 	const int frame = soak_frame_++ - kSoakMenuFrames;
 	if (soak_first_allocation_ < 0 &&
@@ -369,7 +368,8 @@ void Game::SoakStep() {
 		menu_->HandleEvent(right);
 	}
 	else if (frame == 300) {
-		HandleMenuAction({.type = MenuAction::Type::Resume, .weapon = {}});
+		HandleMenuAction(
+			{.type = MenuAction::Type::Resume, .weapon = {}, .difficulty = 0});
 	}
 	else if (frame == 330) {
 		// Hurt, the player steps onto the level's first pickup: taken next
@@ -412,9 +412,9 @@ void Game::SoakStep() {
 		world_->GetPlayer().DecreaseHealth(1000.0);
 	}
 	else if (frame == 900) {
-		HandleMenuAction(
-			{.type = MenuAction::Type::StartGame,
-			 .weapon = world_->Config().weapons.back().weapon_name});
+		HandleMenuAction({.type = MenuAction::Type::StartGame,
+						  .weapon = world_->Config().weapons.back().weapon_name,
+						  .difficulty = 0});
 	}
 	else if (frame >= soak_frames_ - kSoakMenuFrames) {
 		std::cout << "SOAK_RESULT {\"frames\":" << frame

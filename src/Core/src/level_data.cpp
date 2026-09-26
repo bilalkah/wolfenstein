@@ -135,6 +135,7 @@ std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 			config.difficulties.push_back(
 				{.name = difficulty.at("name").get<std::string>(),
 				 .label = difficulty.at("label").get<std::string>(),
+				 .description = difficulty.at("description").get<std::string>(),
 				 .enemy_damage = difficulty.at("enemy_damage").get<double>(),
 				 .enemy_health = difficulty.at("enemy_health").get<double>(),
 				 .supplies = difficulty.at("supplies").get<double>()});

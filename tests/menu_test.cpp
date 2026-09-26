@@ -27,7 +27,8 @@ TEST(Menu, NoFrameAllocates) {
 	RendererContext context("menu test",
 							RenderConfig(1280, 720, 0, 32, 0, 20.0, 1.0, false),
 							camera);
-	const std::array<std::string, 3> difficulties{"Easy", "Normal", "Hard"};
+	const std::array<DifficultyChoice, 3> difficulties{
+		{{"Easy", "Softer."}, {"Normal", "As meant."}, {"Hard", "Harder."}}};
 	Menu menu(context, testing::TestSound(), testing::GameData().weapons,
 			  difficulties);
 	// The game reads the settings at startup, before its first frame
@@ -38,8 +39,9 @@ TEST(Menu, NoFrameAllocates) {
 
 	const auto before = AllocationStats::count;
 	for (const MenuScreen screen :
-		 {MenuScreen::Main, MenuScreen::WeaponSelect, MenuScreen::Controls,
-		  MenuScreen::Settings, MenuScreen::Pause, MenuScreen::Result}) {
+		 {MenuScreen::Main, MenuScreen::DifficultySelect,
+		  MenuScreen::WeaponSelect, MenuScreen::Controls, MenuScreen::Settings,
+		  MenuScreen::Pause, MenuScreen::Result}) {
 		menu.Open(screen);
 		for (int i = 0; i < 60; ++i) {
 			(void)menu.Update(kFrame);
@@ -59,28 +61,6 @@ TEST(Menu, NoFrameAllocates) {
 	}
 	EXPECT_EQ(AllocationStats::count - sliding, 0u) << "moving a slider";
 
-	// Down to the difficulty, then through its choices
-	SDL_Event down{};
-	down.type = SDL_KEYDOWN;
-	down.key.keysym.sym = SDLK_DOWN;
-	for (int i = 0; i < 3; ++i) {
-		menu.HandleEvent(down);
-		(void)menu.Update(kFrame);
-	}
-	const int before_choosing = Settings::Get().difficulty;
-	const auto choosing = AllocationStats::count;
-	for (int i = 0; i < 6; ++i) {
-		menu.HandleEvent(right);
-		(void)menu.Update(kFrame);
-		if (i == 0) {
-			EXPECT_NE(Settings::Get().difficulty, before_choosing)
-				<< "the difficulty row has focus";
-		}
-	}
-	EXPECT_EQ(AllocationStats::count - choosing, 0u) << "choosing a difficulty";
-	// Six steps through three choices come back round
-	EXPECT_EQ(Settings::Get().difficulty, before_choosing);
-
 	// Over the game: the enemy counter, and a cleared level's results
 	const LevelStats stats{.kills = 7,
 						   .enemies = 10,
@@ -96,6 +76,47 @@ TEST(Menu, NoFrameAllocates) {
 	EXPECT_EQ(AllocationStats::count - hud, 0u) << "the counter and results";
 }
 #endif
+
+// A new game asks for the difficulty once, then the weapon; the game starts
+// with both
+TEST(Menu, ANewGameChoosesADifficultyThenAWeapon) {
+	Camera2D camera(Camera2DConfig(1280, 1.0, 20.0));
+	RendererContext context("menu test",
+							RenderConfig(1280, 720, 0, 32, 0, 20.0, 1.0, false),
+							camera);
+	const std::array<DifficultyChoice, 3> difficulties{
+		{{"Easy", "Softer."}, {"Normal", "As meant."}, {"Hard", "Harder."}}};
+	Menu menu(context, testing::TestSound(), testing::GameData().weapons,
+			  difficulties);
+	const auto press = [&](SDL_Keycode key) {
+		SDL_Event event{};
+		event.type = SDL_KEYDOWN;
+		event.key.keysym.sym = key;
+		menu.HandleEvent(event);
+		return menu.Update(1.0 / 60.0);
+	};
+
+	// Opened between frames, as a click on NEW GAME would; the screen is
+	// laid out once before the keys can move through it
+	menu.Open(MenuScreen::DifficultySelect);
+	(void)menu.Update(1.0 / 60.0);
+	(void)menu.Update(1.0 / 60.0);
+	(void)press(SDLK_DOWN);	 // from Normal, where it starts, to Hard
+	EXPECT_EQ(press(SDLK_RETURN).type, MenuAction::Type::None);
+	(void)menu.Update(1.0 / 60.0);	// the weapon screen
+	const MenuAction start = press(SDLK_RETURN);
+	ASSERT_EQ(start.type, MenuAction::Type::StartGame);
+	EXPECT_EQ(start.difficulty, 2u);
+	EXPECT_EQ(start.weapon, testing::GameData().weapons.front().weapon_name);
+
+	// Back from the weapons goes back to the difficulty
+	(void)press(SDLK_ESCAPE);
+	const MenuAction again = press(SDLK_RETURN);
+	(void)menu.Update(1.0 / 60.0);
+	const MenuAction restart = press(SDLK_RETURN);
+	EXPECT_EQ(again.type, MenuAction::Type::None);
+	EXPECT_EQ(restart.difficulty, 2u) << "it remembers the choice";
+}
 
 }  // namespace
 }  // namespace wolfenstein
