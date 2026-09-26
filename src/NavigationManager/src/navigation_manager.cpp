@@ -40,14 +40,26 @@ std::size_t NavigationManager::MemoryFor(int map_rows, int map_cols,
 void NavigationManager::Build() {
 	// Each map cell splits into kCellsPerSide^2 pathfinding cells, built
 	// straight into the path finder's grid. Walls block a route, and locked
-	// doors, which enemies cannot open; they open the others as they reach
-	// them.
+	// doors, which enemies cannot open (they open the others as they reach
+	// them), and what stands on the floor for good (lamps).
 	const Map& map = scene_.GetMap();
+	const auto objects = scene_.GetObjects();
+	const auto stands_in = [&](int x, int y) {
+		return std::ranges::any_of(objects, [&](const IGameObject* object) {
+			if (object->GetObjectType() != ObjectType::DYNAMIC_OBJECT ||
+				object->GetCollisionRadius() <= 0.0) {
+				return false;
+			}
+			const GridCell cell = ToCell(object->GetPose());
+			return cell.x == x && cell.y == y;
+		});
+	};
 	path_finder_.SetGrid(
 		map.GetSizeX() * kCellsPerSide, map.GetSizeY() * kCellsPerSide,
 		[&](int x, int y) {
 			return map.IsWall(x / kCellsPerSide, y / kCellsPerSide) ||
-				   map.IsLockedDoor(x / kCellsPerSide, y / kCellsPerSide);
+				   map.IsLockedDoor(x / kCellsPerSide, y / kCellsPerSide) ||
+				   stands_in(x, y);
 		});
 
 	// A path visits each free cell at most once, so the scratch path never

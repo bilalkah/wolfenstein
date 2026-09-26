@@ -142,11 +142,19 @@ void Player::Move(double delta_time) {
 	const vector2d right{-facing.y, facing.x};
 	const vector2d delta_movement =
 		facing * (command_.forward * speed) + right * (command_.strafe * speed);
+	// An axis at a time, so a blocked move slides along what blocks it
 	const Map& map = scene_->GetMap();
-	if (!CheckWallCollision(map, position_.pose, {delta_movement.x, 0})) {
+	const auto objects = scene_->GetObjects();
+	const double radius = width_ / 2;
+	const auto can_move = [&](const vector2d& delta) {
+		return !CheckWallCollision(map, position_.pose, delta) &&
+			   !CheckObjectCollision(objects, this, position_.pose,
+									 position_.pose + delta, radius);
+	};
+	if (can_move({delta_movement.x, 0})) {
 		position_.pose.x += delta_movement.x;
 	}
-	if (!CheckWallCollision(map, position_.pose, {0, delta_movement.y})) {
+	if (can_move({0, delta_movement.y})) {
 		position_.pose.y += delta_movement.y;
 	}
 }

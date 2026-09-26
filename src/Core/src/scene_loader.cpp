@@ -127,7 +127,7 @@ std::expected<void, std::string> SceneLoader::Populate(
 			scene.AddDynamicObject(spawn.position,
 								   LoopedAnimation(scene.Textures(), spawn.type,
 												   light.animation_speed),
-								   light.width, light.height);
+								   light.width, light.height, light.radius);
 		if (!added) {
 			return std::unexpected("more objects than the scene can hold");
 		}

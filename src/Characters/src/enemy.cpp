@@ -140,11 +140,26 @@ void Enemy::Move(double delta_time) {
 	vector2d direction = next_pose - position_.pose;
 	direction.Norm();
 	vector2d delta_movement = direction * translation_speed_ * delta_time;
+	// Walls, lamps and the player stop it; other enemies do not, or they
+	// would jam in doorways
 	const Map& map = scene_.GetMap();
-	if (!CheckWallCollision(map, position_.pose, {delta_movement.x, 0})) {
+	const Player& player = scene_.GetPlayer();
+	const auto can_move = [&](const vector2d& delta) {
+		const vector2d to = position_.pose + delta;
+		const double player_reach = width / 2 + player.GetWidth() / 2;
+		const bool into_player = player.IsAlive() &&
+								 player.GetPose().Distance(to) < player_reach &&
+								 player.GetPose().Distance(to) <
+									 player.GetPose().Distance(position_.pose);
+		return !CheckWallCollision(map, position_.pose, delta) &&
+			   !into_player &&
+			   !CheckObjectCollision(scene_.GetObjects(), this, position_.pose,
+									 to, width / 2, /*ignore_enemies=*/true);
+	};
+	if (can_move({delta_movement.x, 0})) {
 		position_.pose.x += delta_movement.x;
 	}
-	if (!CheckWallCollision(map, position_.pose, {0, delta_movement.y})) {
+	if (can_move({0, delta_movement.y})) {
 		position_.pose.y += delta_movement.y;
 	}
 }

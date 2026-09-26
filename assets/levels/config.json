@@ -173,7 +173,8 @@
         "light": {
             "animation_speed": 0.3,
             "width": 0.2,
-            "height": 0.9
+            "height": 0.9,
+            "radius": 0.2
         }
     }
 }

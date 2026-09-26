@@ -4,11 +4,13 @@
 namespace wolfenstein {
 
 DynamicObject::DynamicObject(const vector2d& pose_, LoopedAnimation animation_,
-							 const double width_, const double height_)
+							 const double width_, const double height_,
+							 double radius)
 	: pose(pose_),
 	  animation(std::move(animation_)),
 	  width(width_),
-	  height(height_) {}
+	  height(height_),
+	  radius_(radius) {}
 
 void DynamicObject::Update(double delta_time) {
 	animation.Update(delta_time);

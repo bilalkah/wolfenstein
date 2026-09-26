@@ -13,7 +13,9 @@
 #define COLLISION_MANAGER_INCLUDE_COLLISION_MANAGER_H
 
 #include "GameMap/map.h"
+#include "GameObjects/game_object.h"
 #include "Math/vector.h"
+#include <span>
 
 namespace wolfenstein {
 
@@ -24,6 +26,16 @@ inline constexpr double kCollisionDistance = 0.2;
 // character within kCollisionDistance of a wall
 bool CheckWallCollision(const Map& map, const vector2d& pose,
 						const vector2d& delta_pose);
+
+// Whether a body of `radius` stepping from `from` to `to` would press into
+// one of `objects` (each as solid as its GetCollisionRadius). A step that
+// takes it further from an object it already touches is allowed, so nothing
+// gets stuck where it stands. `self` and, if `ignore_enemies`, enemies are
+// passed over.
+bool CheckObjectCollision(std::span<IGameObject* const> objects,
+						  const IGameObject* self, const vector2d& from,
+						  const vector2d& to, double radius,
+						  bool ignore_enemies = false);
 
 }  // namespace wolfenstein
 
