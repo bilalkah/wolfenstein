@@ -1,7 +1,9 @@
 #include "Core/level_data.h"
+#include "GameMap/map.h"
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstdlib>
 #include <nlohmann/json.hpp>
 #include <string_view>
 #include <utility>
@@ -54,15 +56,34 @@ WeaponConfig ToWeapon(const json& weapon) {
 			.falloff = ToFalloff(weapon.at("falloff"))};
 }
 
-// A pickup gives health, ammo boxes or both; what it does not give is 0
+// The key a pickup is ("key": "gold"), as a KeyBit, or 0
+std::uint8_t ToKeys(const json& pickup) {
+	if (!pickup.contains("key")) {
+		return 0;
+	}
+	const auto& key = pickup.at("key");
+	const auto name = key.get<std::string>();
+	if (name == "gold") {
+		return KeyBit(KeyColour::Gold);
+	}
+	if (name == "silver") {
+		return KeyBit(KeyColour::Silver);
+	}
+	throw json::other_error::create(505, "unknown key \"" + name + "\"", &key);
+}
+
+// A pickup gives health, ammo boxes, a key or some of them; what it does not
+// give is 0
 PickupConfig ToPickup(const json& pickup) {
 	PickupConfig config{
 		.texture = pickup.at("texture").get<std::string>(),
 		.width = pickup.at("width").get<double>(),
 		.height = pickup.at("height").get<double>(),
 		.effect = {.health = pickup.value("health", 0.0),
-				   .ammo_boxes = pickup.value("ammo_boxes", std::size_t{0})}};
-	if (config.effect.health <= 0.0 && config.effect.ammo_boxes == 0) {
+				   .ammo_boxes = pickup.value("ammo_boxes", std::size_t{0}),
+				   .keys = ToKeys(pickup)}};
+	if (config.effect.health <= 0.0 && config.effect.ammo_boxes == 0 &&
+		config.effect.keys == 0) {
 		throw json::other_error::create(503, "a pickup that gives nothing",
 										&pickup);
 	}
@@ -149,7 +170,8 @@ std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 		config.light = {
 			.animation_speed = light.at("animation_speed").get<double>(),
 			.width = light.at("width").get<double>(),
-			.height = light.at("height").get<double>()};
+			.height = light.at("height").get<double>(),
+			.radius = light.at("radius").get<double>()};
 		return config;
 	});
 }
@@ -168,12 +190,21 @@ class LevelReader final : public nlohmann::json_sax<json>
 		level_.enemies.reserve(32);
 		level_.dynamic_objects.reserve(32);
 		level_.pickups.reserve(32);
+		level_.objectives.reserve(4);
+		level_.secrets.reserve(4);
 	}
 
 	const std::string& Error() const { return error_; }
 
 	bool null() override { return Scalar("null"); }
-	bool boolean(bool /*value*/) override { return Scalar("a boolean"); }
+	bool boolean(bool value) override {
+		const Frame& frame = Top();
+		if (frame.kind == Kind::Enemy && frame.key == Key::Target) {
+			level_.enemies.back().target = value;
+			return true;
+		}
+		return Scalar("a boolean");
+	}
 	bool number_integer(number_integer_t value) override {
 		return Number(static_cast<double>(value));
 	}
@@ -202,6 +233,9 @@ class LevelReader final : public nlohmann::json_sax<json>
 				if (frame.key == Key::Name) {
 					return take(level_.name, 0);
 				}
+				if (frame.key == Key::Briefing) {
+					return take(level_.briefing, 0);
+				}
 				break;
 			case Kind::Enemy:
 				if (frame.key == Key::Type) {
@@ -216,6 +250,25 @@ class LevelReader final : public nlohmann::json_sax<json>
 			case Kind::Pickup:
 				if (frame.key == Key::Type) {
 					return take(level_.pickups.back().type, kType);
+				}
+				break;
+			case Kind::Objective:
+				if (frame.key == Key::Type) {
+					Objective& objective = level_.objectives.back();
+					if (value == "kill_all") {
+						objective.type = Objective::Type::KillAll;
+					}
+					else if (value == "kill_targets") {
+						objective.type = Objective::Type::KillTargets;
+					}
+					else {
+						return Fail("unknown objective \"" + value + "\"");
+					}
+					frame.seen |= kType;
+					return true;
+				}
+				if (frame.key == Key::Text) {
+					return take(level_.objectives.back().text, kText);
 				}
 				break;
 			default:
@@ -257,6 +310,12 @@ class LevelReader final : public nlohmann::json_sax<json>
 			case Kind::Pickups:
 				level_.pickups.emplace_back();
 				return Push(Kind::Pickup);
+			case Kind::Objectives:
+				level_.objectives.emplace_back();
+				return Push(Kind::Objective);
+			case Kind::Secrets:
+				level_.secrets.emplace_back();
+				return Push(Kind::Secret);
 			default:
 				break;
 		}
@@ -274,6 +333,12 @@ class LevelReader final : public nlohmann::json_sax<json>
 		}
 		if (frame.kind == Kind::Root && frame.key == Key::Pickups) {
 			return Push(Kind::Pickups);
+		}
+		if (frame.kind == Kind::Root && frame.key == Key::Objectives) {
+			return Push(Kind::Objectives);
+		}
+		if (frame.kind == Kind::Root && frame.key == Key::Secrets) {
+			return Push(Kind::Secrets);
 		}
 		if (frame.kind == Kind::Skip || frame.key == Key::Other) {
 			return Push(Kind::Skip);
@@ -307,6 +372,16 @@ class LevelReader final : public nlohmann::json_sax<json>
 			case Kind::Pickup:
 				return Require(frame, kType, "pickup type") &&
 					   Require(frame, kPosition, "pickup position");
+			case Kind::Objective:
+				return Require(frame, kType, "objective type") &&
+					   Require(frame, kText, "objective text");
+			case Kind::Secret: {
+				const SecretSpawn& secret = level_.secrets.back();
+				if (std::abs(secret.dx) + std::abs(secret.dy) != 1) {
+					return Fail("a secret moves one cell along x or y");
+				}
+				return Require(frame, kX | kY, "secret x and y");
+			}
 			case Kind::Position:
 				Top().seen |= kPosition;
 				return Require(frame, frame.required, "x, y and theta");
@@ -342,6 +417,10 @@ class LevelReader final : public nlohmann::json_sax<json>
 		Object,
 		Pickups,
 		Pickup,
+		Objectives,
+		Objective,
+		Secrets,
+		Secret,
 		Position,
 		Skip,  // a value the game does not read
 	};
@@ -349,11 +428,18 @@ class LevelReader final : public nlohmann::json_sax<json>
 		None,
 		Map,
 		Name,
+		Briefing,
 		Player,
 		Enemies,
 		DynamicObjects,
 		Pickups,
+		Objectives,
+		Secrets,
 		Type,
+		Text,
+		Target,
+		Dx,
+		Dy,
 		Position,
 		X,
 		Y,
@@ -363,7 +449,7 @@ class LevelReader final : public nlohmann::json_sax<json>
 	// Fields seen in an object, as bits
 	static constexpr std::uint8_t kMap = 1, kPlayer = 2, kEnemies = 4,
 								  kObjects = 8, kType = 16, kPosition = 32,
-								  kX = 1, kY = 2, kTheta = 4;
+								  kText = 64, kX = 1, kY = 2, kTheta = 4;
 
 	struct Frame
 	{
@@ -383,6 +469,8 @@ class LevelReader final : public nlohmann::json_sax<json>
 					return Key::Map;
 				if (name == "name")
 					return Key::Name;
+				if (name == "briefing")
+					return Key::Briefing;
 				if (name == "player")
 					return Key::Player;
 				if (name == "enemies")
@@ -391,12 +479,35 @@ class LevelReader final : public nlohmann::json_sax<json>
 					return Key::DynamicObjects;
 				if (name == "pickups")
 					return Key::Pickups;
+				if (name == "objectives")
+					return Key::Objectives;
+				if (name == "secrets")
+					return Key::Secrets;
 				break;
 			case Kind::Player:
 				if (name == "position")
 					return Key::Position;
 				break;
+			case Kind::Secret:
+				if (name == "x")
+					return Key::X;
+				if (name == "y")
+					return Key::Y;
+				if (name == "dx")
+					return Key::Dx;
+				if (name == "dy")
+					return Key::Dy;
+				break;
+			case Kind::Objective:
+				if (name == "type")
+					return Key::Type;
+				if (name == "text")
+					return Key::Text;
+				break;
 			case Kind::Enemy:
+				if (name == "target")
+					return Key::Target;
+				[[fallthrough]];
 			case Kind::Object:
 			case Kind::Pickup:
 				if (name == "type")
@@ -446,6 +557,28 @@ class LevelReader final : public nlohmann::json_sax<json>
 		Frame& frame = Top();
 		if (frame.kind == Kind::Skip || frame.key == Key::Other) {
 			return true;
+		}
+		if (frame.kind == Kind::Secret) {
+			SecretSpawn& secret = level_.secrets.back();
+			const int number = static_cast<int>(value);
+			switch (frame.key) {
+				case Key::X:
+					secret.x = number;
+					frame.seen |= kX;
+					return true;
+				case Key::Y:
+					secret.y = number;
+					frame.seen |= kY;
+					return true;
+				case Key::Dx:
+					secret.dx = number;
+					return true;
+				case Key::Dy:
+					secret.dy = number;
+					return true;
+				default:
+					break;
+			}
 		}
 		if (frame.kind == Kind::Position) {
 			if (frame.key == Key::X) {

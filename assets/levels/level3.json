@@ -1,5 +1,6 @@
 {
   "name": "THE CATACOMBS",
+  "briefing": "Under the barracks the old catacombs open into a burial hall where a cyber demon keeps watch over an altar. The way down is sealed with two locks. Find the keys, destroy the demon and throw the switch behind the altar.",
   "map": "level3.txt",
   "player": {
     "position": {
@@ -95,7 +96,8 @@
         "x": 24.5,
         "y": 27.5,
         "theta": -1.86
-      }
+      },
+      "target": true
     }
   ],
   "dynamicObjects": [
@@ -221,6 +223,13 @@
       }
     },
     {
+      "type": "silver_key",
+      "position": {
+        "x": 5.5,
+        "y": 17.5
+      }
+    },
+    {
       "type": "ammo_box",
       "position": {
         "x": 15.5,
@@ -249,6 +258,13 @@
       }
     },
     {
+      "type": "gold_key",
+      "position": {
+        "x": 1.5,
+        "y": 28.5
+      }
+    },
+    {
       "type": "medkit",
       "position": {
         "x": 26.5,
@@ -268,6 +284,54 @@
         "x": 19.5,
         "y": 23.5
       }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 12.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 14.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 16.5,
+        "y": 28.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 16.5,
+        "y": 26.5
+      }
+    }
+  ],
+  "objectives": [
+    {
+      "type": "kill_targets",
+      "text": "Destroy the cyber demon at the altar"
+    }
+  ],
+  "secrets": [
+    {
+      "x": 13,
+      "y": 21,
+      "dx": 0,
+      "dy": 1
+    },
+    {
+      "x": 18,
+      "y": 27,
+      "dx": -1,
+      "dy": 0
     }
   ],
   "staticObjects": []

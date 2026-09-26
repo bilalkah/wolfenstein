@@ -155,13 +155,26 @@
             "width": 0.4,
             "height": 0.3,
             "ammo_boxes": 1
+        },
+        "gold_key": {
+            "texture": "gold_key",
+            "width": 0.3,
+            "height": 0.3,
+            "key": "gold"
+        },
+        "silver_key": {
+            "texture": "silver_key",
+            "width": 0.3,
+            "height": 0.3,
+            "key": "silver"
         }
     },
     "config_dynamic": {
         "light": {
             "animation_speed": 0.3,
             "width": 0.2,
-            "height": 0.9
+            "height": 0.9,
+            "radius": 0.2
         }
     }
 }

@@ -39,6 +39,7 @@ struct DynamicObjectStats
 	double animation_speed{};
 	double width{};
 	double height{};
+	double radius{};  // the room its base takes on the floor
 };
 
 // A kind of pickup: how it looks and what it gives
@@ -90,6 +91,30 @@ struct EnemySpawn
 {
 	std::string type;
 	Position2D position;
+	// One the level's kill_targets objective asks for
+	bool target = false;
+};
+
+// A secret: a wall that slides back along (dx, dy) when the player uses it,
+// opening a hidden room
+struct SecretSpawn
+{
+	int x = 0;
+	int y = 0;
+	int dx = 0;
+	int dy = 0;
+};
+
+// What a level asks of the player before its exit opens; the text is shown
+// on the HUD while it is not done
+struct Objective
+{
+	enum class Type : std::uint8_t {
+		KillAll,	  // every enemy in the level
+		KillTargets,  // the enemies marked as targets
+	};
+	Type type = Type::KillAll;
+	std::string text;
 };
 
 struct ObjectSpawn
@@ -103,12 +128,19 @@ struct ObjectSpawn
 struct LevelData
 {
 	std::string name;  // shown when the level starts; optional
+	// A few lines of story shown before the level starts; optional
+	std::string briefing;
 	std::string map;
 	Position2D player;
 	std::vector<EnemySpawn> enemies;
 	std::vector<ObjectSpawn> dynamic_objects;
 	// Optional in the file
 	std::vector<ObjectSpawn> pickups;
+	// Optional: a level with an exit (an X cell) and none only needs the
+	// exit; a level without an exit ends when its enemies are all dead
+	std::vector<Objective> objectives;
+	// Optional
+	std::vector<SecretSpawn> secrets;
 };
 
 std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input);

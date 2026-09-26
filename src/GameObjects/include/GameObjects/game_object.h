@@ -53,6 +53,9 @@ class IGameObject
 	// False while the object is out of the level (a pickup already taken):
 	// it stays in the scene's list but is not drawn
 	virtual bool IsVisible() const { return true; }
+	// How close another body's edge may come to its centre: 0 for what can
+	// be walked through (a pickup, a dead enemy)
+	virtual double GetCollisionRadius() const { return 0.0; }
 	virtual int GetTextureId() const = 0;
 	virtual double GetWidth() const = 0;
 	virtual double GetHeight() const = 0;

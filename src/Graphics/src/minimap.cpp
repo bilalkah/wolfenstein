@@ -10,20 +10,23 @@ namespace wolfenstein {
 namespace {
 
 // Walls by map cell value (the wall texture): concrete, brick, moss, demon
-// faces, eagle banners
-constexpr std::array<SDL_Color, 6> kWallColours{{
+// faces, eagle banners, and the exit
+constexpr std::array<SDL_Color, 7> kWallColours{{
 	{150, 150, 150, 235},
 	{150, 150, 150, 235},
 	{176, 74, 58, 235},
 	{100, 132, 84, 235},
 	{156, 52, 64, 235},
 	{84, 100, 156, 235},
+	{96, 232, 120, 245},  // the exit switch
 }};
 constexpr SDL_Color kFloor{56, 56, 60, 215};
 constexpr SDL_Color kPanel{0, 0, 0, 150};
 constexpr SDL_Color kFrame{210, 190, 150, 170};
 constexpr SDL_Color kPlayer{255, 214, 64, 255};
 constexpr SDL_Color kDoor{120, 150, 196, 255};
+constexpr SDL_Color kGold{232, 188, 64, 255};
+constexpr SDL_Color kSilver{214, 220, 230, 255};
 constexpr SDL_Color kHealth{230, 40, 40, 255};
 constexpr SDL_Color kHealthBack{245, 245, 238, 255};
 constexpr SDL_Color kAmmo{212, 168, 60, 255};
@@ -85,7 +88,9 @@ void Minimap::Render(const Position2D& player, bool expanded) {
 				const float shut =
 					cell * static_cast<float>(1.0 - door.openness);
 				const float half = std::max(cell * 0.15f, 1.0f);
-				batch_.SetColor(kDoor);
+				batch_.SetColor(door.lock == KeyColour::Gold	 ? kGold
+								: door.lock == KeyColour::Silver ? kSilver
+																 : kDoor);
 				if (door.across_x) {  // the plane x + 0.5, along y
 					const float middle = left + cell / 2;
 					batch_.AddRect(middle - half, top + cell - shut,
@@ -118,7 +123,14 @@ void Minimap::Render(const Position2D& player, bool expanded) {
 		const float cx = origin_x + static_cast<float>(pose.x) * cell;
 		const float cy = origin_y + static_cast<float>(pose.y) * cell;
 		const float half = mark / 2;
-		if (pickup->GetEffect().health > 0.0) {
+		if (const std::uint8_t keys = pickup->GetEffect().keys; keys != 0) {
+			// A key: a diamond in its metal
+			batch_.SetColor((keys & KeyBit(KeyColour::Gold)) != 0 ? kGold
+																  : kSilver);
+			batch_.AddQuad({cx, cy - half}, {cx + half, cy}, {cx, cy + half},
+						   {cx - half, cy});
+		}
+		else if (pickup->GetEffect().health > 0.0) {
 			const float arm = std::max(std::floor(mark / 3), 1.0f) / 2;
 			batch_.SetColor(kHealthBack);
 			batch_.AddRect(cx - half, cy - half, cx + half, cy + half);

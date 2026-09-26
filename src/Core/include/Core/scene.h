@@ -48,6 +48,8 @@ struct LevelStats
 	std::size_t enemies = 0;
 	std::size_t pickups_taken = 0;
 	std::size_t pickups = 0;
+	std::size_t secrets_found = 0;
+	std::size_t secrets = 0;
 	int explored_percent = 0;  // of the cells the player can stand in
 	double seconds = 0.0;	   // until the last enemy fell
 };
@@ -58,6 +60,7 @@ struct SceneCapacity
 	std::uint32_t enemies = 0;
 	std::uint32_t dynamic_objects = 0;
 	std::uint32_t pickups = 0;
+	std::uint32_t secrets = 0;
 };
 
 // Owns one level. Its objects live in fixed-capacity pools whose storage,
@@ -92,7 +95,7 @@ class Scene
 		const EnemyConfig& config, const Position2D& position);
 	std::expected<memory::Handle<DynamicObject>, memory::PoolError>
 	AddDynamicObject(const vector2d& pose, const LoopedAnimation& animation,
-					 double width, double height);
+					 double width, double height, double radius = 0.0);
 	std::expected<memory::Handle<Pickup>, memory::PoolError> AddPickup(
 		const vector2d& pose, int texture_id, double width, double height,
 		const PickupEffect& effect);
@@ -109,6 +112,27 @@ class Scene
 	void DecreaseAliveEnemies();
 	// Starts opening the door with this index in the map (if not open)
 	void OpenDoor(std::size_t door);
+	// A message for the player, for a moment after what caused it
+	enum class Notice : std::uint8_t {
+		None,
+		NeedGoldKey,  // tried a gold-locked door without the key
+		NeedSilverKey,
+		ExitLocked,	 // used the exit before the objectives were done
+		Secret,		 // found a secret
+	};
+	Notice GetNotice() const;
+
+	// What the level asks before its exit opens (its objectives' types)
+	void SetGoals(bool kill_all, bool kill_targets);
+	std::size_t TargetsLeft() const;
+	bool ObjectivesDone() const;
+	// Whether the level is over: its exit used with the objectives done, or
+	// for a level without an exit, every enemy dead
+	bool IsComplete() const;
+	// The player uses the exit switch
+	void UseExit();
+	// How long a secret takes to slide all the way back
+	static constexpr double kPushSeconds = 1.0;
 
 	void Update(double delta_time);
 
@@ -149,6 +173,8 @@ class Scene
   private:
 	// The player takes every pickup it stands on and has a use for
 	void CollectPickups();
+	void HandleUse();
+	void ShowNotice(Notice notice);
 	// Opens doors the player uses or an enemy reaches, and moves every door
 	// on: open doors close again once their doorway is clear
 	void UpdateDoors(double delta_time);
@@ -184,6 +210,11 @@ class Scene
 	Difficulty difficulty_;
 	// One per door of the map, in its order
 	std::pmr::vector<DoorMotion> doors_;
+	Notice notice_ = Notice::None;
+	double notice_time_ = 1e9;	// since it was shown
+	bool kill_all_ = false;
+	bool kill_targets_ = false;
+	bool completed_ = false;
 	Player* player_ = nullptr;
 	NavigationManager navigation_{*this, &arena_};
 	size_t number_of_alive_enemies{};

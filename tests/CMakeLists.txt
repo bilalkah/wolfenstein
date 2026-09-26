@@ -31,6 +31,9 @@ add_executable(unit_tests
     exploration_test.cpp
     door_test.cpp
     level_stats_test.cpp
+    objective_test.cpp
+    secret_test.cpp
+    collision_test.cpp
     saved_game_test.cpp
     texture_manifest_test.cpp
 )
@@ -52,8 +55,10 @@ target_link_libraries(unit_tests PRIVATE
     world
     renderer_menu
     minimap
+    renderer_3d
     time_manager
     shooting_manager
+    collision_manager
     texture_manager
     settings
 )

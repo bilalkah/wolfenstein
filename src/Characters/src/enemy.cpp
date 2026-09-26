@@ -140,12 +140,23 @@ void Enemy::Move(double delta_time) {
 	vector2d direction = next_pose - position_.pose;
 	direction.Norm();
 	vector2d delta_movement = direction * translation_speed_ * delta_time;
+	// As far as it can go: round lamps and the player (other enemies do not
+	// stop it, or they would jam in doorways), then along the walls
 	const Map& map = scene_.GetMap();
-	if (!CheckWallCollision(map, position_.pose, {delta_movement.x, 0})) {
-		position_.pose.x += delta_movement.x;
+	const Player& player = scene_.GetPlayer();
+	vector2d reached = ResolveObjectCollisions(
+		scene_.GetObjects(), this, position_.pose,
+		position_.pose + delta_movement, width / 2, /*ignore_enemies=*/true);
+	if (player.IsAlive()) {
+		reached = PushOutOf(player.GetPose(), player.GetWidth() / 2,
+							position_.pose, reached, width / 2);
 	}
-	if (!CheckWallCollision(map, position_.pose, {0, delta_movement.y})) {
-		position_.pose.y += delta_movement.y;
+	const vector2d step = reached - position_.pose;
+	if (!CheckWallCollision(map, position_.pose, {step.x, 0})) {
+		position_.pose.x += step.x;
+	}
+	if (!CheckWallCollision(map, position_.pose, {0, step.y})) {
+		position_.pose.y += step.y;
 	}
 }
 

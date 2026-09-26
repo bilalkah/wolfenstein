@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Draws the pickup sprites and the door texture, and synthesises the pickup
-sound.
+"""Draws the pickup sprites (health, ammunition, keys), the door textures, the
+exit switch and the mark on secret walls, and synthesises the pickup sound.
 
 Pixel art in the chunky style of the other sprites, written as PNGs (the
 pickups on a transparent background), and a short rising chime as a WAV;
 standard library only, so rerunning gives the same files.
 
     ./scripts/make_art.py   # writes assets/sprites/pickups/*.png,
-                            # assets/textures/door.png and
-                            # assets/sounds/pickup.wav
+                            # assets/textures/door*.png, exit.png,
+                            # secret_mark.png and assets/sounds/pickup.wav
 """
 
 import math
@@ -107,8 +107,35 @@ def ammo_box():
     return canvas
 
 
-def door():
-    """A steel door: riveted plates, a bracing band, a viewing slit."""
+# Metal colours for keys and locks: face, highlight, shadow
+GOLD = ((214, 170, 56, 255), (250, 222, 120, 255), (140, 100, 24, 255))
+SILVER = ((176, 184, 196, 255), (232, 236, 244, 255), (104, 110, 124, 255))
+
+
+def key(metal):
+    """A large old key lying flat: a ring bow, a shaft and a toothed bit."""
+    face, light, dark = metal
+    canvas = Canvas(40, 40)
+    # Bow: a square ring
+    canvas.rect(4, 12, 17, 27, OUTLINE)
+    canvas.rect(5, 13, 16, 26, face)
+    canvas.rect(5, 13, 16, 14, light)
+    canvas.rect(9, 17, 12, 22, OUTLINE)
+    # Shaft
+    canvas.rect(17, 17, 36, 22, OUTLINE)
+    canvas.rect(17, 18, 36, 21, face)
+    canvas.rect(17, 18, 36, 18, light)
+    canvas.rect(17, 21, 36, 21, dark)
+    # Bit: two teeth below the shaft's end
+    for x in (27, 32):
+        canvas.rect(x, 22, x + 3, 29, OUTLINE)
+        canvas.rect(x + 1, 22, x + 2, 28, dark)
+    return canvas
+
+
+def door(lock=None):
+    """A steel door: riveted plates, a bracing band, a viewing slit. A locked
+    door's band and handle are its key's metal, with a keyhole."""
     canvas = Canvas(64, 64)
     steel, light, dark = (86, 100, 122, 255), (122, 138, 160, 255), \
         (52, 62, 78, 255)
@@ -129,6 +156,85 @@ def door():
     canvas.rect(23, 13, 40, 15, (16, 16, 20, 255))
     canvas.rect(50, 44, 53, 51, OUTLINE)  # handle
     canvas.rect(51, 45, 52, 50, (200, 170, 90, 255))
+    if lock is not None:
+        face, light, dark = lock
+        canvas.rect(2, 30, 61, 33, face)  # the band in the key's metal
+        canvas.rect(2, 30, 61, 30, light)
+        canvas.rect(2, 33, 61, 33, dark)
+        canvas.rect(46, 40, 57, 55, OUTLINE)  # lock plate with a keyhole
+        canvas.rect(47, 41, 56, 54, face)
+        canvas.rect(47, 41, 56, 41, light)
+        canvas.rect(50, 44, 53, 47, OUTLINE)
+        canvas.rect(51, 48, 52, 51, OUTLINE)
+    return canvas
+
+
+# 3x5 pixel letters for the exit sign
+LETTERS = {
+    "E": ["###", "#..", "##.", "#..", "###"],
+    "X": ["#.#", "#.#", ".#.", "#.#", "#.#"],
+    "I": ["###", ".#.", ".#.", ".#.", "###"],
+    "T": ["###", ".#.", ".#.", ".#.", ".#."],
+}
+
+
+def exit_switch():
+    """The level's way out: a riveted panel under a lit EXIT sign, with a
+    big lever to throw."""
+    canvas = Canvas(64, 64)
+    steel, light, dark = (74, 80, 88, 255), (110, 118, 128, 255), \
+        (44, 48, 54, 255)
+    canvas.rect(0, 0, 63, 63, OUTLINE)
+    canvas.box(1, 1, 62, 62, steel, light, dark)
+    # The sign: green letters on a dark strip
+    canvas.rect(12, 5, 51, 17, OUTLINE)
+    canvas.rect(13, 6, 50, 16, (18, 40, 24, 255))
+    x = 16
+    for letter in "EXIT":
+        for row, line in enumerate(LETTERS[letter]):
+            for column, pixel in enumerate(line):
+                if pixel == "#":
+                    canvas.rect(x + column * 2, 7 + row * 2,
+                                x + column * 2 + 1, 8 + row * 2,
+                                (96, 240, 120, 255))
+        x += 8
+    # The lever in its slot
+    canvas.rect(26, 24, 37, 57, OUTLINE)
+    canvas.rect(27, 25, 36, 56, (30, 32, 36, 255))
+    canvas.rect(30, 30, 33, 48, (150, 156, 164, 255))  # the arm
+    canvas.rect(27, 26, 36, 31, (200, 40, 32, 255))	 # its red handle
+    canvas.rect(27, 26, 36, 26, (240, 110, 96, 255))
+    for rx, ry in ((6, 24), (55, 24), (6, 56), (55, 56)):
+        canvas.rect(rx, ry, rx + 1, ry + 1, (170, 176, 184, 255))
+    return canvas
+
+
+def secret_mark():
+    """What gives a secret wall away, to a careful eye: a jagged crack with
+    a couple of branches and chipped spots, over a faintly worn patch, drawn
+    over the wall's own texture."""
+    canvas = Canvas(48, 32)
+    crack = (18, 14, 12, 160)
+    chip = (235, 228, 214, 70)
+    wear = (255, 248, 230, 22)
+    for x0, y0, x1, y1 in ((14, 9, 33, 22), (10, 12, 37, 19), (18, 6, 29, 25)):
+        canvas.rect(x0, y0, x1, y1, wear)  # an uneven worn patch
+    # The crack: runs of pixels stepping down and across
+    path = [(6, 4), (9, 6), (11, 7), (13, 10), (14, 12), (17, 13), (19, 15),
+            (20, 18), (23, 19), (25, 21), (26, 24), (29, 25), (31, 27),
+            (34, 28), (36, 30)]
+    for (x0, y0), (x1, y1) in zip(path, path[1:]):
+        for t in range(max(abs(x1 - x0), abs(y1 - y0)) + 1):
+            n = max(abs(x1 - x0), abs(y1 - y0)) or 1
+            x = round(x0 + (x1 - x0) * t / n)
+            y = round(y0 + (y1 - y0) * t / n)
+            canvas.rect(x, y, x, y, crack)
+    for x, y in ((18, 12), (19, 11), (21, 10), (22, 9)):  # a branch up
+        canvas.rect(x, y, x, y, crack)
+    for x, y in ((26, 22), (28, 21), (30, 21), (32, 20)):  # a branch across
+        canvas.rect(x, y, x, y, crack)
+    for x, y in ((15, 13), (24, 20), (33, 29)):  # chipped edges
+        canvas.rect(x, y, x + 1, y, chip)
     return canvas
 
 
@@ -161,7 +267,13 @@ def main():
     for name, draw in (("medkit", medkit), ("large_medkit", large_medkit),
                        ("ammo_box", ammo_box)):
         draw().save(ASSETS / "sprites" / "pickups" / f"{name}.png")
+    key(GOLD).save(ASSETS / "sprites" / "pickups" / "gold_key.png")
+    key(SILVER).save(ASSETS / "sprites" / "pickups" / "silver_key.png")
     door().save(ASSETS / "textures" / "door.png")
+    door(GOLD).save(ASSETS / "textures" / "door_gold.png")
+    door(SILVER).save(ASSETS / "textures" / "door_silver.png")
+    exit_switch().save(ASSETS / "textures" / "exit.png")
+    secret_mark().save(ASSETS / "textures" / "secret_mark.png")
     chime(ASSETS / "sounds" / "pickup.wav")
 
 

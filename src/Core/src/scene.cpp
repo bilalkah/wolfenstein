@@ -35,7 +35,8 @@ std::size_t LevelArenaBytes(const Map& map, SceneCapacity capacity) {
 
 std::size_t Scene::MemoryFor(const Map& map, SceneCapacity capacity) {
 	return LevelArenaBytes(map, capacity) +
-		   map.GetDoors().size() * sizeof(DoorMotion) + alignof(DoorMotion);
+		   map.GetDoors().size() * sizeof(DoorMotion) + alignof(DoorMotion) +
+		   capacity.secrets * sizeof(PushWall) + alignof(PushWall);
 }
 
 Scene::Scene(const TextureManager& textures, SoundManager& sound,
@@ -53,6 +54,7 @@ Scene::Scene(const TextureManager& textures, SoundManager& sound,
 	  pickup_list_(&arena_),
 	  explored_(std::size_t{map.GetSizeX()} * map.GetSizeY(), 0, &arena_),
 	  doors_(map.GetDoors().size(), DoorMotion{}, &arena_) {
+	map_.ReservePushWalls(capacity.secrets);
 	objects_.reserve(capacity.enemies + capacity.dynamic_objects +
 					 capacity.pickups);
 	const int size_x = map_.GetSizeX();
@@ -81,8 +83,9 @@ std::expected<memory::Handle<Enemy>, memory::PoolError> Scene::AddEnemy(
 
 std::expected<memory::Handle<DynamicObject>, memory::PoolError>
 Scene::AddDynamicObject(const vector2d& pose, const LoopedAnimation& animation,
-						double width, double height) {
-	auto handle = dynamic_objects_.Create(pose, animation, width, height);
+						double width, double height, double radius) {
+	auto handle =
+		dynamic_objects_.Create(pose, animation, width, height, radius);
 	if (handle) {
 		DynamicObject* object = dynamic_objects_.Get(*handle);
 		object->SetId(ObjectId{static_cast<std::uint32_t>(objects_.size())});
@@ -136,7 +139,93 @@ void Scene::Update(double delta_time) {
 	ScopedTimer timer(ProfileSection::UpdatePlayer);
 	player_->Update(delta_time);
 	CollectPickups();
+	notice_time_ += delta_time;
+	HandleUse();
+	map_.AdvancePushWalls(PushWall::kDistance * delta_time / kPushSeconds);
 	UpdateDoors(delta_time);
+}
+
+Scene::Notice Scene::GetNotice() const {
+	constexpr double kNoticeSeconds = 2.0;
+	return notice_time_ < kNoticeSeconds ? notice_ : Notice::None;
+}
+
+void Scene::ShowNotice(Notice notice) {
+	notice_ = notice;
+	notice_time_ = 0.0;
+}
+
+void Scene::SetGoals(bool kill_all, bool kill_targets) {
+	kill_all_ = kill_all;
+	kill_targets_ = kill_targets;
+}
+
+std::size_t Scene::TargetsLeft() const {
+	return static_cast<std::size_t>(
+		std::ranges::count_if(enemy_list_, [](const Enemy* enemy) {
+			return enemy->IsTarget() && enemy->GetHealth() > 0.0;
+		}));
+}
+
+bool Scene::ObjectivesDone() const {
+	return (!kill_all_ || number_of_alive_enemies == 0) &&
+		   (!kill_targets_ || TargetsLeft() == 0);
+}
+
+bool Scene::IsComplete() const {
+	return map_.HasExit() ? completed_ : number_of_alive_enemies == 0;
+}
+
+void Scene::UseExit() {
+	if (!map_.HasExit()) {
+		return;
+	}
+	if (ObjectivesDone()) {
+		completed_ = true;
+	}
+	else {
+		ShowNotice(Notice::ExitLocked);
+	}
+}
+
+// The player uses what is just ahead: a door (if it has the key) or the
+// exit switch
+void Scene::HandleUse() {
+	if (!player_->IsAlive() || !player_->IsUsing()) {
+		return;
+	}
+	const Position2D& eye = player_->GetPosition();
+	const vector2d facing{std::cos(eye.theta), std::sin(eye.theta)};
+	for (const double reach : {0.6, 1.2}) {
+		const vector2d point = eye.pose + facing * reach;
+		const int x = static_cast<int>(std::floor(point.x));
+		const int y = static_cast<int>(std::floor(point.y));
+		if (map_.IsExit(x, y)) {
+			UseExit();
+			return;
+		}
+		if (const PushWall* wall = map_.FindPushWall(x, y)) {
+			map_.Push(
+				static_cast<std::size_t>(wall - map_.GetPushWalls().data()));
+			ShowNotice(Notice::Secret);
+			return;
+		}
+		if (const Door* door = map_.FindDoor(x, y)) {
+			if (door->lock == KeyColour::None || player_->HasKey(door->lock)) {
+				OpenDoor(
+					static_cast<std::size_t>(door - map_.GetDoors().data()));
+			}
+			else {
+				ShowNotice(door->lock == KeyColour::Gold
+							   ? Notice::NeedGoldKey
+							   : Notice::NeedSilverKey);
+			}
+			return;
+		}
+		if (map_.IsWall(x, y)) {
+			return;	 // nothing to use through a wall
+		}
+	}
 }
 
 void Scene::OpenDoor(std::size_t door) {
@@ -168,23 +257,12 @@ void Scene::UpdateDoors(double delta_time) {
 	if (doors.empty()) {
 		return;
 	}
-	// The player opens the door just ahead
-	if (player_->IsAlive() && player_->IsUsing()) {
-		const Position2D& eye = player_->GetPosition();
-		const vector2d facing{std::cos(eye.theta), std::sin(eye.theta)};
-		for (const double reach : {0.6, 1.2}) {
-			const vector2d point = eye.pose + facing * reach;
-			if (const Door* door =
-					map_.FindDoor(static_cast<int>(std::floor(point.x)),
-								  static_cast<int>(std::floor(point.y)))) {
-				OpenDoor(static_cast<std::size_t>(door - doors.data()));
-				break;
-			}
-		}
-	}
-	// Enemies open the doors they walk up to
+	// Enemies open the doors they walk up to, if not locked
 	constexpr double kEnemyReach = 1.2;
 	for (std::size_t i = 0; i < doors.size(); ++i) {
+		if (doors[i].lock != KeyColour::None) {
+			continue;
+		}
 		const vector2d centre{doors[i].x + 0.5, doors[i].y + 0.5};
 		if (std::ranges::any_of(enemy_list_, [&](const Enemy* enemy) {
 				return enemy->IsAlive() &&
@@ -307,10 +385,14 @@ void Scene::RestoreKilled(std::size_t index) {
 LevelStats Scene::GetStats() const {
 	const auto taken = static_cast<std::size_t>(
 		std::ranges::count_if(pickup_list_, &Pickup::IsTaken));
+	const auto secrets = map_.GetPushWalls();
 	return {.kills = enemy_list_.size() - number_of_alive_enemies,
 			.enemies = enemy_list_.size(),
 			.pickups_taken = taken,
 			.pickups = pickup_list_.size(),
+			.secrets_found = static_cast<std::size_t>(
+				std::ranges::count_if(secrets, &PushWall::pushed)),
+			.secrets = secrets.size(),
 			.explored_percent =
 				open_cells_ == 0 ? 0
 								 : static_cast<int>(100 * explored_open_cells_ /

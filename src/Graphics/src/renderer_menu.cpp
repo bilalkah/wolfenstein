@@ -64,6 +64,30 @@ void Menu::DrawLevelBanner(std::string_view title, std::string_view name,
 	}
 }
 
+void Menu::DrawNotice(std::string_view text) {
+	const auto& config = context_->GetConfig();
+	const auto size = ui_->MeasureText(text, ui::FontStyle::Body);
+	const SDL_Rect panel{(config.width - size.x) / 2 - 24,
+						 config.height * 2 / 3 - 12, size.x + 48, size.y + 24};
+	ui_->FillRect(panel, ui::color::kPanel);
+	ui_->Text(text, config.width / 2, panel.y + 12, ui::FontStyle::Body,
+			  ui::color::kText, ui::Align::Center);
+}
+
+void Menu::DrawObjective(std::string_view text) {
+	if (text.empty()) {
+		return;
+	}
+	const auto& config = context_->GetConfig();
+	const auto size = ui_->MeasureText(text, ui::FontStyle::Small);
+	const SDL_Rect panel{(config.width - size.x) / 2 - 18, 12, size.x + 36,
+						 size.y + 16};
+	ui_->FillRect(panel, ui::color::kPanel);
+	ui_->FillRect({panel.x, panel.y, 4, panel.h}, ui::color::kAccent);
+	ui_->Text(text, config.width / 2, panel.y + 8, ui::FontStyle::Small,
+			  ui::color::kText, ui::Align::Center);
+}
+
 void Menu::DrawEnemyCounter(std::size_t kills, std::size_t enemies) {
 	const auto& config = context_->GetConfig();
 	// Under the corner map, which is 30% of the screen's shorter side
@@ -76,6 +100,63 @@ void Menu::DrawEnemyCounter(std::size_t kills, std::size_t enemies) {
 			  ui::color::kMuted, ui::Align::Right);
 }
 
+void Menu::DrawBriefing(std::string_view heading, std::string_view story,
+						std::span<const std::string_view> objectives,
+						bool prompt) {
+	const auto& config = context_->GetConfig();
+	const int centre_x = config.width / 2;
+	constexpr int kTextWidth = 820;
+	const int left = centre_x - kTextWidth / 2;
+	int y = 110;
+	ui_->Text(heading, centre_x, y, ui::FontStyle::Heading,
+			  ui::color::kAccentBright, ui::Align::Center);
+	y += 110;
+
+	// The story, a word at a time: a line ends before the word that would
+	// not fit. Each line is a view into the story, so nothing is copied.
+	const int line_height = ui_->MeasureText("A", ui::FontStyle::Body).y + 8;
+	std::size_t line_start = 0;
+	std::size_t line_end = 0;  // after the last word that fits
+	std::size_t at = 0;
+	while (at <= story.size()) {
+		const std::size_t space = std::min(story.find(' ', at), story.size());
+		const std::string_view candidate =
+			story.substr(line_start, space - line_start);
+		if (line_end > line_start &&
+			ui_->MeasureText(candidate, ui::FontStyle::Body).x > kTextWidth) {
+			ui_->Text(story.substr(line_start, line_end - line_start), left, y,
+					  ui::FontStyle::Body, ui::color::kText);
+			y += line_height;
+			line_start = at;
+		}
+		line_end = space;
+		at = space + 1;
+	}
+	if (line_end > line_start) {
+		ui_->Text(story.substr(line_start, line_end - line_start), left, y,
+				  ui::FontStyle::Body, ui::color::kText);
+		y += line_height;
+	}
+
+	y += 40;
+	ui_->Text("OBJECTIVES", left, y, ui::FontStyle::Small, ui::color::kMuted);
+	y += 44;
+	for (const std::string_view objective : objectives) {
+		ui_->FillRect({left, y + line_height / 2 - 6, 10, 10},
+					  ui::color::kAccent);
+		ui_->Text(objective, left + 28, y, ui::FontStyle::Body,
+				  ui::color::kText);
+		y += line_height + 6;
+	}
+	ui_->Text("Reach the exit", left + 28, y, ui::FontStyle::Body,
+			  ui::color::kMuted);
+
+	if (prompt) {
+		ui_->Text("Press Enter to begin", centre_x, config.height - 110,
+				  ui::FontStyle::Small, ui::color::kMuted, ui::Align::Center);
+	}
+}
+
 void Menu::DrawLevelStats(std::string_view heading, const LevelStats& stats,
 						  bool prompt) {
 	const auto& config = context_->GetConfig();
@@ -86,7 +167,7 @@ void Menu::DrawLevelStats(std::string_view heading, const LevelStats& stats,
 	ui_->Text(heading, centre_x, y + 118, ui::FontStyle::Heading,
 			  ui::color::kAccentBright, ui::Align::Center);
 
-	const SDL_Rect panel{centre_x - 300, y + 190, 600, 280};
+	const SDL_Rect panel{centre_x - 300, y + 190, 600, 336};
 	ui_->FillRect(panel, ui::color::kPanel);
 	ui_->DrawRect(panel, ui::color::kBorder);
 	const auto minutes = static_cast<int>(stats.seconds) / 60;
@@ -94,12 +175,15 @@ void Menu::DrawLevelStats(std::string_view heading, const LevelStats& stats,
 	const ui::FixedText<32> enemies("{} / {}", stats.kills, stats.enemies);
 	const ui::FixedText<32> pickups("{} / {}", stats.pickups_taken,
 									stats.pickups);
+	const ui::FixedText<32> secrets("{} / {}", stats.secrets_found,
+									stats.secrets);
 	const ui::FixedText<16> explored("{}%", stats.explored_percent);
 	const ui::FixedText<16> time("{}:{:02}", minutes, seconds);
 	y = panel.y + 34;
 	for (const auto& [label, value] :
 		 {std::pair<std::string_view, std::string_view>{"Enemies", enemies},
 		  {"Supplies", pickups},
+		  {"Secrets", secrets},
 		  {"Explored", explored},
 		  {"Time", time}}) {
 		ui_->Text(label, panel.x + 48, y, ui::FontStyle::Body,

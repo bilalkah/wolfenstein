@@ -11,14 +11,20 @@
     "medkit": "sprites/pickups/medkit.png",
     "large_medkit": "sprites/pickups/large_medkit.png",
     "ammo_box": "sprites/pickups/ammo_box.png",
-    "door": "textures/door.png"
+    "door": "textures/door.png",
+    "door_gold": "textures/door_gold.png",
+    "door_silver": "textures/door_silver.png",
+    "secret_mark": "textures/secret_mark.png",
+    "gold_key": "sprites/pickups/gold_key.png",
+    "silver_key": "sprites/pickups/silver_key.png"
   },
   "walls": [
     "textures/1.png",
     "textures/2.png",
     "textures/3.png",
     "textures/4.png",
-    "textures/5.png"
+    "textures/5.png",
+    "textures/exit.png"
   ],
   "clips": {
     "digits": [

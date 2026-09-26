@@ -100,8 +100,9 @@ class Game
 				 std::size_t difficulty = 0);
 	// Goes on with the saved game, at the level it was saved at
 	void ContinueSavedGame();
-	// What every game does as it starts, new or continued
-	void BeginGame();
+	// What every game does as it starts, new or continued: a new game opens
+	// with its first level's briefing
+	void BeginGame(bool brief);
 	void SaveProgress();
 	void AutoSave(double delta_time);
 	void DescribeSavedGame();
@@ -128,10 +129,13 @@ class Game
 	// From the results screen to the next level, or to the win screen after
 	// the last
 	void ContinueFromStats();
+	// From a level's briefing into the level
+	void StartFromBriefing();
 	void DrawTransition();
 	// The level as the player sees it (3D, or the debug view) with the map
 	// over it
 	void RenderView(double alpha);
+	std::string_view CurrentObjective() const;
 	void BenchmarkStep();
 	void SoakStep();
 	// Benchmark or soak: no input devices, a fixed time step
@@ -171,8 +175,9 @@ class Game
 	double result_delay_time_ = 0.0;
 	// Between levels: fading out of the cleared one, or into the next
 	// Out: to black after a cleared level; Stats: its results over black,
-	// until the player goes on; In: the next level from black
-	enum class Fade : std::uint8_t { None, Out, Stats, In };
+	// until the player goes on; Briefing: the next level's, likewise; In:
+	// the level from black
+	enum class Fade : std::uint8_t { None, Out, Stats, Briefing, In };
 	Fade fade_ = Fade::None;
 	double fade_time_ = 0.0;
 	double cleared_time_ = 0.0;	 // since the level's last enemy died
@@ -191,6 +196,11 @@ class Game
 	bool soak_took_pickup_ = false;
 	bool soak_opened_door_ = false;
 	bool soak_saw_stats_ = false;
+	bool soak_saw_briefing_ = false;
+	bool soak_found_secret_ = false;
+	// Whether the fade in shows the level's title (not after a briefing,
+	// which showed it)
+	bool fade_banner_ = true;
 	int soak_first_allocation_ = -1;
 	std::array<std::uint64_t, 12> soak_phase_start_{};
 };

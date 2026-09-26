@@ -67,12 +67,26 @@ std::expected<Map, std::string> Map::FromFile(const std::string& path) {
 								   std::to_string(map.size_y_) + " map");
 		}
 		for (const char c : line) {
-			if (c == 'D') {
+			// D a door; G and S doors locked with the gold and silver keys
+			if (c == 'D' || c == 'G' || c == 'S') {
 				const auto column = map.cells_.size() % map.size_y_;
 				map.cells_.push_back(
 					static_cast<std::uint16_t>(kDoorCell + map.doors_.size()));
 				map.doors_.push_back({.x = static_cast<std::uint16_t>(rows),
-									  .y = static_cast<std::uint16_t>(column)});
+									  .y = static_cast<std::uint16_t>(column),
+									  .lock = c == 'G'	 ? KeyColour::Gold
+											  : c == 'S' ? KeyColour::Silver
+														 : KeyColour::None});
+				continue;
+			}
+			if (c == 'X') {
+				if (map.has_exit_) {
+					return std::unexpected(path + ": more than one exit");
+				}
+				map.has_exit_ = true;
+				map.exit_x_ = static_cast<int>(rows);
+				map.exit_y_ = static_cast<int>(map.cells_.size() % map.size_y_);
+				map.cells_.push_back(kExitWall);
 				continue;
 			}
 			if (c < '0' || c > '5') {
@@ -117,7 +131,11 @@ Map::Map(const Map& other, std::pmr::memory_resource* memory)
 	: size_x_(other.size_x_),
 	  size_y_(other.size_y_),
 	  cells_(other.cells_, memory),
-	  doors_(other.doors_, memory) {}
+	  doors_(other.doors_, memory),
+	  push_walls_(other.push_walls_, memory),
+	  has_exit_(other.has_exit_),
+	  exit_x_(other.exit_x_),
+	  exit_y_(other.exit_y_) {}
 
 namespace {
 
@@ -143,6 +161,14 @@ bool Map::IsBlocked(int x, int y) const {
 	if (!Contains(x, y)) {
 		return true;
 	}
+	// A sliding secret fills every cell of its way until it stops
+	for (const PushWall& wall : push_walls_) {
+		for (int step = 0; wall.moving && step <= PushWall::kDistance; ++step) {
+			if (x == wall.x + step * wall.dx && y == wall.y + step * wall.dy) {
+				return true;
+			}
+		}
+	}
 	const std::uint16_t cell =
 		GetCells()[static_cast<std::size_t>(x), static_cast<std::size_t>(y)];
 	if (IsDoorCell(cell)) {
@@ -158,6 +184,70 @@ bool Map::IsWall(int x, int y) const {
 	const std::uint16_t cell =
 		GetCells()[static_cast<std::size_t>(x), static_cast<std::size_t>(y)];
 	return cell != 0 && !IsDoorCell(cell);
+}
+
+bool Map::AddPushWall(int x, int y, int dx, int dy) {
+	if (!Contains(x, y) || !IsWall(x, y)) {
+		return false;
+	}
+	for (int step = 1; step <= PushWall::kDistance; ++step) {
+		if (IsBlocked(x + step * dx, y + step * dy)) {
+			return false;
+		}
+	}
+	push_walls_.push_back({.x = x,
+						   .y = y,
+						   .dx = dx,
+						   .dy = dy,
+						   .texture = GetCells()[static_cast<std::size_t>(x),
+												 static_cast<std::size_t>(y)]});
+	return true;
+}
+
+const PushWall* Map::FindPushWall(int x, int y) const {
+	for (const PushWall& wall : push_walls_) {
+		if (!wall.pushed && wall.x == x && wall.y == y) {
+			return &wall;
+		}
+	}
+	return nullptr;
+}
+
+void Map::Push(std::size_t index, bool finish) {
+	PushWall& wall = push_walls_[index];
+	if (wall.pushed) {
+		return;
+	}
+	wall.pushed = true;
+	wall.moving = true;
+	// While it slides it is drawn and blocks on its own, not as cells
+	cells_[(static_cast<std::size_t>(wall.x) * size_y_) +
+		   static_cast<std::size_t>(wall.y)] = 0;
+	if (finish) {
+		AdvancePushWalls(PushWall::kDistance);
+	}
+}
+
+void Map::AdvancePushWalls(double cells) {
+	constexpr double kEnd = PushWall::kDistance;
+	for (PushWall& wall : push_walls_) {
+		if (!wall.moving) {
+			continue;
+		}
+		wall.offset = std::min(wall.offset + cells, kEnd);
+		if (wall.offset >= kEnd) {
+			wall.moving = false;
+			const int x = wall.x + PushWall::kDistance * wall.dx;
+			const int y = wall.y + PushWall::kDistance * wall.dy;
+			cells_[(static_cast<std::size_t>(x) * size_y_) +
+				   static_cast<std::size_t>(y)] = wall.texture;
+		}
+	}
+}
+
+bool Map::IsLockedDoor(int x, int y) const {
+	const Door* door = FindDoor(x, y);
+	return door != nullptr && door->lock != KeyColour::None;
 }
 
 const Door* Map::FindDoor(int x, int y) const {

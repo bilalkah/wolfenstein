@@ -67,6 +67,13 @@ class Enemy : public ICharacter, public IGameObject
 	void RestoreDead();
 	// Not engaged with the player: standing idle, or dead and down
 	bool IsCalm() const;
+	// Solid while it stands: once shot down it can be walked over
+	double GetCollisionRadius() const override {
+		return is_alive_ && health_ > 0.0 ? width / 2 : 0.0;
+	}
+	// One of the enemies a level's objective asks the player to kill
+	bool IsTarget() const { return target_; }
+	void SetTarget(bool target) { target_ = target; }
 	void SetPose(const vector2d& pose) override;
 	void SetPosition(const Position2D position) override;
 	void IncreaseHealth(double amount) override;
@@ -94,6 +101,7 @@ class Enemy : public ICharacter, public IGameObject
 	bool is_attacked_{};
 	bool is_alive_{};
 	bool silent_{};	 // while being restored
+	bool target_{};
 	double translation_speed_{};
 	double width{};
 	double height{};

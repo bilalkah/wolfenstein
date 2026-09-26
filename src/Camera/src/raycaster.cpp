@@ -1,6 +1,9 @@
 #include "Camera/raycaster.h"
+#include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstddef>
+#include <utility>
 
 namespace wolfenstein {
 
@@ -38,6 +41,57 @@ bool HitDoor(Ray& ray, const Door& door) {
 	ray.is_hit_vertical = door.across_x;
 	ray.texture_shift = door.openness;
 	return true;
+}
+
+// A secret sliding back is a block between cells, not in the grid: the ray
+// stops on it if it meets it before whatever the DDA found
+void HitMovingPushWalls(Ray& ray, const Map& map, double depth) {
+	for (const PushWall& wall : map.GetPushWalls()) {
+		if (!wall.moving) {
+			continue;
+		}
+		const std::array<double, 2> low{wall.x + wall.dx * wall.offset,
+										wall.y + wall.dy * wall.offset};
+		const std::array<double, 2> origin{ray.origin.x, ray.origin.y};
+		const std::array<double, 2> direction{ray.direction.x, ray.direction.y};
+		double enter = 0.0;
+		double leave = ray.is_hit ? ray.distance : depth;
+		int enter_axis = -1;
+		bool missed = false;
+		for (std::size_t axis = 0; axis < 2 && !missed; ++axis) {
+			if (direction[axis] == 0.0) {
+				missed =
+					origin[axis] < low[axis] || origin[axis] > low[axis] + 1;
+				continue;
+			}
+			double near = (low[axis] - origin[axis]) / direction[axis];
+			double far = (low[axis] + 1 - origin[axis]) / direction[axis];
+			if (near > far) {
+				std::swap(near, far);
+			}
+			if (near > enter) {
+				enter = near;
+				enter_axis = static_cast<int>(axis);
+			}
+			leave = std::min(leave, far);
+			missed = enter > leave;
+		}
+		if (missed || enter_axis < 0) {
+			continue;  // no hit, or the ray starts inside it
+		}
+		ray.is_hit = true;
+		ray.distance = enter;
+		ray.perpendicular_distance = enter;
+		ray.hit_point = ray.origin + ray.direction * enter;
+		ray.wall_id = wall.texture;
+		// A face across x shows the texture along y, and the other way round;
+		// the texture moves with the block
+		ray.is_hit_vertical = enter_axis == 0;
+		const double along =
+			ray.is_hit_vertical ? ray.hit_point.y : ray.hit_point.x;
+		const double side = ray.is_hit_vertical ? low[1] : low[0];
+		ray.texture_shift = std::fmod(along, 1.0) - (along - side);
+	}
 }
 
 // DDA through the cells from `position` at `ray_theta`, until a wall, a
@@ -85,6 +139,7 @@ Ray Cast(const Map& map, const Position2D& position, double ray_theta,
 			}
 		}
 	}
+	HitMovingPushWalls(ray, map, depth);
 	return ray;
 }
 

@@ -99,6 +99,7 @@ void Game::Init() {
 	}
 	DescribeSavedGame();
 	renderer_3d_ = std::make_unique<Renderer3D>(*renderer_context_);
+	renderer_3d_->ReserveObjects(world_->LargestLevelObjects());
 	renderer_2d_ = std::make_unique<Renderer2D>(*renderer_context_);
 	minimap_ = std::make_unique<Minimap>(*renderer_context_);
 	ApplySettings();
@@ -128,7 +129,7 @@ void Game::NewGame(std::string_view weapon_name, std::string_view level,
 		std::cerr << "Cannot start a game: " << started.error() << '\n';
 		std::exit(EXIT_FAILURE);
 	}
-	BeginGame();
+	BeginGame(/*brief=*/true);
 }
 
 void Game::ContinueSavedGame() {
@@ -139,12 +140,12 @@ void Game::ContinueSavedGame() {
 		std::cerr << "Cannot continue the game: " << started.error() << '\n';
 		std::exit(EXIT_FAILURE);
 	}
-	BeginGame();
+	BeginGame(/*brief=*/false);
 }
 
 // A game has just started: the views follow it, it fades in under its level's
 // title, and a campaign is saved as it starts
-void Game::BeginGame() {
+void Game::BeginGame(bool brief) {
 	render_type_ = RenderType::TEXTURE;
 	renderer_ = renderer_3d_.get();
 	map_expanded_ = false;
@@ -153,9 +154,11 @@ void Game::BeginGame() {
 	renderer_result_.reset();
 	result_delay_time_ = 0.0;
 	cleared_time_ = 0.0;
-	// A new game fades in under the first level's title; the benchmark
-	// measures the plain game from its first frame
-	fade_ = IsBenchmark() ? Fade::None : Fade::In;
+	// A new game opens with the first level's briefing, a continued one
+	// fades in under its level's title; the benchmark measures the plain
+	// game from its first frame
+	fade_ = IsBenchmark() ? Fade::None : brief ? Fade::Briefing : Fade::In;
+	fade_banner_ = true;
 	fade_time_ = 0.0;
 	SaveProgress();
 }
@@ -335,6 +338,7 @@ void Game::SoakStep() {
 	soak_max_level_ = std::max(soak_max_level_, world_->LevelNumber());
 	soak_saw_result_ = soak_saw_result_ || state_ == GameState::Result;
 	soak_saw_stats_ = soak_saw_stats_ || fade_ == Fade::Stats;
+	soak_saw_briefing_ = soak_saw_briefing_ || fade_ == Fade::Briefing;
 	for (std::size_t i = 0; i < kPhases.size(); ++i) {
 		if (frame == kPhases[i].start) {
 			soak_phase_ = i;
@@ -390,10 +394,16 @@ void Game::SoakStep() {
 		if (!world_->CurrentLevel().GetMap().GetDoors().empty()) {
 			world_->CurrentLevel().OpenDoor(0);
 		}
+		// ... and a secret starts sliding back
+		if (!world_->CurrentLevel().GetMap().GetPushWalls().empty()) {
+			world_->CurrentLevel().GetMap().Push(0);
+		}
 	}
 	else if (frame == 355) {
 		const auto doors = world_->CurrentLevel().GetMap().GetDoors();
 		soak_opened_door_ = !doors.empty() && doors.front().openness > 0.0;
+		const auto secrets = world_->CurrentLevel().GetMap().GetPushWalls();
+		soak_found_secret_ = !secrets.empty() && secrets.front().offset > 0.0;
 	}
 	else if (frame == 360) {
 		// As if every enemy were shot: the level is cleared and the game
@@ -407,6 +417,10 @@ void Game::SoakStep() {
 			}
 		}
 	}
+	else if (frame == 362) {
+		// ... and the player takes the way out
+		world_->CurrentLevel().UseExit();
+	}
 	else if (frame == 700) {
 		world_->GetPlayer().DecreaseHealth(1000.0);
 	}
@@ -416,19 +430,19 @@ void Game::SoakStep() {
 						  .difficulty = 0});
 	}
 	else if (frame >= soak_frames_ - kSoakMenuFrames) {
-		std::cout << "SOAK_RESULT {\"frames\":" << frame
-				  << ",\"max_level\":" << soak_max_level_
-				  << ",\"saw_result\":" << (soak_saw_result_ ? "true" : "false")
-				  << ",\"took_pickup\":"
-				  << (soak_took_pickup_ ? "true" : "false")
-				  << ",\"opened_door\":"
-				  << (soak_opened_door_ ? "true" : "false")
-				  << ",\"saw_stats\":" << (soak_saw_stats_ ? "true" : "false")
-				  << ",\"first_allocating_frame\":" << soak_first_allocation_
-				  << ",\"allocations\":"
-				  << AllocationStats::count - soak_allocations_
-				  << ",\"bytes\":" << AllocationStats::bytes - soak_bytes_
-				  << ",\"phases\":{";
+		std::cout
+			<< "SOAK_RESULT {\"frames\":" << frame
+			<< ",\"max_level\":" << soak_max_level_
+			<< ",\"saw_result\":" << (soak_saw_result_ ? "true" : "false")
+			<< ",\"took_pickup\":" << (soak_took_pickup_ ? "true" : "false")
+			<< ",\"opened_door\":" << (soak_opened_door_ ? "true" : "false")
+			<< ",\"saw_stats\":" << (soak_saw_stats_ ? "true" : "false")
+			<< ",\"found_secret\":" << (soak_found_secret_ ? "true" : "false")
+			<< ",\"saw_briefing\":" << (soak_saw_briefing_ ? "true" : "false")
+			<< ",\"first_allocating_frame\":" << soak_first_allocation_
+			<< ",\"allocations\":" << AllocationStats::count - soak_allocations_
+			<< ",\"bytes\":" << AllocationStats::bytes - soak_bytes_
+			<< ",\"phases\":{";
 		for (std::size_t i = 0; i < kPhases.size(); ++i) {
 			const std::uint64_t end = i + 1 < kPhases.size()
 										  ? soak_phase_start_[i + 1]
@@ -604,8 +618,8 @@ void Game::UpdateAndRender() {
 	// breakpoint, a hidden browser tab) is dropped rather than caught up in
 	// a burst of ticks.
 	for (int ticks = step_.Advance(clock_.DeltaTime()); ticks > 0; --ticks) {
-		// The level waits behind its results screen
-		if (fade_ != Fade::Stats) {
+		// The level waits behind its results screen and the next briefing
+		if (fade_ != Fade::Stats && fade_ != Fade::Briefing) {
 			world_->CurrentLevel().Update(step_.TickSeconds());
 		}
 	}
@@ -624,6 +638,22 @@ void Game::UpdateAndRender() {
 	Present();
 }
 
+// The first objective of the level not yet done, or once they all are, the
+// way out; empty for a level with neither (the benchmark's)
+std::string_view Game::CurrentObjective() const {
+	const Scene& level = world_->CurrentLevel();
+	for (const Objective& objective : world_->LevelObjectives()) {
+		const bool done = objective.type == Objective::Type::KillAll
+							  ? level.GetNumberOfAliveEnemies() == 0
+							  : level.TargetsLeft() == 0;
+		if (!done) {
+			return objective.text;
+		}
+	}
+	return level.GetMap().HasExit() ? std::string_view("Reach the exit")
+									: std::string_view();
+}
+
 void Game::RenderView(double alpha) {
 	renderer_->RenderScene(clock_.DeltaTime());
 	if (render_type_ == RenderType::TEXTURE) {
@@ -631,6 +661,25 @@ void Game::RenderView(double alpha) {
 						 map_expanded_);
 		const LevelStats stats = world_->CurrentLevel().GetStats();
 		menu_->DrawEnemyCounter(stats.kills, stats.enemies);
+		switch (world_->CurrentLevel().GetNotice()) {
+			case Scene::Notice::NeedGoldKey:
+				menu_->DrawNotice("You need the gold key");
+				break;
+			case Scene::Notice::NeedSilverKey:
+				menu_->DrawNotice("You need the silver key");
+				break;
+			case Scene::Notice::ExitLocked:
+				menu_->DrawNotice("The mission is not done yet");
+				break;
+			case Scene::Notice::Secret:
+				menu_->DrawNotice("You found a secret");
+				break;
+			case Scene::Notice::None:
+				break;
+		}
+		if (fade_ == Fade::None) {
+			menu_->DrawObjective(CurrentObjective());
+		}
 	}
 }
 
@@ -649,15 +698,21 @@ void Game::CheckGameEvent() {
 			Pause();
 			return;
 		}
-		// Any of these goes on from a level's results
-		if (fade_ == Fade::Stats && fade_time_ >= kStatsInputDelay &&
+		// Any of these goes on from a level's results or briefing
+		if ((fade_ == Fade::Stats || fade_ == Fade::Briefing) &&
+			fade_time_ >= kStatsInputDelay &&
 			(event.type == SDL_MOUSEBUTTONDOWN ||
 			 (event.type == SDL_KEYDOWN &&
 			  (event.key.keysym.sym == SDLK_RETURN ||
 			   event.key.keysym.sym == SDLK_KP_ENTER ||
 			   event.key.keysym.sym == SDLK_SPACE ||
 			   event.key.keysym.sym == SDLK_e)))) {
-			ContinueFromStats();
+			if (fade_ == Fade::Stats) {
+				ContinueFromStats();
+			}
+			else {
+				StartFromBriefing();
+			}
 			continue;
 		}
 		if (event.type == SDL_KEYDOWN) {
@@ -706,8 +761,8 @@ void Game::CheckGameOver() {
 			*renderer_context_,
 			renderer_context_->Textures().GetTextureId("game_over"));
 	}
-	if (world_->CurrentLevel().GetNumberOfAliveEnemies() == 0 &&
-		!renderer_result_ && fade_ != Fade::Out && fade_ != Fade::Stats) {
+	if (world_->CurrentLevel().IsComplete() && !renderer_result_ &&
+		fade_ != Fade::Out && fade_ != Fade::Stats) {
 		cleared_time_ += delta_time;
 		if (cleared_time_ >= kClearedPause) {
 			fade_ = Fade::Out;
@@ -742,6 +797,10 @@ void Game::AdvanceTransition(double delta_time) {
 			 fade_time_ >= kScriptedStatsSeconds) {
 		ContinueFromStats();
 	}
+	else if (fade_ == Fade::Briefing && IsScripted() &&
+			 fade_time_ >= kScriptedStatsSeconds) {
+		StartFromBriefing();
+	}
 	else if (fade_ == Fade::In && fade_time_ >= kBannerSeconds) {
 		fade_ = Fade::None;
 	}
@@ -771,8 +830,17 @@ void Game::ContinueFromStats() {
 		std::exit(EXIT_FAILURE);
 	}
 	ShowLevel();
-	fade_ = Fade::In;
+	fade_ = Fade::Briefing;
 	SaveProgress();
+}
+
+void Game::StartFromBriefing() {
+	fade_ = Fade::In;
+	fade_banner_ = false;
+	fade_time_ = 0.0;
+	// The briefing was not play: the level's clock and ticks start now
+	clock_.Restart();
+	step_.Reset();
 }
 
 void Game::DrawTransition() {
@@ -783,7 +851,7 @@ void Game::DrawTransition() {
 	if (fade_ == Fade::Out) {
 		black = std::min(fade_time_ / kFadeOutSeconds, 1.0);
 	}
-	else if (fade_ == Fade::Stats) {
+	else if (fade_ == Fade::Stats || fade_ == Fade::Briefing) {
 		black = 1.0;
 	}
 	else {
@@ -802,7 +870,22 @@ void Game::DrawTransition() {
 		menu_->DrawLevelStats(heading, cleared_stats_,
 							  !IsScripted() && fade_time_ >= kStatsInputDelay);
 	}
-	if (fade_ == Fade::In) {
+	if (fade_ == Fade::Briefing) {
+		const ui::FixedText<64> heading("LEVEL {} · {}", world_->LevelNumber(),
+										world_->LevelName());
+		// The objectives' texts, pointing into the level's data
+		std::array<std::string_view, 4> objectives{};
+		std::size_t count = 0;
+		for (const Objective& objective : world_->LevelObjectives()) {
+			if (count < objectives.size()) {
+				objectives[count++] = objective.text;
+			}
+		}
+		menu_->DrawBriefing(heading, world_->LevelBriefing(),
+							std::span(objectives).first(count),
+							!IsScripted() && fade_time_ >= kStatsInputDelay);
+	}
+	if (fade_ == Fade::In && fade_banner_) {
 		const double banner = std::clamp(
 			(kBannerSeconds - fade_time_) / kBannerFadeSeconds, 0.0, 1.0);
 		const ui::FixedText<16> title("LEVEL {}", world_->LevelNumber());

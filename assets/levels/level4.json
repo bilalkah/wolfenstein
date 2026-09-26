@@ -1,5 +1,6 @@
 {
   "name": "THE SANCTUM",
+  "briefing": "The sanctum is where it began. Two cyber demons guard the arena at its heart, behind gold-locked gates. Take the silver key from the west wing, the gold one from the reliquary, and end this.",
   "map": "level4.txt",
   "player": {
     "position": {
@@ -111,7 +112,8 @@
         "x": 5.5,
         "y": 16.5,
         "theta": -0.79
-      }
+      },
+      "target": true
     },
     {
       "type": "cyber_demon",
@@ -119,7 +121,8 @@
         "x": 2.5,
         "y": 20.5,
         "theta": -0.91
-      }
+      },
+      "target": true
     }
   ],
   "dynamicObjects": [
@@ -168,29 +171,29 @@
     {
       "type": "red_light",
       "position": {
-        "x": 20.5,
-        "y": 20.5
-      }
-    },
-    {
-      "type": "red_light",
-      "position": {
-        "x": 16.5,
+        "x": 17.5,
         "y": 11.5
       }
     },
     {
       "type": "red_light",
       "position": {
-        "x": 22.5,
-        "y": 17.5
+        "x": 20.5,
+        "y": 19.5
       }
     },
     {
       "type": "red_light",
       "position": {
         "x": 15.5,
-        "y": 19.5
+        "y": 20.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 15.5,
+        "y": 17.5
       }
     },
     {
@@ -224,29 +227,29 @@
     {
       "type": "red_light",
       "position": {
-        "x": 1.5,
-        "y": 11.5
-      }
-    },
-    {
-      "type": "red_light",
-      "position": {
         "x": 10.5,
-        "y": 19.5
+        "y": 21.5
       }
     },
     {
       "type": "red_light",
       "position": {
-        "x": 2.5,
-        "y": 10.5
+        "x": 8.5,
+        "y": 13.5
       }
     },
     {
       "type": "red_light",
       "position": {
         "x": 7.5,
-        "y": 10.5
+        "y": 12.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 7.5,
+        "y": 19.5
       }
     }
   ],
@@ -280,6 +283,13 @@
       }
     },
     {
+      "type": "silver_key",
+      "position": {
+        "x": 23.5,
+        "y": 6.5
+      }
+    },
+    {
       "type": "medkit",
       "position": {
         "x": 17.5,
@@ -296,8 +306,8 @@
     {
       "type": "large_medkit",
       "position": {
-        "x": 17.5,
-        "y": 20.5
+        "x": 22.5,
+        "y": 14.5
       }
     },
     {
@@ -322,9 +332,16 @@
       }
     },
     {
+      "type": "gold_key",
+      "position": {
+        "x": 9.5,
+        "y": 23.5
+      }
+    },
+    {
       "type": "large_medkit",
       "position": {
-        "x": 1.5,
+        "x": 2.5,
         "y": 21.5
       }
     },
@@ -332,8 +349,56 @@
       "type": "ammo_box",
       "position": {
         "x": 2.5,
-        "y": 21.5
+        "y": 10.5
       }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 2.5,
+        "y": 3.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 2.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 26.5,
+        "y": 3.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 26.5,
+        "y": 5.5
+      }
+    }
+  ],
+  "objectives": [
+    {
+      "type": "kill_targets",
+      "text": "Kill the cyber demons guarding the arena"
+    }
+  ],
+  "secrets": [
+    {
+      "x": 4,
+      "y": 2,
+      "dx": -1,
+      "dy": 0
+    },
+    {
+      "x": 24,
+      "y": 4,
+      "dx": 1,
+      "dy": 0
     }
   ],
   "staticObjects": []

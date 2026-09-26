@@ -4,7 +4,10 @@
 #include "Core/level_data.h"
 #include "GameMap/map.h"
 #include "test_services.h"
+#include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstdint>
 #include <deque>
 #include <fstream>
 #include <gtest/gtest.h>
@@ -24,8 +27,11 @@ Cell CellOf(double x, double y) {
 	return {static_cast<int>(std::floor(x)), static_cast<int>(std::floor(y))};
 }
 
-// Every open cell reachable from `start`, moving between neighbours
-std::set<Cell> Reachable(const Map& map, Cell start) {
+// Every open cell reachable from `start`, moving between neighbours, through
+// doors the `keys` held open (unlocked doors always open) and through the
+// `secrets`, which the player pushes aside
+std::set<Cell> Reachable(const Map& map, Cell start, std::uint8_t keys = 0,
+						 const std::set<Cell>& secrets = {}) {
 	std::set<Cell> seen{start};
 	std::deque<Cell> queue{start};
 	while (!queue.empty()) {
@@ -33,13 +39,49 @@ std::set<Cell> Reachable(const Map& map, Cell start) {
 		queue.pop_front();
 		for (const Cell next :
 			 {Cell{x + 1, y}, Cell{x - 1, y}, Cell{x, y + 1}, Cell{x, y - 1}}) {
-			if (!map.IsWall(next.first, next.second) &&
-				seen.insert(next).second) {
+			if (map.IsWall(next.first, next.second) &&
+				!secrets.contains(next)) {
+				continue;
+			}
+			const Door* door = map.FindDoor(next.first, next.second);
+			if (door != nullptr &&
+				(keys & KeyBit(door->lock)) != KeyBit(door->lock)) {
+				continue;  // locked, and its key not yet found
+			}
+			if (seen.insert(next).second) {
 				queue.push_back(next);
 			}
 		}
 	}
 	return seen;
+}
+
+// What the player can reach in the end: from the start, picking up every key
+// reachable so far and going through the doors it opens, until nothing new
+// opens. A key only reachable through its own door is never found.
+std::set<Cell> ReachableWithKeys(const Map& map, Cell start,
+								 const LevelData& level) {
+	std::set<Cell> secrets;
+	for (const SecretSpawn& secret : level.secrets) {
+		secrets.insert({secret.x, secret.y});
+	}
+	std::uint8_t keys = 0;
+	for (;;) {
+		const auto reachable = Reachable(map, start, keys, secrets);
+		std::uint8_t found = keys;
+		for (const ObjectSpawn& pickup : level.pickups) {
+			const auto type = testing::GameData().pickups.find(pickup.type);
+			if (type != testing::GameData().pickups.end() &&
+				reachable.contains(
+					CellOf(pickup.position.x, pickup.position.y))) {
+				found |= type->second.effect.keys;
+			}
+		}
+		if (found == keys) {
+			return reachable;
+		}
+		keys = found;
+	}
 }
 
 class LevelDesign : public ::testing::TestWithParam<std::string>
@@ -68,7 +110,24 @@ TEST_P(LevelDesign, IsPlayable) {
 
 	const Cell start = CellOf(level->player.pose.x, level->player.pose.y);
 	ASSERT_FALSE(map->IsBlocked(start.first, start.second)) << file;
-	const auto reachable = Reachable(*map, start);
+	const auto reachable = ReachableWithKeys(*map, start, *level);
+
+	// Every lock has its key in the level
+	std::uint8_t keys_in_level = 0;
+	for (const ObjectSpawn& pickup : level->pickups) {
+		const auto type = testing::GameData().pickups.find(pickup.type);
+		if (type != testing::GameData().pickups.end()) {
+			keys_in_level |= type->second.effect.keys;
+		}
+	}
+	for (const Door& door : map->GetDoors()) {
+		EXPECT_EQ(keys_in_level & KeyBit(door.lock), KeyBit(door.lock))
+			<< file << ": the door at " << door.x << "," << door.y
+			<< " has no key in the level";
+		EXPECT_TRUE(reachable.contains({door.x, door.y}))
+			<< file << ": the door at " << door.x << "," << door.y
+			<< " cannot be reached";
+	}
 
 	EXPECT_FALSE(level->enemies.empty()) << file;
 	for (const EnemySpawn& enemy : level->enemies) {
@@ -112,6 +171,42 @@ TEST_P(LevelDesign, IsPlayable) {
 				  1.0)
 			<< file << ": a " << pickup.type << " lies at the start";
 	}
+	// Secrets: a wall with room behind it for the wall to slide into, reached
+	// from the level
+	for (const SecretSpawn& secret : level->secrets) {
+		EXPECT_TRUE(map->IsWall(secret.x, secret.y))
+			<< file << ": the secret at " << secret.x << "," << secret.y
+			<< " is not a wall";
+		for (int step = 1; step <= PushWall::kDistance; ++step) {
+			EXPECT_FALSE(map->IsWall(secret.x + step * secret.dx,
+									 secret.y + step * secret.dy))
+				<< file << ": the secret at " << secret.x << "," << secret.y
+				<< " has no room to slide";
+		}
+		EXPECT_TRUE(reachable.contains({secret.x, secret.y}))
+			<< file << ": the secret at " << secret.x << "," << secret.y
+			<< " cannot be reached";
+	}
+
+	// A way out, and what it waits for
+	ASSERT_TRUE(map->HasExit()) << file << " has no exit";
+	const vector2i exit = map->GetExit();
+	const bool exit_reachable = std::ranges::any_of(
+		std::array{Cell{exit.x + 1, exit.y}, Cell{exit.x - 1, exit.y},
+				   Cell{exit.x, exit.y + 1}, Cell{exit.x, exit.y - 1}},
+		[&](const Cell& cell) { return reachable.contains(cell); });
+	EXPECT_TRUE(exit_reachable) << file << ": the exit cannot be reached";
+	EXPECT_FALSE(level->objectives.empty()) << file << " has no objectives";
+	EXPECT_FALSE(level->briefing.empty()) << file << " has no briefing";
+	for (const Objective& objective : level->objectives) {
+		EXPECT_FALSE(objective.text.empty()) << file;
+		if (objective.type == Objective::Type::KillTargets) {
+			EXPECT_TRUE(
+				std::ranges::any_of(level->enemies, &EnemySpawn::target))
+				<< file << ": kill_targets without a target";
+		}
+	}
+
 	EXPECT_TRUE(health) << file << " has no health to pick up";
 	EXPECT_TRUE(ammo) << file << " has no ammunition to pick up";
 }

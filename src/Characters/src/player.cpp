@@ -103,6 +103,10 @@ bool Player::TryPickUp(const PickupEffect& effect, double supplies) {
 		weapon_.AddAmmoBoxes(effect.ammo_boxes, supplies)) {
 		taken = true;
 	}
+	if ((effect.keys & ~keys_) != 0) {
+		keys_ |= effect.keys;
+		taken = true;
+	}
 	if (taken) {
 		sound_.PlayEffect(sound_channel_, SoundEffect::Pickup);
 		picked_up_ = true;
@@ -138,12 +142,19 @@ void Player::Move(double delta_time) {
 	const vector2d right{-facing.y, facing.x};
 	const vector2d delta_movement =
 		facing * (command_.forward * speed) + right * (command_.strafe * speed);
+	// As far as it can go: out of the living enemies and lamps it meets
+	// (sliding round them), then an axis at a time against the walls
+	// (sliding along them)
 	const Map& map = scene_->GetMap();
-	if (!CheckWallCollision(map, position_.pose, {delta_movement.x, 0})) {
-		position_.pose.x += delta_movement.x;
+	const vector2d reached =
+		ResolveObjectCollisions(scene_->GetObjects(), this, position_.pose,
+								position_.pose + delta_movement, width_ / 2);
+	const vector2d step = reached - position_.pose;
+	if (!CheckWallCollision(map, position_.pose, {step.x, 0})) {
+		position_.pose.x += step.x;
 	}
-	if (!CheckWallCollision(map, position_.pose, {0, delta_movement.y})) {
-		position_.pose.y += delta_movement.y;
+	if (!CheckWallCollision(map, position_.pose, {0, step.y})) {
+		position_.pose.y += step.y;
 	}
 }
 

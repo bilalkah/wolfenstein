@@ -77,7 +77,20 @@ std::expected<void, std::string> SceneLoader::Prepare(const std::string& file) {
 		.enemies = static_cast<std::uint32_t>(data->enemies.size()),
 		.dynamic_objects =
 			static_cast<std::uint32_t>(data->dynamic_objects.size()),
-		.pickups = static_cast<std::uint32_t>(data->pickups.size())};
+		.pickups = static_cast<std::uint32_t>(data->pickups.size()),
+		.secrets = static_cast<std::uint32_t>(data->secrets.size())};
+	for (const SecretSpawn& secret : data->secrets) {
+		const auto open = [&](int step) {
+			return !map->IsBlocked(secret.x + step * secret.dx,
+								   secret.y + step * secret.dy);
+		};
+		if (!map->IsWall(secret.x, secret.y) || !open(1) || !open(2)) {
+			return std::unexpected(file + ": the secret at " +
+								   std::to_string(secret.x) + "," +
+								   std::to_string(secret.y) +
+								   " is not a wall with room behind it");
+		}
+	}
 	largest_memory_ =
 		std::max(largest_memory_, Scene::MemoryFor(*map, capacity));
 	largest_objects_ = std::max(
@@ -98,6 +111,7 @@ std::expected<void, std::string> SceneLoader::Populate(
 	Scene& scene, const PreparedLevel& level, Player& player) const {
 	player.SetPosition(level.data.player);
 	player.IncreaseHealth(100);
+	player.SetKeys(0);	// the last level's keys open nothing here
 	scene.SetPlayer(player);
 	for (const EnemySpawn& spawn : level.data.enemies) {
 		// Checked when the level was prepared
@@ -105,6 +119,7 @@ std::expected<void, std::string> SceneLoader::Populate(
 		if (!scene.AddEnemy(enemy, spawn.position)) {
 			return std::unexpected("more enemies than the scene can hold");
 		}
+		scene.GetEnemies().back()->SetTarget(spawn.target);
 	}
 	const auto& light = config_.light;
 	for (const ObjectSpawn& spawn : level.data.dynamic_objects) {
@@ -112,7 +127,7 @@ std::expected<void, std::string> SceneLoader::Populate(
 			scene.AddDynamicObject(spawn.position,
 								   LoopedAnimation(scene.Textures(), spawn.type,
 												   light.animation_speed),
-								   light.width, light.height);
+								   light.width, light.height, light.radius);
 		if (!added) {
 			return std::unexpected("more objects than the scene can hold");
 		}
@@ -126,6 +141,22 @@ std::expected<void, std::string> SceneLoader::Populate(
 			return std::unexpected("more pickups than the scene can hold");
 		}
 	}
+	for (const SecretSpawn& secret : level.data.secrets) {
+		if (!scene.GetMap().AddPushWall(secret.x, secret.y, secret.dx,
+										secret.dy)) {
+			return std::unexpected("a secret the map cannot hold");
+		}
+	}
+	scene.SetGoals(std::ranges::any_of(level.data.objectives,
+									   [](const Objective& objective) {
+										   return objective.type ==
+												  Objective::Type::KillAll;
+									   }),
+				   std::ranges::any_of(level.data.objectives,
+									   [](const Objective& objective) {
+										   return objective.type ==
+												  Objective::Type::KillTargets;
+									   }));
 	scene.FinishLoading();
 	return {};
 }
