@@ -27,15 +27,21 @@ inline constexpr double kCollisionDistance = 0.2;
 bool CheckWallCollision(const Map& map, const vector2d& pose,
 						const vector2d& delta_pose);
 
-// Whether a body of `radius` stepping from `from` to `to` would press into
-// one of `objects` (each as solid as its GetCollisionRadius). A step that
-// takes it further from an object it already touches is allowed, so nothing
-// gets stuck where it stands. `self` and, if `ignore_enemies`, enemies are
-// passed over.
-bool CheckObjectCollision(std::span<IGameObject* const> objects,
-						  const IGameObject* self, const vector2d& from,
-						  const vector2d& to, double radius,
-						  bool ignore_enemies = false);
+// Where a body of `radius` stepping from `from` towards `to` can get:
+// the step's end, moved out of any of `objects` (each as solid as its
+// GetCollisionRadius) it would press into, to their edge, straight away
+// from their centre. The body ends touching what it met and keeps the part
+// of its step along it, so it slides round round things. A step away from
+// something it already touches is left alone, so nothing gets stuck where
+// it stands. `self` and, if `ignore_enemies`, enemies are passed over.
+vector2d ResolveObjectCollisions(std::span<IGameObject* const> objects,
+								 const IGameObject* self, const vector2d& from,
+								 const vector2d& to, double radius,
+								 bool ignore_enemies = false);
+
+// The same for a single round body at `centre` of `solid` radius
+vector2d PushOutOf(const vector2d& centre, double solid, const vector2d& from,
+				   const vector2d& to, double radius);
 
 }  // namespace wolfenstein
 

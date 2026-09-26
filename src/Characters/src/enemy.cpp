@@ -140,27 +140,23 @@ void Enemy::Move(double delta_time) {
 	vector2d direction = next_pose - position_.pose;
 	direction.Norm();
 	vector2d delta_movement = direction * translation_speed_ * delta_time;
-	// Walls, lamps and the player stop it; other enemies do not, or they
-	// would jam in doorways
+	// As far as it can go: round lamps and the player (other enemies do not
+	// stop it, or they would jam in doorways), then along the walls
 	const Map& map = scene_.GetMap();
 	const Player& player = scene_.GetPlayer();
-	const auto can_move = [&](const vector2d& delta) {
-		const vector2d to = position_.pose + delta;
-		const double player_reach = width / 2 + player.GetWidth() / 2;
-		const bool into_player = player.IsAlive() &&
-								 player.GetPose().Distance(to) < player_reach &&
-								 player.GetPose().Distance(to) <
-									 player.GetPose().Distance(position_.pose);
-		return !CheckWallCollision(map, position_.pose, delta) &&
-			   !into_player &&
-			   !CheckObjectCollision(scene_.GetObjects(), this, position_.pose,
-									 to, width / 2, /*ignore_enemies=*/true);
-	};
-	if (can_move({delta_movement.x, 0})) {
-		position_.pose.x += delta_movement.x;
+	vector2d reached = ResolveObjectCollisions(
+		scene_.GetObjects(), this, position_.pose,
+		position_.pose + delta_movement, width / 2, /*ignore_enemies=*/true);
+	if (player.IsAlive()) {
+		reached = PushOutOf(player.GetPose(), player.GetWidth() / 2,
+							position_.pose, reached, width / 2);
 	}
-	if (can_move({0, delta_movement.y})) {
-		position_.pose.y += delta_movement.y;
+	const vector2d step = reached - position_.pose;
+	if (!CheckWallCollision(map, position_.pose, {step.x, 0})) {
+		position_.pose.x += step.x;
+	}
+	if (!CheckWallCollision(map, position_.pose, {0, step.y})) {
+		position_.pose.y += step.y;
 	}
 }
 

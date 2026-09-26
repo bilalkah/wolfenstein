@@ -1,4 +1,5 @@
 #include "CollisionManager/collision_manager.h"
+#include <cmath>
 
 namespace wolfenstein {
 
@@ -24,25 +25,42 @@ bool CheckWallCollision(const Map& map, const vector2d& pose,
 	return map.IsBlocked(vector2d{px, py});
 }
 
-bool CheckObjectCollision(std::span<IGameObject* const> objects,
-						  const IGameObject* self, const vector2d& from,
-						  const vector2d& to, double radius,
-						  bool ignore_enemies) {
-	for (const IGameObject* object : objects) {
-		const double solid = object->GetCollisionRadius();
-		if (object == self || solid <= 0.0 ||
-			(ignore_enemies &&
-			 object->GetObjectType() == ObjectType::CHARACTER_ENEMY)) {
-			continue;
-		}
-		const vector2d centre = object->GetPose();
-		const double reach = radius + solid;
-		const double after = centre.Distance(to);
-		if (after < reach && after < centre.Distance(from)) {
-			return true;
+vector2d PushOutOf(const vector2d& centre, double solid, const vector2d& from,
+				   const vector2d& to, double radius) {
+	const double reach = radius + solid;
+	const double after = centre.Distance(to);
+	if (after >= reach || after >= centre.Distance(from)) {
+		return to;	// clear of it, or moving away from it
+	}
+	// Out along the line from its centre; if the step ends on the centre,
+	// back the way it came
+	vector2d away = after > 1e-9 ? to - centre : from - centre;
+	const double length = std::hypot(away.x, away.y);
+	if (length < 1e-9) {
+		return from;
+	}
+	return centre + away * (reach / length);
+}
+
+vector2d ResolveObjectCollisions(std::span<IGameObject* const> objects,
+								 const IGameObject* self, const vector2d& from,
+								 const vector2d& to, double radius,
+								 bool ignore_enemies) {
+	// Pushed out of one thing, a body can end in another beside it: a
+	// second pass settles that
+	vector2d end = to;
+	for (int pass = 0; pass < 2; ++pass) {
+		for (const IGameObject* object : objects) {
+			const double solid = object->GetCollisionRadius();
+			if (object == self || solid <= 0.0 ||
+				(ignore_enemies &&
+				 object->GetObjectType() == ObjectType::CHARACTER_ENEMY)) {
+				continue;
+			}
+			end = PushOutOf(object->GetPose(), solid, from, end, radius);
 		}
 	}
-	return false;
+	return end;
 }
 
 }  // namespace wolfenstein

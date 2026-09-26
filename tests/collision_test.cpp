@@ -65,15 +65,22 @@ class CollisionTest : public ::testing::Test
 	Player player_;
 };
 
-TEST_F(CollisionTest, ThePlayerStopsAgainstALivingEnemy) {
+// Walking at a living enemy, the player never ends a tick inside it: it
+// comes up against it and, as the enemy shifts, slides round it
+TEST_F(CollisionTest, ThePlayerNeverEntersALivingEnemy) {
 	ASSERT_TRUE(scene_.AddEnemy(testing::Enemy("soldier"),
 								Position2D({3.5, 4.5}, -kFacingDown)));
 	scene_.FinishLoading();
-	Enemy& enemy = *scene_.GetEnemies().front();
-	Walk(PlayerCommand{.forward = 1}, 3.0);
+	const Enemy& enemy = *scene_.GetEnemies().front();
 	const double reach = player_.GetWidth() / 2 + enemy.GetWidth() / 2;
-	EXPECT_GE(DistanceTo(enemy.GetPose()), reach - 1e-9);
-	EXPECT_LT(DistanceTo(enemy.GetPose()), reach + 0.1) << "right up to it";
+	player_.SetCommand(PlayerCommand{.forward = 1});
+	double closest = 1e9;
+	for (double t = 0.0; t < 3.0; t += kTick) {
+		scene_.Update(kTick);
+		closest = std::min(closest, DistanceTo(enemy.GetPose()));
+	}
+	EXPECT_GE(closest, reach - 1e-9);
+	EXPECT_LT(closest, reach + 0.05) << "it did come up against it";
 }
 
 TEST_F(CollisionTest, TheDeadCanBeWalkedOver) {
@@ -96,14 +103,35 @@ TEST_F(CollisionTest, ThePlayerStopsAgainstALamp) {
 	EXPECT_LT(player_.GetPose().y, 4.5);
 }
 
-// Blocked on one axis, the player keeps moving on the other: it slides
-// along what it walks into instead of sticking to it
-TEST_F(CollisionTest, ABlockedMoveSlidesAlong) {
+// Walking into something off centre slides round it and carries on, the
+// way a move along a wall does
+TEST_F(CollisionTest, AMoveIntoSomethingSlidesRoundIt) {
 	AddLamp({3.5, 4.5});
 	scene_.FinishLoading();
-	player_.SetPosition(Position2D({3.4, 3.5}, kFacingDown + 0.6));
-	Walk(PlayerCommand{.forward = 1}, 1.5);
-	EXPECT_GT(player_.GetPose().y, 4.5) << "went round it";
+	player_.SetPosition(Position2D({3.35, 2.5}, kFacingDown));
+	Walk(PlayerCommand{.forward = 1}, 2.0);
+	EXPECT_GT(player_.GetPose().y, 5.0) << "went round it";
+	EXPECT_LT(player_.GetPose().x, 3.35) << "round its near side";
+}
+
+// A step into something ends touching it, not short of it: the body goes
+// as far as it can
+TEST(PushOut, AStepEndsAgainstWhatItMeets) {
+	const vector2d centre{0.0, 1.0};
+	// Head on: stops at its edge
+	const vector2d head_on =
+		PushOutOf(centre, 0.2, {0.0, 0.0}, {0.0, 0.9}, 0.2);
+	EXPECT_NEAR(head_on.y, 0.6, 1e-9);
+	EXPECT_NEAR(head_on.x, 0.0, 1e-9);
+	// Glancing: pushed sideways, still moving on
+	const vector2d glancing =
+		PushOutOf(centre, 0.2, {-0.3, 0.3}, {-0.2, 0.9}, 0.2);
+	EXPECT_NEAR(glancing.Distance(centre), 0.4, 1e-9);
+	EXPECT_GT(glancing.y, 0.3);
+	// Clear of it: untouched
+	const vector2d clear = PushOutOf(centre, 0.2, {1.0, 0.0}, {1.0, 0.5}, 0.2);
+	EXPECT_DOUBLE_EQ(clear.x, 1.0);
+	EXPECT_DOUBLE_EQ(clear.y, 0.5);
 }
 
 // Starting inside something (a bad spawn, a restored game), stepping away
@@ -125,13 +153,17 @@ TEST_F(CollisionTest, EnemiesPassEachOtherButNotLamps) {
 	const Enemy* second = scene_.GetEnemies()[1];
 	const auto objects = scene_.GetObjects();
 	// Into the other enemy: allowed, enemies do not block each other
-	EXPECT_FALSE(CheckObjectCollision(objects, first, first->GetPose(),
-									  {3.5, 5.3}, first->GetWidth() / 2,
-									  /*ignore_enemies=*/true));
-	// Into the lamp: blocked
-	EXPECT_TRUE(CheckObjectCollision(objects, second, {5.0, 4.5}, {5.2, 4.5},
-									 second->GetWidth() / 2,
-									 /*ignore_enemies=*/true));
+	const vector2d past = ResolveObjectCollisions(
+		objects, first, first->GetPose(), {3.5, 5.3}, first->GetWidth() / 2,
+		/*ignore_enemies=*/true);
+	EXPECT_DOUBLE_EQ(past.y, 5.3);
+	// Into the lamp: stopped at its edge
+	const vector2d stopped = ResolveObjectCollisions(
+		objects, second, {5.0, 4.5}, {5.2, 4.5}, second->GetWidth() / 2,
+		/*ignore_enemies=*/true);
+	EXPECT_NEAR(stopped.Distance({5.5, 4.5}),
+				second->GetWidth() / 2 + testing::GameData().light.radius,
+				1e-9);
 }
 
 // The route to the player goes round a lamp in the way
