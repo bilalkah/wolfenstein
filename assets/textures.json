@@ -14,6 +14,7 @@
     "door": "textures/door.png",
     "door_gold": "textures/door_gold.png",
     "door_silver": "textures/door_silver.png",
+    "secret_mark": "textures/secret_mark.png",
     "gold_key": "sprites/pickups/gold_key.png",
     "silver_key": "sprites/pickups/silver_key.png"
   },

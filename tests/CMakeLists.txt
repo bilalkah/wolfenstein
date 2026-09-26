@@ -54,6 +54,7 @@ target_link_libraries(unit_tests PRIVATE
     world
     renderer_menu
     minimap
+    renderer_3d
     time_manager
     shooting_manager
     texture_manager

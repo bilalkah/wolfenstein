@@ -26,6 +26,9 @@ class Renderer3D : public IRenderer
 {
   public:
 	explicit Renderer3D(RendererContext& context);
+	// Room for this many objects' draw commands on top of the walls', so a
+	// frame never grows the queue (the largest level's count, once)
+	void ReserveObjects(std::size_t objects);
 	void RenderScene(double delta_time) override;
 
   private:
@@ -81,6 +84,7 @@ class Renderer3D : public IRenderer
 	// By lock: none, gold, silver
 	std::array<int, 3> door_textures_{};
 	std::array<int, 3> key_textures_{};	 // held keys on the HUD
+	int mark_texture_ = 0;				 // on secret walls
 	int shown_fps_ = 0;
 	double fps_elapsed_ = 0.0;
 	int fps_frames_ = 0;

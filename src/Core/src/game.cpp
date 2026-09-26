@@ -99,6 +99,7 @@ void Game::Init() {
 	}
 	DescribeSavedGame();
 	renderer_3d_ = std::make_unique<Renderer3D>(*renderer_context_);
+	renderer_3d_->ReserveObjects(world_->LargestLevelObjects());
 	renderer_2d_ = std::make_unique<Renderer2D>(*renderer_context_);
 	minimap_ = std::make_unique<Minimap>(*renderer_context_);
 	ApplySettings();

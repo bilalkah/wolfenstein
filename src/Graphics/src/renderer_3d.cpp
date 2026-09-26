@@ -38,16 +38,18 @@ void Renderer3D::TextureDeleter::operator()(
 }
 
 Renderer3D::Renderer3D(RendererContext& context) : IRenderer(context) {
-	// One command per wall column (2 px wide), plus objects and the weapon
-	constexpr std::size_t kExtraCommands = 64;
+	// Up to two commands per wall column (2 px wide): the wall and, on a
+	// secret wall, its mark; the weapon, crosshair and overlays. The level's
+	// objects are added by ReserveObjects.
+	constexpr std::size_t kOverlays = 8;
 	render_queue_.reserve(
-		static_cast<std::size_t>(context_->GetConfig().width) / 2 +
-		kExtraCommands);
+		static_cast<std::size_t>(context_->GetConfig().width) + kOverlays);
 	hud_digits_ = context_->Textures().GetTextureCollection("digits");
 	sky_texture_ = context_->Textures().GetTextureId("sky");
 	far_texture_ = context_->Textures().GetTextureId("solid_black");
 	crosshair_texture_ = context_->Textures().GetTextureId("crosshair");
 	damage_texture_ = context_->Textures().GetTextureId("damage_taken");
+	mark_texture_ = context_->Textures().GetTextureId("secret_mark");
 	door_textures_ = {context_->Textures().GetTextureId("door"),
 					  context_->Textures().GetTextureId("door_gold"),
 					  context_->Textures().GetTextureId("door_silver")};
@@ -76,6 +78,10 @@ Renderer3D::Renderer3D(RendererContext& context) : IRenderer(context) {
 					   &pixel);
 	}
 	SDL_RenderFlush(context_->GetRenderer());
+}
+
+void Renderer3D::ReserveObjects(std::size_t objects) {
+	render_queue_.reserve(render_queue_.capacity() + objects);
 }
 
 void Renderer3D::Enqueue(int texture_id, const SDL_Rect& src_rect,
@@ -164,6 +170,29 @@ void Renderer3D::RenderIfRayHit(const int& horizontal_slice, const Ray& ray) {
 	SDL_Rect src_rect = {texture_point, 0, 1, texture_height};
 	SDL_Rect dest_rect = {horizontal_slice, draw_start, 2, line_height};
 	Enqueue(wall_texture, src_rect, dest_rect, distance);
+
+	// A secret wall not yet pushed gives itself away to a careful eye: a
+	// faint crack over the lower middle of its face
+	const vector2d inside = ray.hit_point + ray.direction * 1e-4;
+	if (scene_->GetMap().FindPushWall(static_cast<int>(std::floor(inside.x)),
+									  static_cast<int>(std::floor(inside.y))) !=
+		nullptr) {
+		constexpr double kLeft = 0.3;
+		constexpr double kWidth = 0.4;
+		constexpr double kTop = 0.55;
+		constexpr double kHeight = 0.28;
+		const double across = (hit_point - kLeft) / kWidth;
+		if (across >= 0.0 && across < 1.0) {
+			const auto& mark = context_->Textures().GetTexture(mark_texture_);
+			const SDL_Rect mark_src{static_cast<int>(across * mark.width), 0, 1,
+									mark.height};
+			const SDL_Rect mark_dest{
+				horizontal_slice,
+				draw_start + static_cast<int>(kTop * line_height), 2,
+				static_cast<int>(kHeight * line_height)};
+			Enqueue(mark_texture_, mark_src, mark_dest, distance);
+		}
+	}
 }
 
 void Renderer3D::RenderIfRayHitNot(const int& horizontal_slice) {
