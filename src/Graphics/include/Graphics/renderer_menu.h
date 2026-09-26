@@ -94,6 +94,11 @@ class Menu
 	void DrawObjective(std::string_view text);
 	// The enemies killed of the level's total, below the corner map
 	void DrawEnemyCounter(std::size_t kills, std::size_t enemies);
+	// A level's briefing over black: its `heading`, the story wrapped to the
+	// screen, and its objectives; `prompt`: whether to ask for a key to start
+	void DrawBriefing(std::string_view heading, std::string_view story,
+					  std::span<const std::string_view> objectives,
+					  bool prompt);
 	// A cleared level's results under its `heading` ("LEVEL 1 · CHECKPOINT"),
 	// over black; `prompt`: whether to ask for a key to go on
 	void DrawLevelStats(std::string_view heading, const LevelStats& stats,

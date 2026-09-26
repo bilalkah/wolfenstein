@@ -92,6 +92,8 @@ class World
 	std::span<const Objective> LevelObjectives() const {
 		return level_->data.objectives;
 	}
+	// The current level's briefing from its file; empty if it has none
+	std::string_view LevelBriefing() const { return level_->data.briefing; }
 	// The current level's name from its file; empty if it has none
 	std::string_view LevelName() const { return level_->data.name; }
 

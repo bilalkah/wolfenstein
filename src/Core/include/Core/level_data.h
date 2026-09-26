@@ -117,6 +117,8 @@ struct ObjectSpawn
 struct LevelData
 {
 	std::string name;  // shown when the level starts; optional
+	// A few lines of story shown before the level starts; optional
+	std::string briefing;
 	std::string map;
 	Position2D player;
 	std::vector<EnemySpawn> enemies;

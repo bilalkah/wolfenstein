@@ -72,8 +72,15 @@ TEST(Menu, NoFrameAllocates) {
 	for (int i = 0; i < 60; ++i) {
 		menu.DrawEnemyCounter(static_cast<std::size_t>(i % 11), 10);
 		menu.DrawLevelStats("LEVEL 1 · CHECKPOINT", stats, i % 2 == 0);
+		menu.DrawBriefing(
+			"LEVEL 1 · CHECKPOINT",
+			"A checkpoint guards the only road into the valley. Its garrison "
+			"is small but alert, and the key is kept somewhere inside.",
+			std::array<std::string_view, 1>{"Clear the checkpoint"},
+			i % 2 == 0);
 	}
-	EXPECT_EQ(AllocationStats::count - hud, 0u) << "the counter and results";
+	EXPECT_EQ(AllocationStats::count - hud, 0u)
+		<< "the counter, results and briefing";
 }
 #endif
 

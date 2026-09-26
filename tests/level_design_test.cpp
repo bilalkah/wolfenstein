@@ -173,6 +173,7 @@ TEST_P(LevelDesign, IsPlayable) {
 		[&](const Cell& cell) { return reachable.contains(cell); });
 	EXPECT_TRUE(exit_reachable) << file << ": the exit cannot be reached";
 	EXPECT_FALSE(level->objectives.empty()) << file << " has no objectives";
+	EXPECT_FALSE(level->briefing.empty()) << file << " has no briefing";
 	for (const Objective& objective : level->objectives) {
 		EXPECT_FALSE(objective.text.empty()) << file;
 		if (objective.type == Objective::Type::KillTargets) {

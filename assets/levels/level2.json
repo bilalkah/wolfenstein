@@ -1,5 +1,6 @@
 {
   "name": "THE BARRACKS",
+  "briefing": "Past the checkpoint lie the barracks. Something has come up from under the chapel: the soldiers are not alone any more. Wipe out the garrison and take the stairs at the back of the quarters.",
   "map": "level2.txt",
   "player": {
     "position": {

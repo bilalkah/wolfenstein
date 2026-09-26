@@ -1,5 +1,6 @@
 {
   "name": "THE SANCTUM",
+  "briefing": "The sanctum is where it began. Two cyber demons guard the arena at its heart, behind gold-locked gates. Take the silver key from the west wing, the gold one from the reliquary, and end this.",
   "map": "level4.txt",
   "player": {
     "position": {

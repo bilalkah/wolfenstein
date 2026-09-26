@@ -82,6 +82,8 @@ class Level:
     exit: tuple = None
     # What the level asks before its exit opens: {"type", "text"}
     objectives: list = field(default_factory=list)
+    # Shown before the level starts
+    briefing: str = ""
     seed: int = 1
 
 
@@ -271,6 +273,7 @@ def write(level):
     (ASSETS / "maps" / map_file).write_text("\n".join(lines) + "\n")
     data = {
         "name": level.name,
+        "briefing": level.briefing,
         "map": map_file,
         "player": {"position": {"x": level.start[0], "y": level.start[1],
                                 "theta": level.start[2]}},
@@ -321,6 +324,7 @@ LEVELS = [
           accents=[(0, 21, EAGLE), (21, 18, EAGLE)],
           locks={6: "gold"},  # the office
           exit=(21, 23),
+          briefing="A checkpoint guards the only road into the valley. Its garrison is small but alert. The way on is through the officer's office, and the gold key to it is kept in the armory. Clear the checkpoint and get out through the office.",
           objectives=[{"type": "kill_all",
                        "text": "Clear the checkpoint of its guards"}]),
 
@@ -357,6 +361,7 @@ LEVELS = [
           accents=[(0, 19, EAGLE), (0, 20, EAGLE), (25, 19, EAGLE)],
           locks={1: "gold"},  # the dormitory
           exit=(25, 26),
+          briefing="Past the checkpoint lie the barracks. Something has come up from under the chapel: the soldiers are not alone any more. Wipe out the garrison and take the stairs at the back of the quarters.",
           objectives=[{"type": "kill_all",
                        "text": "Wipe out the barracks garrison"}]),
 
@@ -397,6 +402,7 @@ LEVELS = [
           # the tomb; both ways into the altar
           locks={6: "silver", 7: "gold", 8: "gold"},
           exit=(27, 26),
+          briefing="Under the barracks the old catacombs open into a burial hall where a cyber demon keeps watch over an altar. The way down is sealed with two locks. Find the keys, destroy the demon and throw the switch behind the altar.",
           objectives=[{"type": "kill_targets",
                        "text": "Destroy the cyber demon at the altar"}]),
 
@@ -443,6 +449,7 @@ LEVELS = [
           # the east wing; every way into the arena
           locks={2: "silver", 5: "gold", 6: "gold", 7: "gold"},
           exit=(0, 15),
+          briefing="The sanctum is where it began. Two cyber demons guard the arena at its heart, behind gold-locked gates. Take the silver key from the west wing, the gold one from the reliquary, and end this.",
           objectives=[{"type": "kill_targets",
                        "text": "Kill the cyber demons guarding the arena"}]),
 ]

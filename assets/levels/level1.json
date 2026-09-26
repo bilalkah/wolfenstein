@@ -1,5 +1,6 @@
 {
   "name": "CHECKPOINT",
+  "briefing": "A checkpoint guards the only road into the valley. Its garrison is small but alert. The way on is through the officer's office, and the gold key to it is kept in the armory. Clear the checkpoint and get out through the office.",
   "map": "level1.txt",
   "player": {
     "position": {
