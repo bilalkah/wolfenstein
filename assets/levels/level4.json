@@ -351,12 +351,54 @@
         "x": 2.5,
         "y": 10.5
       }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 2.5,
+        "y": 3.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 2.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 26.5,
+        "y": 3.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 26.5,
+        "y": 5.5
+      }
     }
   ],
   "objectives": [
     {
       "type": "kill_targets",
       "text": "Kill the cyber demons guarding the arena"
+    }
+  ],
+  "secrets": [
+    {
+      "x": 4,
+      "y": 2,
+      "dx": -1,
+      "dy": 0
+    },
+    {
+      "x": 24,
+      "y": 4,
+      "dx": 1,
+      "dy": 0
     }
   ],
   "staticObjects": []

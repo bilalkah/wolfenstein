@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstdlib>
 #include <nlohmann/json.hpp>
 #include <string_view>
 #include <utility>
@@ -189,6 +190,7 @@ class LevelReader final : public nlohmann::json_sax<json>
 		level_.dynamic_objects.reserve(32);
 		level_.pickups.reserve(32);
 		level_.objectives.reserve(4);
+		level_.secrets.reserve(4);
 	}
 
 	const std::string& Error() const { return error_; }
@@ -310,6 +312,9 @@ class LevelReader final : public nlohmann::json_sax<json>
 			case Kind::Objectives:
 				level_.objectives.emplace_back();
 				return Push(Kind::Objective);
+			case Kind::Secrets:
+				level_.secrets.emplace_back();
+				return Push(Kind::Secret);
 			default:
 				break;
 		}
@@ -330,6 +335,9 @@ class LevelReader final : public nlohmann::json_sax<json>
 		}
 		if (frame.kind == Kind::Root && frame.key == Key::Objectives) {
 			return Push(Kind::Objectives);
+		}
+		if (frame.kind == Kind::Root && frame.key == Key::Secrets) {
+			return Push(Kind::Secrets);
 		}
 		if (frame.kind == Kind::Skip || frame.key == Key::Other) {
 			return Push(Kind::Skip);
@@ -366,6 +374,13 @@ class LevelReader final : public nlohmann::json_sax<json>
 			case Kind::Objective:
 				return Require(frame, kType, "objective type") &&
 					   Require(frame, kText, "objective text");
+			case Kind::Secret: {
+				const SecretSpawn& secret = level_.secrets.back();
+				if (std::abs(secret.dx) + std::abs(secret.dy) != 1) {
+					return Fail("a secret moves one cell along x or y");
+				}
+				return Require(frame, kX | kY, "secret x and y");
+			}
 			case Kind::Position:
 				Top().seen |= kPosition;
 				return Require(frame, frame.required, "x, y and theta");
@@ -403,6 +418,8 @@ class LevelReader final : public nlohmann::json_sax<json>
 		Pickup,
 		Objectives,
 		Objective,
+		Secrets,
+		Secret,
 		Position,
 		Skip,  // a value the game does not read
 	};
@@ -416,9 +433,12 @@ class LevelReader final : public nlohmann::json_sax<json>
 		DynamicObjects,
 		Pickups,
 		Objectives,
+		Secrets,
 		Type,
 		Text,
 		Target,
+		Dx,
+		Dy,
 		Position,
 		X,
 		Y,
@@ -460,10 +480,22 @@ class LevelReader final : public nlohmann::json_sax<json>
 					return Key::Pickups;
 				if (name == "objectives")
 					return Key::Objectives;
+				if (name == "secrets")
+					return Key::Secrets;
 				break;
 			case Kind::Player:
 				if (name == "position")
 					return Key::Position;
+				break;
+			case Kind::Secret:
+				if (name == "x")
+					return Key::X;
+				if (name == "y")
+					return Key::Y;
+				if (name == "dx")
+					return Key::Dx;
+				if (name == "dy")
+					return Key::Dy;
 				break;
 			case Kind::Objective:
 				if (name == "type")
@@ -524,6 +556,28 @@ class LevelReader final : public nlohmann::json_sax<json>
 		Frame& frame = Top();
 		if (frame.kind == Kind::Skip || frame.key == Key::Other) {
 			return true;
+		}
+		if (frame.kind == Kind::Secret) {
+			SecretSpawn& secret = level_.secrets.back();
+			const int number = static_cast<int>(value);
+			switch (frame.key) {
+				case Key::X:
+					secret.x = number;
+					frame.seen |= kX;
+					return true;
+				case Key::Y:
+					secret.y = number;
+					frame.seen |= kY;
+					return true;
+				case Key::Dx:
+					secret.dx = number;
+					return true;
+				case Key::Dy:
+					secret.dy = number;
+					return true;
+				default:
+					break;
+			}
 		}
 		if (frame.kind == Kind::Position) {
 			if (frame.key == Key::X) {

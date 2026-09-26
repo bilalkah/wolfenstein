@@ -77,7 +77,20 @@ std::expected<void, std::string> SceneLoader::Prepare(const std::string& file) {
 		.enemies = static_cast<std::uint32_t>(data->enemies.size()),
 		.dynamic_objects =
 			static_cast<std::uint32_t>(data->dynamic_objects.size()),
-		.pickups = static_cast<std::uint32_t>(data->pickups.size())};
+		.pickups = static_cast<std::uint32_t>(data->pickups.size()),
+		.secrets = static_cast<std::uint32_t>(data->secrets.size())};
+	for (const SecretSpawn& secret : data->secrets) {
+		const auto open = [&](int step) {
+			return !map->IsBlocked(secret.x + step * secret.dx,
+								   secret.y + step * secret.dy);
+		};
+		if (!map->IsWall(secret.x, secret.y) || !open(1) || !open(2)) {
+			return std::unexpected(file + ": the secret at " +
+								   std::to_string(secret.x) + "," +
+								   std::to_string(secret.y) +
+								   " is not a wall with room behind it");
+		}
+	}
 	largest_memory_ =
 		std::max(largest_memory_, Scene::MemoryFor(*map, capacity));
 	largest_objects_ = std::max(
@@ -126,6 +139,12 @@ std::expected<void, std::string> SceneLoader::Populate(
 							 scene.Textures().GetTextureId(pickup.texture),
 							 pickup.width, pickup.height, pickup.effect)) {
 			return std::unexpected("more pickups than the scene can hold");
+		}
+	}
+	for (const SecretSpawn& secret : level.data.secrets) {
+		if (!scene.GetMap().AddPushWall(secret.x, secret.y, secret.dx,
+										secret.dy)) {
+			return std::unexpected("a secret the map cannot hold");
 		}
 	}
 	scene.SetGoals(std::ranges::any_of(level.data.objectives,

@@ -94,6 +94,16 @@ struct EnemySpawn
 	bool target = false;
 };
 
+// A secret: a wall that slides back along (dx, dy) when the player uses it,
+// opening a hidden room
+struct SecretSpawn
+{
+	int x = 0;
+	int y = 0;
+	int dx = 0;
+	int dy = 0;
+};
+
 // What a level asks of the player before its exit opens; the text is shown
 // on the HUD while it is not done
 struct Objective
@@ -128,6 +138,8 @@ struct LevelData
 	// Optional: a level with an exit (an X cell) and none only needs the
 	// exit; a level without an exit ends when its enemies are all dead
 	std::vector<Objective> objectives;
+	// Optional
+	std::vector<SecretSpawn> secrets;
 };
 
 std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input);

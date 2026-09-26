@@ -167,7 +167,7 @@ void Menu::DrawLevelStats(std::string_view heading, const LevelStats& stats,
 	ui_->Text(heading, centre_x, y + 118, ui::FontStyle::Heading,
 			  ui::color::kAccentBright, ui::Align::Center);
 
-	const SDL_Rect panel{centre_x - 300, y + 190, 600, 280};
+	const SDL_Rect panel{centre_x - 300, y + 190, 600, 336};
 	ui_->FillRect(panel, ui::color::kPanel);
 	ui_->DrawRect(panel, ui::color::kBorder);
 	const auto minutes = static_cast<int>(stats.seconds) / 60;
@@ -175,12 +175,15 @@ void Menu::DrawLevelStats(std::string_view heading, const LevelStats& stats,
 	const ui::FixedText<32> enemies("{} / {}", stats.kills, stats.enemies);
 	const ui::FixedText<32> pickups("{} / {}", stats.pickups_taken,
 									stats.pickups);
+	const ui::FixedText<32> secrets("{} / {}", stats.secrets_found,
+									stats.secrets);
 	const ui::FixedText<16> explored("{}%", stats.explored_percent);
 	const ui::FixedText<16> time("{}:{:02}", minutes, seconds);
 	y = panel.y + 34;
 	for (const auto& [label, value] :
 		 {std::pair<std::string_view, std::string_view>{"Enemies", enemies},
 		  {"Supplies", pickups},
+		  {"Secrets", secrets},
 		  {"Explored", explored},
 		  {"Time", time}}) {
 		ui_->Text(label, panel.x + 48, y, ui::FontStyle::Body,

@@ -197,6 +197,7 @@ class Game
 	bool soak_opened_door_ = false;
 	bool soak_saw_stats_ = false;
 	bool soak_saw_briefing_ = false;
+	bool soak_found_secret_ = false;
 	// Whether the fade in shows the level's title (not after a briefing,
 	// which showed it)
 	bool fade_banner_ = true;

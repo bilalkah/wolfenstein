@@ -28,8 +28,10 @@ Cell CellOf(double x, double y) {
 }
 
 // Every open cell reachable from `start`, moving between neighbours, through
-// doors the `keys` held open (unlocked doors always open)
-std::set<Cell> Reachable(const Map& map, Cell start, std::uint8_t keys = 0) {
+// doors the `keys` held open (unlocked doors always open) and through the
+// `secrets`, which the player pushes aside
+std::set<Cell> Reachable(const Map& map, Cell start, std::uint8_t keys = 0,
+						 const std::set<Cell>& secrets = {}) {
 	std::set<Cell> seen{start};
 	std::deque<Cell> queue{start};
 	while (!queue.empty()) {
@@ -37,7 +39,8 @@ std::set<Cell> Reachable(const Map& map, Cell start, std::uint8_t keys = 0) {
 		queue.pop_front();
 		for (const Cell next :
 			 {Cell{x + 1, y}, Cell{x - 1, y}, Cell{x, y + 1}, Cell{x, y - 1}}) {
-			if (map.IsWall(next.first, next.second)) {
+			if (map.IsWall(next.first, next.second) &&
+				!secrets.contains(next)) {
 				continue;
 			}
 			const Door* door = map.FindDoor(next.first, next.second);
@@ -58,9 +61,13 @@ std::set<Cell> Reachable(const Map& map, Cell start, std::uint8_t keys = 0) {
 // opens. A key only reachable through its own door is never found.
 std::set<Cell> ReachableWithKeys(const Map& map, Cell start,
 								 const LevelData& level) {
+	std::set<Cell> secrets;
+	for (const SecretSpawn& secret : level.secrets) {
+		secrets.insert({secret.x, secret.y});
+	}
 	std::uint8_t keys = 0;
 	for (;;) {
-		const auto reachable = Reachable(map, start, keys);
+		const auto reachable = Reachable(map, start, keys, secrets);
 		std::uint8_t found = keys;
 		for (const ObjectSpawn& pickup : level.pickups) {
 			const auto type = testing::GameData().pickups.find(pickup.type);
@@ -164,6 +171,23 @@ TEST_P(LevelDesign, IsPlayable) {
 				  1.0)
 			<< file << ": a " << pickup.type << " lies at the start";
 	}
+	// Secrets: a wall with room behind it for the wall to slide into, reached
+	// from the level
+	for (const SecretSpawn& secret : level->secrets) {
+		EXPECT_TRUE(map->IsWall(secret.x, secret.y))
+			<< file << ": the secret at " << secret.x << "," << secret.y
+			<< " is not a wall";
+		for (int step = 1; step <= PushWall::kDistance; ++step) {
+			EXPECT_FALSE(map->IsWall(secret.x + step * secret.dx,
+									 secret.y + step * secret.dy))
+				<< file << ": the secret at " << secret.x << "," << secret.y
+				<< " has no room to slide";
+		}
+		EXPECT_TRUE(reachable.contains({secret.x, secret.y}))
+			<< file << ": the secret at " << secret.x << "," << secret.y
+			<< " cannot be reached";
+	}
+
 	// A way out, and what it waits for
 	ASSERT_TRUE(map->HasExit()) << file << " has no exit";
 	const vector2i exit = map->GetExit();

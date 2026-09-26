@@ -393,10 +393,16 @@ void Game::SoakStep() {
 		if (!world_->CurrentLevel().GetMap().GetDoors().empty()) {
 			world_->CurrentLevel().OpenDoor(0);
 		}
+		// ... and a secret starts sliding back
+		if (!world_->CurrentLevel().GetMap().GetPushWalls().empty()) {
+			world_->CurrentLevel().GetMap().Push(0);
+		}
 	}
 	else if (frame == 355) {
 		const auto doors = world_->CurrentLevel().GetMap().GetDoors();
 		soak_opened_door_ = !doors.empty() && doors.front().openness > 0.0;
+		const auto secrets = world_->CurrentLevel().GetMap().GetPushWalls();
+		soak_found_secret_ = !secrets.empty() && secrets.front().offset > 0.0;
 	}
 	else if (frame == 360) {
 		// As if every enemy were shot: the level is cleared and the game
@@ -430,6 +436,7 @@ void Game::SoakStep() {
 			<< ",\"took_pickup\":" << (soak_took_pickup_ ? "true" : "false")
 			<< ",\"opened_door\":" << (soak_opened_door_ ? "true" : "false")
 			<< ",\"saw_stats\":" << (soak_saw_stats_ ? "true" : "false")
+			<< ",\"found_secret\":" << (soak_found_secret_ ? "true" : "false")
 			<< ",\"saw_briefing\":" << (soak_saw_briefing_ ? "true" : "false")
 			<< ",\"first_allocating_frame\":" << soak_first_allocation_
 			<< ",\"allocations\":" << AllocationStats::count - soak_allocations_
@@ -662,6 +669,9 @@ void Game::RenderView(double alpha) {
 				break;
 			case Scene::Notice::ExitLocked:
 				menu_->DrawNotice("The mission is not done yet");
+				break;
+			case Scene::Notice::Secret:
+				menu_->DrawNotice("You found a secret");
 				break;
 			case Scene::Notice::None:
 				break;

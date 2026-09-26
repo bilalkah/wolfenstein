@@ -48,6 +48,24 @@ struct Door
 	KeyColour lock = KeyColour::None;
 };
 
+// A secret: a wall that slides kDistance cells back, in (dx, dy), when
+// pushed, and stays there, opening the hidden room behind it. Two cells, so
+// the block does not end in front of the gap it leaves.
+struct PushWall
+{
+	static constexpr int kDistance = 2;
+
+	int x = 0;
+	int y = 0;
+	int dx = 0;
+	int dy = 0;
+	std::uint16_t texture = 0;
+	// Cells moved: 0 in place, kDistance where it ends
+	double offset = 0.0;
+	bool moving = false;
+	bool pushed = false;  // has been pushed (moving, or where it ends)
+};
+
 // The level's grid of cells: 0 is free, a door cell is kDoorCell plus the
 // door's index, anything else a wall whose value is its texture id. The
 // exit switch (X in a map file) is a wall drawn with the kExitWall texture. Cells
@@ -86,9 +104,10 @@ class Map
 	~Map() = default;
 
 	// Bytes a copy into a memory resource takes, padding included
-	std::size_t MemoryBytes() const {
+	std::size_t MemoryBytes(std::size_t push_walls = 0) const {
 		return cells_.size() * sizeof(std::uint16_t) +
-			   doors_.size() * sizeof(Door) + 2 * alignof(std::max_align_t);
+			   doors_.size() * sizeof(Door) + push_walls * sizeof(PushWall) +
+			   3 * alignof(std::max_align_t);
 	}
 
 	CellView GetCells() const {
@@ -118,6 +137,20 @@ class Map
 	}
 	vector2i GetExit() const { return {exit_x_, exit_y_}; }
 
+	// Secrets: registered as a level is set up, before the game runs (room
+	// for `count` made first, so registering them never grows storage)
+	void ReservePushWalls(std::size_t count) { push_walls_.reserve(count); }
+	// The wall at (x, y) becomes a secret that moves along (dx, dy); false if
+	// it is not a wall with open floor the whole way behind it
+	bool AddPushWall(int x, int y, int dx, int dy);
+	std::span<const PushWall> GetPushWalls() const { return push_walls_; }
+	// The secret at (x, y) not yet pushed, or nullptr
+	const PushWall* FindPushWall(int x, int y) const;
+	// Starts it sliding; `finish` puts it where it ends at once (a saved game)
+	void Push(std::size_t wall, bool finish = false);
+	// Moves sliding secrets on by `cells`
+	void AdvancePushWalls(double cells);
+
 	std::span<const Door> GetDoors() const { return doors_; }
 	// The door in cell (x, y), or nullptr
 	const Door* FindDoor(int x, int y) const;
@@ -130,6 +163,7 @@ class Map
 	std::uint16_t size_y_{};  // columns
 	std::pmr::vector<std::uint16_t> cells_;
 	std::pmr::vector<Door> doors_;
+	std::pmr::vector<PushWall> push_walls_;
 	bool has_exit_ = false;
 	int exit_x_ = 0;
 	int exit_y_ = 0;

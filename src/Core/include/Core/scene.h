@@ -48,6 +48,8 @@ struct LevelStats
 	std::size_t enemies = 0;
 	std::size_t pickups_taken = 0;
 	std::size_t pickups = 0;
+	std::size_t secrets_found = 0;
+	std::size_t secrets = 0;
 	int explored_percent = 0;  // of the cells the player can stand in
 	double seconds = 0.0;	   // until the last enemy fell
 };
@@ -58,6 +60,7 @@ struct SceneCapacity
 	std::uint32_t enemies = 0;
 	std::uint32_t dynamic_objects = 0;
 	std::uint32_t pickups = 0;
+	std::uint32_t secrets = 0;
 };
 
 // Owns one level. Its objects live in fixed-capacity pools whose storage,
@@ -115,6 +118,7 @@ class Scene
 		NeedGoldKey,  // tried a gold-locked door without the key
 		NeedSilverKey,
 		ExitLocked,	 // used the exit before the objectives were done
+		Secret,		 // found a secret
 	};
 	Notice GetNotice() const;
 
@@ -127,6 +131,8 @@ class Scene
 	bool IsComplete() const;
 	// The player uses the exit switch
 	void UseExit();
+	// How long a secret takes to slide all the way back
+	static constexpr double kPushSeconds = 1.0;
 
 	void Update(double delta_time);
 

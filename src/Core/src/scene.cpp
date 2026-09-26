@@ -35,7 +35,8 @@ std::size_t LevelArenaBytes(const Map& map, SceneCapacity capacity) {
 
 std::size_t Scene::MemoryFor(const Map& map, SceneCapacity capacity) {
 	return LevelArenaBytes(map, capacity) +
-		   map.GetDoors().size() * sizeof(DoorMotion) + alignof(DoorMotion);
+		   map.GetDoors().size() * sizeof(DoorMotion) + alignof(DoorMotion) +
+		   capacity.secrets * sizeof(PushWall) + alignof(PushWall);
 }
 
 Scene::Scene(const TextureManager& textures, SoundManager& sound,
@@ -53,6 +54,7 @@ Scene::Scene(const TextureManager& textures, SoundManager& sound,
 	  pickup_list_(&arena_),
 	  explored_(std::size_t{map.GetSizeX()} * map.GetSizeY(), 0, &arena_),
 	  doors_(map.GetDoors().size(), DoorMotion{}, &arena_) {
+	map_.ReservePushWalls(capacity.secrets);
 	objects_.reserve(capacity.enemies + capacity.dynamic_objects +
 					 capacity.pickups);
 	const int size_x = map_.GetSizeX();
@@ -138,6 +140,7 @@ void Scene::Update(double delta_time) {
 	CollectPickups();
 	notice_time_ += delta_time;
 	HandleUse();
+	map_.AdvancePushWalls(PushWall::kDistance * delta_time / kPushSeconds);
 	UpdateDoors(delta_time);
 }
 
@@ -198,6 +201,12 @@ void Scene::HandleUse() {
 		const int y = static_cast<int>(std::floor(point.y));
 		if (map_.IsExit(x, y)) {
 			UseExit();
+			return;
+		}
+		if (const PushWall* wall = map_.FindPushWall(x, y)) {
+			map_.Push(
+				static_cast<std::size_t>(wall - map_.GetPushWalls().data()));
+			ShowNotice(Notice::Secret);
 			return;
 		}
 		if (const Door* door = map_.FindDoor(x, y)) {
@@ -375,10 +384,14 @@ void Scene::RestoreKilled(std::size_t index) {
 LevelStats Scene::GetStats() const {
 	const auto taken = static_cast<std::size_t>(
 		std::ranges::count_if(pickup_list_, &Pickup::IsTaken));
+	const auto secrets = map_.GetPushWalls();
 	return {.kills = enemy_list_.size() - number_of_alive_enemies,
 			.enemies = enemy_list_.size(),
 			.pickups_taken = taken,
 			.pickups = pickup_list_.size(),
+			.secrets_found = static_cast<std::size_t>(
+				std::ranges::count_if(secrets, &PushWall::pushed)),
+			.secrets = secrets.size(),
 			.explored_percent =
 				open_cells_ == 0 ? 0
 								 : static_cast<int>(100 * explored_open_cells_ /

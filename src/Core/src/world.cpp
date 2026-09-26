@@ -106,6 +106,12 @@ std::expected<void, std::string> World::ContinueGame(const SavedGame& saved) {
 		}
 	}
 	scene.RestoreSeconds(saved.seconds);
+	const auto walls = scene.GetMap().GetPushWalls();
+	for (std::size_t i = 0; i < walls.size() && i < 64; ++i) {
+		if ((saved.secrets >> i & 1U) != 0) {
+			scene.GetMap().Push(i, /*finish=*/true);
+		}
+	}
 	player.SetKeys(static_cast<std::uint8_t>(saved.keys));
 	return {};
 }
@@ -149,6 +155,12 @@ std::optional<SavedGame> World::Capture() const {
 	for (std::size_t i = 0; i < pickups.size() && i < 64; ++i) {
 		if (pickups[i]->IsTaken()) {
 			saved.taken |= std::uint64_t{1} << i;
+		}
+	}
+	const auto walls = scene.GetMap().GetPushWalls();
+	for (std::size_t i = 0; i < walls.size() && i < 64; ++i) {
+		if (walls[i].pushed) {
+			saved.secrets |= std::uint64_t{1} << i;
 		}
 	}
 	const int size_x = scene.GetMap().GetSizeX();
