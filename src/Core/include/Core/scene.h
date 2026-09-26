@@ -95,7 +95,7 @@ class Scene
 		const EnemyConfig& config, const Position2D& position);
 	std::expected<memory::Handle<DynamicObject>, memory::PoolError>
 	AddDynamicObject(const vector2d& pose, const LoopedAnimation& animation,
-					 double width, double height);
+					 double width, double height, double radius = 0.0);
 	std::expected<memory::Handle<Pickup>, memory::PoolError> AddPickup(
 		const vector2d& pose, int texture_id, double width, double height,
 		const PickupEffect& effect);

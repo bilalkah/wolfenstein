@@ -83,8 +83,9 @@ std::expected<memory::Handle<Enemy>, memory::PoolError> Scene::AddEnemy(
 
 std::expected<memory::Handle<DynamicObject>, memory::PoolError>
 Scene::AddDynamicObject(const vector2d& pose, const LoopedAnimation& animation,
-						double width, double height) {
-	auto handle = dynamic_objects_.Create(pose, animation, width, height);
+						double width, double height, double radius) {
+	auto handle =
+		dynamic_objects_.Create(pose, animation, width, height, radius);
 	if (handle) {
 		DynamicObject* object = dynamic_objects_.Get(*handle);
 		object->SetId(ObjectId{static_cast<std::uint32_t>(objects_.size())});

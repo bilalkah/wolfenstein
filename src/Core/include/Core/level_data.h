@@ -39,6 +39,7 @@ struct DynamicObjectStats
 	double animation_speed{};
 	double width{};
 	double height{};
+	double radius{};  // the room its base takes on the floor
 };
 
 // A kind of pickup: how it looks and what it gives

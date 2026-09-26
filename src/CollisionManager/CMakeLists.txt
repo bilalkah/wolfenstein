@@ -11,4 +11,5 @@ target_link_libraries(
     PUBLIC
     map
     vector
+    game_object
 )

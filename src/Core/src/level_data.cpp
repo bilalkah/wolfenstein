@@ -170,7 +170,8 @@ std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 		config.light = {
 			.animation_speed = light.at("animation_speed").get<double>(),
 			.width = light.at("width").get<double>(),
-			.height = light.at("height").get<double>()};
+			.height = light.at("height").get<double>(),
+			.radius = light.at("radius").get<double>()};
 		return config;
 	});
 }
