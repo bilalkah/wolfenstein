@@ -20,9 +20,12 @@
 #include "GameObjects/pickup.h"
 #include "SoundManager/sound_manager.h"
 #include "Strike/weapon.h"
+#include <array>
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
+#include <span>
 
 namespace wolfenstein {
 
@@ -32,12 +35,20 @@ struct Ray;
 class Player : public ICharacter, public IGameObject
 {
   public:
-	// Borrows the sound it plays, which outlives it
-	// Carries a weapon built from `weapon`, in place. Borrows the textures
-	// and sound, which outlive it.
+	// The most weapons a player can carry: one bit each in a set
+	static constexpr std::size_t kMaxWeapons = 8;
+
+	// Carries a weapon for each of `arsenal` (the configuration's, in slot
+	// order; at most kMaxWeapons), built in place: holds those marked to
+	// start with and `first`, which is in hand. Borrows the arsenal, the
+	// textures and the sound, which outlive it.
+	Player(CharacterConfig& config, std::span<const WeaponConfig> arsenal,
+		   std::size_t first, const TextureManager& textures,
+		   SoundManager& sound);
+	// Carrying the one weapon
 	Player(CharacterConfig& config, const WeaponConfig& weapon,
 		   const TextureManager& textures, SoundManager& sound);
-	// Pinned: its weapon's states point back to the weapon inside it
+	// Pinned: its weapons' states point back to the weapons inside it
 	Player(const Player&) = delete;
 	Player& operator=(const Player&) = delete;
 	Player(Player&&) = delete;
@@ -68,7 +79,8 @@ class Player : public ICharacter, public IGameObject
 	// false, leaving it lying, if the player has no use for it (full health,
 	// a full reserve)
 	bool TryPickUp(const PickupEffect& effect, double supplies = 1.0);
-	// Health and rounds as a saved game left them, within their limits
+	// Health and the weapon in hand's rounds as a saved game left them,
+	// within their limits
 	void Restore(double health, std::size_t ammo, std::size_t reserve);
 	// The keys held, as KeyBit()s; each level's keys open its own doors, so
 	// a level starts with none
@@ -79,7 +91,21 @@ class Player : public ICharacter, public IGameObject
 	double SecondsSinceHurt() const { return since_hurt_; }
 	bool IsDamaged() const;
 	bool IsAlive() const;
+	// The weapon in hand
 	const Weapon& GetWeapon() const;
+	// The weapons: every one of the arsenal, held or not
+	std::size_t WeaponCount() const { return weapon_count_; }
+	const Weapon& GetWeapon(std::size_t index) const;
+	Weapon& GetWeapon(std::size_t index);
+	std::size_t HeldWeapon() const { return held_; }
+	// The weapons carried, a bit per index
+	std::uint8_t GetOwnedWeapons() const { return owned_; }
+	bool Owns(std::size_t index) const {
+		return index < weapon_count_ && (owned_ >> index & 1U) != 0;
+	}
+	void SetOwnedWeapons(std::uint8_t owned);
+	// Takes the weapon `index` in hand, if carried
+	void SelectWeapon(std::size_t index);
 	// Where to draw the view `alpha` of the way from the previous tick
 	Position2D GetRenderPosition(double alpha) const;
 	// Opacity of the damage overlay, fading out after a hit
@@ -92,6 +118,7 @@ class Player : public ICharacter, public IGameObject
   private:
 	void Move(double delta_time);
 	void Rotate(double delta_time);
+	void SwitchWeapons();
 	void ShootOrReload();
 
 	Scene* scene_ = nullptr;
@@ -108,7 +135,10 @@ class Player : public ICharacter, public IGameObject
 	SoundChannel sound_channel_;
 	Position2D position_;
 	Position2D previous_position_;
-	Weapon weapon_;
+	std::array<std::optional<Weapon>, kMaxWeapons> weapons_;
+	std::size_t weapon_count_ = 0;
+	std::uint8_t owned_ = 0;
+	std::size_t held_ = 0;
 	TriggeredSingleAnimation damage_animation_;
 	bool picked_up_{false};
 	TriggeredSingleAnimation pickup_animation_;

@@ -204,6 +204,13 @@
       }
     },
     {
+      "type": "mp5",
+      "position": {
+        "x": 20.5,
+        "y": 6.5
+      }
+    },
+    {
       "type": "medkit",
       "position": {
         "x": 20.5,

@@ -1,7 +1,6 @@
 #include "Graphics/renderer_menu.h"
 #include "Core/scene.h"
 #include "Settings/settings.h"
-#include "State/weapon_state.h"
 #include "TextureManager/texture_manager.h"
 #include <SDL2/SDL.h>
 #include <algorithm>
@@ -26,22 +25,16 @@ SDL_Rect ButtonRect(int screen_width, int top, int index) {
 
 }  // namespace
 
-Menu::Menu(RendererContext& context, SoundManager& sound,
-		   std::span<const WeaponConfig> weapons,
+Menu::Menu(RendererContext& context,
 		   std::span<const DifficultyChoice> difficulties)
 	: context_(&context),
 	  ui_(std::make_unique<ui::Ui>(
 		  context_->GetRenderer(),
 		  std::string(RESOURCE_DIR) + "font/EternalAncient.ttf",
 		  std::string(RESOURCE_DIR) + "font/Roboto-Light.ttf")),
-	  weapon_configs_(weapons),
 	  difficulties_(difficulties),
 	  chosen_difficulty_(difficulties.size() > 1 ? 1 : 0) {
 	background_texture_ = context_->Textures().GetTextureId("menu_background");
-	for (const WeaponConfig& config : weapon_configs_) {
-		weapons_.push_back(
-			std::make_unique<Weapon>(config, context_->Textures(), sound));
-	}
 }
 
 void Menu::DrawLevelBanner(std::string_view title, std::string_view name,
@@ -86,6 +79,30 @@ void Menu::DrawObjective(std::string_view text) {
 	ui_->FillRect({panel.x, panel.y, 4, panel.h}, ui::color::kAccent);
 	ui_->Text(text, config.width / 2, panel.y + 8, ui::FontStyle::Small,
 			  ui::color::kText, ui::Align::Center);
+}
+
+void Menu::DrawWeaponSlots(std::size_t count, std::uint8_t owned,
+						   std::size_t held) {
+	const auto& config = context_->GetConfig();
+	constexpr std::array<std::string_view, 8> kSlots{"1", "2", "3", "4",
+													 "5", "6", "7", "8"};
+	constexpr int kPitch = 30;
+	const int right = config.width - 20;
+	const int top = config.height - 118;
+	for (std::size_t i = 0; i < count && i < kSlots.size(); ++i) {
+		const int x =
+			right - static_cast<int>(count - 1 - i) * kPitch - kPitch + 6;
+		const bool carried = (owned >> i & 1U) != 0;
+		if (i == held) {
+			ui_->FillRect({x - 4, top - 2, kPitch - 6, 30}, ui::color::kAccent);
+		}
+		SDL_Color colour = carried ? ui::color::kText : ui::color::kMuted;
+		if (!carried) {
+			colour.a = 90;
+		}
+		ui_->Text(kSlots[i], x + (kPitch - 14) / 2 - 3, top,
+				  ui::FontStyle::Small, colour);
+	}
 }
 
 void Menu::DrawEnemyCounter(std::size_t kills, std::size_t enemies) {
@@ -203,37 +220,12 @@ void Menu::Open(MenuScreen screen) {
 		return_screen_ = screen_;
 	}
 	screen_ = screen;
-	if (screen == MenuScreen::WeaponSelect) {
-		for (const auto& weapon : weapons_) {
-			weapon->TransitionTo(WeaponStateType::Loaded);
-		}
-		previewed_weapon_ = -1;
-	}
 	if (screen == MenuScreen::DifficultySelect) {
 		// On the one chosen last (at first the middle one)
 		ui_->ResetFocus(static_cast<int>(chosen_difficulty_));
 		return;
 	}
 	ui_->ResetFocus();
-}
-
-void Menu::SetPreviewedWeapon(int index) {
-	if (index == previewed_weapon_) {
-		return;
-	}
-	// The card losing focus goes back to its first frame instead of freezing
-	// mid-animation; the card gaining it plays the reload animation
-	if (previewed_weapon_ >= 0) {
-		weapons_[static_cast<std::size_t>(previewed_weapon_)]->TransitionTo(
-			WeaponStateType::Loaded);
-	}
-	previewed_weapon_ = index;
-	if (index >= 0) {
-		// Straight into the animation: a reload with a full magazine is
-		// refused
-		weapons_[static_cast<std::size_t>(index)]->TransitionTo(
-			WeaponStateType::Reloading);
-	}
 }
 
 void Menu::GoBack() {
@@ -254,7 +246,7 @@ void Menu::HandleEvent(const SDL_Event& event) {
 	input_.Handle(event);
 }
 
-MenuAction Menu::Update(double delta_time) {
+MenuAction Menu::Update(double /*delta_time*/) {
 	ui_->BeginFrame(input_);
 	MenuAction action;
 	switch (screen_) {
@@ -263,9 +255,6 @@ MenuAction Menu::Update(double delta_time) {
 			break;
 		case MenuScreen::DifficultySelect:
 			action = DifficultySelectScreen();
-			break;
-		case MenuScreen::WeaponSelect:
-			action = WeaponSelectScreen(delta_time);
 			break;
 		case MenuScreen::Controls:
 			action = ControlsScreen();
@@ -309,8 +298,12 @@ MenuAction Menu::MainScreen() {
 	}
 	if (ui_->Button(has_saved_game_ ? "NEW GAME" : "PLAY",
 					ButtonRect(width, kTop, row++))) {
-		Open(difficulties_.empty() ? MenuScreen::WeaponSelect
-								   : MenuScreen::DifficultySelect);
+		if (difficulties_.empty()) {
+			action.type = MenuAction::Type::StartGame;
+		}
+		else {
+			Open(MenuScreen::DifficultySelect);
+		}
 	}
 	if (ui_->Button("CONTROLS", ButtonRect(width, kTop, row++))) {
 		Open(MenuScreen::Controls);
@@ -328,9 +321,11 @@ MenuAction Menu::MainScreen() {
 	return action;
 }
 
-// A new game's difficulty, chosen once for the whole campaign
+// A new game's difficulty, chosen once for the whole campaign; choosing one
+// starts the game
 MenuAction Menu::DifficultySelectScreen() {
 	const int width = context_->GetConfig().width;
+	MenuAction action;
 	DrawBackground();
 	DrawDimmer(190);
 	ui_->Text("CHOOSE DIFFICULTY", width / 2, 70, ui::FontStyle::Heading,
@@ -348,7 +343,8 @@ MenuAction Menu::DifficultySelectScreen() {
 		bool focused = false;
 		if (ui_->Selectable(card, focused)) {
 			chosen_difficulty_ = i;
-			Open(MenuScreen::WeaponSelect);
+			action.type = MenuAction::Type::StartGame;
+			action.difficulty = i;
 		}
 		ui_->FillRect(card,
 					  focused ? ui::color::kPanelFocused : ui::color::kPanel);
@@ -366,140 +362,8 @@ MenuAction Menu::DifficultySelectScreen() {
 		input_.back) {
 		Open(MenuScreen::Main);
 	}
-	DrawHint("Choose with the arrow keys or mouse  ·  Enter to go on");
-	return {};
-}
-
-MenuAction Menu::WeaponSelectScreen(double delta_time) {
-	const int width = context_->GetConfig().width;
-	DrawBackground();
-	DrawDimmer(190);
-
-	ui_->Text("CHOOSE YOUR WEAPON", width / 2, 50, ui::FontStyle::Heading,
-			  ui::color::kText, ui::Align::Center);
-
-	// Cards sit side by side, so left/right move between them too
-	if (input_.left) {
-		ui_->MoveFocus(-1);
-	}
-	if (input_.right) {
-		ui_->MoveFocus(1);
-	}
-
-	constexpr int kCardWidth = 470;
-	constexpr int kCardHeight = 590;
-	constexpr int kCardGap = 40;
-	const int cards_left =
-		(width - static_cast<int>(weapons_.size()) * kCardWidth -
-		 (static_cast<int>(weapons_.size()) - 1) * kCardGap) /
-		2;
-
-	MenuAction action;
-	int focused_card = -1;
-	for (std::size_t i = 0; i < weapons_.size(); ++i) {
-		const SDL_Rect card{
-			cards_left + static_cast<int>(i) * (kCardWidth + kCardGap), 140,
-			kCardWidth, kCardHeight};
-		bool focused = false;
-		if (ui_->Selectable(card, focused)) {
-			action.type = MenuAction::Type::StartGame;
-			action.weapon = weapon_configs_[i].weapon_name;
-			action.difficulty = chosen_difficulty_;
-		}
-		if (focused) {
-			focused_card = static_cast<int>(i);
-			SetPreviewedWeapon(focused_card);
-			weapons_[i]->Update(delta_time);
-		}
-		DrawWeaponCard(card, *weapons_[i], focused);
-	}
-
-	if (focused_card < 0) {
-		SetPreviewedWeapon(-1);
-	}
-
-	if (ui_->Button("BACK", {(width - 300) / 2, 760, 300, 64}) || input_.back) {
-		Open(difficulties_.empty() ? MenuScreen::Main
-								   : MenuScreen::DifficultySelect);
-	}
-	DrawHint("Click a weapon or press Enter to start  ·  Esc to go back");
+	DrawHint("Choose with the arrow keys or mouse  ·  Enter to start");
 	return action;
-}
-
-void Menu::DrawWeaponCard(const SDL_Rect& rect, const Weapon& weapon,
-						  bool focused) {
-	constexpr int kPadding = 28;
-	ui_->FillRect(rect, focused ? ui::color::kPanelFocused : ui::color::kPanel);
-	ui_->DrawRect(rect, focused ? ui::color::kAccent : ui::color::kBorder,
-				  focused ? 3 : 1);
-
-	// Weapon sprite, scaled to fit the preview area and kept in proportion
-	const SDL_Rect preview{rect.x + kPadding, rect.y + kPadding,
-						   rect.w - 2 * kPadding, 230};
-	const auto& texture =
-		context_->Textures().GetTexture(weapon.GetTextureId());
-	if (texture.texture != nullptr && texture.width > 0 && texture.height > 0) {
-		const double scale =
-			std::min(static_cast<double>(preview.w) / texture.width,
-					 static_cast<double>(preview.h) / texture.height);
-		const int w = static_cast<int>(texture.width * scale);
-		const int h = static_cast<int>(texture.height * scale);
-		const SDL_Rect dest{preview.x + (preview.w - w) / 2,
-							preview.y + preview.h - h, w, h};
-		SDL_RenderCopy(context_->GetRenderer(), texture.texture, nullptr,
-					   &dest);
-	}
-
-	const auto info = std::ranges::find(weapon_configs_, weapon.GetWeaponName(),
-										&WeaponConfig::weapon_name);
-	int y = preview.y + preview.h + 22;
-	ui_->Text(info->label, rect.x + kPadding, y, ui::FontStyle::Heading,
-			  focused ? ui::color::kText : ui::color::kMuted);
-	y += 62;
-	ui_->Text(info->description, rect.x + kPadding, y, ui::FontStyle::Small,
-			  ui::color::kMuted);
-	y += 44;
-
-	// Stats as bars relative to the best weapon for each stat
-	double best_damage = 0, best_rate = 0, best_capacity = 0, best_reload = 1e9;
-	for (const auto& w : weapons_) {
-		const auto [max_damage, min_damage] = w->GetAttackDamage();
-		best_damage = std::max(best_damage, (max_damage + min_damage) / 2);
-		best_rate = std::max(best_rate, 1.0 / w->GetAttackSpeed());
-		best_capacity =
-			std::max(best_capacity, static_cast<double>(w->GetAmmoCapacity()));
-		best_reload = std::min(best_reload, w->GetReloadSpeed());
-	}
-	const auto [max_damage, min_damage] = weapon.GetAttackDamage();
-	const double rate = 1.0 / weapon.GetAttackSpeed();
-	struct Stat
-	{
-		const char* label = nullptr;
-		ui::FixedText<16> value;
-		double fill = 0.0;
-	};
-	const std::array<Stat, 4> stats = {{
-		{"Damage", ui::FixedText<16>("{:.0f}-{:.0f}", min_damage, max_damage),
-		 (max_damage + min_damage) / 2 / best_damage},
-		{"Fire rate", ui::FixedText<16>("{:.1f}/s", rate), rate / best_rate},
-		{"Magazine", ui::FixedText<16>("{}", weapon.GetAmmoCapacity()),
-		 static_cast<double>(weapon.GetAmmoCapacity()) / best_capacity},
-		{"Reload", ui::FixedText<16>("{:.1f}s", weapon.GetReloadSpeed()),
-		 best_reload / weapon.GetReloadSpeed()},
-	}};
-	const int bar_left = rect.x + 170;
-	const int bar_width = rect.w - 170 - kPadding - 80;
-	for (const auto& stat : stats) {
-		ui_->Text(stat.label, rect.x + kPadding, y, ui::FontStyle::Small,
-				  ui::color::kMuted);
-		ui_->FillRect({bar_left, y + 9, bar_width, 8}, ui::color::kTrack);
-		ui_->FillRect(
-			{bar_left, y + 9, static_cast<int>(bar_width * stat.fill), 8},
-			focused ? ui::color::kAccent : ui::color::kMuted);
-		ui_->Text(stat.value, rect.x + rect.w - kPadding, y,
-				  ui::FontStyle::Small, ui::color::kText, ui::Align::Right);
-		y += 38;
-	}
 }
 
 MenuAction Menu::ControlsScreen() {
@@ -518,11 +382,12 @@ MenuAction Menu::ControlsScreen() {
 		const char* action;
 		const char* keys;
 	};
-	constexpr std::array<Binding, 8> kBindings = {{
+	constexpr std::array<Binding, 9> kBindings = {{
 		{"Move", "W  A  S  D"},
 		{"Turn", "Mouse, or Left / Right arrows"},
 		{"Fire", "Left click, or Left Ctrl"},
 		{"Reload", "R"},
+		{"Weapons", "1 - 4, or the mouse wheel"},
 		{"Open door", "E, or Space"},
 		{"Map", "M"},
 		{"Pause", "Esc"},
@@ -537,7 +402,7 @@ MenuAction Menu::ControlsScreen() {
 				  ui::color::kMuted);
 		ui_->Text(binding.keys, panel.x + panel.w - 48, y, ui::FontStyle::Body,
 				  ui::color::kText, ui::Align::Right);
-		y += 52;
+		y += 48;
 	}
 #ifdef __EMSCRIPTEN__
 	ui_->Text(

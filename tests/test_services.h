@@ -30,7 +30,7 @@ inline const TextureManager& TestTextures() {
 				define(enemy, clip);
 			}
 		}
-		for (const char* weapon : {"mp5", "shotgun"}) {
+		for (const char* weapon : {"knife", "pistol", "mp5", "shotgun"}) {
 			for (const char* clip : {"loaded", "outofammo", "reload"}) {
 				define(weapon, clip);
 			}
@@ -41,7 +41,8 @@ inline const TextureManager& TestTextures() {
 			next += kFramesPerClip;
 		}
 		// The pickups' sprites
-		for (const char* pickup : {"medkit", "large_medkit", "ammo_box"}) {
+		for (const char* pickup : {"medkit", "large_medkit", "ammo_box",
+								   "mp5_pickup", "shotgun_pickup"}) {
 			textures.DefineTexture(pickup, next++);
 		}
 		for (const char* name : {"door", "door_gold", "door_silver", "gold_key",

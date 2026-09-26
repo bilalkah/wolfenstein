@@ -67,11 +67,13 @@ void Weapon::SetRounds(size_t ammo, size_t reserve) {
 }
 
 void Weapon::DecreaseAmmo() {
-	ammo_--;
+	if (ammo_ > 0) {
+		ammo_--;
+	}
 }
 
 bool Weapon::AddAmmoBoxes(size_t boxes, double scale) {
-	if (reserve_ >= config_.reserve_max) {
+	if (IsMelee() || reserve_ >= config_.reserve_max) {
 		return false;
 	}
 	const auto rounds = static_cast<size_t>(

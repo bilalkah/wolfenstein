@@ -21,15 +21,20 @@ namespace wolfenstein {
 // go on from there
 struct SavedGame
 {
+	// The most weapons a save keeps (as many as a player carries)
+	static constexpr std::size_t kMaxWeapons = 8;
 	// The most map cells whose exploration a save keeps (bits of `explored`)
 	static constexpr std::size_t kMaxExploredCells = 2048;
 
 	std::size_t level = 0;		 // in the campaign, from 0
-	std::size_t weapon = 0;		 // index into the configuration's weapons
+	std::size_t weapon = 0;		 // the one in hand
 	std::size_t difficulty = 1;	 // index into its difficulties
 	double health = 100.0;
-	std::size_t ammo = 0;	  // in the magazine
-	std::size_t reserve = 0;  // besides it
+	// The weapons carried, a bit per index into the configuration's; and
+	// each weapon's rounds, in its magazine and besides it
+	std::uint32_t weapons = 0;
+	std::array<std::size_t, kMaxWeapons> ammo{};
+	std::array<std::size_t, kMaxWeapons> reserve{};
 
 	// Where the player stood; without it the level starts over
 	bool has_position = false;

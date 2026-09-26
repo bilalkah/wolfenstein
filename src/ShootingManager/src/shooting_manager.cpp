@@ -88,7 +88,9 @@ Ray Aim(const Scene& scene, const Position2D& eye) {
 void ResolvePlayerShot(Scene& scene, const Weapon& weapon,
 					   const Position2D& eye) {
 	const Ray aim = Aim(scene, eye);
-	if (!aim.is_hit) {
+	// A blade reaches only the enemy in front of it
+	if (!aim.is_hit ||
+		(weapon.IsMelee() && aim.distance > weapon.GetAttackRange())) {
 		return;
 	}
 	const auto enemies = scene.GetEnemies();

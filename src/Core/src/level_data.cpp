@@ -44,7 +44,7 @@ WeaponConfig ToWeapon(const json& weapon) {
 	const auto& reserve = weapon.at("reserve");
 	return {.weapon_name = weapon.at("name").get<std::string>(),
 			.label = weapon.at("label").get<std::string>(),
-			.description = weapon.at("description").get<std::string>(),
+			.start = weapon.value("start", false),
 			.ammo_capacity = weapon.at("ammo").get<std::size_t>(),
 			.reserve_start = reserve.at("start").get<std::size_t>(),
 			.reserve_max = reserve.at("max").get<std::size_t>(),
@@ -72,9 +72,10 @@ std::uint8_t ToKeys(const json& pickup) {
 	throw json::other_error::create(505, "unknown key \"" + name + "\"", &key);
 }
 
-// A pickup gives health, ammo boxes, a key or some of them; what it does not
-// give is 0
-PickupConfig ToPickup(const json& pickup) {
+// A pickup gives health, ammo boxes, a key or a weapon (by name, as a bit
+// of its index in `weapons`), or some of them; what it does not give is 0
+PickupConfig ToPickup(const json& pickup,
+					  const std::vector<WeaponConfig>& weapons) {
 	PickupConfig config{
 		.texture = pickup.at("texture").get<std::string>(),
 		.width = pickup.at("width").get<double>(),
@@ -82,8 +83,20 @@ PickupConfig ToPickup(const json& pickup) {
 		.effect = {.health = pickup.value("health", 0.0),
 				   .ammo_boxes = pickup.value("ammo_boxes", std::size_t{0}),
 				   .keys = ToKeys(pickup)}};
+	if (pickup.contains("weapon")) {
+		const auto& weapon = pickup.at("weapon");
+		const auto name = weapon.get<std::string>();
+		const auto found =
+			std::ranges::find(weapons, name, &WeaponConfig::weapon_name);
+		if (found == weapons.end()) {
+			throw json::other_error::create(
+				506, "unknown weapon \"" + name + "\"", &weapon);
+		}
+		config.effect.weapons = static_cast<std::uint8_t>(
+			1U << static_cast<unsigned>(found - weapons.begin()));
+	}
 	if (config.effect.health <= 0.0 && config.effect.ammo_boxes == 0 &&
-		config.effect.keys == 0) {
+		config.effect.keys == 0 && config.effect.weapons == 0) {
 		throw json::other_error::create(503, "a pickup that gives nothing",
 										&pickup);
 	}
@@ -144,8 +157,12 @@ std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 		for (const auto& weapon : root.at("weapons")) {
 			config.weapons.push_back(ToWeapon(weapon));
 		}
+		// A weapon is a bit of a player's set: there is room for eight
+		if (config.weapons.empty() || config.weapons.size() > 8) {
+			throw json::other_error::create(507, "one to eight weapons", &root);
+		}
 		for (const auto& [type, pickup] : root.at("pickups").items()) {
-			config.pickups.emplace(type, ToPickup(pickup));
+			config.pickups.emplace(type, ToPickup(pickup, config.weapons));
 		}
 		config.levels = root.at("levels").get<std::vector<std::string>>();
 		if (config.levels.empty()) {

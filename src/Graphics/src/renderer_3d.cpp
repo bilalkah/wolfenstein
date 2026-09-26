@@ -400,8 +400,14 @@ void Renderer3D::RenderHUD(double delta_time) {
 	}
 
 	// Ammo, bottom right, drawn right to left: the rounds in reserve in
-	// smaller digits, then those in the magazine
+	// smaller digits, then those in the magazine; a blade has none
 	const Weapon& weapon = player.GetWeapon();
+	if (weapon.IsMelee()) {
+		if (Settings::Get().show_fps) {
+			RenderFps(delta_time);
+		}
+		return;
+	}
 	const int reserve_width = digit_width * 3 / 5;
 	const std::size_t reserve_digits =
 		ToDigits(static_cast<int>(weapon.GetReserve()), digits);

@@ -16,7 +16,9 @@
     "door_silver": "textures/door_silver.png",
     "secret_mark": "textures/secret_mark.png",
     "gold_key": "sprites/pickups/gold_key.png",
-    "silver_key": "sprites/pickups/silver_key.png"
+    "silver_key": "sprites/pickups/silver_key.png",
+    "mp5_pickup": "sprites/pickups/mp5_pickup.png",
+    "shotgun_pickup": "sprites/pickups/shotgun_pickup.png"
   },
   "walls": [
     "textures/1.png",
@@ -275,6 +277,36 @@
       "sprites/weapon/shotgun/reload/55.png",
       "sprites/weapon/shotgun/reload/56.png",
       "sprites/weapon/shotgun/reload/57.png"
+    ],
+    "knife_loaded": [
+      "sprites/weapon/knife/loaded/0.png",
+      "sprites/weapon/knife/loaded/1.png",
+      "sprites/weapon/knife/loaded/2.png",
+      "sprites/weapon/knife/loaded/3.png"
+    ],
+    "knife_outofammo": [
+      "sprites/weapon/knife/outofammo/0.png"
+    ],
+    "knife_reload": [
+      "sprites/weapon/knife/reload/0.png"
+    ],
+    "pistol_loaded": [
+      "sprites/weapon/pistol/loaded/0.png",
+      "sprites/weapon/pistol/loaded/1.png",
+      "sprites/weapon/pistol/loaded/2.png",
+      "sprites/weapon/pistol/loaded/3.png"
+    ],
+    "pistol_outofammo": [
+      "sprites/weapon/pistol/outofammo/0.png",
+      "sprites/weapon/pistol/outofammo/1.png"
+    ],
+    "pistol_reload": [
+      "sprites/weapon/pistol/reload/0.png",
+      "sprites/weapon/pistol/reload/1.png",
+      "sprites/weapon/pistol/reload/2.png",
+      "sprites/weapon/pistol/reload/3.png",
+      "sprites/weapon/pistol/reload/4.png",
+      "sprites/weapon/pistol/reload/5.png"
     ]
   }
 }

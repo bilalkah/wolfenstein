@@ -28,10 +28,12 @@ enum class DamageFalloff : std::uint8_t { Linear, Exponential };
 // A player weapon as config.json describes it
 struct WeaponConfig
 {
-	std::string weapon_name;	  // names its animation clips: "<name>_reload"
-	std::string label;			  // shown in the menu
-	std::string description;	  // shown in the menu
-	std::size_t ammo_capacity{};  // rounds in a magazine
+	std::string weapon_name;  // names its animation clips: "<name>_reload"
+	std::string label;		  // shown on the HUD
+	// Carried from the start of a game; the others are found in levels
+	bool start = false;
+	// Rounds in a magazine; 0 for a melee weapon, which needs none
+	std::size_t ammo_capacity{};
 	// Rounds carried besides the magazine: at the start of a game, at most,
 	// and in one ammo box picked up
 	std::size_t reserve_start{};
@@ -54,6 +56,8 @@ class Weapon
 		   SoundManager& sound);
 	const TextureManager& GetTextures() const { return textures_; }
 
+	// Needs no ammunition and reaches only as far as its range (the knife)
+	bool IsMelee() const { return config_.ammo_capacity == 0; }
 	// Pulls the trigger; true if a shot was fired (the caller resolves it)
 	bool Attack();
 	void Update(double delta_time);
@@ -79,9 +83,11 @@ class Weapon
 	double GetReloadSpeed() const;
 	const std::string& GetWeaponName() const;
 	DamageFalloff GetFalloff() const { return config_.falloff; }
-	// Plays on the weapon's own channel
+	// Plays on the weapon's own channel; a melee weapon is silent
 	void PlaySound(SoundEffect effect) {
-		sound_.PlayEffect(sound_channel_, effect);
+		if (!IsMelee()) {
+			sound_.PlayEffect(sound_channel_, effect);
+		}
 	}
 	int GetTextureId() const;
 

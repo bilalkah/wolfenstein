@@ -54,10 +54,10 @@ bool FromHex(std::string_view text, std::span<std::uint8_t> bytes) {
 
 std::optional<SavedGame> SavedGame::Parse(std::string_view text) {
 	SavedGame game;
-	// Each field, as it is found
+	// Each field, as it is found; weapons and their rounds are optional
 	constexpr unsigned kLevel = 1, kWeapon = 2, kDifficulty = 4, kHealth = 8,
-					   kAmmo = 16, kReserve = 32, kAll = 63, kX = 64, kY = 128,
-					   kTheta = 256, kPosition = kX | kY | kTheta;
+					   kAll = 15, kX = 64, kY = 128, kTheta = 256,
+					   kPosition = kX | kY | kTheta;
 	unsigned seen = 0;
 	while (!text.empty()) {
 		const auto end = text.find('\n');
@@ -88,13 +88,17 @@ std::optional<SavedGame> SavedGame::Parse(std::string_view text) {
 			read = ParseNumber(value, game.health);
 			field = kHealth;
 		}
-		else if (key == "ammo") {
-			read = ParseNumber(value, game.ammo);
-			field = kAmmo;
+		else if (key == "weapons") {
+			read = ParseNumber(value, game.weapons);
 		}
-		else if (key == "reserve") {
-			read = ParseNumber(value, game.reserve);
-			field = kReserve;
+		else if (key.starts_with("ammo_") || key.starts_with("reserve_")) {
+			// ammo_<weapon> and reserve_<weapon>
+			const bool ammo = key.starts_with("ammo_");
+			std::size_t index = 0;
+			read = ParseNumber(key.substr(ammo ? 5 : 8), index) &&
+				   index < kMaxWeapons &&
+				   ParseNumber(value,
+							   ammo ? game.ammo[index] : game.reserve[index]);
 		}
 		else if (key == "x" || key == "y" || key == "theta") {
 			double& target = key == "x"	  ? game.x
@@ -151,8 +155,19 @@ std::size_t SavedGame::Format(std::span<char> out) const {
 		.Line("weapon", weapon)
 		.Line("difficulty", difficulty)
 		.Line("health", health)
-		.Line("ammo", ammo)
-		.Line("reserve", reserve);
+		.Line("weapons", weapons);
+	constexpr std::array<std::string_view, kMaxWeapons> kAmmoKeys{
+		"ammo_0", "ammo_1", "ammo_2", "ammo_3",
+		"ammo_4", "ammo_5", "ammo_6", "ammo_7"};
+	constexpr std::array<std::string_view, kMaxWeapons> kReserveKeys{
+		"reserve_0", "reserve_1", "reserve_2", "reserve_3",
+		"reserve_4", "reserve_5", "reserve_6", "reserve_7"};
+	for (std::size_t i = 0; i < kMaxWeapons; ++i) {
+		if ((weapons >> i & 1U) != 0) {
+			writer.Line(kAmmoKeys[i], ammo[i])
+				.Line(kReserveKeys[i], reserve[i]);
+		}
+	}
 	if (has_position) {
 		writer.Line("x", x).Line("y", y).Line("theta", theta);
 	}

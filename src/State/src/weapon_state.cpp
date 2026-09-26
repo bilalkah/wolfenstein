@@ -23,7 +23,7 @@ void LoadedState::Update(const double& delta_time) {
 		if (trigger_pull_time_ >= fire_rate_) {
 			trigger_pulled_ = false;
 			animation_.Reset();
-			if (context_->GetAmmo() == 0) {
+			if (context_->GetAmmo() == 0 && !context_->IsMelee()) {
 				context_->TransitionTo(WeaponStateType::OutOfAmmo);
 				return;
 			}

@@ -277,6 +277,13 @@
       }
     },
     {
+      "type": "shotgun",
+      "position": {
+        "x": 8.5,
+        "y": 26.5
+      }
+    },
+    {
       "type": "large_medkit",
       "position": {
         "x": 21.5,

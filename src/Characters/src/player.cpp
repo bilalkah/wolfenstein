@@ -7,13 +7,15 @@
 #include "SoundManager/sound_manager.h"
 #include "State/weapon_state.h"
 #include <algorithm>
+#include <cassert>
 #include <memory>
 #include <utility>
 
 namespace wolfenstein {
 
-Player::Player(CharacterConfig& config, const WeaponConfig& weapon,
-			   const TextureManager& textures, SoundManager& sound)
+Player::Player(CharacterConfig& config, std::span<const WeaponConfig> arsenal,
+			   std::size_t first, const TextureManager& textures,
+			   SoundManager& sound)
 	: translation_speed_(config.translation_speed),
 	  width_(config.width),
 	  height_(config.height),
@@ -22,9 +24,59 @@ Player::Player(CharacterConfig& config, const WeaponConfig& weapon,
 	  sound_channel_(sound.AllocateChannel()),
 	  position_(config.initial_position),
 	  previous_position_(config.initial_position),
-	  weapon_(weapon, textures, sound),
+	  weapon_count_(std::min(arsenal.size(), kMaxWeapons)),
 	  damage_animation_(1.0),
-	  pickup_animation_(3.0, 80, 0) {}
+	  pickup_animation_(3.0, 80, 0) {
+	for (std::size_t i = 0; i < weapon_count_; ++i) {
+		weapons_[i].emplace(arsenal[i], textures, sound);
+		if (arsenal[i].start) {
+			owned_ |= static_cast<std::uint8_t>(1U << i);
+		}
+	}
+	held_ = std::min(first, weapon_count_ - 1);
+	owned_ |= static_cast<std::uint8_t>(1U << held_);
+}
+
+Player::Player(CharacterConfig& config, const WeaponConfig& weapon,
+			   const TextureManager& textures, SoundManager& sound)
+	: Player(config, std::span(&weapon, 1), 0, textures, sound) {}
+
+const Weapon& Player::GetWeapon(std::size_t index) const {
+	assert(index < weapon_count_);
+	auto& weapon = weapons_[index];
+	if (!weapon.has_value()) {
+		std::
+			unreachable();	// every one of the arsenal is built with the player
+	}
+	return *weapon;
+}
+
+Weapon& Player::GetWeapon(std::size_t index) {
+	assert(index < weapon_count_);
+	auto& weapon = weapons_[index];
+	if (!weapon.has_value()) {
+		std::
+			unreachable();	// every one of the arsenal is built with the player
+	}
+	return *weapon;
+}
+
+void Player::SetOwnedWeapons(std::uint8_t owned) {
+	const auto all = static_cast<std::uint8_t>((1U << weapon_count_) - 1);
+	owned_ = static_cast<std::uint8_t>(owned & all);
+	if (!Owns(held_)) {
+		owned_ |= static_cast<std::uint8_t>(1U << held_);
+	}
+}
+
+void Player::SelectWeapon(std::size_t index) {
+	if (index == held_ || !Owns(index)) {
+		return;
+	}
+	held_ = index;
+	// Up and ready, not mid-shot or mid-reload from the last time it was held
+	GetWeapon(held_).TransitionTo(WeaponStateType::Loaded);
+}
 
 void Player::Update(double delta_time) {
 	previous_position_ = position_;
@@ -33,8 +85,9 @@ void Player::Update(double delta_time) {
 	if (!is_alive_) {
 		return;
 	}
+	SwitchWeapons();
 	ShootOrReload();
-	weapon_.Update(delta_time);
+	GetWeapon(held_).Update(delta_time);
 	Move(delta_time);
 	Rotate(delta_time);
 	damage_animation_.Update(delta_time);
@@ -83,7 +136,7 @@ Position2D Player::GetRenderPosition(double alpha) const {
 }
 
 int Player::GetTextureId() const {
-	return weapon_.GetTextureId();
+	return GetWeapon(held_).GetTextureId();
 }
 
 double Player::GetWidth() const {
@@ -99,9 +152,29 @@ bool Player::TryPickUp(const PickupEffect& effect, double supplies) {
 		IncreaseHealth(effect.health * supplies);
 		taken = true;
 	}
-	if (effect.ammo_boxes > 0 &&
-		weapon_.AddAmmoBoxes(effect.ammo_boxes, supplies)) {
-		taken = true;
+	// An ammo box tops up every firearm carried
+	if (effect.ammo_boxes > 0) {
+		for (std::size_t i = 0; i < weapon_count_; ++i) {
+			if (Owns(i) &&
+				GetWeapon(i).AddAmmoBoxes(effect.ammo_boxes, supplies)) {
+				taken = true;
+			}
+		}
+	}
+	// A weapon found is taken in hand; one already carried gives a box of
+	// its rounds instead
+	for (std::size_t i = 0; i < weapon_count_; ++i) {
+		if ((effect.weapons >> i & 1U) == 0) {
+			continue;
+		}
+		if (!Owns(i)) {
+			owned_ |= static_cast<std::uint8_t>(1U << i);
+			SelectWeapon(i);
+			taken = true;
+		}
+		else if (GetWeapon(i).AddAmmoBoxes(1, supplies)) {
+			taken = true;
+		}
 	}
 	if ((effect.keys & ~keys_) != 0) {
 		keys_ |= effect.keys;
@@ -117,7 +190,7 @@ bool Player::TryPickUp(const PickupEffect& effect, double supplies) {
 
 void Player::Restore(double health, std::size_t ammo, std::size_t reserve) {
 	health_ = std::clamp(health, 1.0, 100.0);
-	weapon_.SetRounds(ammo, reserve);
+	GetWeapon(held_).SetRounds(ammo, reserve);
 }
 
 bool Player::IsDamaged() const {
@@ -129,7 +202,7 @@ bool Player::IsAlive() const {
 }
 
 const Weapon& Player::GetWeapon() const {
-	return weapon_;
+	return GetWeapon(held_);
 }
 
 void Player::SetCommand(const PlayerCommand& command) {
@@ -170,12 +243,35 @@ void Player::Rotate(double delta_time) {
 	}
 }
 
-void Player::ShootOrReload() {
-	if (command_.reload) {
-		weapon_.Reload();
+// A number key takes that weapon in hand; the wheel steps through those
+// carried, round and round
+void Player::SwitchWeapons() {
+	if (command_.weapon >= 0) {
+		SelectWeapon(static_cast<std::size_t>(command_.weapon));
 	}
-	if (command_.fire && weapon_.Attack()) {
-		ResolvePlayerShot(*scene_, weapon_, position_);
+	if (command_.cycle != 0) {
+		const auto count = static_cast<int>(weapon_count_);
+		int index = static_cast<int>(held_);
+		for (int step = 0; step < count; ++step) {
+			index = (index + command_.cycle + count) % count;
+			if (Owns(static_cast<std::size_t>(index))) {
+				SelectWeapon(static_cast<std::size_t>(index));
+				break;
+			}
+		}
+	}
+	// Each is taken once, like mouse look
+	command_.weapon = -1;
+	command_.cycle = 0;
+}
+
+void Player::ShootOrReload() {
+	Weapon& weapon = GetWeapon(held_);
+	if (command_.reload) {
+		weapon.Reload();
+	}
+	if (command_.fire && weapon.Attack()) {
+		ResolvePlayerShot(*scene_, weapon, position_);
 	}
 }
 

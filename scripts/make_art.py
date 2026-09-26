@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Draws the pickup sprites (health, ammunition, keys), the door textures, the
-exit switch and the mark on secret walls, and synthesises the pickup sound.
+"""Draws the pickup sprites (health, ammunition, keys, weapons), the knife and
+pistol in the player's hand, the door textures, the exit switch and the mark
+on secret walls, and synthesises the pickup sound.
 
 Pixel art in the chunky style of the other sprites, written as PNGs (the
 pickups on a transparent background), and a short rising chime as a WAV;
 standard library only, so rerunning gives the same files.
 
     ./scripts/make_art.py   # writes assets/sprites/pickups/*.png,
+                            # assets/sprites/weapon/{knife,pistol}/*/*.png,
                             # assets/textures/door*.png, exit.png,
                             # secret_mark.png and assets/sounds/pickup.wav
 """
@@ -238,6 +240,155 @@ def secret_mark():
     return canvas
 
 
+# The player's hand and sleeve, as in the other weapons' sprites
+GLOVE = ((42, 42, 46, 255), (74, 74, 80, 255))
+SLEEVE = ((70, 76, 58, 255), (96, 102, 78, 255))
+FLASH = ((255, 244, 180, 255), (255, 196, 64, 255))
+FIRST_PERSON = (180, 84)  # the MP5 sprite's proportions, at half its size
+
+
+def rounded(canvas, x0, y0, x1, y1, colour, light=None, dark=None):
+    """A filled box with its corners cut, outlined; optionally lit along
+    its top and shaded along its bottom."""
+    canvas.rect(x0 + 1, y0, x1 - 1, y1, OUTLINE)
+    canvas.rect(x0, y0 + 1, x1, y1 - 1, OUTLINE)
+    canvas.rect(x0 + 1, y0 + 1, x1 - 1, y1 - 1, colour)
+    if light:
+        canvas.rect(x0 + 2, y0 + 1, x1 - 2, y0 + 1, light)
+    if dark:
+        canvas.rect(x0 + 2, y1 - 1, x1 - 2, y1 - 1, dark)
+
+
+def hand(canvas, x0, y0):
+    """A gloved hand gripping from below, thumb over the grip, its sleeve
+    running off the frame's lower right."""
+    sleeve, sleeve_light = SLEEVE
+    glove, glove_light = GLOVE
+    glove_dark = (26, 26, 30, 255)
+    # The sleeve, with a cuff
+    rounded(canvas, x0 + 12, y0 + 16, x0 + 60, 90, sleeve, sleeve_light)
+    canvas.rect(x0 + 13, y0 + 17, x0 + 59, y0 + 20, (58, 62, 48, 255))
+    # The fist: four fingers stacked round the grip
+    for finger in range(4):
+        y = y0 + 2 + finger * 5
+        rounded(canvas, x0 + 1, y, x0 + 25, y + 6, glove, glove_light,
+                glove_dark)
+    # The thumb, over the grip's top
+    rounded(canvas, x0 - 3, y0 - 3, x0 + 12, y0 + 4, glove, glove_light,
+            glove_dark)
+
+
+def flash(canvas, cx, cy, size):
+    """A muzzle flash: a bright star over a warm burst."""
+    outer, inner = FLASH[1], FLASH[0]
+    canvas.rect(cx - size, cy - 1, cx + size, cy + 1, outer)
+    canvas.rect(cx - 1, cy - size, cx + 1, cy + size, outer)
+    for d in range(1, size // 2 + 1):
+        for sx, sy in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+            canvas.rect(cx + sx * d, cy + sy * d, cx + sx * d, cy + sy * d,
+                        outer)
+    canvas.rect(cx - size // 2, cy, cx + size // 2, cy, inner)
+    canvas.rect(cx, cy - size // 2, cx, cy + size // 2, inner)
+
+
+def pistol(dx=0, dy=0, muzzle=0):
+    """A pistol held out, seen from behind and a little above: its slide
+    narrowing to the sights, the grip going down into the hand."""
+    canvas = Canvas(*FIRST_PERSON)
+    x0, y0 = 98 + dx, 26 + dy
+    if muzzle:
+        flash(canvas, x0 + 9, y0 - 7, muzzle)
+    steel, light, dark = (58, 60, 68, 255), (118, 122, 134, 255), \
+        (36, 38, 44, 255)
+    # The slide: wide at the back, narrower towards the muzzle
+    for row in range(16):
+        inset = max(0, 5 - row // 3)
+        y = y0 + row
+        canvas.rect(x0 + inset - 1, y, x0 + 19 - inset, y, OUTLINE)
+        canvas.rect(x0 + inset, y, x0 + 18 - inset, y,
+                    light if row == 0 else steel)
+    canvas.rect(x0 + 8, y0 - 3, x0 + 10, y0, OUTLINE)  # front sight
+    canvas.rect(x0 + 9, y0 - 2, x0 + 9, y0 - 1, light)
+    canvas.rect(x0 + 1, y0 + 11, x0 + 5, y0 + 13, OUTLINE)  # rear sight
+    canvas.rect(x0 + 13, y0 + 11, x0 + 17, y0 + 13, OUTLINE)
+    canvas.rect(x0 + 2, y0 + 7, x0 + 16, y0 + 7, dark)  # ejection line
+    # The frame and grip, into the hand
+    canvas.rect(x0 + 3, y0 + 16, x0 + 15, y0 + 26, OUTLINE)
+    canvas.rect(x0 + 4, y0 + 16, x0 + 14, y0 + 25, dark)
+    hand(canvas, x0 - 2, y0 + 22)
+    return canvas
+
+
+def knife(dx=0, dy=0):
+    """A knife held blade up, from the lower right."""
+    canvas = Canvas(*FIRST_PERSON)
+    x0, y0 = 104 + dx, 44 + dy
+    blade, edge = (190, 194, 204, 255), (240, 242, 248, 255)
+    # The blade narrows to its point, leaning left
+    for row in range(31):
+        y = y0 - row
+        width = max(1, 7 - row // 5)
+        left = x0 + 4 - row // 3
+        canvas.rect(left - 1, y, left + width, y, OUTLINE)
+        canvas.rect(left, y, left + width - 1, y, blade)
+        canvas.rect(left, y, left, y, edge)
+    canvas.rect(x0, y0, x0 + 16, y0 + 2, OUTLINE)  # the guard
+    canvas.rect(x0 + 1, y0 + 1, x0 + 15, y0 + 1, (150, 154, 164, 255))
+    canvas.rect(x0 + 4, y0 + 3, x0 + 12, y0 + 12, OUTLINE)  # the handle
+    canvas.rect(x0 + 5, y0 + 3, x0 + 11, y0 + 11, (84, 56, 36, 255))
+    hand(canvas, x0 - 2, y0 + 10)
+    return canvas
+
+
+def floor_weapon(kind):
+    """A weapon lying on the floor, seen from the side."""
+    canvas = Canvas(48, 20)
+    dark, light = (34, 34, 38, 255), (78, 80, 90, 255)
+    if kind == "mp5":
+        canvas.rect(8, 6, 38, 12, OUTLINE)  # receiver
+        canvas.rect(9, 7, 37, 11, dark)
+        canvas.rect(9, 7, 37, 7, light)
+        canvas.rect(38, 8, 46, 10, OUTLINE)  # barrel
+        canvas.rect(2, 7, 8, 10, OUTLINE)  # stock
+        canvas.rect(22, 12, 26, 19, OUTLINE)  # magazine
+        canvas.rect(23, 12, 25, 18, dark)
+        canvas.rect(14, 12, 17, 17, OUTLINE)  # grip
+    else:
+        wood, wood_light = (110, 70, 40, 255), (150, 100, 60, 255)
+        canvas.rect(1, 9, 18, 15, OUTLINE)  # stock
+        canvas.rect(2, 10, 17, 14, wood)
+        canvas.rect(2, 10, 17, 10, wood_light)
+        canvas.rect(18, 8, 30, 13, OUTLINE)  # receiver
+        canvas.rect(19, 9, 29, 12, dark)
+        canvas.rect(30, 7, 47, 9, OUTLINE)  # barrels
+        canvas.rect(30, 10, 46, 12, OUTLINE)
+        canvas.rect(31, 8, 46, 8, light)
+        canvas.rect(31, 11, 45, 11, light)
+    return canvas
+
+
+def weapon_clips():
+    """Every clip of the knife and pistol: frames by clip name."""
+    idle_knife = knife()
+    return {
+        "knife": {
+            # A stab: back, forward and up, back
+            "loaded": [idle_knife, knife(8, 5), knife(-16, -12),
+                       knife(-6, -4)],
+            "outofammo": [idle_knife],
+            "reload": [idle_knife],
+        },
+        "pistol": {
+            "loaded": [pistol(), pistol(0, -3, 7), pistol(0, -2, 4),
+                       pistol(0, -1)],
+            "outofammo": [pistol(), pistol(0, 1)],  # a dry click
+            # Lowered, the magazine swapped, raised again
+            "reload": [pistol(6, 8), pistol(12, 20), pistol(14, 26),
+                       pistol(12, 20), pistol(6, 8), pistol()],
+        },
+    }
+
+
 def chime(path):
     """Two quick rising notes with a soft attack and decay."""
     rate = 22050
@@ -273,6 +424,14 @@ def main():
     door(GOLD).save(ASSETS / "textures" / "door_gold.png")
     door(SILVER).save(ASSETS / "textures" / "door_silver.png")
     exit_switch().save(ASSETS / "textures" / "exit.png")
+    for kind in ("mp5", "shotgun"):
+        floor_weapon(kind).save(ASSETS / "sprites" / "pickups" /
+                                f"{kind}_pickup.png")
+    for weapon, clips in weapon_clips().items():
+        for clip, frames in clips.items():
+            for index, frame in enumerate(frames):
+                frame.save(ASSETS / "sprites" / "weapon" / weapon / clip /
+                           f"{index}.png")
     secret_mark().save(ASSETS / "textures" / "secret_mark.png")
     chime(ASSETS / "sounds" / "pickup.wav")
 

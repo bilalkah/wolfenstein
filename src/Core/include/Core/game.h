@@ -159,6 +159,11 @@ class Game
 	std::vector<DifficultyChoice> difficulty_choices_;
 	std::unique_ptr<Minimap> minimap_;
 	bool map_expanded_ = false;
+	// Mouse wheel steps, and the last weapon key (1 to 8, as 0 to 7; -1 for
+	// none) pressed, since the last frame's command: taken from events, so a
+	// tap between frames still counts
+	int wheel_ = 0;
+	int weapon_key_ = -1;
 	bool debug_view_ = false;
 	IRenderer* renderer_ = nullptr;
 	std::unique_ptr<Menu> menu_;

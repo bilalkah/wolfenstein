@@ -15,8 +15,9 @@ constexpr SavedGame kSaved{.level = 2,
 						   .weapon = 1,
 						   .difficulty = 2,
 						   .health = 72.5,
-						   .ammo = 1,
-						   .reserve = 24};
+						   .weapons = 0b1011,
+						   .ammo = {0, 1, 0, 2},
+						   .reserve = {0, 24, 0, 16}};
 
 TEST(SavedGame, SurvivesARoundTrip) {
 	std::array<char, 256> buffer{};

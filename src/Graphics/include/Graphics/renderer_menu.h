@@ -13,7 +13,6 @@
 #define GRAPHICS_INCLUDE_GRAPHICS_RENDERER_MENU_H_
 
 #include "Graphics/renderer_interface.h"
-#include "Strike/weapon.h"
 #include "UI/ui.h"
 #include <cstdint>
 #include <memory>
@@ -28,8 +27,7 @@ struct LevelStats;
 
 enum class MenuScreen : std::uint8_t {
 	Main,
-	DifficultySelect,  // a new game: first the difficulty, then the weapon
-	WeaponSelect,
+	DifficultySelect,  // a new game's difficulty
 	Controls,
 	Settings,
 	Pause,
@@ -40,7 +38,7 @@ struct MenuAction
 {
 	enum class Type : std::uint8_t {
 		None,
-		StartGame,		  // with `weapon`, at `difficulty`
+		StartGame,		  // at `difficulty`
 		Resume,			  // leave the pause screen
 		QuitToMenu,		  // abandon the current game
 		Quit,			  // close the application (native only)
@@ -48,8 +46,6 @@ struct MenuAction
 		Continue,		  // go on with the saved game
 	};
 	Type type = Type::None;
-	// Names a weapon of the configuration the menu was given
-	std::string_view weapon;
 	// Index into the difficulties the menu was given
 	std::size_t difficulty = 0;
 };
@@ -64,10 +60,8 @@ struct DifficultyChoice
 class Menu
 {
   public:
-	// Offers the given weapons and difficulties (from easiest), which
-	// outlive the menu
-	Menu(RendererContext& context, SoundManager& sound,
-		 std::span<const WeaponConfig> weapons,
+	// Offers the given difficulties (from easiest), which outlive the menu
+	Menu(RendererContext& context,
 		 std::span<const DifficultyChoice> difficulties = {});
 
 	void Open(MenuScreen screen);
@@ -92,6 +86,10 @@ class Menu
 	// The level's current objective, at the top of the screen; empty draws
 	// nothing
 	void DrawObjective(std::string_view text);
+	// The weapon slots above the ammo: those carried (a bit per slot in
+	// `owned`) plain, the one in hand (`held`) lit, the rest dim
+	void DrawWeaponSlots(std::size_t count, std::uint8_t owned,
+						 std::size_t held);
 	// The enemies killed of the level's total, below the corner map
 	void DrawEnemyCounter(std::size_t kills, std::size_t enemies);
 	// A level's briefing over black: its `heading`, the story wrapped to the
@@ -107,7 +105,6 @@ class Menu
   private:
 	MenuAction MainScreen();
 	MenuAction DifficultySelectScreen();
-	MenuAction WeaponSelectScreen(double delta_time);
 	MenuAction ControlsScreen();
 	MenuAction SettingsScreen();
 	MenuAction PauseScreen();
@@ -115,11 +112,7 @@ class Menu
 
 	void DrawBackground();
 	void DrawDimmer(Uint8 alpha);
-	void DrawWeaponCard(const SDL_Rect& rect, const Weapon& weapon,
-						bool focused);
 	void DrawHint(std::string_view text);
-	// Makes weapon `index` (-1 for none) the animated preview
-	void SetPreviewedWeapon(int index);
 	// Leaves Controls or Settings for the screen they were opened from
 	void GoBack();
 
@@ -128,15 +121,12 @@ class Menu
 	ui::Input input_;
 	MenuScreen screen_ = MenuScreen::Main;
 	MenuScreen return_screen_ = MenuScreen::Main;
-	std::span<const WeaponConfig> weapon_configs_;
 	ui::FixedText<96> saved_game_{"{}", ""};
 	bool has_saved_game_ = false;
 	std::span<const DifficultyChoice> difficulties_;
 	// The difficulty chosen for the game about to start; at first the
 	// middle one (normal)
 	std::size_t chosen_difficulty_ = 0;
-	std::vector<std::unique_ptr<Weapon>> weapons_;
-	int previewed_weapon_ = -1;
 	int background_texture_ = 0;
 };
 

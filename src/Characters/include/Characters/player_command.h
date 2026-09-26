@@ -26,6 +26,10 @@ struct PlayerCommand
 	bool reload = false;
 	// Opens the door in front
 	bool use = false;
+	// Takes the weapon with this index in hand (-1: none); applied once
+	std::int8_t weapon = -1;
+	// Steps to the next (+1) or previous (-1) weapon carried; applied once
+	std::int8_t cycle = 0;
 
 	friend bool operator==(const PlayerCommand&,
 						   const PlayerCommand&) = default;

@@ -84,9 +84,7 @@ void Game::Init() {
 		difficulty_choices_.push_back(
 			{.label = difficulty.label, .description = difficulty.description});
 	}
-	menu_ =
-		std::make_unique<Menu>(*renderer_context_, world_->Sound(),
-							   world_->Config().weapons, difficulty_choices_);
+	menu_ = std::make_unique<Menu>(*renderer_context_, difficulty_choices_);
 	// A saved game made with other content (fewer levels, weapons or
 	// difficulties) cannot be gone on with
 	saved_game_ = SavedGame::Load();
@@ -226,7 +224,7 @@ void Game::HandleMenuAction(const MenuAction& action) {
 		case MenuAction::Type::None:
 			break;
 		case MenuAction::Type::StartGame:
-			NewGame(action.weapon, {}, action.difficulty);
+			NewGame({}, {}, action.difficulty);
 			EnterPlaying();
 			break;
 		case MenuAction::Type::Resume:
@@ -325,9 +323,7 @@ void Game::SoakStep() {
 		soak_allocations_ = AllocationStats::count;
 		soak_bytes_ = AllocationStats::bytes;
 		HandleMenuAction(
-			{.type = MenuAction::Type::StartGame,
-			 .weapon = world_->Config().weapons.front().weapon_name,
-			 .difficulty = 0});
+			{.type = MenuAction::Type::StartGame, .difficulty = 0});
 	}
 	const int frame = soak_frame_++ - kSoakMenuFrames;
 	if (soak_first_allocation_ < 0 &&
@@ -371,8 +367,14 @@ void Game::SoakStep() {
 		menu_->HandleEvent(right);
 	}
 	else if (frame == 300) {
-		HandleMenuAction(
-			{.type = MenuAction::Type::Resume, .weapon = {}, .difficulty = 0});
+		HandleMenuAction({.type = MenuAction::Type::Resume, .difficulty = 0});
+	}
+	else if (frame == 310) {
+		// Draws the knife, then back to the pistol
+		world_->GetPlayer().SelectWeapon(0);
+	}
+	else if (frame == 320) {
+		world_->GetPlayer().SelectWeapon(1);
 	}
 	else if (frame == 330) {
 		// Hurt, the player steps onto the level's first pickup: taken next
@@ -425,9 +427,8 @@ void Game::SoakStep() {
 		world_->GetPlayer().DecreaseHealth(1000.0);
 	}
 	else if (frame == 900) {
-		HandleMenuAction({.type = MenuAction::Type::StartGame,
-						  .weapon = world_->Config().weapons.back().weapon_name,
-						  .difficulty = 0});
+		HandleMenuAction(
+			{.type = MenuAction::Type::StartGame, .difficulty = 0});
 	}
 	else if (frame >= soak_frames_ - kSoakMenuFrames) {
 		std::cout
@@ -610,8 +611,14 @@ void Game::UpdateAndRender() {
 	clock_.Tick();
 	// The benchmark plays without input, so a run cannot depend on what the
 	// keyboard or mouse happen to do
-	world_->GetPlayer().SetCommand(IsScripted() ? PlayerCommand{}
-												: SampleCommand());
+	PlayerCommand command = IsScripted() ? PlayerCommand{} : SampleCommand();
+	// The wheel turned since the last frame: a step through the weapons
+	command.cycle = static_cast<std::int8_t>(std::clamp(wheel_, -1, 1));
+	wheel_ = 0;
+	// A number key pressed since: that weapon in hand
+	command.weapon = static_cast<std::int8_t>(weapon_key_);
+	weapon_key_ = -1;
+	world_->GetPlayer().SetCommand(command);
 
 	// The simulation advances in fixed ticks, whatever the frame rate, so
 	// the same commands always play out the same way. A long stall (a
@@ -661,6 +668,9 @@ void Game::RenderView(double alpha) {
 						 map_expanded_);
 		const LevelStats stats = world_->CurrentLevel().GetStats();
 		menu_->DrawEnemyCounter(stats.kills, stats.enemies);
+		const Player& player = world_->GetPlayer();
+		menu_->DrawWeaponSlots(player.WeaponCount(), player.GetOwnedWeapons(),
+							   player.HeldWeapon());
 		switch (world_->CurrentLevel().GetNotice()) {
 			case Scene::Notice::NeedGoldKey:
 				menu_->DrawNotice("You need the gold key");
@@ -715,7 +725,15 @@ void Game::CheckGameEvent() {
 			}
 			continue;
 		}
+		if (event.type == SDL_MOUSEWHEEL) {
+			// Down the wheel is on to the next weapon
+			wheel_ -= event.wheel.y;
+		}
 		if (event.type == SDL_KEYDOWN) {
+			const SDL_Scancode key = event.key.keysym.scancode;
+			if (key >= SDL_SCANCODE_1 && key <= SDL_SCANCODE_8) {
+				weapon_key_ = key - SDL_SCANCODE_1;
+			}
 			if (event.key.keysym.sym == SDLK_ESCAPE) {
 				Pause();
 				return;

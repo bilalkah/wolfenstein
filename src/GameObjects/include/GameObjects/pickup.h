@@ -22,6 +22,8 @@ struct PickupEffect
 	std::size_t ammo_boxes = 0;
 	// Keys, as KeyBit()s: the gold key opens gold-locked doors
 	std::uint8_t keys = 0;
+	// Weapons, a bit per index in the configuration's list
+	std::uint8_t weapons = 0;
 };
 
 // Lies still until taken, then leaves the level: it stays in the scene's

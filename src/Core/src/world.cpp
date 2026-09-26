@@ -32,9 +32,21 @@ World::World(const TextureManager& textures, SceneLoader loader,
 std::expected<void, std::string> World::NewGame(std::string_view weapon_name,
 												std::string_view level,
 												std::string_view difficulty) {
-	const WeaponConfig* weapon = loader_.Config().FindWeapon(weapon_name);
-	if (weapon == nullptr) {
-		return std::unexpected("unknown weapon " + std::string(weapon_name));
+	// In hand: the named weapon, or the last of those a game starts with
+	const auto& arsenal = loader_.Config().weapons;
+	std::size_t first = 0;
+	if (weapon_name.empty()) {
+		for (std::size_t i = 0; i < arsenal.size(); ++i) {
+			first = arsenal[i].start ? i : first;
+		}
+	}
+	else {
+		const WeaponConfig* weapon = loader_.Config().FindWeapon(weapon_name);
+		if (weapon == nullptr) {
+			return std::unexpected("unknown weapon " +
+								   std::string(weapon_name));
+		}
+		first = static_cast<std::size_t>(weapon - arsenal.data());
 	}
 	const DifficultyConfig* chosen =
 		loader_.Config().FindDifficulty(difficulty);
@@ -48,7 +60,7 @@ std::expected<void, std::string> World::NewGame(std::string_view weapon_name,
 	// The level sets the start position
 	CharacterConfig config(Position2D(), stats.translation_speed,
 						   stats.rotation_speed, stats.width, stats.height);
-	player_.emplace(config, *weapon, textures_, *sound_);
+	player_.emplace(config, std::span(arsenal), first, textures_, *sound_);
 	level_index_ = 0;
 	in_campaign_ = level.empty();
 	return StartLevel(in_campaign_
@@ -76,7 +88,15 @@ std::expected<void, std::string> World::ContinueGame(const SavedGame& saved) {
 		}
 	}
 	Player& player = GetPlayer();
-	player.Restore(saved.health, saved.ammo, saved.reserve);
+	// Every weapon carried, with its rounds, and the one in hand
+	player.SetOwnedWeapons(static_cast<std::uint8_t>(saved.weapons));
+	for (std::size_t i = 0;
+		 i < player.WeaponCount() && i < SavedGame::kMaxWeapons; ++i) {
+		player.GetWeapon(i).SetRounds(saved.ammo[i], saved.reserve[i]);
+	}
+	player.SelectWeapon(saved.weapon);
+	player.Restore(saved.health, player.GetWeapon().GetAmmo(),
+				   player.GetWeapon().GetReserve());
 	if (!saved.has_position) {
 		return {};	// saved as the level started
 	}
@@ -121,23 +141,22 @@ std::optional<SavedGame> World::Capture() const {
 		return std::nullopt;
 	}
 	const GameConfig& config = loader_.Config();
-	const Weapon& weapon = player_->GetWeapon();
 	const Position2D& position = player_->GetPosition();
 	const Scene& scene = *scene_;
 	SavedGame saved{.level = level_index_,
+					.weapon = player_->HeldWeapon(),
 					.health = player_->GetHealth(),
-					.ammo = weapon.GetAmmo(),
-					.reserve = weapon.GetReserve(),
+					.weapons = player_->GetOwnedWeapons(),
 					.has_position = true,
 					.x = position.pose.x,
 					.y = position.pose.y,
 					.theta = position.theta,
 					.seconds = scene.GetStats().seconds,
 					.keys = player_->GetKeys()};
-	for (std::size_t i = 0; i < config.weapons.size(); ++i) {
-		if (config.weapons[i].weapon_name == weapon.GetWeaponName()) {
-			saved.weapon = i;
-		}
+	for (std::size_t i = 0;
+		 i < player_->WeaponCount() && i < SavedGame::kMaxWeapons; ++i) {
+		saved.ammo[i] = player_->GetWeapon(i).GetAmmo();
+		saved.reserve[i] = player_->GetWeapon(i).GetReserve();
 	}
 	for (std::size_t i = 0; i < config.difficulties.size(); ++i) {
 		if (&config.difficulties[i] == difficulty_) {

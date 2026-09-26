@@ -40,9 +40,46 @@
     ],
     "weapons": [
         {
+            "name": "knife",
+            "label": "KNIFE",
+            "start": true,
+            "ammo": 0,
+            "reserve": {
+                "start": 0,
+                "max": 0,
+                "box": 0
+            },
+            "damage": [
+                34,
+                34
+            ],
+            "range": 1.2,
+            "attack_speed": 0.45,
+            "reload_speed": 0.5,
+            "falloff": "linear"
+        },
+        {
+            "name": "pistol",
+            "label": "PISTOL",
+            "start": true,
+            "ammo": 8,
+            "reserve": {
+                "start": 24,
+                "max": 96,
+                "box": 16
+            },
+            "damage": [
+                20,
+                3
+            ],
+            "range": 8,
+            "attack_speed": 0.4,
+            "reload_speed": 1.2,
+            "falloff": "linear"
+        },
+        {
             "name": "mp5",
             "label": "MP5",
-            "description": "Fast and steady. A big magazine, lighter hits.",
             "ammo": 18,
             "reserve": {
                 "start": 54,
@@ -61,7 +98,6 @@
         {
             "name": "shotgun",
             "label": "SHOTGUN",
-            "description": "Two shells, devastating up close.",
             "ammo": 2,
             "reserve": {
                 "start": 12,
@@ -167,6 +203,18 @@
             "width": 0.3,
             "height": 0.3,
             "key": "silver"
+        },
+        "mp5": {
+            "texture": "mp5_pickup",
+            "width": 0.55,
+            "height": 0.25,
+            "weapon": "mp5"
+        },
+        "shotgun": {
+            "texture": "shotgun_pickup",
+            "width": 0.6,
+            "height": 0.25,
+            "weapon": "shotgun"
         }
     },
     "config_dynamic": {
