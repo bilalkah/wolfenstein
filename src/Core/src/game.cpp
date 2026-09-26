@@ -79,6 +79,7 @@ void Game::Init() {
 								   world_->Config().weapons);
 	renderer_3d_ = std::make_unique<Renderer3D>(*renderer_context_);
 	renderer_2d_ = std::make_unique<Renderer2D>(*renderer_context_);
+	minimap_ = std::make_unique<Minimap>(*renderer_context_);
 	ApplySettings();
 }
 
@@ -87,6 +88,7 @@ void Game::Init() {
 void Game::ShowLevel() {
 	renderer_3d_->SetScene(world_->CurrentLevel());
 	renderer_2d_->SetScene(world_->CurrentLevel());
+	minimap_->SetScene(world_->CurrentLevel());
 	// Loading is not a frame: the next frame starts timing from here
 	clock_.Restart();
 	step_.Reset();
@@ -99,6 +101,7 @@ void Game::NewGame(std::string_view weapon_name, std::string_view level) {
 	}
 	render_type_ = RenderType::TEXTURE;
 	renderer_ = renderer_3d_.get();
+	map_expanded_ = false;
 	ShowLevel();
 
 	renderer_result_.reset();
@@ -197,9 +200,10 @@ void Game::SoakStep() {
 		int start;
 		const char* name;
 	};
-	static constexpr std::array<Phase, 10> kPhases = {{
+	static constexpr std::array<Phase, 11> kPhases = {{
 		{0, "play_3d"},
 		{90, "view_2d"},
+		{135, "map"},
 		{180, "pause"},
 		{240, "settings"},
 		{300, "play"},
@@ -240,9 +244,14 @@ void Game::SoakStep() {
 		render_type_ = RenderType::LINE;
 		renderer_ = renderer_2d_.get();
 	}
-	else if (frame == 180) {
+	else if (frame == 135) {
+		// Back in 3D, with the map large (M)
 		render_type_ = RenderType::TEXTURE;
 		renderer_ = renderer_3d_.get();
+		map_expanded_ = true;
+	}
+	else if (frame == 180) {
+		map_expanded_ = false;
 		Pause();
 	}
 	else if (frame == 240) {
@@ -390,7 +399,7 @@ void Game::PausedTick() {
 		return;
 	}
 	clock_.Tick();
-	renderer_->RenderScene(clock_.DeltaTime());
+	RenderView(1.0);
 	const auto action = menu_->Update(clock_.DeltaTime());
 	Present();
 	HandleMenuAction(action);
@@ -486,11 +495,20 @@ void Game::UpdateAndRender() {
 	{
 		ScopedTimer timer(ProfileSection::Camera);
 		camera_->Update(world_->GetPlayer().GetRenderPosition(alpha), alpha);
+		camera_->ExploreView();
 	}
-	renderer_->RenderScene(clock_.DeltaTime());
+	RenderView(alpha);
 	DrawTransition();
 	ScopedTimer timer(ProfileSection::Present);
 	Present();
+}
+
+void Game::RenderView(double alpha) {
+	renderer_->RenderScene(clock_.DeltaTime());
+	if (render_type_ == RenderType::TEXTURE) {
+		minimap_->Render(world_->GetPlayer().GetRenderPosition(alpha),
+						 map_expanded_);
+	}
 }
 
 void Game::CheckGameEvent() {
@@ -513,7 +531,10 @@ void Game::CheckGameEvent() {
 				Pause();
 				return;
 			}
-			if (event.key.keysym.sym == SDLK_p) {
+			if (event.key.keysym.sym == SDLK_m) {
+				map_expanded_ = !map_expanded_;
+			}
+			if (event.key.keysym.sym == SDLK_p && debug_view_) {
 				if (render_type_ == RenderType::TEXTURE) {
 					render_type_ = RenderType::LINE;
 					renderer_ = renderer_2d_.get();

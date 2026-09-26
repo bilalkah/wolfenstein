@@ -23,6 +23,7 @@ std::size_t LevelArenaBytes(const Map& map, SceneCapacity capacity) {
 		   pickups * (sizeof(Pickup) + alignof(Pickup) + kBookkeeping) +
 		   objects * sizeof(IGameObject*) + enemies * sizeof(Enemy*) +
 		   pickups * sizeof(Pickup*) +
+		   std::size_t{map.GetSizeX()} * map.GetSizeY() +  // explored flags
 		   NavigationManager::MemoryFor(map.GetSizeX(), map.GetSizeY(), objects,
 										enemies) +
 		   map.MemoryBytes() + 8 * kSlack;
@@ -46,7 +47,8 @@ Scene::Scene(const TextureManager& textures, SoundManager& sound,
 	  pickups_(capacity.pickups, &arena_),
 	  objects_(&arena_),
 	  enemy_list_(&arena_),
-	  pickup_list_(&arena_) {
+	  pickup_list_(&arena_),
+	  explored_(std::size_t{map.GetSizeX()} * map.GetSizeY(), 0, &arena_) {
 	objects_.reserve(capacity.enemies + capacity.dynamic_objects +
 					 capacity.pickups);
 	enemy_list_.reserve(capacity.enemies);
@@ -136,6 +138,25 @@ void Scene::CollectPickups() {
 			pickup->Take();
 		}
 	}
+}
+
+void Scene::Explore(int x, int y) {
+	const int size_x = map_.GetSizeX();
+	const int size_y = map_.GetSizeY();
+	if (x >= 0 && y >= 0 && x < size_x && y < size_y) {
+		explored_[(static_cast<std::size_t>(x) *
+				   static_cast<std::size_t>(size_y)) +
+				  static_cast<std::size_t>(y)] = 1;
+	}
+}
+
+bool Scene::IsExplored(int x, int y) const {
+	const int size_x = map_.GetSizeX();
+	const int size_y = map_.GetSizeY();
+	return x >= 0 && y >= 0 && x < size_x && y < size_y &&
+		   explored_[(static_cast<std::size_t>(x) *
+					  static_cast<std::size_t>(size_y)) +
+					 static_cast<std::size_t>(y)] != 0;
 }
 
 const Map& Scene::GetMap() const {

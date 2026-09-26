@@ -28,6 +28,7 @@ add_executable(unit_tests
     fixed_step_test.cpp
     aim_test.cpp
     pickup_test.cpp
+    exploration_test.cpp
     texture_manifest_test.cpp
 )
 target_link_libraries(unit_tests PRIVATE
@@ -47,6 +48,7 @@ target_link_libraries(unit_tests PRIVATE
     animation
     world
     renderer_menu
+    minimap
     time_manager
     shooting_manager
     texture_manager

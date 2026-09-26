@@ -100,6 +100,11 @@ class Scene
 	NavigationManager& GetNavigation() { return navigation_; }
 	const NavigationManager& GetNavigation() const { return navigation_; }
 
+	// What the player has seen of the level, cell by cell: the map shows
+	// only these. Cells outside the map are ignored.
+	void Explore(int x, int y);
+	bool IsExplored(int x, int y) const;
+
 	size_t GetNumberOfAliveEnemies() const;
 	const memory::MonotonicArena& LevelMemory() const { return arena_; }
 
@@ -119,6 +124,8 @@ class Scene
 	std::pmr::vector<IGameObject*> objects_;
 	std::pmr::vector<Enemy*> enemy_list_;
 	std::pmr::vector<Pickup*> pickup_list_;
+	// One flag per map cell, row by row
+	std::pmr::vector<std::uint8_t> explored_;
 	Player* player_ = nullptr;
 	NavigationManager navigation_{*this, &arena_};
 	size_t number_of_alive_enemies{};
