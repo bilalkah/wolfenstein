@@ -64,6 +64,8 @@ class Weapon
 	void TransitionTo(WeaponStateType type);
 
 	void DecreaseAmmo();
+	// The magazine and reserve as given, within the weapon's limits
+	void SetRounds(size_t ammo, size_t reserve);
 	// Adds the rounds of `boxes` ammo boxes, times `scale`, to the reserve,
 	// up to its most; false (nothing taken) if the reserve is already full
 	bool AddAmmoBoxes(size_t boxes, double scale = 1.0);

@@ -31,6 +31,7 @@ add_executable(unit_tests
     exploration_test.cpp
     door_test.cpp
     level_stats_test.cpp
+    saved_game_test.cpp
     texture_manifest_test.cpp
 )
 target_link_libraries(unit_tests PRIVATE
@@ -54,6 +55,7 @@ target_link_libraries(unit_tests PRIVATE
     time_manager
     shooting_manager
     texture_manager
+    settings
 )
 # Counting heap allocations replaces global operator new, which clashes with
 # the sanitizers' allocator, so allocation tests run in non-sanitizer builds

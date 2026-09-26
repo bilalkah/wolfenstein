@@ -61,9 +61,24 @@ class World
 	std::expected<void, std::string> NewGame(
 		std::string_view weapon_name, std::string_view level = {},
 		std::string_view difficulty = "normal");
+	// The same, but at the campaign's level `level_index` (from 0): going on
+	// with a saved game
+	std::expected<void, std::string> ContinueGame(std::string_view weapon_name,
+												  std::string_view difficulty,
+												  std::size_t level_index);
 	// Replaces the finished level with the campaign's next one (same caveat)
 	std::expected<void, std::string> NextLevel();
 	bool HasNextLevel() const;
+	// The campaign's level `index` (from 0), or nullptr
+	const PreparedLevel* FindCampaignLevel(std::size_t index) const {
+		const auto& levels = loader_.Config().levels;
+		return index < levels.size() ? loader_.FindLevel(levels[index])
+									 : nullptr;
+	}
+	// Playing the campaign, not a level on its own (the benchmark's)
+	bool InCampaign() const { return in_campaign_; }
+	// The difficulty of the game being played
+	const DifficultyConfig& Difficulty() const { return *difficulty_; }
 	// 1 for the campaign's first level
 	std::size_t LevelNumber() const { return level_index_ + 1; }
 	// The current level's name from its file; empty if it has none

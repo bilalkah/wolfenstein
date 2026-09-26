@@ -199,18 +199,28 @@ MenuAction Menu::MainScreen() {
 
 	constexpr int kTop = 380;
 	MenuAction action;
-	if (ui_->Button("PLAY", ButtonRect(width, kTop, 0))) {
+	// With a saved game, going on with it comes first
+	int row = 0;
+	if (has_saved_game_) {
+		ui_->Text(saved_game_, width / 2, kTop - 46, ui::FontStyle::Small,
+				  ui::color::kAccentBright, ui::Align::Center);
+		if (ui_->Button("CONTINUE", ButtonRect(width, kTop, row++))) {
+			action.type = MenuAction::Type::Continue;
+		}
+	}
+	if (ui_->Button(has_saved_game_ ? "NEW GAME" : "PLAY",
+					ButtonRect(width, kTop, row++))) {
 		Open(MenuScreen::WeaponSelect);
 	}
-	if (ui_->Button("CONTROLS", ButtonRect(width, kTop, 1))) {
+	if (ui_->Button("CONTROLS", ButtonRect(width, kTop, row++))) {
 		Open(MenuScreen::Controls);
 	}
-	if (ui_->Button("SETTINGS", ButtonRect(width, kTop, 2))) {
+	if (ui_->Button("SETTINGS", ButtonRect(width, kTop, row++))) {
 		Open(MenuScreen::Settings);
 	}
 #ifndef __EMSCRIPTEN__
 	// A browser tab cannot close itself, so only native builds offer Quit
-	if (ui_->Button("QUIT", ButtonRect(width, kTop, 3))) {
+	if (ui_->Button("QUIT", ButtonRect(width, kTop, row))) {
 		action.type = MenuAction::Type::Quit;
 	}
 #endif

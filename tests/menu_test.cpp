@@ -32,6 +32,8 @@ TEST(Menu, NoFrameAllocates) {
 			  difficulties);
 	// The game reads the settings at startup, before its first frame
 	(void)Settings::Get();
+	// A saved game adds CONTINUE to the main screen
+	menu.SetSavedGame("LEVEL 3 · THE CATACOMBS · HARD");
 	constexpr double kFrame = 1.0 / 60.0;
 
 	const auto before = AllocationStats::count;

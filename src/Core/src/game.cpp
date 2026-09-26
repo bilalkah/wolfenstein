@@ -5,6 +5,7 @@
 #include "GameObjects/static_object.h"
 #include "Math/vector.h"
 #include "Profiler/profiler.h"
+#include "Settings/saved_game.h"
 #include "Settings/settings.h"
 #include "SoundManager/sound_manager.h"
 #include "State/enemy_state.h"
@@ -85,6 +86,17 @@ void Game::Init() {
 	menu_ =
 		std::make_unique<Menu>(*renderer_context_, world_->Sound(),
 							   world_->Config().weapons, difficulty_labels_);
+	// A saved game made with other content (fewer levels, weapons or
+	// difficulties) cannot be gone on with
+	saved_game_ = SavedGame::Load();
+	const GameConfig& config = world_->Config();
+	if (saved_game_ &&
+		(saved_game_->level >= config.levels.size() ||
+		 saved_game_->weapon >= config.weapons.size() ||
+		 saved_game_->difficulty >= config.difficulties.size())) {
+		saved_game_.reset();
+	}
+	DescribeSavedGame();
 	renderer_3d_ = std::make_unique<Renderer3D>(*renderer_context_);
 	renderer_2d_ = std::make_unique<Renderer2D>(*renderer_context_);
 	minimap_ = std::make_unique<Minimap>(*renderer_context_);
@@ -118,6 +130,29 @@ void Game::NewGame(std::string_view weapon_name, std::string_view level) {
 		std::cerr << "Cannot start a game: " << started.error() << '\n';
 		std::exit(EXIT_FAILURE);
 	}
+	BeginGame();
+}
+
+void Game::ContinueSavedGame() {
+	if (!saved_game_) {
+		return;
+	}
+	const SavedGame saved = *saved_game_;
+	const GameConfig& config = world_->Config();
+	if (auto started = world_->ContinueGame(
+			config.weapons[saved.weapon].weapon_name,
+			config.difficulties[saved.difficulty].name, saved.level);
+		!started) {
+		std::cerr << "Cannot continue the game: " << started.error() << '\n';
+		std::exit(EXIT_FAILURE);
+	}
+	world_->GetPlayer().Restore(saved.health, saved.ammo, saved.reserve);
+	BeginGame();
+}
+
+// A game has just started: the views follow it, it fades in under its level's
+// title, and a campaign is saved as it starts
+void Game::BeginGame() {
 	render_type_ = RenderType::TEXTURE;
 	renderer_ = renderer_3d_.get();
 	map_expanded_ = false;
@@ -130,6 +165,50 @@ void Game::NewGame(std::string_view weapon_name, std::string_view level) {
 	// measures the plain game from its first frame
 	fade_ = IsBenchmark() ? Fade::None : Fade::In;
 	fade_time_ = 0.0;
+	SaveProgress();
+}
+
+// The campaign so far, as this level starts; scripted runs leave the
+// player's saved game alone
+void Game::SaveProgress() {
+	if (IsScripted() || !world_->InCampaign()) {
+		return;
+	}
+	const GameConfig& config = world_->Config();
+	const Player& player = world_->GetPlayer();
+	const Weapon& weapon = player.GetWeapon();
+	SavedGame saved{.level = world_->LevelNumber() - 1,
+					.health = player.GetHealth(),
+					.ammo = weapon.GetAmmo(),
+					.reserve = weapon.GetReserve()};
+	for (std::size_t i = 0; i < config.weapons.size(); ++i) {
+		if (config.weapons[i].weapon_name == weapon.GetWeaponName()) {
+			saved.weapon = i;
+		}
+	}
+	for (std::size_t i = 0; i < config.difficulties.size(); ++i) {
+		if (&config.difficulties[i] == &world_->Difficulty()) {
+			saved.difficulty = i;
+		}
+	}
+	saved.Save();
+	saved_game_ = saved;
+	DescribeSavedGame();
+}
+
+// Offers the saved game on the main menu, by its level and difficulty
+void Game::DescribeSavedGame() {
+	if (!saved_game_) {
+		menu_->SetSavedGame({});
+		return;
+	}
+	const GameConfig& config = world_->Config();
+	const PreparedLevel* level = world_->FindCampaignLevel(saved_game_->level);
+	const ui::FixedText<96> description(
+		"LEVEL {} · {} · {}", saved_game_->level + 1,
+		level != nullptr ? std::string_view(level->data.name) : "",
+		std::string_view(config.difficulties[saved_game_->difficulty].label));
+	menu_->SetSavedGame(description);
 }
 
 void Game::EnterPlaying() {
@@ -167,6 +246,10 @@ void Game::HandleMenuAction(const MenuAction& action) {
 			break;
 		case MenuAction::Type::SettingsChanged:
 			ApplySettings();
+			break;
+		case MenuAction::Type::Continue:
+			ContinueSavedGame();
+			EnterPlaying();
 			break;
 	}
 }
@@ -671,6 +754,12 @@ void Game::ContinueFromStats() {
 	cleared_time_ = 0.0;
 	fade_time_ = 0.0;
 	if (!world_->HasNextLevel()) {
+		// The campaign is won: nothing is left to go on with
+		if (!IsScripted()) {
+			SavedGame::Clear();
+			saved_game_.reset();
+			DescribeSavedGame();
+		}
 		fade_ = Fade::None;
 		renderer_result_.emplace(
 			*renderer_context_,
@@ -683,6 +772,7 @@ void Game::ContinueFromStats() {
 	}
 	ShowLevel();
 	fade_ = Fade::In;
+	SaveProgress();
 }
 
 void Game::DrawTransition() {
