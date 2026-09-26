@@ -315,6 +315,8 @@
   const benchmarkArgs = params.has('benchmark')
     ? ['--benchmark', params.get('benchmark') || '']
     : params.has('soak') ? ['--soak'] : [];
+  // ?debug: P shows the whole level in 2D (for developers)
+  if (params.has('debug')) benchmarkArgs.push('--debug');
 
   var Module = {
     arguments: benchmarkArgs,

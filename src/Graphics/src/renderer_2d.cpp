@@ -11,10 +11,8 @@ constexpr int kCirclePoints = 20;
 
 }  // namespace
 
-Renderer2D::Renderer2D(RendererContext& context) : IRenderer(context) {
-	vertices_.reserve(kVertexCapacity);
-	indices_.reserve(kVertexCapacity / 4 * 6);
-}
+Renderer2D::Renderer2D(RendererContext& context)
+	: IRenderer(context), batch_(context.GetRenderer()) {}
 
 void Renderer2D::RenderScene(double /*delta_time*/) {
 	ClearScreen();
@@ -23,7 +21,7 @@ void Renderer2D::RenderScene(double /*delta_time*/) {
 	RenderObjects();
 	RenderPaths();
 	RenderCrosshairs();
-	Flush();
+	batch_.Flush();
 }
 
 void Renderer2D::RenderMap() {
@@ -139,32 +137,7 @@ void Renderer2D::RenderCrosshairs() {
 }
 
 void Renderer2D::SetDrawColor(SDL_Color color) {
-	color_ = color;
-}
-
-void Renderer2D::AddQuad(SDL_FPoint a, SDL_FPoint b, SDL_FPoint c,
-						 SDL_FPoint d) {
-	if (vertices_.size() + 4 > kVertexCapacity) {
-		Flush();
-	}
-	const int first = static_cast<int>(vertices_.size());
-	for (const SDL_FPoint corner : {a, b, c, d}) {
-		vertices_.push_back({corner, color_, {0.0f, 0.0f}});
-	}
-	for (const int corner : {0, 1, 2, 0, 2, 3}) {
-		indices_.push_back(first + corner);
-	}
-}
-
-void Renderer2D::Flush() {
-	if (vertices_.empty()) {
-		return;
-	}
-	SDL_RenderGeometry(context_->GetRenderer(), nullptr, vertices_.data(),
-					   static_cast<int>(vertices_.size()), indices_.data(),
-					   static_cast<int>(indices_.size()));
-	vertices_.clear();
-	indices_.clear();
+	batch_.SetColor(color);
 }
 
 void Renderer2D::DrawFilledRectangle(vector2i start, vector2i end) {
@@ -172,7 +145,7 @@ void Renderer2D::DrawFilledRectangle(vector2i start, vector2i end) {
 	const auto y0 = static_cast<float>(start.y);
 	const auto x1 = static_cast<float>(end.x);
 	const auto y1 = static_cast<float>(end.y);
-	AddQuad({x0, y0}, {x1, y0}, {x1, y1}, {x0, y1});
+	batch_.AddQuad({x0, y0}, {x1, y0}, {x1, y1}, {x0, y1});
 }
 
 // A one-pixel-wide quad along the segment
@@ -189,8 +162,8 @@ void Renderer2D::DrawLine(vector2i start, vector2i end) {
 	const auto y0 = static_cast<float>(start.y);
 	const auto x1 = static_cast<float>(end.x);
 	const auto y1 = static_cast<float>(end.y);
-	AddQuad({x0 + nx, y0 + ny}, {x1 + nx, y1 + ny}, {x1 - nx, y1 - ny},
-			{x0 - nx, y0 - ny});
+	batch_.AddQuad({x0 + nx, y0 + ny}, {x1 + nx, y1 + ny}, {x1 - nx, y1 - ny},
+				   {x0 - nx, y0 - ny});
 }
 
 // kCirclePoints one-pixel dots around the centre
@@ -200,7 +173,7 @@ void Renderer2D::DrawCircle(vector2i center, int radius) {
 		const double angle = i * increment;
 		const auto x = static_cast<float>(center.x + radius * std::cos(angle));
 		const auto y = static_cast<float>(center.y + radius * std::sin(angle));
-		AddQuad({x, y}, {x + 1, y}, {x + 1, y + 1}, {x, y + 1});
+		batch_.AddQuad({x, y}, {x + 1, y}, {x + 1, y + 1}, {x, y + 1});
 	}
 }
 

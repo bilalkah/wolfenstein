@@ -49,6 +49,33 @@ void Camera2D::SetScene(Scene& scene) {
 	views_.assign(scene_->GetObjects().size(), ObjectView{});
 }
 
+void Camera2D::ExploreView() {
+	const auto cell = [](double coordinate) {
+		return static_cast<int>(std::floor(coordinate));
+	};
+	const vector2d eye = eye_.pose;
+	for (int dx = -1; dx <= 1; ++dx) {
+		for (int dy = -1; dy <= 1; ++dy) {
+			scene_->Explore(cell(eye.x) + dx, cell(eye.y) + dy);
+		}
+	}
+	// Every few rays is enough: neighbouring rays cross the same cells
+	constexpr std::size_t kRayStride = 4;
+	constexpr double kStep = 0.3;
+	for (std::size_t i = 0; i < rays_.size(); i += kRayStride) {
+		const Ray& ray = rays_[i];
+		for (double t = 0.0; t < ray.distance; t += kStep) {
+			const vector2d point = ray.origin + ray.direction * t;
+			scene_->Explore(cell(point.x), cell(point.y));
+		}
+		if (ray.is_hit) {
+			// Just past the hit point: inside the wall
+			const vector2d wall = ray.hit_point + ray.direction * 1e-3;
+			scene_->Explore(cell(wall.x), cell(wall.y));
+		}
+	}
+}
+
 const RayVector& Camera2D::GetRays() const {
 	return rays_;
 }

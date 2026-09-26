@@ -316,7 +316,7 @@ MenuAction Menu::ControlsScreen() {
 		{"Turn", "Mouse, or Left / Right arrows"},
 		{"Fire", "Left click, or Left Ctrl"},
 		{"Reload", "R"},
-		{"Map view", "P"},
+		{"Map", "M"},
 		{"Pause", "Esc"},
 		{"Menus", "Arrow keys, Enter, Esc"},
 	}};

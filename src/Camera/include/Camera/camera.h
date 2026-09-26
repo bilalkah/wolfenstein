@@ -47,6 +47,9 @@ class Camera2D
 
 	// Borrows the scene until the next call; the game owns it
 	void SetScene(Scene& scene);
+	// Marks what the view shows as explored in the scene: the floor the rays
+	// cross, the walls they end on, and the cells around the eye
+	void ExploreView();
 	// Makes room for this many objects' views up front, so SetScene never
 	// grows them
 	void ReserveViews(std::size_t objects) { views_.reserve(objects); }
