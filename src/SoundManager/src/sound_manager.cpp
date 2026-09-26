@@ -30,7 +30,8 @@ std::expected<std::unique_ptr<SoundManager>, std::string> SoundManager::Open(
 		  std::tuple{SoundEffect::NpcPain, "npc_pain.wav", 32},
 		  std::tuple{SoundEffect::NpcDeath, "npc_death.wav", 64},
 		  std::tuple{SoundEffect::PlayerPain, "player_pain.wav", 64},
-		  std::tuple{SoundEffect::Shotgun, "shotgun.wav", 64}}) {
+		  std::tuple{SoundEffect::Shotgun, "shotgun.wav", 64},
+		  std::tuple{SoundEffect::Pickup, "pickup.wav", 64}}) {
 		if (auto loaded = sound->LoadSound(effect, sound_dir + file, volume);
 			!loaded) {
 			return std::unexpected(loaded.error());

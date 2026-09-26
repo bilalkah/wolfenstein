@@ -77,6 +77,9 @@ void Renderer2D::RenderObjects() {
 	const auto& camera_ptr = context_->GetCamera();
 
 	for (const auto& object : objects) {
+		if (!object->IsVisible()) {
+			continue;
+		}
 
 		SetDrawColor({0xFF, 0xA5, 0, 255});
 		const auto object_pose = object->GetPose();

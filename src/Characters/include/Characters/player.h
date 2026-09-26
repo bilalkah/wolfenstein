@@ -16,6 +16,7 @@
 #include "Characters/character.h"
 #include "Characters/player_command.h"
 #include "GameObjects/game_object.h"
+#include "GameObjects/pickup.h"
 #include "SoundManager/sound_manager.h"
 #include "Strike/weapon.h"
 #include <cstdint>
@@ -60,6 +61,9 @@ class Player : public ICharacter, public IGameObject
 	int GetTextureId() const override;
 	double GetWidth() const override;
 	double GetHeight() const override;
+	// Takes what a pickup gives; false, leaving it lying, if the player has
+	// no use for it (full health, a full reserve)
+	bool TryPickUp(const PickupEffect& effect);
 	bool IsDamaged() const;
 	bool IsAlive() const;
 	const Weapon& GetWeapon() const;
@@ -67,6 +71,10 @@ class Player : public ICharacter, public IGameObject
 	Position2D GetRenderPosition(double alpha) const;
 	// Opacity of the damage overlay, fading out after a hit
 	std::uint8_t GetDamageAlpha() const { return damage_animation_.GetAlpha(); }
+	// Opacity of the flash after taking a pickup, 0 when none is showing
+	std::uint8_t GetPickupAlpha() const {
+		return picked_up_ ? pickup_animation_.GetAlpha() : 0;
+	}
 
   private:
 	void Move(double delta_time);
@@ -81,13 +89,14 @@ class Player : public ICharacter, public IGameObject
 	double width_{};
 	double height_{};
 	double health_{};
-	double regen_time_{};
 	SoundManager& sound_;
 	SoundChannel sound_channel_;
 	Position2D position_;
 	Position2D previous_position_;
 	Weapon weapon_;
 	TriggeredSingleAnimation damage_animation_;
+	bool picked_up_{false};
+	TriggeredSingleAnimation pickup_animation_;
 };
 
 }  // namespace wolfenstein

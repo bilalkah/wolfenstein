@@ -69,6 +69,9 @@ double Camera2D::GetDeltaAngle() const {
 }
 
 void Camera2D::Calculate(const IGameObject& object, double alpha) {
+	if (!object.IsVisible()) {
+		return;
+	}
 
 	const auto object_pose = object.GetRenderPose(alpha);
 	const auto width = object.GetWidth();

@@ -18,6 +18,11 @@
             "label": "MP5",
             "description": "Fast and steady. A big magazine, lighter hits.",
             "ammo": 18,
+            "reserve": {
+                "start": 54,
+                "max": 180,
+                "box": 36
+            },
             "damage": [
                 25,
                 2
@@ -32,6 +37,11 @@
             "label": "SHOTGUN",
             "description": "Two shells, devastating up close.",
             "ammo": 2,
+            "reserve": {
+                "start": 12,
+                "max": 40,
+                "box": 8
+            },
             "damage": [
                 60,
                 2
@@ -99,6 +109,26 @@
                 "idle_frame_seconds": 0.8,
                 "follow_range": 5.0
             }
+        }
+    },
+    "pickups": {
+        "medkit": {
+            "texture": "medkit",
+            "width": 0.4,
+            "height": 0.3,
+            "health": 25
+        },
+        "large_medkit": {
+            "texture": "large_medkit",
+            "width": 0.5,
+            "height": 0.38,
+            "health": 50
+        },
+        "ammo_box": {
+            "texture": "ammo_box",
+            "width": 0.4,
+            "height": 0.3,
+            "ammo_boxes": 1
         }
     },
     "config_dynamic": {

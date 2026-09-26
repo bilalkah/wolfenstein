@@ -22,18 +22,12 @@ Player::Player(CharacterConfig& config, const WeaponConfig& weapon,
 	  position_(config.initial_position),
 	  previous_position_(config.initial_position),
 	  weapon_(weapon, textures, sound),
-	  damage_animation_(1.0) {}
+	  damage_animation_(1.0),
+	  pickup_animation_(3.0, 80, 0) {}
 
 void Player::Update(double delta_time) {
-
-	// One health point per second; a member, not a function-local static,
-	// so a new game does not inherit the last one's timer
-	regen_time_ += delta_time;
-	if (regen_time_ >= 1.0) {
-		regen_time_ = 0.0;
-		IncreaseHealth(1);
-	}
 	previous_position_ = position_;
+	pickup_animation_.Update(delta_time);
 	if (!is_alive_) {
 		return;
 	}
@@ -94,6 +88,23 @@ double Player::GetWidth() const {
 }
 double Player::GetHeight() const {
 	return height_;
+}
+
+bool Player::TryPickUp(const PickupEffect& effect) {
+	bool taken = false;
+	if (effect.health > 0.0 && health_ < 100.0) {
+		IncreaseHealth(effect.health);
+		taken = true;
+	}
+	if (effect.ammo_boxes > 0 && weapon_.AddAmmoBoxes(effect.ammo_boxes)) {
+		taken = true;
+	}
+	if (taken) {
+		sound_.PlayEffect(sound_channel_, SoundEffect::Pickup);
+		picked_up_ = true;
+		pickup_animation_.Reset();
+	}
+	return taken;
 }
 
 bool Player::IsDamaged() const {

@@ -7,6 +7,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <iostream>
 namespace wolfenstein {
 
@@ -305,18 +306,30 @@ void Renderer3D::RenderHUD(double delta_time) {
 	auto& textures = context_->Textures();
 	const int digit_width = config.width / 40;
 
-	const auto draw_digit = [&](int digit, int x) {
+	// Digits stand on the same baseline, `width` wide
+	const auto draw_digit = [&](int digit, int x, int width) {
 		const auto& texture =
 			textures.GetTexture(hud_digits_[static_cast<std::size_t>(digit)]);
 		const double ratio =
 			static_cast<double>(texture.height) / texture.width;
-		const int height = static_cast<int>(digit_width * ratio);
+		const int height = static_cast<int>(width * ratio);
 		const SDL_Rect src_rect{0, 0, texture.width, texture.height};
-		const SDL_Rect dest_rect{x, config.height - height - 10, digit_width,
-								 height};
+		const SDL_Rect dest_rect{x, config.height - height - 10, width, height};
 		SDL_RenderCopy(context_->GetRenderer(), texture.texture, &src_rect,
 					   &dest_rect);
 	};
+
+	// A gold flash over the view after taking a pickup
+	if (const std::uint8_t alpha = player.GetPickupAlpha(); alpha > 0) {
+		SDL_Renderer* renderer = context_->GetRenderer();
+		SDL_BlendMode previous = SDL_BLENDMODE_NONE;
+		SDL_GetRenderDrawBlendMode(renderer, &previous);
+		SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+		SDL_SetRenderDrawColor(renderer, 255, 208, 96, alpha);
+		const SDL_Rect screen{0, 0, config.width, config.height};
+		SDL_RenderFillRect(renderer, &screen);
+		SDL_SetRenderDrawBlendMode(renderer, previous);
+	}
 
 	std::array<int, 10> digits{};
 
@@ -325,16 +338,25 @@ void Renderer3D::RenderHUD(double delta_time) {
 		ToDigits(std::max(0, static_cast<int>(player.GetHealth())), digits);
 	int x = config.width / 40;
 	for (std::size_t i = 0; i < health_digits; ++i, x += digit_width) {
-		draw_digit(digits[i], x);
+		draw_digit(digits[i], x, digit_width);
 	}
-	draw_digit(kPercentDigit, x);
+	draw_digit(kPercentDigit, x, digit_width);
 
-	// Ammo, bottom right, drawn right to left
-	const std::size_t ammo_digits =
-		ToDigits(static_cast<int>(player.GetWeapon().GetAmmo()), digits);
+	// Ammo, bottom right, drawn right to left: the rounds in reserve in
+	// smaller digits, then those in the magazine
+	const Weapon& weapon = player.GetWeapon();
+	const int reserve_width = digit_width * 3 / 5;
+	const std::size_t reserve_digits =
+		ToDigits(static_cast<int>(weapon.GetReserve()), digits);
 	x = config.width - config.width / 30;
+	for (std::size_t i = reserve_digits; i-- > 0; x -= reserve_width) {
+		draw_digit(digits[i], x, reserve_width);
+	}
+	x -= digit_width;
+	const std::size_t ammo_digits =
+		ToDigits(static_cast<int>(weapon.GetAmmo()), digits);
 	for (std::size_t i = ammo_digits; i-- > 0; x -= digit_width) {
-		draw_digit(digits[i], x);
+		draw_digit(digits[i], x, digit_width);
 	}
 
 	if (Settings::Get().show_fps) {

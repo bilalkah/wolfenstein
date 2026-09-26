@@ -7,7 +7,10 @@
     "damage_taken": "textures/damage_taken.png",
     "game_over": "textures/game_over.png",
     "win": "textures/win.png",
-    "candlebra": "sprites/static_sprites/candlebra.png"
+    "candlebra": "sprites/static_sprites/candlebra.png",
+    "medkit": "sprites/pickups/medkit.png",
+    "large_medkit": "sprites/pickups/large_medkit.png",
+    "ammo_box": "sprites/pickups/ammo_box.png"
   },
   "walls": [
     "textures/1.png",

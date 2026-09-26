@@ -197,12 +197,13 @@ void Game::SoakStep() {
 		int start;
 		const char* name;
 	};
-	static constexpr std::array<Phase, 9> kPhases = {{
+	static constexpr std::array<Phase, 10> kPhases = {{
 		{0, "play_3d"},
 		{90, "view_2d"},
 		{180, "pause"},
 		{240, "settings"},
 		{300, "play"},
+		{330, "pickup"},
 		{360, "level_transition"},
 		{700, "death"},
 		{900, "new_game"},
@@ -257,6 +258,21 @@ void Game::SoakStep() {
 	else if (frame == 300) {
 		HandleMenuAction({.type = MenuAction::Type::Resume, .weapon = {}});
 	}
+	else if (frame == 330) {
+		// Hurt, the player steps onto the level's first pickup: taken next
+		// tick, with its sound and flash
+		Player& player = world_->GetPlayer();
+		const auto pickups = world_->CurrentLevel().GetPickups();
+		if (!pickups.empty()) {
+			player.DecreaseHealth(30.0);
+			player.SetPosition(Position2D(pickups.front()->GetPose(),
+										  player.GetPosition().theta));
+		}
+	}
+	else if (frame == 340) {
+		const auto pickups = world_->CurrentLevel().GetPickups();
+		soak_took_pickup_ = !pickups.empty() && pickups.front()->IsTaken();
+	}
 	else if (frame == 360) {
 		// As if every enemy were shot: the level is cleared and the game
 		// fades into the next one
@@ -281,6 +297,8 @@ void Game::SoakStep() {
 		std::cout << "SOAK_RESULT {\"frames\":" << frame
 				  << ",\"max_level\":" << soak_max_level_
 				  << ",\"saw_result\":" << (soak_saw_result_ ? "true" : "false")
+				  << ",\"took_pickup\":"
+				  << (soak_took_pickup_ ? "true" : "false")
 				  << ",\"first_allocating_frame\":" << soak_first_allocation_
 				  << ",\"allocations\":"
 				  << AllocationStats::count - soak_allocations_

@@ -8,6 +8,7 @@
 
 #include "Characters/character.h"
 #include "Characters/enemy.h"
+#include "GameObjects/pickup.h"
 #include "Math/vector.h"
 #include "Strike/weapon.h"
 #include <expected>
@@ -40,6 +41,15 @@ struct DynamicObjectStats
 	double height{};
 };
 
+// A kind of pickup: how it looks and what it gives
+struct PickupConfig
+{
+	std::string texture;  // a texture in textures.json
+	double width{};
+	double height{};
+	PickupEffect effect;
+};
+
 // config.json: the game's content shared by every level. A new enemy type
 // or weapon is added there, with its art in textures.json, not in code.
 struct GameConfig
@@ -48,6 +58,8 @@ struct GameConfig
 	std::map<std::string, EnemyConfig, std::less<>> enemies;
 	// In the order the menu offers them
 	std::vector<WeaponConfig> weapons;
+	// By pickup type ("medkit")
+	std::map<std::string, PickupConfig, std::less<>> pickups;
 	// The campaign: level files in the order they are played
 	std::vector<std::string> levels;
 	// The level the benchmark plays; not part of the campaign
@@ -67,7 +79,8 @@ struct EnemySpawn
 
 struct ObjectSpawn
 {
-	std::string type;  // the animation clip, e.g. "green_light"
+	// The animation clip ("green_light"), or the pickup type ("medkit")
+	std::string type;
 	vector2d position;
 };
 
@@ -79,6 +92,8 @@ struct LevelData
 	Position2D player;
 	std::vector<EnemySpawn> enemies;
 	std::vector<ObjectSpawn> dynamic_objects;
+	// Optional in the file
+	std::vector<ObjectSpawn> pickups;
 };
 
 std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input);

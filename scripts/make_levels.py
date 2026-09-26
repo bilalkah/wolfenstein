@@ -2,12 +2,13 @@
 """Builds the campaign's maps and level files from room layouts.
 
 Each level is a set of rooms (floor rectangles, each with a wall texture), the
-corridors joining them, pillars and accent walls, where the player starts and
-which enemies guard which rooms. The script carves the rooms out of solid
-wall, gives every wall the texture of the room it faces, places enemies and
-lights inside their rooms (deterministically, so rerunning gives the same
-files) and checks the result: a solid border, every room reachable from the
-start, no enemy close to the start and nothing standing in a wall.
+corridors joining them, pillars and accent walls, where the player starts,
+which enemies guard which rooms and what supplies lie in them. The script
+carves the rooms out of solid wall, gives every wall the texture of the room
+it faces, places enemies, lights and pickups inside their rooms
+(deterministically, so rerunning gives the same files) and checks the result:
+a solid border, every room reachable from the start, no enemy close to the
+start and nothing standing in a wall.
 
     ./scripts/make_levels.py   # writes assets/maps/*.txt, assets/levels/*.json
 
@@ -31,6 +32,8 @@ SAFE_RADIUS = 6.0
 SPACING = 1.5
 # How far from the start and from any enemy a light must stand
 LIGHT_CLEARANCE = 1.5
+# How far a pickup lies from the start, enemies, lights and other pickups
+PICKUP_CLEARANCE = 1.0
 
 
 @dataclass
@@ -45,6 +48,8 @@ class Room:
     enemies: list = field(default_factory=list)
     lights: int = 0
     light: str = "green_light"
+    # (count, type) of pickups lying in it
+    pickups: list = field(default_factory=list)
 
     def cells(self):
         for x in range(self.x0, self.x1 + 1):
@@ -136,10 +141,10 @@ def check(level, cells):
 
 
 def place(level, cells, reachable):
-    """Enemies and lights on open cells of their rooms, away from walls."""
+    """Enemies away from walls, lights and pickups along them."""
     rng = random.Random(level.seed)
     start = (level.start[0], level.start[1])
-    enemies, lights = [], []
+    enemies, lights, pickups = [], [], []
 
     def open_around(x, y):
         return all(cells[x + dx][y + dy] == 0
@@ -187,14 +192,34 @@ def place(level, cells, reachable):
             lights.append({"type": room.light,
                            "position": {"x": point[0], "y": point[1]}})
             placed_lights += 1
-    return enemies, lights
+        # Supplies stacked against the walls, clear of everything else
+        taken = placed + [(light["position"]["x"], light["position"]["y"])
+                          for light in lights]
+        spots = edge + [cell for cell in interior if cell not in edge]
+        for count, kind in room.pickups:
+            for _ in range(count):
+                for x, y in spots:
+                    point = (x + 0.5, y + 0.5)
+                    if (math.dist(point, start) < PICKUP_CLEARANCE or
+                            any(math.dist(point, other) < PICKUP_CLEARANCE
+                                for other in taken)):
+                        continue
+                    taken.append(point)
+                    pickups.append({"type": kind,
+                                    "position": {"x": point[0],
+                                                 "y": point[1]}})
+                    break
+                else:
+                    raise ValueError(f"{level.file}: no room for a {kind} "
+                                     f"in {room.name}")
+    return enemies, lights, pickups
 
 
 def write(level):
     grid = carve(level)
     cells = texture_map(level, grid)
     reachable = check(level, cells)
-    enemies, lights = place(level, cells, reachable)
+    enemies, lights, pickups = place(level, cells, reachable)
     rows, cols = level.size
     map_file = level.file.replace(".json", ".txt")
     lines = [f"height {rows}", f"width {cols}"]
@@ -207,13 +232,18 @@ def write(level):
                                 "theta": level.start[2]}},
         "enemies": enemies,
         "dynamicObjects": lights,
+        "pickups": pickups,
         "staticObjects": [],
     }
     (ASSETS / "levels" / level.file).write_text(json.dumps(data, indent=2) + "\n")
     kinds = {}
     for enemy in enemies:
         kinds[enemy["type"]] = kinds.get(enemy["type"], 0) + 1
-    print(f"{level.file}: {rows}x{cols}, {kinds}, {len(lights)} lights")
+    supplies = {}
+    for pickup in pickups:
+        supplies[pickup["type"]] = supplies.get(pickup["type"], 0) + 1
+    print(f"{level.file}: {rows}x{cols}, {kinds}, {len(lights)} lights, "
+          f"{supplies}")
 
 
 EAST, SOUTH, WEST, NORTH = 1.57, 0.0, -1.57, 3.14
@@ -224,15 +254,18 @@ LEVELS = [
     Level("level1.json", "CHECKPOINT", (22, 26), seed=11,
           start=(2.5, 3.5, EAST),
           rooms=[
-              Room("gatehouse", 1, 1, 4, 6, lights=2),
+              Room("gatehouse", 1, 1, 4, 6, lights=2, pickups=[(1, "ammo_box")]),
               Room("guard hall", 1, 9, 6, 16, enemies=[(2, "soldier")],
                    lights=2),
               Room("barracks", 1, 19, 8, 24, BRICK,
                    enemies=[(2, "soldier")], lights=2, light="red_light"),
-              Room("yard", 9, 2, 14, 23, enemies=[(1, "soldier")], lights=4),
-              Room("armory", 17, 1, 20, 8, enemies=[(1, "soldier")], lights=1),
+              Room("yard", 9, 2, 14, 23, enemies=[(1, "soldier")], lights=4,
+                   pickups=[(1, "medkit"), (1, "ammo_box")]),
+              Room("armory", 17, 1, 20, 8, enemies=[(1, "soldier")], lights=1,
+                   pickups=[(2, "ammo_box")]),
               Room("office", 17, 12, 20, 24, BRICK,
-                   enemies=[(1, "soldier")], lights=2, light="red_light"),
+                   enemies=[(1, "soldier")], lights=2, light="red_light",
+                   pickups=[(1, "medkit")]),
           ],
           corridors=[((3, 7), (3, 8)), ((4, 17), (4, 18)), ((5, 3), (8, 3)),
                      ((7, 12), (8, 12)), ((9, 21), (9, 21)),
@@ -246,20 +279,24 @@ LEVELS = [
           start=(23.5, 2.5, NORTH),
           rooms=[
               Room("entrance", 21, 1, 24, 6, BRICK, lights=2,
-                   light="red_light"),
+                   light="red_light", pickups=[(1, "ammo_box")]),
               Room("mess hall", 13, 1, 18, 9, BRICK,
-                   enemies=[(2, "soldier")], lights=2, light="red_light"),
+                   enemies=[(2, "soldier")], lights=2, light="red_light",
+                   pickups=[(1, "medkit")]),
               Room("courtyard", 8, 11, 17, 20, CONCRETE,
-                   enemies=[(2, "soldier"), (1, "caco_demon")], lights=4),
+                   enemies=[(2, "soldier"), (1, "caco_demon")], lights=4,
+                   pickups=[(1, "ammo_box")]),
               Room("dormitory", 1, 1, 9, 8, BRICK,
                    enemies=[(1, "soldier"), (1, "caco_demon")], lights=2,
-                   light="red_light"),
+                   light="red_light", pickups=[(1, "medkit")]),
               Room("chapel", 1, 12, 5, 27, BRICK,
                    enemies=[(1, "soldier"), (1, "caco_demon")], lights=3,
                    light="red_light"),
               Room("quarters", 20, 12, 24, 27, BRICK,
-                   enemies=[(1, "soldier")], lights=2, light="red_light"),
-              Room("store", 8, 23, 17, 28, CONCRETE, lights=2),
+                   enemies=[(1, "soldier")], lights=2, light="red_light",
+                   pickups=[(1, "medkit")]),
+              Room("store", 8, 23, 17, 28, CONCRETE, lights=2,
+                   pickups=[(2, "ammo_box"), (1, "large_medkit")]),
           ],
           corridors=[((19, 3), (20, 3)), ((10, 4), (12, 4)),
                      ((15, 10), (15, 10)), ((6, 15), (7, 15)),
@@ -273,20 +310,27 @@ LEVELS = [
     Level("level3.json", "THE CATACOMBS", (28, 30), seed=33,
           start=(1.5, 1.5, SOUTH),
           rooms=[
-              Room("stair", 1, 1, 4, 4, MOSS, lights=1),
+              Room("stair", 1, 1, 4, 4, MOSS, lights=1,
+                   pickups=[(1, "ammo_box")]),
               Room("ossuary", 1, 9, 6, 17, MOSS,
-                   enemies=[(2, "soldier")], lights=2),
+                   enemies=[(2, "soldier")], lights=2,
+                   pickups=[(1, "medkit")]),
               Room("crypt", 9, 1, 15, 7, MOSS,
-                   enemies=[(1, "soldier"), (1, "caco_demon")], lights=2),
+                   enemies=[(1, "soldier"), (1, "caco_demon")], lights=2,
+                   pickups=[(1, "ammo_box")]),
               Room("hall of faces", 9, 11, 16, 20, DEMON,
                    enemies=[(1, "soldier"), (2, "caco_demon")], lights=3,
-                   light="red_light"),
+                   light="red_light",
+                   pickups=[(1, "medkit"), (1, "ammo_box")]),
               Room("well", 1, 22, 9, 28, MOSS,
-                   enemies=[(1, "caco_demon")], lights=2),
+                   enemies=[(1, "caco_demon")], lights=2,
+                   pickups=[(1, "large_medkit")]),
               Room("tomb", 19, 3, 26, 12, MOSS,
-                   enemies=[(1, "soldier"), (1, "caco_demon")], lights=2),
+                   enemies=[(1, "soldier"), (1, "caco_demon")], lights=2,
+                   pickups=[(1, "medkit"), (1, "ammo_box")]),
               Room("altar", 19, 16, 26, 28, DEMON,
-                   enemies=[(1, "cyber_demon")], lights=3, light="red_light"),
+                   enemies=[(1, "cyber_demon")], lights=3, light="red_light",
+                   pickups=[(1, "ammo_box")]),
           ],
           corridors=[((2, 5), (2, 8)), ((5, 2), (8, 2)), ((7, 13), (8, 13)),
                      ((12, 8), (12, 10)), ((4, 18), (4, 21)),
@@ -301,24 +345,30 @@ LEVELS = [
           start=(28.5, 15.5, NORTH),
           rooms=[
               Room("vestibule", 25, 12, 28, 19, BRICK, lights=2,
-                   light="red_light"),
+                   light="red_light",
+                   pickups=[(1, "medkit"), (1, "ammo_box")]),
               Room("west wing", 16, 1, 23, 9, BRICK,
                    enemies=[(2, "soldier"), (1, "caco_demon")], lights=2,
-                   light="red_light"),
+                   light="red_light",
+                   pickups=[(1, "medkit"), (1, "ammo_box")]),
               Room("east wing", 16, 22, 23, 30, BRICK,
                    enemies=[(2, "soldier"), (1, "caco_demon")], lights=2,
-                   light="red_light"),
+                   light="red_light",
+                   pickups=[(1, "medkit"), (1, "ammo_box")]),
               Room("nave", 13, 11, 22, 20, DEMON,
                    enemies=[(1, "soldier"), (1, "caco_demon"),
                             (1, "cyber_demon")], lights=4,
-                   light="red_light"),
+                   light="red_light", pickups=[(1, "large_medkit")]),
               Room("cloister", 5, 1, 12, 8, MOSS,
-                   enemies=[(1, "caco_demon")], lights=2),
+                   enemies=[(1, "caco_demon")], lights=2,
+                   pickups=[(1, "ammo_box")]),
               Room("reliquary", 5, 23, 12, 30, MOSS,
-                   enemies=[(1, "caco_demon"), (1, "cyber_demon")], lights=2),
+                   enemies=[(1, "caco_demon"), (1, "cyber_demon")], lights=2,
+                   pickups=[(1, "medkit"), (1, "ammo_box")]),
               Room("arena", 1, 10, 10, 21, DEMON,
                    enemies=[(2, "cyber_demon")], lights=4,
-                   light="red_light"),
+                   light="red_light",
+                   pickups=[(1, "large_medkit"), (1, "ammo_box")]),
           ],
           corridors=[((23, 15), (24, 16)), ((19, 10), (19, 10)),
                      ((19, 21), (19, 21)), ((13, 4), (15, 4)),

@@ -211,5 +211,63 @@
       }
     }
   ],
+  "pickups": [
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 23.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 18.5,
+        "y": 8.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 16.5,
+        "y": 11.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 6.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 24.5,
+        "y": 22.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 8.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 8.5,
+        "y": 28.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 11.5,
+        "y": 28.5
+      }
+    }
+  ],
   "staticObjects": []
 }

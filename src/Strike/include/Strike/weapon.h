@@ -28,10 +28,15 @@ enum class DamageFalloff : std::uint8_t { Linear, Exponential };
 // A player weapon as config.json describes it
 struct WeaponConfig
 {
-	std::string weapon_name;  // names its animation clips: "<name>_reload"
-	std::string label;		  // shown in the menu
-	std::string description;  // shown in the menu
-	std::size_t ammo_capacity{};
+	std::string weapon_name;	  // names its animation clips: "<name>_reload"
+	std::string label;			  // shown in the menu
+	std::string description;	  // shown in the menu
+	std::size_t ammo_capacity{};  // rounds in a magazine
+	// Rounds carried besides the magazine: at the start of a game, at most,
+	// and in one ammo box picked up
+	std::size_t reserve_start{};
+	std::size_t reserve_max{};
+	std::size_t box_rounds{};
 	std::pair<double, double> attack_damage;  // at point blank, at range
 	double attack_range{};
 	double attack_speed{};
@@ -52,18 +57,20 @@ class Weapon
 	// Pulls the trigger; true if a shot was fired (the caller resolves it)
 	bool Attack();
 	void Update(double delta_time);
-	void Charge();
+	// Starts reloading if the magazine has room and rounds are in reserve
 	void Reload();
+	// Moves rounds from the reserve into the magazine, as many as fit
+	void FinishReload();
 	void TransitionTo(WeaponStateType type);
 
-	void SetAmmo(size_t ammo);
-	void IncreaseAmmo();
-	void IncreaseAmmo(size_t amount);
 	void DecreaseAmmo();
-	void DecreaseAmmo(size_t amount);
+	// Adds the rounds of `boxes` ammo boxes to the reserve, up to its most;
+	// false (nothing taken) if the reserve is already full
+	bool AddAmmoBoxes(size_t boxes);
 
 	size_t GetAmmo() const;
 	size_t GetAmmoCapacity() const;
+	size_t GetReserve() const { return reserve_; }
 	std::pair<double, double> GetAttackDamage() const;
 	double GetAttackRange() const;
 	double GetAttackSpeed() const;
@@ -83,6 +90,7 @@ class Weapon
 	const WeaponConfig& config_;
 	SoundChannel sound_channel_;
 	size_t ammo_{};
+	size_t reserve_{};
 	WeaponState& StateFor(WeaponStateType type);
 
 	// Every state the weapon can be in, set up once: transitions allocate
