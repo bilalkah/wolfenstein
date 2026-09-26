@@ -230,6 +230,9 @@ class LevelReader final : public nlohmann::json_sax<json>
 				if (frame.key == Key::Name) {
 					return take(level_.name, 0);
 				}
+				if (frame.key == Key::Briefing) {
+					return take(level_.briefing, 0);
+				}
 				break;
 			case Kind::Enemy:
 				if (frame.key == Key::Type) {
@@ -407,6 +410,7 @@ class LevelReader final : public nlohmann::json_sax<json>
 		None,
 		Map,
 		Name,
+		Briefing,
 		Player,
 		Enemies,
 		DynamicObjects,
@@ -444,6 +448,8 @@ class LevelReader final : public nlohmann::json_sax<json>
 					return Key::Map;
 				if (name == "name")
 					return Key::Name;
+				if (name == "briefing")
+					return Key::Briefing;
 				if (name == "player")
 					return Key::Player;
 				if (name == "enemies")
