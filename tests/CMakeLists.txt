@@ -30,6 +30,7 @@ add_executable(unit_tests
     pickup_test.cpp
     exploration_test.cpp
     door_test.cpp
+    level_stats_test.cpp
     texture_manifest_test.cpp
 )
 target_link_libraries(unit_tests PRIVATE

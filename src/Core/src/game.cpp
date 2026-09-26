@@ -37,6 +37,10 @@ constexpr double kEndOfLevelDelay = 2.0;
 // level built at black, and a fade back in under its title
 constexpr double kClearedPause = 1.0;
 constexpr double kFadeOutSeconds = 0.8;
+// The results screen ignores input this long, so a held key or button does
+// not skip it; scripted runs move on by themselves after a second
+constexpr double kStatsInputDelay = 0.6;
+constexpr double kScriptedStatsSeconds = 1.0;
 constexpr double kFadeInSeconds = 1.0;
 // The level's title stays up a little longer than the fade, then fades too
 constexpr double kBannerSeconds = 2.4;
@@ -234,6 +238,7 @@ void Game::SoakStep() {
 	}
 	soak_max_level_ = std::max(soak_max_level_, world_->LevelNumber());
 	soak_saw_result_ = soak_saw_result_ || state_ == GameState::Result;
+	soak_saw_stats_ = soak_saw_stats_ || fade_ == Fade::Stats;
 	for (std::size_t i = 0; i < kPhases.size(); ++i) {
 		if (frame == kPhases[i].start) {
 			soak_phase_ = i;
@@ -321,6 +326,7 @@ void Game::SoakStep() {
 				  << (soak_took_pickup_ ? "true" : "false")
 				  << ",\"opened_door\":"
 				  << (soak_opened_door_ ? "true" : "false")
+				  << ",\"saw_stats\":" << (soak_saw_stats_ ? "true" : "false")
 				  << ",\"first_allocating_frame\":" << soak_first_allocation_
 				  << ",\"allocations\":"
 				  << AllocationStats::count - soak_allocations_
@@ -501,7 +507,10 @@ void Game::UpdateAndRender() {
 	// breakpoint, a hidden browser tab) is dropped rather than caught up in
 	// a burst of ticks.
 	for (int ticks = step_.Advance(clock_.DeltaTime()); ticks > 0; --ticks) {
-		world_->CurrentLevel().Update(step_.TickSeconds());
+		// The level waits behind its results screen
+		if (fade_ != Fade::Stats) {
+			world_->CurrentLevel().Update(step_.TickSeconds());
+		}
 	}
 	// Frames fall between ticks: the view is drawn this far from the last
 	// tick towards the next, so motion stays smooth at any frame rate
@@ -522,6 +531,8 @@ void Game::RenderView(double alpha) {
 	if (render_type_ == RenderType::TEXTURE) {
 		minimap_->Render(world_->GetPlayer().GetRenderPosition(alpha),
 						 map_expanded_);
+		const LevelStats stats = world_->CurrentLevel().GetStats();
+		menu_->DrawEnemyCounter(stats.kills, stats.enemies);
 	}
 }
 
@@ -539,6 +550,17 @@ void Game::CheckGameEvent() {
 			event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
 			Pause();
 			return;
+		}
+		// Any of these goes on from a level's results
+		if (fade_ == Fade::Stats && fade_time_ >= kStatsInputDelay &&
+			(event.type == SDL_MOUSEBUTTONDOWN ||
+			 (event.type == SDL_KEYDOWN &&
+			  (event.key.keysym.sym == SDLK_RETURN ||
+			   event.key.keysym.sym == SDLK_KP_ENTER ||
+			   event.key.keysym.sym == SDLK_SPACE ||
+			   event.key.keysym.sym == SDLK_e)))) {
+			ContinueFromStats();
+			continue;
 		}
 		if (event.type == SDL_KEYDOWN) {
 			if (event.key.keysym.sym == SDLK_ESCAPE) {
@@ -587,18 +609,11 @@ void Game::CheckGameOver() {
 			renderer_context_->Textures().GetTextureId("game_over"));
 	}
 	if (world_->CurrentLevel().GetNumberOfAliveEnemies() == 0 &&
-		!renderer_result_ && fade_ != Fade::Out) {
+		!renderer_result_ && fade_ != Fade::Out && fade_ != Fade::Stats) {
 		cleared_time_ += delta_time;
 		if (cleared_time_ >= kClearedPause) {
-			if (world_->HasNextLevel()) {
-				fade_ = Fade::Out;
-				fade_time_ = 0.0;
-			}
-			else {
-				renderer_result_.emplace(
-					*renderer_context_,
-					renderer_context_->Textures().GetTextureId("win"));
-			}
+			fade_ = Fade::Out;
+			fade_time_ = 0.0;
 		}
 	}
 	AdvanceTransition(delta_time);
@@ -621,14 +636,13 @@ void Game::AdvanceTransition(double delta_time) {
 	}
 	fade_time_ += delta_time;
 	if (fade_ == Fade::Out && fade_time_ >= kFadeOutSeconds) {
-		if (auto next = world_->NextLevel(); !next) {
-			std::cerr << "Cannot load the next level: " << next.error() << '\n';
-			std::exit(EXIT_FAILURE);
-		}
-		ShowLevel();
-		cleared_time_ = 0.0;
-		fade_ = Fade::In;
+		cleared_stats_ = world_->CurrentLevel().GetStats();
+		fade_ = Fade::Stats;
 		fade_time_ = 0.0;
+	}
+	else if (fade_ == Fade::Stats && IsScripted() &&
+			 fade_time_ >= kScriptedStatsSeconds) {
+		ContinueFromStats();
 	}
 	else if (fade_ == Fade::In && fade_time_ >= kBannerSeconds) {
 		fade_ = Fade::None;
@@ -638,6 +652,24 @@ void Game::AdvanceTransition(double delta_time) {
 // Draws the fade over the frame: black going up to full while the cleared
 // level fades out, then down again, with the next level's title, as it
 // fades in
+void Game::ContinueFromStats() {
+	cleared_time_ = 0.0;
+	fade_time_ = 0.0;
+	if (!world_->HasNextLevel()) {
+		fade_ = Fade::None;
+		renderer_result_.emplace(
+			*renderer_context_,
+			renderer_context_->Textures().GetTextureId("win"));
+		return;
+	}
+	if (auto next = world_->NextLevel(); !next) {
+		std::cerr << "Cannot load the next level: " << next.error() << '\n';
+		std::exit(EXIT_FAILURE);
+	}
+	ShowLevel();
+	fade_ = Fade::In;
+}
+
 void Game::DrawTransition() {
 	if (fade_ == Fade::None) {
 		return;
@@ -645,6 +677,9 @@ void Game::DrawTransition() {
 	double black = 0.0;
 	if (fade_ == Fade::Out) {
 		black = std::min(fade_time_ / kFadeOutSeconds, 1.0);
+	}
+	else if (fade_ == Fade::Stats) {
+		black = 1.0;
 	}
 	else {
 		black = std::max(1.0 - fade_time_ / kFadeInSeconds, 0.0);
@@ -655,6 +690,12 @@ void Game::DrawTransition() {
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0,
 							   static_cast<Uint8>(std::lround(black * 255)));
 		SDL_RenderFillRect(renderer, nullptr);
+	}
+	if (fade_ == Fade::Stats) {
+		const ui::FixedText<64> heading("LEVEL {} · {}", world_->LevelNumber(),
+										world_->LevelName());
+		menu_->DrawLevelStats(heading, cleared_stats_,
+							  !IsScripted() && fade_time_ >= kStatsInputDelay);
 	}
 	if (fade_ == Fade::In) {
 		const double banner = std::clamp(

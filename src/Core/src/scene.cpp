@@ -55,6 +55,13 @@ Scene::Scene(const TextureManager& textures, SoundManager& sound,
 	  doors_(map.GetDoors().size(), DoorMotion{}, &arena_) {
 	objects_.reserve(capacity.enemies + capacity.dynamic_objects +
 					 capacity.pickups);
+	const int size_x = map_.GetSizeX();
+	const int size_y = map_.GetSizeY();
+	for (int x = 0; x < size_x; ++x) {
+		for (int y = 0; y < size_y; ++y) {
+			open_cells_ += map_.IsWall(x, y) ? 0 : 1;
+		}
+	}
 	enemy_list_.reserve(capacity.enemies);
 	pickup_list_.reserve(capacity.pickups);
 }
@@ -116,6 +123,9 @@ void Scene::DecreaseAliveEnemies() {
 }
 
 void Scene::Update(double delta_time) {
+	if (number_of_alive_enemies > 0) {
+		elapsed_ += delta_time;
+	}
 	{
 		ScopedTimer timer(ProfileSection::UpdateEnemies);
 		for (IGameObject* object : objects_) {
@@ -239,10 +249,15 @@ void Scene::CollectPickups() {
 void Scene::Explore(int x, int y) {
 	const int size_x = map_.GetSizeX();
 	const int size_y = map_.GetSizeY();
-	if (x >= 0 && y >= 0 && x < size_x && y < size_y) {
-		explored_[(static_cast<std::size_t>(x) *
-				   static_cast<std::size_t>(size_y)) +
-				  static_cast<std::size_t>(y)] = 1;
+	if (x < 0 || y < 0 || x >= size_x || y >= size_y) {
+		return;
+	}
+	std::uint8_t& flag = explored_[(static_cast<std::size_t>(x) *
+									static_cast<std::size_t>(size_y)) +
+								   static_cast<std::size_t>(y)];
+	if (flag == 0) {
+		flag = 1;
+		explored_open_cells_ += map_.IsWall(x, y) ? 0 : 1;
 	}
 }
 
@@ -273,6 +288,20 @@ Player& Scene::GetPlayer() {
 
 size_t Scene::GetNumberOfAliveEnemies() const {
 	return number_of_alive_enemies;
+}
+
+LevelStats Scene::GetStats() const {
+	const auto taken = static_cast<std::size_t>(
+		std::ranges::count_if(pickup_list_, &Pickup::IsTaken));
+	return {.kills = enemy_list_.size() - number_of_alive_enemies,
+			.enemies = enemy_list_.size(),
+			.pickups_taken = taken,
+			.pickups = pickup_list_.size(),
+			.explored_percent =
+				open_cells_ == 0 ? 0
+								 : static_cast<int>(100 * explored_open_cells_ /
+													open_cells_),
+			.seconds = elapsed_};
 }
 
 }  // namespace wolfenstein

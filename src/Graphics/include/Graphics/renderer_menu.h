@@ -24,6 +24,8 @@
 
 namespace wolfenstein {
 
+struct LevelStats;
+
 enum class MenuScreen : std::uint8_t {
 	Main,
 	WeaponSelect,
@@ -66,6 +68,12 @@ class Menu
 	// given opacity, over whatever is already drawn
 	void DrawLevelBanner(std::string_view title, std::string_view name,
 						 Uint8 alpha);
+	// The enemies killed of the level's total, below the corner map
+	void DrawEnemyCounter(std::size_t kills, std::size_t enemies);
+	// A cleared level's results under its `heading` ("LEVEL 1 · CHECKPOINT"),
+	// over black; `prompt`: whether to ask for a key to go on
+	void DrawLevelStats(std::string_view heading, const LevelStats& stats,
+						bool prompt);
 
   private:
 	MenuAction MainScreen();
