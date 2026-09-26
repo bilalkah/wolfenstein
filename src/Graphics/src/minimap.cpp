@@ -23,6 +23,7 @@ constexpr SDL_Color kFloor{56, 56, 60, 215};
 constexpr SDL_Color kPanel{0, 0, 0, 150};
 constexpr SDL_Color kFrame{210, 190, 150, 170};
 constexpr SDL_Color kPlayer{255, 214, 64, 255};
+constexpr SDL_Color kDoor{120, 150, 196, 255};
 constexpr SDL_Color kHealth{230, 40, 40, 255};
 constexpr SDL_Color kHealthBack{245, 245, 238, 255};
 constexpr SDL_Color kAmmo{212, 168, 60, 255};
@@ -72,15 +73,34 @@ void Minimap::Render(const Position2D& player, bool expanded) {
 			if (!scene_->IsExplored(x, y)) {
 				continue;
 			}
-			const int wall =
+			const std::uint16_t wall =
 				cells[static_cast<std::size_t>(x), static_cast<std::size_t>(y)];
-			batch_.SetColor(
-				wall == 0 ? kFloor
-						  : kWallColours[static_cast<std::size_t>(std::clamp(
-								wall, 0,
-								static_cast<int>(kWallColours.size()) - 1))]);
 			const float left = origin_x + static_cast<float>(x) * cell;
 			const float top = origin_y + static_cast<float>(y) * cell;
+			if (Map::IsDoorCell(wall)) {
+				// Floor, and the door across it: shorter as it slides open
+				batch_.SetColor(kFloor);
+				batch_.AddRect(left, top, left + cell, top + cell);
+				const Door& door = map.GetDoors()[wall - Map::kDoorCell];
+				const float shut =
+					cell * static_cast<float>(1.0 - door.openness);
+				const float half = std::max(cell * 0.15f, 1.0f);
+				batch_.SetColor(kDoor);
+				if (door.across_x) {  // the plane x + 0.5, along y
+					const float middle = left + cell / 2;
+					batch_.AddRect(middle - half, top + cell - shut,
+								   middle + half, top + cell);
+				}
+				else {
+					const float middle = top + cell / 2;
+					batch_.AddRect(left + cell - shut, middle - half,
+								   left + cell, middle + half);
+				}
+				continue;
+			}
+			batch_.SetColor(wall == 0 ? kFloor
+									  : kWallColours[std::min<std::size_t>(
+											wall, kWallColours.size() - 1)]);
 			batch_.AddRect(left, top, left + cell, top + cell);
 		}
 	}

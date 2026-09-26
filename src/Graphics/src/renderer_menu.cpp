@@ -1,4 +1,5 @@
 #include "Graphics/renderer_menu.h"
+#include "Core/scene.h"
 #include "Settings/settings.h"
 #include "State/weapon_state.h"
 #include "TextureManager/texture_manager.h"
@@ -26,13 +27,16 @@ SDL_Rect ButtonRect(int screen_width, int top, int index) {
 }  // namespace
 
 Menu::Menu(RendererContext& context, SoundManager& sound,
-		   std::span<const WeaponConfig> weapons)
+		   std::span<const WeaponConfig> weapons,
+		   std::span<const DifficultyChoice> difficulties)
 	: context_(&context),
 	  ui_(std::make_unique<ui::Ui>(
 		  context_->GetRenderer(),
 		  std::string(RESOURCE_DIR) + "font/EternalAncient.ttf",
 		  std::string(RESOURCE_DIR) + "font/Roboto-Light.ttf")),
-	  weapon_configs_(weapons) {
+	  weapon_configs_(weapons),
+	  difficulties_(difficulties),
+	  chosen_difficulty_(difficulties.size() > 1 ? 1 : 0) {
 	background_texture_ = context_->Textures().GetTextureId("menu_background");
 	for (const WeaponConfig& config : weapon_configs_) {
 		weapons_.push_back(
@@ -60,6 +64,56 @@ void Menu::DrawLevelBanner(std::string_view title, std::string_view name,
 	}
 }
 
+void Menu::DrawEnemyCounter(std::size_t kills, std::size_t enemies) {
+	const auto& config = context_->GetConfig();
+	// Under the corner map, which is 30% of the screen's shorter side
+	const int top = std::min(config.width, config.height) * 3 / 10 + 22;
+	const int right = config.width - 14;
+	const ui::FixedText<32> count("{} / {}", kills, enemies);
+	ui_->Text(count, right, top, ui::FontStyle::Heading, ui::color::kText,
+			  ui::Align::Right);
+	ui_->Text("ENEMIES", right, top + 44, ui::FontStyle::Small,
+			  ui::color::kMuted, ui::Align::Right);
+}
+
+void Menu::DrawLevelStats(std::string_view heading, const LevelStats& stats,
+						  bool prompt) {
+	const auto& config = context_->GetConfig();
+	const int centre_x = config.width / 2;
+	int y = config.height / 2 - 260;
+	ui_->Text("CLEARED", centre_x, y, ui::FontStyle::Title, ui::color::kText,
+			  ui::Align::Center);
+	ui_->Text(heading, centre_x, y + 118, ui::FontStyle::Heading,
+			  ui::color::kAccentBright, ui::Align::Center);
+
+	const SDL_Rect panel{centre_x - 300, y + 190, 600, 280};
+	ui_->FillRect(panel, ui::color::kPanel);
+	ui_->DrawRect(panel, ui::color::kBorder);
+	const auto minutes = static_cast<int>(stats.seconds) / 60;
+	const auto seconds = static_cast<int>(stats.seconds) % 60;
+	const ui::FixedText<32> enemies("{} / {}", stats.kills, stats.enemies);
+	const ui::FixedText<32> pickups("{} / {}", stats.pickups_taken,
+									stats.pickups);
+	const ui::FixedText<16> explored("{}%", stats.explored_percent);
+	const ui::FixedText<16> time("{}:{:02}", minutes, seconds);
+	y = panel.y + 34;
+	for (const auto& [label, value] :
+		 {std::pair<std::string_view, std::string_view>{"Enemies", enemies},
+		  {"Supplies", pickups},
+		  {"Explored", explored},
+		  {"Time", time}}) {
+		ui_->Text(label, panel.x + 48, y, ui::FontStyle::Body,
+				  ui::color::kMuted);
+		ui_->Text(value, panel.x + panel.w - 48, y, ui::FontStyle::Body,
+				  ui::color::kText, ui::Align::Right);
+		y += 56;
+	}
+	if (prompt) {
+		ui_->Text("Press Enter to continue", centre_x, panel.y + panel.h + 40,
+				  ui::FontStyle::Small, ui::color::kMuted, ui::Align::Center);
+	}
+}
+
 void Menu::Open(MenuScreen screen) {
 	if (screen == MenuScreen::Controls || screen == MenuScreen::Settings) {
 		return_screen_ = screen_;
@@ -70,6 +124,11 @@ void Menu::Open(MenuScreen screen) {
 			weapon->TransitionTo(WeaponStateType::Loaded);
 		}
 		previewed_weapon_ = -1;
+	}
+	if (screen == MenuScreen::DifficultySelect) {
+		// On the one chosen last (at first the middle one)
+		ui_->ResetFocus(static_cast<int>(chosen_difficulty_));
+		return;
 	}
 	ui_->ResetFocus();
 }
@@ -86,7 +145,10 @@ void Menu::SetPreviewedWeapon(int index) {
 	}
 	previewed_weapon_ = index;
 	if (index >= 0) {
-		weapons_[static_cast<std::size_t>(index)]->Reload();
+		// Straight into the animation: a reload with a full magazine is
+		// refused
+		weapons_[static_cast<std::size_t>(index)]->TransitionTo(
+			WeaponStateType::Reloading);
 	}
 }
 
@@ -95,8 +157,11 @@ void Menu::GoBack() {
 		Settings::Get().Save();
 	}
 	// Land on the button that opened the screen we are leaving; both the main
-	// and pause screens list Controls second and Settings third
-	const int opener = screen_ == MenuScreen::Controls ? 1 : 2;
+	// and pause screens list Controls second and Settings third, the main
+	// screen one lower when it offers CONTINUE first
+	const int opener =
+		(screen_ == MenuScreen::Controls ? 1 : 2) +
+		(return_screen_ == MenuScreen::Main && has_saved_game_ ? 1 : 0);
 	screen_ = return_screen_;
 	ui_->ResetFocus(opener);
 }
@@ -111,6 +176,9 @@ MenuAction Menu::Update(double delta_time) {
 	switch (screen_) {
 		case MenuScreen::Main:
 			action = MainScreen();
+			break;
+		case MenuScreen::DifficultySelect:
+			action = DifficultySelectScreen();
 			break;
 		case MenuScreen::WeaponSelect:
 			action = WeaponSelectScreen(delta_time);
@@ -146,23 +214,76 @@ MenuAction Menu::MainScreen() {
 
 	constexpr int kTop = 380;
 	MenuAction action;
-	if (ui_->Button("PLAY", ButtonRect(width, kTop, 0))) {
-		Open(MenuScreen::WeaponSelect);
+	// With a saved game, going on with it comes first
+	int row = 0;
+	if (has_saved_game_) {
+		ui_->Text(saved_game_, width / 2, kTop - 46, ui::FontStyle::Small,
+				  ui::color::kAccentBright, ui::Align::Center);
+		if (ui_->Button("CONTINUE", ButtonRect(width, kTop, row++))) {
+			action.type = MenuAction::Type::Continue;
+		}
 	}
-	if (ui_->Button("CONTROLS", ButtonRect(width, kTop, 1))) {
+	if (ui_->Button(has_saved_game_ ? "NEW GAME" : "PLAY",
+					ButtonRect(width, kTop, row++))) {
+		Open(difficulties_.empty() ? MenuScreen::WeaponSelect
+								   : MenuScreen::DifficultySelect);
+	}
+	if (ui_->Button("CONTROLS", ButtonRect(width, kTop, row++))) {
 		Open(MenuScreen::Controls);
 	}
-	if (ui_->Button("SETTINGS", ButtonRect(width, kTop, 2))) {
+	if (ui_->Button("SETTINGS", ButtonRect(width, kTop, row++))) {
 		Open(MenuScreen::Settings);
 	}
 #ifndef __EMSCRIPTEN__
 	// A browser tab cannot close itself, so only native builds offer Quit
-	if (ui_->Button("QUIT", ButtonRect(width, kTop, 3))) {
+	if (ui_->Button("QUIT", ButtonRect(width, kTop, row))) {
 		action.type = MenuAction::Type::Quit;
 	}
 #endif
 	DrawHint("Arrow keys or mouse to choose  ·  Enter to select");
 	return action;
+}
+
+// A new game's difficulty, chosen once for the whole campaign
+MenuAction Menu::DifficultySelectScreen() {
+	const int width = context_->GetConfig().width;
+	DrawBackground();
+	DrawDimmer(190);
+	ui_->Text("CHOOSE DIFFICULTY", width / 2, 70, ui::FontStyle::Heading,
+			  ui::color::kText, ui::Align::Center);
+	ui_->Text("It holds for the whole campaign.", width / 2, 150,
+			  ui::FontStyle::Body, ui::color::kMuted, ui::Align::Center);
+
+	constexpr int kCardWidth = 760;
+	constexpr int kCardHeight = 120;
+	constexpr int kCardGap = 24;
+	const int left = (width - kCardWidth) / 2;
+	int y = 230;
+	for (std::size_t i = 0; i < difficulties_.size(); ++i) {
+		const SDL_Rect card{left, y, kCardWidth, kCardHeight};
+		bool focused = false;
+		if (ui_->Selectable(card, focused)) {
+			chosen_difficulty_ = i;
+			Open(MenuScreen::WeaponSelect);
+		}
+		ui_->FillRect(card,
+					  focused ? ui::color::kPanelFocused : ui::color::kPanel);
+		ui_->DrawRect(card, focused ? ui::color::kAccent : ui::color::kBorder,
+					  focused ? 3 : 1);
+		ui_->Text(difficulties_[i].label, card.x + 32, card.y + 18,
+				  ui::FontStyle::Button,
+				  focused ? ui::color::kText : ui::color::kMuted);
+		ui_->Text(difficulties_[i].description, card.x + 32, card.y + 72,
+				  ui::FontStyle::Small, ui::color::kMuted);
+		y += kCardHeight + kCardGap;
+	}
+
+	if (ui_->Button("BACK", {(width - 300) / 2, y + 20, 300, 64}) ||
+		input_.back) {
+		Open(MenuScreen::Main);
+	}
+	DrawHint("Choose with the arrow keys or mouse  ·  Enter to go on");
+	return {};
 }
 
 MenuAction Menu::WeaponSelectScreen(double delta_time) {
@@ -199,6 +320,7 @@ MenuAction Menu::WeaponSelectScreen(double delta_time) {
 		if (ui_->Selectable(card, focused)) {
 			action.type = MenuAction::Type::StartGame;
 			action.weapon = weapon_configs_[i].weapon_name;
+			action.difficulty = chosen_difficulty_;
 		}
 		if (focused) {
 			focused_card = static_cast<int>(i);
@@ -213,7 +335,8 @@ MenuAction Menu::WeaponSelectScreen(double delta_time) {
 	}
 
 	if (ui_->Button("BACK", {(width - 300) / 2, 760, 300, 64}) || input_.back) {
-		Open(MenuScreen::Main);
+		Open(difficulties_.empty() ? MenuScreen::Main
+								   : MenuScreen::DifficultySelect);
 	}
 	DrawHint("Click a weapon or press Enter to start  ·  Esc to go back");
 	return action;
@@ -311,11 +434,12 @@ MenuAction Menu::ControlsScreen() {
 		const char* action;
 		const char* keys;
 	};
-	constexpr std::array<Binding, 7> kBindings = {{
+	constexpr std::array<Binding, 8> kBindings = {{
 		{"Move", "W  A  S  D"},
 		{"Turn", "Mouse, or Left / Right arrows"},
 		{"Fire", "Left click, or Left Ctrl"},
 		{"Reload", "R"},
+		{"Open door", "E, or Space"},
 		{"Map", "M"},
 		{"Pause", "Esc"},
 		{"Menus", "Arrow keys, Enter, Esc"},
@@ -329,7 +453,7 @@ MenuAction Menu::ControlsScreen() {
 				  ui::color::kMuted);
 		ui_->Text(binding.keys, panel.x + panel.w - 48, y, ui::FontStyle::Body,
 				  ui::color::kText, ui::Align::Right);
-		y += 56;
+		y += 52;
 	}
 #ifdef __EMSCRIPTEN__
 	ui_->Text(

@@ -5,7 +5,8 @@ Each level is a set of rooms (floor rectangles, each with a wall texture), the
 corridors joining them, pillars and accent walls, where the player starts,
 which enemies guard which rooms and what supplies lie in them. The script
 carves the rooms out of solid wall, gives every wall the texture of the room
-it faces, places enemies, lights and pickups inside their rooms
+it faces, hangs a door in each corridor, places enemies, lights and pickups
+inside their rooms
 (deterministically, so rerunning gives the same files) and checks the result:
 a solid border, every room reachable from the start, no enemy close to the
 start and nothing standing in a wall.
@@ -215,15 +216,38 @@ def place(level, cells, reachable):
     return enemies, lights, pickups
 
 
+def doors(level, cells):
+    """A door in each corridor: its middle cell with walls facing each other
+    across it and the way through open on the other two sides."""
+    placed = []
+    for (x0, y0), (x1, y1) in level.corridors:
+        run = [(x, y) for x in range(min(x0, x1), max(x0, x1) + 1)
+               for y in range(min(y0, y1), max(y0, y1) + 1)]
+        candidates = []
+        for x, y in run:
+            walls_y = cells[x][y - 1] != 0 and cells[x][y + 1] != 0
+            open_x = cells[x - 1][y] == 0 and cells[x + 1][y] == 0
+            walls_x = cells[x - 1][y] != 0 and cells[x + 1][y] != 0
+            open_y = cells[x][y - 1] == 0 and cells[x][y + 1] == 0
+            if (walls_y and open_x) or (walls_x and open_y):
+                candidates.append((x, y))
+        if candidates:
+            placed.append(candidates[len(candidates) // 2])
+    return placed
+
+
 def write(level):
     grid = carve(level)
     cells = texture_map(level, grid)
     reachable = check(level, cells)
     enemies, lights, pickups = place(level, cells, reachable)
+    door_cells = set(doors(level, cells))
     rows, cols = level.size
     map_file = level.file.replace(".json", ".txt")
     lines = [f"height {rows}", f"width {cols}"]
-    lines += ["".join(str(c) for c in row) for row in cells]
+    lines += ["".join("D" if (x, y) in door_cells else str(c)
+                      for y, c in enumerate(row))
+              for x, row in enumerate(cells)]
     (ASSETS / "maps" / map_file).write_text("\n".join(lines) + "\n")
     data = {
         "name": level.name,
@@ -243,7 +267,7 @@ def write(level):
     for pickup in pickups:
         supplies[pickup["type"]] = supplies.get(pickup["type"], 0) + 1
     print(f"{level.file}: {rows}x{cols}, {kinds}, {len(lights)} lights, "
-          f"{supplies}")
+          f"{len(door_cells)} doors, {supplies}")
 
 
 EAST, SOUTH, WEST, NORTH = 1.57, 0.0, -1.57, 3.14

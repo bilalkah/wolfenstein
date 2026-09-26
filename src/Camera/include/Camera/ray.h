@@ -34,6 +34,8 @@ struct Ray
 	double perpendicular_distance;
 
 	int wall_id;
+	// A door slid part open shows its texture from this far along
+	double texture_shift;
 	// The enemy the ray hits, for the crosshair ray
 	ObjectId object_id;
 

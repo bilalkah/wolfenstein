@@ -19,7 +19,7 @@ Enemy::Enemy(Scene& scene, const EnemyConfig& config,
 	  translation_speed_(config.translation_speed),
 	  width(config.width),
 	  height(config.height),
-	  health_(100),
+	  health_(100 * scene.GetDifficulty().enemy_health),
 	  position_(position),
 	  next_pose(position_.pose),
 	  previous_pose_(position_.pose),
@@ -72,11 +72,14 @@ bool Enemy::IsAlive() const {
 }
 
 void Enemy::PlaySound(SoundEffect effect) {
-	scene_.Sound().PlayEffect(sound_channel_, effect);
+	if (!silent_) {
+		scene_.Sound().PlayEffect(sound_channel_, effect);
+	}
 }
 
 void Enemy::Shoot() {
-	ResolveEnemyShot(scene_.GetPlayer(), weapon_);
+	ResolveEnemyShot(scene_.GetPlayer(), weapon_,
+					 scene_.GetDifficulty().enemy_damage);
 }
 
 void Enemy::Update(double delta_time) {
@@ -152,6 +155,25 @@ void Enemy::SetNextPose(vector2d pose) {
 
 void Enemy::SetAttacked(bool value) {
 	is_attacked_ = value;
+}
+
+void Enemy::RestoreDead() {
+	silent_ = true;
+	health_ = 0.0;
+	TransitionTo(EnemyStateType::Death);
+	// The death animation moves a frame an update; long updates play it out
+	constexpr double kLongStep = 10.0;
+	for (int step = 0; step < 256 && is_alive_; ++step) {
+		state_machine_.Update(kLongStep);
+	}
+	silent_ = false;
+}
+
+bool Enemy::IsCalm() const {
+	if (!is_alive_) {
+		return true;
+	}
+	return health_ > 0.0 && GetStateType() == EnemyStateType::Idle;
 }
 
 void Enemy::SetDeath() {

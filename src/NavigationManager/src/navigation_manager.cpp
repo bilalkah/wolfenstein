@@ -39,12 +39,13 @@ std::size_t NavigationManager::MemoryFor(int map_rows, int map_cols,
 
 void NavigationManager::Build() {
 	// Each map cell splits into kCellsPerSide^2 pathfinding cells, built
-	// straight into the path finder's grid
+	// straight into the path finder's grid. Only walls block a route:
+	// enemies open the doors on it as they reach them.
 	const Map& map = scene_.GetMap();
 	path_finder_.SetGrid(map.GetSizeX() * kCellsPerSide,
 						 map.GetSizeY() * kCellsPerSide, [&](int x, int y) {
-							 return map.IsBlocked(x / kCellsPerSide,
-												  y / kCellsPerSide);
+							 return map.IsWall(x / kCellsPerSide,
+											   y / kCellsPerSide);
 						 });
 
 	// A path visits each free cell at most once, so the scratch path never

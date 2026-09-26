@@ -24,6 +24,8 @@ struct PlayerCommand
 	double look = 0.0;
 	bool fire = false;
 	bool reload = false;
+	// Opens the door in front
+	bool use = false;
 
 	friend bool operator==(const PlayerCommand&,
 						   const PlayerCommand&) = default;

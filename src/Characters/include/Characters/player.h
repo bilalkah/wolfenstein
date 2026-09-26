@@ -50,6 +50,8 @@ class Player : public ICharacter, public IGameObject
 	void EnterScene(Scene& scene) { scene_ = &scene; }
 	// What to do from the next update on; the player reads no input device
 	void SetCommand(const PlayerCommand& command);
+	// Whether the player is trying to open what is in front of them
+	bool IsUsing() const { return command_.use; }
 	void SetPose(const vector2d& pose) override;
 	ObjectType GetObjectType() const override;
 	vector2d GetPose() const override;
@@ -61,9 +63,14 @@ class Player : public ICharacter, public IGameObject
 	int GetTextureId() const override;
 	double GetWidth() const override;
 	double GetHeight() const override;
-	// Takes what a pickup gives; false, leaving it lying, if the player has
-	// no use for it (full health, a full reserve)
-	bool TryPickUp(const PickupEffect& effect);
+	// Takes what a pickup gives, scaled by `supplies` (the difficulty's);
+	// false, leaving it lying, if the player has no use for it (full health,
+	// a full reserve)
+	bool TryPickUp(const PickupEffect& effect, double supplies = 1.0);
+	// Health and rounds as a saved game left them, within their limits
+	void Restore(double health, std::size_t ammo, std::size_t reserve);
+	// Seconds since the player was last hurt (or since it was made)
+	double SecondsSinceHurt() const { return since_hurt_; }
 	bool IsDamaged() const;
 	bool IsAlive() const;
 	const Weapon& GetWeapon() const;
@@ -89,6 +96,7 @@ class Player : public ICharacter, public IGameObject
 	double width_{};
 	double height_{};
 	double health_{};
+	double since_hurt_{};
 	SoundManager& sound_;
 	SoundChannel sound_channel_;
 	Position2D position_;

@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Draws the pickup sprites and synthesises the pickup sound.
+"""Draws the pickup sprites and the door texture, and synthesises the pickup
+sound.
 
-Pixel art in the chunky style of the other sprites, written as PNGs with a
-transparent background, and a short rising chime as a WAV; standard library
-only, so rerunning gives the same files.
+Pixel art in the chunky style of the other sprites, written as PNGs (the
+pickups on a transparent background), and a short rising chime as a WAV;
+standard library only, so rerunning gives the same files.
 
-    ./scripts/make_pickup_assets.py   # writes assets/sprites/pickups/*.png
-                                      # and assets/sounds/pickup.wav
+    ./scripts/make_art.py   # writes assets/sprites/pickups/*.png,
+                            # assets/textures/door.png and
+                            # assets/sounds/pickup.wav
 """
 
 import math
@@ -105,6 +107,31 @@ def ammo_box():
     return canvas
 
 
+def door():
+    """A steel door: riveted plates, a bracing band, a viewing slit."""
+    canvas = Canvas(64, 64)
+    steel, light, dark = (86, 100, 122, 255), (122, 138, 160, 255), \
+        (52, 62, 78, 255)
+    canvas.rect(0, 0, 63, 63, OUTLINE)
+    canvas.box(1, 1, 62, 62, steel, light, dark)
+    for y0, y1 in ((4, 28), (35, 59)):  # two plates
+        canvas.box(4, y0, 59, y1, steel, light, dark)
+    canvas.rect(2, 30, 61, 33, (70, 82, 100, 255))  # band between them
+    canvas.rect(2, 30, 61, 30, light)
+    canvas.rect(2, 33, 61, 33, dark)
+    for x in (7, 18, 29, 40, 51, 56):  # rivets along the band
+        canvas.rect(x, 31, x + 1, 32, (180, 190, 205, 255))
+    for x, y in ((7, 7), (55, 7), (7, 55), (55, 55), (7, 25), (55, 25),
+                 (7, 38), (55, 38)):  # plate corners
+        canvas.rect(x, y, x + 1, y + 1, (180, 190, 205, 255))
+        canvas.rect(x + 1, y + 1, x + 1, y + 1, dark)
+    canvas.rect(22, 12, 41, 16, OUTLINE)  # viewing slit
+    canvas.rect(23, 13, 40, 15, (16, 16, 20, 255))
+    canvas.rect(50, 44, 53, 51, OUTLINE)  # handle
+    canvas.rect(51, 45, 52, 50, (200, 170, 90, 255))
+    return canvas
+
+
 def chime(path):
     """Two quick rising notes with a soft attack and decay."""
     rate = 22050
@@ -134,6 +161,7 @@ def main():
     for name, draw in (("medkit", medkit), ("large_medkit", large_medkit),
                        ("ammo_box", ammo_box)):
         draw().save(ASSETS / "sprites" / "pickups" / f"{name}.png")
+    door().save(ASSETS / "textures" / "door.png")
     chime(ASSETS / "sounds" / "pickup.wav")
 
 

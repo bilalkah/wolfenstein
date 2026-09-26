@@ -1,103 +1,16 @@
 #include "Settings/settings.h"
-#include <SDL2/SDL.h>
+#include "Settings/storage.h"
 #include <algorithm>
 #include <array>
 #include <charconv>
 #include <cstddef>
-#include <cstdlib>
-#include <format>
-#include <fstream>
 #include <sstream>
 #include <string>
 #include <string_view>
 
-#include <fcntl.h>
-#include <unistd.h>
-
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
-
 namespace wolfenstein {
 
 namespace {
-
-#ifdef __EMSCRIPTEN__
-EM_JS_DEPS(settings_storage, "$stringToNewUTF8,$UTF8ToString");
-
-// localStorage can be unavailable (e.g. blocked site data); settings then
-// simply fall back to their defaults. The bodies are JavaScript, so
-// clang-format must not touch them.
-// clang-format off
-EM_JS(char*, ReadStoredSettings, (), {
-	let value = null;
-	try {
-		value = localStorage.getItem('wolfenstein.settings');
-	} catch (e) {
-	}
-	return value === null ? 0 : stringToNewUTF8(value);
-});
-
-EM_JS(void, WriteStoredSettings, (const char* text), {
-	try {
-		localStorage.setItem('wolfenstein.settings', UTF8ToString(text));
-	} catch (e) {
-	}
-});
-// clang-format on
-
-std::string ReadSettingsText() {
-	char* text = ReadStoredSettings();
-	if (text == nullptr) {
-		return {};
-	}
-	std::string result(text);
-	std::free(text);
-	return result;
-}
-
-// `text` is NUL-terminated
-void WriteSettingsText(std::string_view text) {
-	WriteStoredSettings(text.data());
-}
-#else
-// Worked out once, on first use (when the settings load at startup), so
-// saving later needs no string building
-const std::string& SettingsFilePath() {
-	static const std::string path = [] {
-		char* directory = SDL_GetPrefPath("bilalkah", "wolfenstein");
-		if (directory == nullptr) {
-			return std::string();
-		}
-		std::string result = std::string(directory) + "settings.txt";
-		SDL_free(directory);
-		return result;
-	}();
-	return path;
-}
-
-std::string ReadSettingsText() {
-	std::ifstream file(SettingsFilePath());
-	std::stringstream buffer;
-	buffer << file.rdbuf();
-	return buffer.str();
-}
-
-// POSIX write rather than a file stream: saving happens while the game runs
-// (leaving the settings screen), where nothing may allocate
-void WriteSettingsText(std::string_view text) {
-	const std::string& path = SettingsFilePath();
-	if (path.empty()) {
-		return;
-	}
-	const int file = ::open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-	if (file < 0) {
-		return;
-	}
-	(void)::write(file, text.data(), text.size());
-	::close(file);
-}
-#endif
 
 bool ParseDouble(std::string_view text, double& value) {
 	double parsed = 0.0;
@@ -123,7 +36,7 @@ Settings& Settings::Get() {
 
 // Stored as "key=value" lines; unknown keys and malformed values are ignored
 void Settings::Load() {
-	std::istringstream lines(ReadSettingsText());
+	std::istringstream lines(ReadRecord(Record::Settings));
 	std::string line;
 	while (std::getline(lines, line)) {
 		const auto separator = line.find('=');
@@ -153,14 +66,13 @@ void Settings::Load() {
 // Formats into a buffer on the stack: no allocation while the game runs
 void Settings::Save() const {
 	std::array<char, 128> buffer{};
-	const auto written =
-		std::format_to_n(buffer.data(), buffer.size() - 1,
-						 "mouse_sensitivity={}\nvolume={}\nshow_fps={}\n",
-						 mouse_sensitivity, volume, show_fps ? 1 : 0);
-	const auto size =
-		std::min(static_cast<std::size_t>(written.size), buffer.size() - 1);
-	buffer[size] = '\0';
-	WriteSettingsText(std::string_view(buffer.data(), size));
+	RecordWriter writer(buffer);
+	writer.Line("mouse_sensitivity", mouse_sensitivity)
+		.Line("volume", volume)
+		.Line("show_fps", show_fps ? 1 : 0);
+	if (!writer.Text().empty()) {
+		WriteRecord(Record::Settings, writer.Text());
+	}
 }
 
 }  // namespace wolfenstein

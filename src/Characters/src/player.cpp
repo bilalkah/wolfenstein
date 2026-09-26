@@ -6,6 +6,7 @@
 #include "ShootingManager/shooting_manager.h"
 #include "SoundManager/sound_manager.h"
 #include "State/weapon_state.h"
+#include <algorithm>
 #include <memory>
 #include <utility>
 
@@ -28,6 +29,7 @@ Player::Player(CharacterConfig& config, const WeaponConfig& weapon,
 void Player::Update(double delta_time) {
 	previous_position_ = position_;
 	pickup_animation_.Update(delta_time);
+	since_hurt_ += delta_time;
 	if (!is_alive_) {
 		return;
 	}
@@ -67,6 +69,7 @@ void Player::DecreaseHealth(double amount) {
 		is_alive_ = false;
 	}
 	sound_.PlayEffect(sound_channel_, SoundEffect::PlayerPain);
+	since_hurt_ = 0.0;
 	damaged_ = true;
 	damage_animation_.Reset();
 }
@@ -90,13 +93,14 @@ double Player::GetHeight() const {
 	return height_;
 }
 
-bool Player::TryPickUp(const PickupEffect& effect) {
+bool Player::TryPickUp(const PickupEffect& effect, double supplies) {
 	bool taken = false;
 	if (effect.health > 0.0 && health_ < 100.0) {
-		IncreaseHealth(effect.health);
+		IncreaseHealth(effect.health * supplies);
 		taken = true;
 	}
-	if (effect.ammo_boxes > 0 && weapon_.AddAmmoBoxes(effect.ammo_boxes)) {
+	if (effect.ammo_boxes > 0 &&
+		weapon_.AddAmmoBoxes(effect.ammo_boxes, supplies)) {
 		taken = true;
 	}
 	if (taken) {
@@ -105,6 +109,11 @@ bool Player::TryPickUp(const PickupEffect& effect) {
 		pickup_animation_.Reset();
 	}
 	return taken;
+}
+
+void Player::Restore(double health, std::size_t ammo, std::size_t reserve) {
+	health_ = std::clamp(health, 1.0, 100.0);
+	weapon_.SetRounds(ammo, reserve);
 }
 
 bool Player::IsDamaged() const {

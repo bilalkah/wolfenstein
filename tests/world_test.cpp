@@ -5,6 +5,7 @@
 #include "Core/world.h"
 #include "Profiler/profiler.h"
 #include "test_services.h"
+#include <array>
 #include <fstream>
 #include <gtest/gtest.h>
 #include <memory>
@@ -64,6 +65,115 @@ TEST(World, NextLevelPlaysTheCampaignInOrder) {
 	EXPECT_FALSE(world->HasNextLevel());  // the last level ends the campaign
 }
 
+// The difficulty sets how much health enemies start with, in every level
+TEST(World, DifficultyScalesEnemyHealth) {
+	auto world = MakeWorld();
+	for (const auto& [difficulty, health] :
+		 {std::pair{"easy", 75.0}, std::pair{"normal", 100.0},
+		  std::pair{"hard", 130.0}}) {
+		ASSERT_TRUE(world->NewGame("mp5", {}, difficulty));
+		EXPECT_DOUBLE_EQ(
+			world->CurrentLevel().GetEnemies().front()->GetHealth(), health)
+			<< difficulty;
+		ASSERT_TRUE(world->NextLevel());
+		EXPECT_DOUBLE_EQ(
+			world->CurrentLevel().GetEnemies().front()->GetHealth(), health)
+			<< difficulty << ", level 2";
+	}
+	EXPECT_FALSE(world->NewGame("mp5", {}, "impossible"));
+}
+
+// A save made as a level starts goes on from that level's beginning, at
+// its difficulty, and on through the rest of the campaign
+TEST(World, AGameContinuesAtItsSavedLevel) {
+	auto world = MakeWorld();
+	SavedGame saved{.level = 2, .weapon = 1, .difficulty = 2};
+	const auto continued = world->ContinueGame(saved);
+	ASSERT_TRUE(continued) << continued.error();
+	EXPECT_EQ(world->LevelNumber(), 3u);
+	EXPECT_EQ(world->CurrentLevel().GetEnemies().size(),
+			  CampaignLevel(2).enemies.size());
+	EXPECT_EQ(world->Difficulty().name, "hard");
+	EXPECT_DOUBLE_EQ(world->GetPlayer().GetPosition().pose.x,
+					 CampaignLevel(2).player.pose.x);
+	ASSERT_TRUE(world->NextLevel());
+	EXPECT_EQ(world->LevelNumber(), 4u);
+
+	saved.level = 99;
+	EXPECT_FALSE(world->ContinueGame(saved));
+}
+
+// A save made mid-level puts everything back as it was: where the player
+// stood, what it carried, the enemies it killed, the pickups it took, the
+// map it explored and the clock
+TEST(World, AGameComesBackAsItWasLeft) {
+	auto world = MakeWorld();
+	ASSERT_TRUE(world->NewGame("shotgun", {}, "easy"));
+	ASSERT_TRUE(world->NextLevel());
+	Scene& level = world->CurrentLevel();
+	Player& player = world->GetPlayer();
+	player.Restore(61.0, 1, 30);
+	player.SetPosition(Position2D({13.5, 15.5}, 1.25));
+	level.GetEnemies()[1]->DecreaseHealth(1000.0);
+	level.DecreaseAliveEnemies();
+	level.GetPickups()[2]->Take();
+	level.Explore(13, 15);
+	level.Explore(0, 0);
+	level.RestoreSeconds(42.5);
+
+	const auto captured = world->Capture();
+	ASSERT_TRUE(captured);
+	// Through the text it is stored as
+	std::array<char, 1024> text{};
+	const auto size = captured.value_or(SavedGame{}).Format(text);
+	ASSERT_GT(size, 0u);
+	const auto saved = SavedGame::Parse(std::string_view(text.data(), size));
+	ASSERT_TRUE(saved);
+
+	auto later = MakeWorld();
+	const auto continued = later->ContinueGame(saved.value_or(SavedGame{}));
+	ASSERT_TRUE(continued) << continued.error();
+	Scene& again = later->CurrentLevel();
+	const Player& back = later->GetPlayer();
+	EXPECT_EQ(later->LevelNumber(), 2u);
+	EXPECT_EQ(later->Difficulty().name, "easy");
+	EXPECT_EQ(back.GetWeapon().GetWeaponName(), "shotgun");
+	EXPECT_DOUBLE_EQ(back.GetHealth(), 61.0);
+	EXPECT_EQ(back.GetWeapon().GetAmmo(), 1u);
+	EXPECT_EQ(back.GetWeapon().GetReserve(), 30u);
+	EXPECT_DOUBLE_EQ(back.GetPosition().pose.x, 13.5);
+	EXPECT_DOUBLE_EQ(back.GetPosition().pose.y, 15.5);
+	EXPECT_DOUBLE_EQ(back.GetPosition().theta, 1.25);
+	EXPECT_FALSE(again.GetEnemies()[1]->IsAlive());
+	EXPECT_TRUE(again.GetEnemies()[0]->IsAlive());
+	EXPECT_EQ(again.GetNumberOfAliveEnemies(),
+			  CampaignLevel(1).enemies.size() - 1);
+	EXPECT_TRUE(again.GetPickups()[2]->IsTaken());
+	EXPECT_FALSE(again.GetPickups()[0]->IsTaken());
+	EXPECT_TRUE(again.IsExplored(13, 15));
+	EXPECT_TRUE(again.IsExplored(0, 0));
+	EXPECT_FALSE(again.IsExplored(1, 1));
+	EXPECT_DOUBLE_EQ(again.GetStats().seconds, 42.5);
+}
+
+// Saved only when nothing is fighting the player
+TEST(World, ItIsQuietWhenNothingIsFighting) {
+	auto world = MakeWorld();
+	ASSERT_TRUE(world->NewGame("mp5"));
+	for (int tick = 0; tick < 4 * 60; ++tick) {
+		world->CurrentLevel().Update(1.0 / 60.0);
+	}
+	EXPECT_TRUE(world->IsQuiet());
+	world->GetPlayer().DecreaseHealth(5.0);
+	EXPECT_FALSE(world->IsQuiet()) << "just hurt";
+	for (int tick = 0; tick < 4 * 60; ++tick) {
+		world->CurrentLevel().Update(1.0 / 60.0);
+	}
+	EXPECT_TRUE(world->IsQuiet());
+	world->CurrentLevel().GetEnemies()[0]->TransitionTo(EnemyStateType::Walk);
+	EXPECT_FALSE(world->IsQuiet()) << "an enemy coming";
+}
+
 // A new game replaces both the level and the player it borrows
 TEST(World, NewGameStartsOver) {
 	auto world = MakeWorld();
@@ -100,6 +210,20 @@ TEST(World, TheBenchmarkLevelIsNotPartOfTheCampaign) {
 }
 
 #ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+// Games are saved while they run
+TEST(World, CapturingAGameAllocatesNothing) {
+	auto world = MakeWorld();
+	ASSERT_TRUE(world->NewGame("mp5"));
+	std::array<char, 1024> text{};
+	const auto before = AllocationStats::count;
+	for (int i = 0; i < 10; ++i) {
+		const auto saved = world->Capture();
+		ASSERT_TRUE(saved);
+		(void)saved.value_or(SavedGame{}).Format(text);
+	}
+	EXPECT_EQ(AllocationStats::count - before, 0u);
+}
+
 // Everything a game needs is set up when the World is created (levels read,
 // arena sized for the largest level, room for the player and the scene):
 // after that, starting games and changing levels never allocates

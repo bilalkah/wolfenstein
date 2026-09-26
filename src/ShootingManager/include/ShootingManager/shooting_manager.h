@@ -33,8 +33,10 @@ Ray Aim(const Scene& scene, const Position2D& eye);
 void ResolvePlayerShot(Scene& scene, const Weapon& weapon,
 					   const Position2D& eye);
 
-// An enemy fired at the player
-void ResolveEnemyShot(Player& player, const SimpleWeapon& weapon);
+// An enemy fired at the player; the difficulty scales the damage by
+// `damage_scale`
+void ResolveEnemyShot(Player& player, const SimpleWeapon& weapon,
+					  double damage_scale = 1.0);
 
 }  // namespace wolfenstein
 

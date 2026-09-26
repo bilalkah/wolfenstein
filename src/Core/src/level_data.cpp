@@ -107,6 +107,13 @@ const WeaponConfig* GameConfig::FindWeapon(std::string_view name) const {
 	return found == weapons.end() ? nullptr : &*found;
 }
 
+const DifficultyConfig* GameConfig::FindDifficulty(
+	std::string_view name) const {
+	const auto found =
+		std::ranges::find(difficulties, name, &DifficultyConfig::name);
+	return found == difficulties.end() ? nullptr : &*found;
+}
+
 std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 	return Parse(input, [](const json& root) {
 		GameConfig config;
@@ -124,6 +131,19 @@ std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 			throw json::other_error::create(502, "no levels listed", &root);
 		}
 		config.benchmark_level = root.at("benchmark_level").get<std::string>();
+		for (const auto& difficulty : root.at("difficulties")) {
+			config.difficulties.push_back(
+				{.name = difficulty.at("name").get<std::string>(),
+				 .label = difficulty.at("label").get<std::string>(),
+				 .description = difficulty.at("description").get<std::string>(),
+				 .enemy_damage = difficulty.at("enemy_damage").get<double>(),
+				 .enemy_health = difficulty.at("enemy_health").get<double>(),
+				 .supplies = difficulty.at("supplies").get<double>()});
+		}
+		if (config.FindDifficulty("normal") == nullptr) {
+			throw json::other_error::create(
+				504, "no \"normal\" difficulty listed", &root);
+		}
 		config.player = ToStats(root.at("player_config"));
 		const auto& light = root.at("config_dynamic").at("light");
 		config.light = {

@@ -5,6 +5,7 @@
 #include "GameObjects/static_object.h"
 #include "Math/vector.h"
 #include "Profiler/profiler.h"
+#include "Settings/saved_game.h"
 #include "Settings/settings.h"
 #include "SoundManager/sound_manager.h"
 #include "State/enemy_state.h"
@@ -37,6 +38,10 @@ constexpr double kEndOfLevelDelay = 2.0;
 // level built at black, and a fade back in under its title
 constexpr double kClearedPause = 1.0;
 constexpr double kFadeOutSeconds = 0.8;
+// The results screen ignores input this long, so a held key or button does
+// not skip it; scripted runs move on by themselves after a second
+constexpr double kStatsInputDelay = 0.6;
+constexpr double kScriptedStatsSeconds = 1.0;
 constexpr double kFadeInSeconds = 1.0;
 // The level's title stays up a little longer than the fade, then fades too
 constexpr double kBannerSeconds = 2.4;
@@ -75,8 +80,24 @@ void Game::Init() {
 	// Room for the largest level's objects, so switching levels does not
 	// grow the camera's per-object views
 	camera_->ReserveViews(world_->LargestLevelObjects());
-	menu_ = std::make_unique<Menu>(*renderer_context_, world_->Sound(),
-								   world_->Config().weapons);
+	for (const DifficultyConfig& difficulty : world_->Config().difficulties) {
+		difficulty_choices_.push_back(
+			{.label = difficulty.label, .description = difficulty.description});
+	}
+	menu_ =
+		std::make_unique<Menu>(*renderer_context_, world_->Sound(),
+							   world_->Config().weapons, difficulty_choices_);
+	// A saved game made with other content (fewer levels, weapons or
+	// difficulties) cannot be gone on with
+	saved_game_ = SavedGame::Load();
+	const GameConfig& config = world_->Config();
+	if (saved_game_ &&
+		(saved_game_->level >= config.levels.size() ||
+		 saved_game_->weapon >= config.weapons.size() ||
+		 saved_game_->difficulty >= config.difficulties.size())) {
+		saved_game_.reset();
+	}
+	DescribeSavedGame();
 	renderer_3d_ = std::make_unique<Renderer3D>(*renderer_context_);
 	renderer_2d_ = std::make_unique<Renderer2D>(*renderer_context_);
 	minimap_ = std::make_unique<Minimap>(*renderer_context_);
@@ -94,11 +115,36 @@ void Game::ShowLevel() {
 	step_.Reset();
 }
 
-void Game::NewGame(std::string_view weapon_name, std::string_view level) {
-	if (auto started = world_->NewGame(weapon_name, level); !started) {
+void Game::NewGame(std::string_view weapon_name, std::string_view level,
+				   std::size_t difficulty_index) {
+	// Scripted runs play the normal game, so their results stay comparable
+	const auto& difficulties = world_->Config().difficulties;
+	const std::string_view difficulty =
+		IsScripted() || difficulty_index >= difficulties.size()
+			? std::string_view("normal")
+			: std::string_view(difficulties[difficulty_index].name);
+	if (auto started = world_->NewGame(weapon_name, level, difficulty);
+		!started) {
 		std::cerr << "Cannot start a game: " << started.error() << '\n';
 		std::exit(EXIT_FAILURE);
 	}
+	BeginGame();
+}
+
+void Game::ContinueSavedGame() {
+	if (!saved_game_) {
+		return;
+	}
+	if (auto started = world_->ContinueGame(*saved_game_); !started) {
+		std::cerr << "Cannot continue the game: " << started.error() << '\n';
+		std::exit(EXIT_FAILURE);
+	}
+	BeginGame();
+}
+
+// A game has just started: the views follow it, it fades in under its level's
+// title, and a campaign is saved as it starts
+void Game::BeginGame() {
 	render_type_ = RenderType::TEXTURE;
 	renderer_ = renderer_3d_.get();
 	map_expanded_ = false;
@@ -111,6 +157,51 @@ void Game::NewGame(std::string_view weapon_name, std::string_view level) {
 	// measures the plain game from its first frame
 	fade_ = IsBenchmark() ? Fade::None : Fade::In;
 	fade_time_ = 0.0;
+	SaveProgress();
+}
+
+// The campaign as it stands; scripted runs leave the player's saved game
+// alone. Allocates nothing: it happens while the game runs.
+void Game::SaveProgress() {
+	if (IsScripted()) {
+		return;
+	}
+	const auto saved = world_->Capture();
+	if (!saved) {
+		return;
+	}
+	saved->Save();
+	saved_game_ = saved;
+	since_save_ = 0.0;
+	DescribeSavedGame();
+}
+
+// Saves now and then while nothing is fighting the player, so a later
+// session goes on from about where this one stopped, never mid-fight
+void Game::AutoSave(double delta_time) {
+	constexpr double kAutoSaveSeconds = 5.0;
+	since_save_ += delta_time;
+	if (since_save_ >= kAutoSaveSeconds && fade_ == Fade::None &&
+		!renderer_result_ &&
+		world_->CurrentLevel().GetNumberOfAliveEnemies() > 0 &&
+		world_->IsQuiet()) {
+		SaveProgress();
+	}
+}
+
+// Offers the saved game on the main menu, by its level and difficulty
+void Game::DescribeSavedGame() {
+	if (!saved_game_) {
+		menu_->SetSavedGame({});
+		return;
+	}
+	const GameConfig& config = world_->Config();
+	const PreparedLevel* level = world_->FindCampaignLevel(saved_game_->level);
+	const ui::FixedText<96> description(
+		"LEVEL {} · {} · {}", saved_game_->level + 1,
+		level != nullptr ? std::string_view(level->data.name) : "",
+		std::string_view(config.difficulties[saved_game_->difficulty].label));
+	menu_->SetSavedGame(description);
 }
 
 void Game::EnterPlaying() {
@@ -132,13 +223,17 @@ void Game::HandleMenuAction(const MenuAction& action) {
 		case MenuAction::Type::None:
 			break;
 		case MenuAction::Type::StartGame:
-			NewGame(action.weapon);
+			NewGame(action.weapon, {}, action.difficulty);
 			EnterPlaying();
 			break;
 		case MenuAction::Type::Resume:
 			EnterPlaying();
 			break;
 		case MenuAction::Type::QuitToMenu:
+			// Where the player left off, unless in the middle of a fight
+			if (world_->IsQuiet() && fade_ == Fade::None && !renderer_result_) {
+				SaveProgress();
+			}
 			state_ = GameState::Menu;
 			SDL_SetRelativeMouseMode(SDL_FALSE);
 			menu_->Open(MenuScreen::Main);
@@ -148,6 +243,10 @@ void Game::HandleMenuAction(const MenuAction& action) {
 			break;
 		case MenuAction::Type::SettingsChanged:
 			ApplySettings();
+			break;
+		case MenuAction::Type::Continue:
+			ContinueSavedGame();
+			EnterPlaying();
 			break;
 	}
 }
@@ -200,7 +299,7 @@ void Game::SoakStep() {
 		int start;
 		const char* name;
 	};
-	static constexpr std::array<Phase, 11> kPhases = {{
+	static constexpr std::array<Phase, 12> kPhases = {{
 		{0, "play_3d"},
 		{90, "view_2d"},
 		{135, "map"},
@@ -208,6 +307,7 @@ void Game::SoakStep() {
 		{240, "settings"},
 		{300, "play"},
 		{330, "pickup"},
+		{345, "door"},
 		{360, "level_transition"},
 		{700, "death"},
 		{900, "new_game"},
@@ -223,7 +323,8 @@ void Game::SoakStep() {
 		soak_bytes_ = AllocationStats::bytes;
 		HandleMenuAction(
 			{.type = MenuAction::Type::StartGame,
-			 .weapon = world_->Config().weapons.front().weapon_name});
+			 .weapon = world_->Config().weapons.front().weapon_name,
+			 .difficulty = 0});
 	}
 	const int frame = soak_frame_++ - kSoakMenuFrames;
 	if (soak_first_allocation_ < 0 &&
@@ -233,6 +334,7 @@ void Game::SoakStep() {
 	}
 	soak_max_level_ = std::max(soak_max_level_, world_->LevelNumber());
 	soak_saw_result_ = soak_saw_result_ || state_ == GameState::Result;
+	soak_saw_stats_ = soak_saw_stats_ || fade_ == Fade::Stats;
 	for (std::size_t i = 0; i < kPhases.size(); ++i) {
 		if (frame == kPhases[i].start) {
 			soak_phase_ = i;
@@ -265,7 +367,8 @@ void Game::SoakStep() {
 		menu_->HandleEvent(right);
 	}
 	else if (frame == 300) {
-		HandleMenuAction({.type = MenuAction::Type::Resume, .weapon = {}});
+		HandleMenuAction(
+			{.type = MenuAction::Type::Resume, .weapon = {}, .difficulty = 0});
 	}
 	else if (frame == 330) {
 		// Hurt, the player steps onto the level's first pickup: taken next
@@ -281,6 +384,16 @@ void Game::SoakStep() {
 	else if (frame == 340) {
 		const auto pickups = world_->CurrentLevel().GetPickups();
 		soak_took_pickup_ = !pickups.empty() && pickups.front()->IsTaken();
+	}
+	else if (frame == 345) {
+		// A door starts sliding open, drawn as it moves
+		if (!world_->CurrentLevel().GetMap().GetDoors().empty()) {
+			world_->CurrentLevel().OpenDoor(0);
+		}
+	}
+	else if (frame == 355) {
+		const auto doors = world_->CurrentLevel().GetMap().GetDoors();
+		soak_opened_door_ = !doors.empty() && doors.front().openness > 0.0;
 	}
 	else if (frame == 360) {
 		// As if every enemy were shot: the level is cleared and the game
@@ -298,9 +411,9 @@ void Game::SoakStep() {
 		world_->GetPlayer().DecreaseHealth(1000.0);
 	}
 	else if (frame == 900) {
-		HandleMenuAction(
-			{.type = MenuAction::Type::StartGame,
-			 .weapon = world_->Config().weapons.back().weapon_name});
+		HandleMenuAction({.type = MenuAction::Type::StartGame,
+						  .weapon = world_->Config().weapons.back().weapon_name,
+						  .difficulty = 0});
 	}
 	else if (frame >= soak_frames_ - kSoakMenuFrames) {
 		std::cout << "SOAK_RESULT {\"frames\":" << frame
@@ -308,6 +421,9 @@ void Game::SoakStep() {
 				  << ",\"saw_result\":" << (soak_saw_result_ ? "true" : "false")
 				  << ",\"took_pickup\":"
 				  << (soak_took_pickup_ ? "true" : "false")
+				  << ",\"opened_door\":"
+				  << (soak_opened_door_ ? "true" : "false")
+				  << ",\"saw_stats\":" << (soak_saw_stats_ ? "true" : "false")
 				  << ",\"first_allocating_frame\":" << soak_first_allocation_
 				  << ",\"allocations\":"
 				  << AllocationStats::count - soak_allocations_
@@ -468,6 +584,7 @@ PlayerCommand Game::SampleCommand() const {
 		(SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON_LMASK) != 0 ||
 		keys[SDL_SCANCODE_LCTRL] != 0;
 	command.reload = keys[SDL_SCANCODE_R] != 0;
+	command.use = keys[SDL_SCANCODE_E] != 0 || keys[SDL_SCANCODE_SPACE] != 0;
 	return command;
 }
 
@@ -487,7 +604,10 @@ void Game::UpdateAndRender() {
 	// breakpoint, a hidden browser tab) is dropped rather than caught up in
 	// a burst of ticks.
 	for (int ticks = step_.Advance(clock_.DeltaTime()); ticks > 0; --ticks) {
-		world_->CurrentLevel().Update(step_.TickSeconds());
+		// The level waits behind its results screen
+		if (fade_ != Fade::Stats) {
+			world_->CurrentLevel().Update(step_.TickSeconds());
+		}
 	}
 	// Frames fall between ticks: the view is drawn this far from the last
 	// tick towards the next, so motion stays smooth at any frame rate
@@ -497,6 +617,7 @@ void Game::UpdateAndRender() {
 		camera_->Update(world_->GetPlayer().GetRenderPosition(alpha), alpha);
 		camera_->ExploreView();
 	}
+	AutoSave(clock_.DeltaTime());
 	RenderView(alpha);
 	DrawTransition();
 	ScopedTimer timer(ProfileSection::Present);
@@ -508,6 +629,8 @@ void Game::RenderView(double alpha) {
 	if (render_type_ == RenderType::TEXTURE) {
 		minimap_->Render(world_->GetPlayer().GetRenderPosition(alpha),
 						 map_expanded_);
+		const LevelStats stats = world_->CurrentLevel().GetStats();
+		menu_->DrawEnemyCounter(stats.kills, stats.enemies);
 	}
 }
 
@@ -525,6 +648,17 @@ void Game::CheckGameEvent() {
 			event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
 			Pause();
 			return;
+		}
+		// Any of these goes on from a level's results
+		if (fade_ == Fade::Stats && fade_time_ >= kStatsInputDelay &&
+			(event.type == SDL_MOUSEBUTTONDOWN ||
+			 (event.type == SDL_KEYDOWN &&
+			  (event.key.keysym.sym == SDLK_RETURN ||
+			   event.key.keysym.sym == SDLK_KP_ENTER ||
+			   event.key.keysym.sym == SDLK_SPACE ||
+			   event.key.keysym.sym == SDLK_e)))) {
+			ContinueFromStats();
+			continue;
 		}
 		if (event.type == SDL_KEYDOWN) {
 			if (event.key.keysym.sym == SDLK_ESCAPE) {
@@ -573,18 +707,11 @@ void Game::CheckGameOver() {
 			renderer_context_->Textures().GetTextureId("game_over"));
 	}
 	if (world_->CurrentLevel().GetNumberOfAliveEnemies() == 0 &&
-		!renderer_result_ && fade_ != Fade::Out) {
+		!renderer_result_ && fade_ != Fade::Out && fade_ != Fade::Stats) {
 		cleared_time_ += delta_time;
 		if (cleared_time_ >= kClearedPause) {
-			if (world_->HasNextLevel()) {
-				fade_ = Fade::Out;
-				fade_time_ = 0.0;
-			}
-			else {
-				renderer_result_.emplace(
-					*renderer_context_,
-					renderer_context_->Textures().GetTextureId("win"));
-			}
+			fade_ = Fade::Out;
+			fade_time_ = 0.0;
 		}
 	}
 	AdvanceTransition(delta_time);
@@ -607,14 +734,13 @@ void Game::AdvanceTransition(double delta_time) {
 	}
 	fade_time_ += delta_time;
 	if (fade_ == Fade::Out && fade_time_ >= kFadeOutSeconds) {
-		if (auto next = world_->NextLevel(); !next) {
-			std::cerr << "Cannot load the next level: " << next.error() << '\n';
-			std::exit(EXIT_FAILURE);
-		}
-		ShowLevel();
-		cleared_time_ = 0.0;
-		fade_ = Fade::In;
+		cleared_stats_ = world_->CurrentLevel().GetStats();
+		fade_ = Fade::Stats;
 		fade_time_ = 0.0;
+	}
+	else if (fade_ == Fade::Stats && IsScripted() &&
+			 fade_time_ >= kScriptedStatsSeconds) {
+		ContinueFromStats();
 	}
 	else if (fade_ == Fade::In && fade_time_ >= kBannerSeconds) {
 		fade_ = Fade::None;
@@ -624,6 +750,31 @@ void Game::AdvanceTransition(double delta_time) {
 // Draws the fade over the frame: black going up to full while the cleared
 // level fades out, then down again, with the next level's title, as it
 // fades in
+void Game::ContinueFromStats() {
+	cleared_time_ = 0.0;
+	fade_time_ = 0.0;
+	if (!world_->HasNextLevel()) {
+		// The campaign is won: nothing is left to go on with
+		if (!IsScripted()) {
+			SavedGame::Clear();
+			saved_game_.reset();
+			DescribeSavedGame();
+		}
+		fade_ = Fade::None;
+		renderer_result_.emplace(
+			*renderer_context_,
+			renderer_context_->Textures().GetTextureId("win"));
+		return;
+	}
+	if (auto next = world_->NextLevel(); !next) {
+		std::cerr << "Cannot load the next level: " << next.error() << '\n';
+		std::exit(EXIT_FAILURE);
+	}
+	ShowLevel();
+	fade_ = Fade::In;
+	SaveProgress();
+}
+
 void Game::DrawTransition() {
 	if (fade_ == Fade::None) {
 		return;
@@ -631,6 +782,9 @@ void Game::DrawTransition() {
 	double black = 0.0;
 	if (fade_ == Fade::Out) {
 		black = std::min(fade_time_ / kFadeOutSeconds, 1.0);
+	}
+	else if (fade_ == Fade::Stats) {
+		black = 1.0;
 	}
 	else {
 		black = std::max(1.0 - fade_time_ / kFadeInSeconds, 0.0);
@@ -641,6 +795,12 @@ void Game::DrawTransition() {
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0,
 							   static_cast<Uint8>(std::lround(black * 255)));
 		SDL_RenderFillRect(renderer, nullptr);
+	}
+	if (fade_ == Fade::Stats) {
+		const ui::FixedText<64> heading("LEVEL {} · {}", world_->LevelNumber(),
+										world_->LevelName());
+		menu_->DrawLevelStats(heading, cleared_stats_,
+							  !IsScripted() && fade_time_ >= kStatsInputDelay);
 	}
 	if (fade_ == Fade::In) {
 		const double banner = std::clamp(
