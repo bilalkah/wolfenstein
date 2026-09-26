@@ -1,8 +1,13 @@
 // Secrets: a wall that slides back when the player uses it, opening a hidden
 // room behind
 
+#include "Camera/camera.h"
 #include "Camera/raycaster.h"
 #include "Core/scene.h"
+#include "Graphics/renderer_3d.h"
+#include "Graphics/renderer_interface.h"
+#include "Profiler/profiler.h"
+#include "Settings/settings.h"
 #include "test_map.h"
 #include "test_services.h"
 #include <gtest/gtest.h>
@@ -103,6 +108,32 @@ TEST_F(SecretSceneTest, UsingItPushesItAndCountsIt) {
 	EXPECT_FALSE(scene_.GetMap().GetPushWalls()[0].moving);
 	EXPECT_TRUE(scene_.GetMap().IsWall(2, 5));
 }
+
+#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+// Face to face with a secret wall, every column draws the wall and many its
+// mark too: the draw queue has room for both
+TEST_F(SecretSceneTest, DrawingItsMarkAllocatesNothing) {
+	Camera2D camera(Camera2DConfig(1200, std::numbers::pi / 3, 15.0));
+	RendererContext context("secret test",
+							RenderConfig(1200, 900, 0, 32, 0, 15.0, 1.0, false),
+							camera);
+	camera.SetScene(scene_);
+	Renderer3D renderer(context);
+	renderer.ReserveObjects(scene_.GetObjects().size());
+	renderer.SetScene(scene_);
+	// The game reads its settings at startup, before any frame
+	(void)Settings::Get();
+	// Counted from the first frame: a queue too small grows only once, the
+	// first time a secret wall comes into view
+	const Position2D eye({2.5, 2.6}, kFacingDown);	// 0.4 from its face
+	const auto before = AllocationStats::count;
+	for (int frame = 0; frame < 10; ++frame) {
+		camera.Update(eye, 1.0);
+		renderer.RenderScene(kTick);
+	}
+	EXPECT_EQ(AllocationStats::count - before, 0u);
+}
+#endif
 
 }  // namespace
 }  // namespace wolfenstein

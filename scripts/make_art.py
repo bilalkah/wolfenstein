@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Draws the pickup sprites (health, ammunition, keys), the door textures and
-the exit switch, and synthesises the pickup sound.
+"""Draws the pickup sprites (health, ammunition, keys), the door textures, the
+exit switch and the mark on secret walls, and synthesises the pickup sound.
 
 Pixel art in the chunky style of the other sprites, written as PNGs (the
 pickups on a transparent background), and a short rising chime as a WAV;
 standard library only, so rerunning gives the same files.
 
     ./scripts/make_art.py   # writes assets/sprites/pickups/*.png,
-                            # assets/textures/door*.png, exit.png and
-                            # assets/sounds/pickup.wav
+                            # assets/textures/door*.png, exit.png,
+                            # secret_mark.png and assets/sounds/pickup.wav
 """
 
 import math
@@ -209,6 +209,35 @@ def exit_switch():
     return canvas
 
 
+def secret_mark():
+    """What gives a secret wall away, to a careful eye: a jagged crack with
+    a couple of branches and chipped spots, over a faintly worn patch, drawn
+    over the wall's own texture."""
+    canvas = Canvas(48, 32)
+    crack = (18, 14, 12, 160)
+    chip = (235, 228, 214, 70)
+    wear = (255, 248, 230, 22)
+    for x0, y0, x1, y1 in ((14, 9, 33, 22), (10, 12, 37, 19), (18, 6, 29, 25)):
+        canvas.rect(x0, y0, x1, y1, wear)  # an uneven worn patch
+    # The crack: runs of pixels stepping down and across
+    path = [(6, 4), (9, 6), (11, 7), (13, 10), (14, 12), (17, 13), (19, 15),
+            (20, 18), (23, 19), (25, 21), (26, 24), (29, 25), (31, 27),
+            (34, 28), (36, 30)]
+    for (x0, y0), (x1, y1) in zip(path, path[1:]):
+        for t in range(max(abs(x1 - x0), abs(y1 - y0)) + 1):
+            n = max(abs(x1 - x0), abs(y1 - y0)) or 1
+            x = round(x0 + (x1 - x0) * t / n)
+            y = round(y0 + (y1 - y0) * t / n)
+            canvas.rect(x, y, x, y, crack)
+    for x, y in ((18, 12), (19, 11), (21, 10), (22, 9)):  # a branch up
+        canvas.rect(x, y, x, y, crack)
+    for x, y in ((26, 22), (28, 21), (30, 21), (32, 20)):  # a branch across
+        canvas.rect(x, y, x, y, crack)
+    for x, y in ((15, 13), (24, 20), (33, 29)):  # chipped edges
+        canvas.rect(x, y, x + 1, y, chip)
+    return canvas
+
+
 def chime(path):
     """Two quick rising notes with a soft attack and decay."""
     rate = 22050
@@ -244,6 +273,7 @@ def main():
     door(GOLD).save(ASSETS / "textures" / "door_gold.png")
     door(SILVER).save(ASSETS / "textures" / "door_silver.png")
     exit_switch().save(ASSETS / "textures" / "exit.png")
+    secret_mark().save(ASSETS / "textures" / "secret_mark.png")
     chime(ASSETS / "sounds" / "pickup.wav")
 
 
