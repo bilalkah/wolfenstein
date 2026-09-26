@@ -24,6 +24,7 @@
 #include "Graphics/renderer_menu.h"
 #include "Graphics/renderer_result.h"
 #include "Math/vector.h"
+#include "Settings/saved_game.h"
 #include "TextureManager/texture_manager.h"
 #include "TimeManager/time_manager.h"
 #include <array>
@@ -32,6 +33,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace wolfenstein {
 
@@ -92,7 +94,17 @@ class Game
 	void Init();
 	// Fresh player and level 1, keeping the window, camera and menu
 	// A fresh game with the named weapon, in the campaign (or in `level`)
-	void NewGame(std::string_view weapon_name, std::string_view level = {});
+	// `difficulty`: index into the configuration's difficulties; scripted
+	// runs always play the normal one
+	void NewGame(std::string_view weapon_name, std::string_view level = {},
+				 std::size_t difficulty = 0);
+	// Goes on with the saved game, at the level it was saved at
+	void ContinueSavedGame();
+	// What every game does as it starts, new or continued
+	void BeginGame();
+	void SaveProgress();
+	void AutoSave(double delta_time);
+	void DescribeSavedGame();
 	// Points every view at the world's current level
 	void ShowLevel();
 	void EnterPlaying();
@@ -113,6 +125,9 @@ class Game
 	void CheckGameEvent();
 	void CheckGameOver();
 	void AdvanceTransition(double delta_time);
+	// From the results screen to the next level, or to the win screen after
+	// the last
+	void ContinueFromStats();
 	void DrawTransition();
 	// The level as the player sees it (3D, or the debug view) with the map
 	// over it
@@ -133,6 +148,11 @@ class Game
 	std::unique_ptr<Renderer3D> renderer_3d_;
 	std::unique_ptr<Renderer2D> renderer_2d_;
 	// The explored part of the level, in a corner or large (M)
+	// The campaign the player can go on with, if any
+	std::optional<SavedGame> saved_game_;
+	double since_save_ = 0.0;
+	// The difficulties a new game offers
+	std::vector<DifficultyChoice> difficulty_choices_;
 	std::unique_ptr<Minimap> minimap_;
 	bool map_expanded_ = false;
 	bool debug_view_ = false;
@@ -150,10 +170,14 @@ class Game
 	RenderType render_type_ = RenderType::TEXTURE;
 	double result_delay_time_ = 0.0;
 	// Between levels: fading out of the cleared one, or into the next
-	enum class Fade : std::uint8_t { None, Out, In };
+	// Out: to black after a cleared level; Stats: its results over black,
+	// until the player goes on; In: the next level from black
+	enum class Fade : std::uint8_t { None, Out, Stats, In };
 	Fade fade_ = Fade::None;
 	double fade_time_ = 0.0;
 	double cleared_time_ = 0.0;	 // since the level's last enemy died
+	// The cleared level's results, taken as it fades out
+	LevelStats cleared_stats_;
 	// Web: set once the browser grants pointer lock, so losing it pauses
 	bool had_pointer_lock_ = false;
 	int benchmark_frames_ = 0;
@@ -165,8 +189,10 @@ class Game
 	std::size_t soak_max_level_ = 0;
 	bool soak_saw_result_ = false;
 	bool soak_took_pickup_ = false;
+	bool soak_opened_door_ = false;
+	bool soak_saw_stats_ = false;
 	int soak_first_allocation_ = -1;
-	std::array<std::uint64_t, 11> soak_phase_start_{};
+	std::array<std::uint64_t, 12> soak_phase_start_{};
 };
 
 }  // namespace wolfenstein

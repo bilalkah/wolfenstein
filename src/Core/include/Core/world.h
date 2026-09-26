@@ -9,6 +9,7 @@
 #include "Characters/player.h"
 #include "Core/scene.h"
 #include "Core/scene_loader.h"
+#include "Settings/saved_game.h"
 #include "SoundManager/sound_manager.h"
 #include <cassert>
 #include <cstddef>
@@ -55,14 +56,35 @@ class World
 	~World() = default;
 
 	// A fresh player carrying the named weapon, in the campaign's first level
-	// (or in `level`, e.g. the benchmark's). The previous level and player
-	// are gone afterwards: views borrowing them must be pointed at the new
-	// level before they draw again.
-	std::expected<void, std::string> NewGame(std::string_view weapon_name,
-											 std::string_view level = {});
+	// (or in `level`, e.g. the benchmark's), at the named difficulty. The
+	// previous level and player are gone afterwards: views borrowing them
+	// must be pointed at the new level before they draw again.
+	std::expected<void, std::string> NewGame(
+		std::string_view weapon_name, std::string_view level = {},
+		std::string_view difficulty = "normal");
+	// Goes on with a saved game: its level, with the player where it stood
+	// and carrying what it carried, and the level as it was left (enemies
+	// killed, pickups taken, the map explored, the clock)
+	std::expected<void, std::string> ContinueGame(const SavedGame& saved);
+	// The campaign as it stands, to save; nullopt outside the campaign.
+	// Allocates nothing: games are saved while they run.
+	std::optional<SavedGame> Capture() const;
+	// Whether it is a moment to save: nothing is fighting the player, and
+	// nothing has hurt it for a little while
+	bool IsQuiet() const;
 	// Replaces the finished level with the campaign's next one (same caveat)
 	std::expected<void, std::string> NextLevel();
 	bool HasNextLevel() const;
+	// The campaign's level `index` (from 0), or nullptr
+	const PreparedLevel* FindCampaignLevel(std::size_t index) const {
+		const auto& levels = loader_.Config().levels;
+		return index < levels.size() ? loader_.FindLevel(levels[index])
+									 : nullptr;
+	}
+	// Playing the campaign, not a level on its own (the benchmark's)
+	bool InCampaign() const { return in_campaign_; }
+	// The difficulty of the game being played
+	const DifficultyConfig& Difficulty() const { return *difficulty_; }
 	// 1 for the campaign's first level
 	std::size_t LevelNumber() const { return level_index_ + 1; }
 	// The current level's name from its file; empty if it has none
@@ -94,6 +116,7 @@ class World
 	memory::MonotonicArena level_memory_;
 	std::optional<Player> player_;
 	std::optional<Scene> scene_;
+	const DifficultyConfig* difficulty_ = nullptr;
 	const PreparedLevel* level_ = nullptr;
 	std::size_t level_index_ = 0;
 	bool in_campaign_ = true;

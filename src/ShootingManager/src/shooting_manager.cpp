@@ -105,8 +105,10 @@ void ResolvePlayerShot(Scene& scene, const Weapon& weapon,
 	}
 }
 
-void ResolveEnemyShot(Player& player, const SimpleWeapon& weapon) {
-	player.DecreaseHealth(LinearSlope(weapon.GetAttackDamage(),
+void ResolveEnemyShot(Player& player, const SimpleWeapon& weapon,
+					  double damage_scale) {
+	player.DecreaseHealth(damage_scale *
+						  LinearSlope(weapon.GetAttackDamage(),
 									  weapon.GetAttackRange(),
 									  weapon.GetCrosshair().distance));
 }

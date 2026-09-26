@@ -51,6 +51,7 @@ target_link_libraries(
     character
     weapon
     sound_manager
+    settings
 )
 
 add_library(

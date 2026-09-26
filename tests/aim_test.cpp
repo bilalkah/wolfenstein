@@ -65,6 +65,21 @@ TEST_F(AimTest, AFallingEnemyIsKilledOnce) {
 	EXPECT_FALSE(Aim(scene_, eye).is_hit);
 }
 
+// An enemy's shot hurts in proportion to the difficulty's damage
+TEST(EnemyShot, TheDifficultyScalesItsDamage) {
+	CharacterConfig config(Position2D({1.5, 1.5}, 0.0), 2.0, 0.4, 0.4, 1.0);
+	Player normal(config, testing::Weapon("mp5"), testing::TestTextures(),
+				  testing::TestSound());
+	Player hard(config, testing::Weapon("mp5"), testing::TestTextures(),
+				testing::TestSound());
+	const SimpleWeapon weapon(testing::Enemy("soldier").weapon);
+	ResolveEnemyShot(normal, weapon);
+	ResolveEnemyShot(hard, weapon, 2.0);
+	EXPECT_DOUBLE_EQ(100.0 - hard.GetHealth(),
+					 2 * (100.0 - normal.GetHealth()));
+	EXPECT_LT(normal.GetHealth(), 100.0);
+}
+
 class AimThroughWallTest : public AimTest
 {
   protected:

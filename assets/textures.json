@@ -10,7 +10,8 @@
     "candlebra": "sprites/static_sprites/candlebra.png",
     "medkit": "sprites/pickups/medkit.png",
     "large_medkit": "sprites/pickups/large_medkit.png",
-    "ammo_box": "sprites/pickups/ammo_box.png"
+    "ammo_box": "sprites/pickups/ammo_box.png",
+    "door": "textures/door.png"
   },
   "walls": [
     "textures/1.png",

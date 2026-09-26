@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <format>
 #include <functional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>

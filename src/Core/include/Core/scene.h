@@ -32,6 +32,26 @@
 
 namespace wolfenstein {
 
+// How hard a game is: multipliers on the damage enemies deal, the health
+// they start with and what pickups give
+struct Difficulty
+{
+	double enemy_damage = 1.0;
+	double enemy_health = 1.0;
+	double supplies = 1.0;
+};
+
+// How the player did in a level: shown on the HUD and when it is cleared
+struct LevelStats
+{
+	std::size_t kills = 0;
+	std::size_t enemies = 0;
+	std::size_t pickups_taken = 0;
+	std::size_t pickups = 0;
+	int explored_percent = 0;  // of the cells the player can stand in
+	double seconds = 0.0;	   // until the last enemy fell
+};
+
 // How many level objects a scene must hold; known when the level is loaded
 struct SceneCapacity
 {
@@ -76,12 +96,19 @@ class Scene
 	std::expected<memory::Handle<Pickup>, memory::PoolError> AddPickup(
 		const vector2d& pose, int texture_id, double width, double height,
 		const PickupEffect& effect);
+	// Applies to enemies added after it and to every pickup taken
+	void SetDifficulty(const Difficulty& difficulty) {
+		difficulty_ = difficulty;
+	}
+	const Difficulty& GetDifficulty() const { return difficulty_; }
 	// Borrows the player for the scene's life and lets it act in this scene
 	void SetPlayer(Player& player);
 	// Builds what depends on the finished level (the navigation grid): call
 	// once every object is in place
 	void FinishLoading();
 	void DecreaseAliveEnemies();
+	// Starts opening the door with this index in the map (if not open)
+	void OpenDoor(std::size_t door);
 
 	void Update(double delta_time);
 
@@ -106,11 +133,34 @@ class Scene
 	bool IsExplored(int x, int y) const;
 
 	size_t GetNumberOfAliveEnemies() const;
+	LevelStats GetStats() const;
+	// Whether no living enemy is engaged with the player
+	bool IsQuiet() const;
+	// Putting back what a saved game recorded: the level's enemy `index`
+	// (in level file order) lying dead, and the level's clock
+	void RestoreKilled(std::size_t index);
+	void RestoreSeconds(double seconds) { elapsed_ = seconds; }
 	const memory::MonotonicArena& LevelMemory() const { return arena_; }
+
+	// How long a door takes to open or close, and stays open
+	static constexpr double kDoorMoveSeconds = 0.5;
+	static constexpr double kDoorOpenSeconds = 4.0;
 
   private:
 	// The player takes every pickup it stands on and has a use for
 	void CollectPickups();
+	// Opens doors the player uses or an enemy reaches, and moves every door
+	// on: open doors close again once their doorway is clear
+	void UpdateDoors(double delta_time);
+	// Whether a living character stands in or at the door's cell
+	bool IsDoorwayOccupied(const Door& door) const;
+
+	struct DoorMotion
+	{
+		enum class Phase : std::uint8_t { Closed, Opening, Open, Closing };
+		Phase phase = Phase::Closed;
+		double open_time = 0.0;	 // how long it has stood open
+	};
 
 	const TextureManager& textures_;
 	SoundManager& sound_;
@@ -126,6 +176,14 @@ class Scene
 	std::pmr::vector<Pickup*> pickup_list_;
 	// One flag per map cell, row by row
 	std::pmr::vector<std::uint8_t> explored_;
+	// Cells a character can stand in (not walls), and how many are explored
+	std::size_t open_cells_ = 0;
+	std::size_t explored_open_cells_ = 0;
+	// Simulated time in the level, until it is cleared
+	double elapsed_ = 0.0;
+	Difficulty difficulty_;
+	// One per door of the map, in its order
+	std::pmr::vector<DoorMotion> doors_;
 	Player* player_ = nullptr;
 	NavigationManager navigation_{*this, &arena_};
 	size_t number_of_alive_enemies{};

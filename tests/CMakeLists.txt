@@ -29,6 +29,9 @@ add_executable(unit_tests
     aim_test.cpp
     pickup_test.cpp
     exploration_test.cpp
+    door_test.cpp
+    level_stats_test.cpp
+    saved_game_test.cpp
     texture_manifest_test.cpp
 )
 target_link_libraries(unit_tests PRIVATE
@@ -52,6 +55,7 @@ target_link_libraries(unit_tests PRIVATE
     time_manager
     shooting_manager
     texture_manager
+    settings
 )
 # Counting heap allocations replaces global operator new, which clashes with
 # the sanitizers' allocator, so allocation tests run in non-sanitizer builds
@@ -60,5 +64,12 @@ if(NOT WOLFENSTEIN_SANITIZERS)
     target_compile_definitions(unit_tests PRIVATE WOLFENSTEIN_COUNTS_ALLOCATIONS)
 endif()
 
-# A test that hangs (e.g. an unbounded loop) fails instead of stalling CI
-gtest_discover_tests(unit_tests PROPERTIES TIMEOUT 10)
+# A test that hangs (e.g. an unbounded loop) fails instead of stalling CI.
+# Under the sanitizers, leaks inside the graphics driver SDL loads are not
+# the game's (see lsan.supp).
+if(WOLFENSTEIN_SANITIZERS)
+    gtest_discover_tests(unit_tests PROPERTIES TIMEOUT 10 ENVIRONMENT
+        "LSAN_OPTIONS=suppressions=${CMAKE_CURRENT_SOURCE_DIR}/lsan.supp")
+else()
+    gtest_discover_tests(unit_tests PROPERTIES TIMEOUT 10)
+endif()
