@@ -62,6 +62,11 @@ class Enemy : public ICharacter, public IGameObject
 	void SetNextPose(vector2d pose);
 	void SetAttacked(bool value);
 	void SetDeath();
+	// Lying dead as a saved game left it: straight to the end of its death,
+	// in silence
+	void RestoreDead();
+	// Not engaged with the player: standing idle, or dead and down
+	bool IsCalm() const;
 	void SetPose(const vector2d& pose) override;
 	void SetPosition(const Position2D position) override;
 	void IncreaseHealth(double amount) override;
@@ -88,6 +93,7 @@ class Enemy : public ICharacter, public IGameObject
 	Scene& scene_;
 	bool is_attacked_{};
 	bool is_alive_{};
+	bool silent_{};	 // while being restored
 	double translation_speed_{};
 	double width{};
 	double height{};

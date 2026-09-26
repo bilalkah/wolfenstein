@@ -69,6 +69,8 @@ class Player : public ICharacter, public IGameObject
 	bool TryPickUp(const PickupEffect& effect, double supplies = 1.0);
 	// Health and rounds as a saved game left them, within their limits
 	void Restore(double health, std::size_t ammo, std::size_t reserve);
+	// Seconds since the player was last hurt (or since it was made)
+	double SecondsSinceHurt() const { return since_hurt_; }
 	bool IsDamaged() const;
 	bool IsAlive() const;
 	const Weapon& GetWeapon() const;
@@ -94,6 +96,7 @@ class Player : public ICharacter, public IGameObject
 	double width_{};
 	double height_{};
 	double health_{};
+	double since_hurt_{};
 	SoundManager& sound_;
 	SoundChannel sound_channel_;
 	Position2D position_;

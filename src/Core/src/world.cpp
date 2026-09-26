@@ -56,22 +56,124 @@ std::expected<void, std::string> World::NewGame(std::string_view weapon_name,
 						  : level);
 }
 
-std::expected<void, std::string> World::ContinueGame(
-	std::string_view weapon_name, std::string_view difficulty,
-	std::size_t level_index) {
-	const auto& levels = loader_.Config().levels;
-	if (level_index >= levels.size()) {
-		return std::unexpected("the campaign has no level " +
-							   std::to_string(level_index + 1));
+std::expected<void, std::string> World::ContinueGame(const SavedGame& saved) {
+	const GameConfig& config = loader_.Config();
+	if (saved.level >= config.levels.size() ||
+		saved.weapon >= config.weapons.size() ||
+		saved.difficulty >= config.difficulties.size()) {
+		return std::unexpected(
+			std::string("the saved game does not fit this game's content"));
 	}
-	if (auto started = NewGame(weapon_name, {}, difficulty); !started) {
+	if (auto started = NewGame(config.weapons[saved.weapon].weapon_name, {},
+							   config.difficulties[saved.difficulty].name);
+		!started) {
 		return started;
 	}
-	if (level_index == 0) {
-		return {};
+	if (saved.level > 0) {
+		level_index_ = saved.level;
+		if (auto started = StartLevel(config.levels[saved.level]); !started) {
+			return started;
+		}
 	}
-	level_index_ = level_index;
-	return StartLevel(levels[level_index]);
+	Player& player = GetPlayer();
+	player.Restore(saved.health, saved.ammo, saved.reserve);
+	if (!saved.has_position) {
+		return {};	// saved as the level started
+	}
+	player.SetPosition(Position2D({saved.x, saved.y}, saved.theta));
+	Scene& scene = CurrentLevel();
+	const auto enemies = scene.GetEnemies();
+	for (std::size_t i = 0; i < enemies.size() && i < 64; ++i) {
+		if ((saved.killed >> i & 1U) != 0) {
+			scene.RestoreKilled(i);
+		}
+	}
+	const auto pickups = scene.GetPickups();
+	for (std::size_t i = 0; i < pickups.size() && i < 64; ++i) {
+		if ((saved.taken >> i & 1U) != 0) {
+			pickups[i]->Take();
+		}
+	}
+	const int size_x = scene.GetMap().GetSizeX();
+	const int size_y = scene.GetMap().GetSizeY();
+	if (saved.explored_cells ==
+		static_cast<std::size_t>(size_x) * static_cast<std::size_t>(size_y)) {
+		for (std::size_t cell = 0; cell < saved.explored_cells; ++cell) {
+			if ((saved.explored[cell / 8] >> (cell % 8) & 1U) != 0) {
+				scene.Explore(static_cast<int>(cell) / size_y,
+							  static_cast<int>(cell) % size_y);
+			}
+		}
+	}
+	scene.RestoreSeconds(saved.seconds);
+	return {};
+}
+
+std::optional<SavedGame> World::Capture() const {
+	if (!in_campaign_ || !scene_ || !player_) {
+		return std::nullopt;
+	}
+	const GameConfig& config = loader_.Config();
+	const Weapon& weapon = player_->GetWeapon();
+	const Position2D& position = player_->GetPosition();
+	const Scene& scene = *scene_;
+	SavedGame saved{.level = level_index_,
+					.health = player_->GetHealth(),
+					.ammo = weapon.GetAmmo(),
+					.reserve = weapon.GetReserve(),
+					.has_position = true,
+					.x = position.pose.x,
+					.y = position.pose.y,
+					.theta = position.theta,
+					.seconds = scene.GetStats().seconds};
+	for (std::size_t i = 0; i < config.weapons.size(); ++i) {
+		if (config.weapons[i].weapon_name == weapon.GetWeaponName()) {
+			saved.weapon = i;
+		}
+	}
+	for (std::size_t i = 0; i < config.difficulties.size(); ++i) {
+		if (&config.difficulties[i] == difficulty_) {
+			saved.difficulty = i;
+		}
+	}
+	const auto enemies = scene.GetEnemies();
+	for (std::size_t i = 0; i < enemies.size() && i < 64; ++i) {
+		// Falling counts as killed: its killing shot has been counted
+		if (enemies[i]->GetHealth() <= 0.0) {
+			saved.killed |= std::uint64_t{1} << i;
+		}
+	}
+	const auto pickups = scene.GetPickups();
+	for (std::size_t i = 0; i < pickups.size() && i < 64; ++i) {
+		if (pickups[i]->IsTaken()) {
+			saved.taken |= std::uint64_t{1} << i;
+		}
+	}
+	const int size_x = scene.GetMap().GetSizeX();
+	const int size_y = scene.GetMap().GetSizeY();
+	const auto cells =
+		static_cast<std::size_t>(size_x) * static_cast<std::size_t>(size_y);
+	if (cells <= SavedGame::kMaxExploredCells) {
+		saved.explored_cells = cells;
+		for (int x = 0; x < size_x; ++x) {
+			for (int y = 0; y < size_y; ++y) {
+				if (scene.IsExplored(x, y)) {
+					const auto cell = (static_cast<std::size_t>(x) *
+									   static_cast<std::size_t>(size_y)) +
+									  static_cast<std::size_t>(y);
+					saved.explored[cell / 8] |=
+						static_cast<std::uint8_t>(1U << (cell % 8));
+				}
+			}
+		}
+	}
+	return saved;
+}
+
+bool World::IsQuiet() const {
+	constexpr double kCalmSeconds = 3.0;
+	return scene_ && player_ && player_->IsAlive() &&
+		   player_->SecondsSinceHurt() >= kCalmSeconds && scene_->IsQuiet();
 }
 
 std::expected<void, std::string> World::NextLevel() {

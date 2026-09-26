@@ -29,6 +29,7 @@ Player::Player(CharacterConfig& config, const WeaponConfig& weapon,
 void Player::Update(double delta_time) {
 	previous_position_ = position_;
 	pickup_animation_.Update(delta_time);
+	since_hurt_ += delta_time;
 	if (!is_alive_) {
 		return;
 	}
@@ -68,6 +69,7 @@ void Player::DecreaseHealth(double amount) {
 		is_alive_ = false;
 	}
 	sound_.PlayEffect(sound_channel_, SoundEffect::PlayerPain);
+	since_hurt_ = 0.0;
 	damaged_ = true;
 	damage_animation_.Reset();
 }
