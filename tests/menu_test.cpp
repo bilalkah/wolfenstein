@@ -4,6 +4,7 @@
 // an offscreen window with the game's fonts and textures.
 
 #include "Camera/camera.h"
+#include "Core/scene.h"
 #include "Graphics/renderer_interface.h"
 #include "Graphics/renderer_menu.h"
 #include "Profiler/profiler.h"
@@ -51,6 +52,20 @@ TEST(Menu, NoFrameAllocates) {
 		(void)menu.Update(kFrame);
 	}
 	EXPECT_EQ(AllocationStats::count - sliding, 0u) << "moving a slider";
+
+	// Over the game: the enemy counter, and a cleared level's results
+	const LevelStats stats{.kills = 7,
+						   .enemies = 10,
+						   .pickups_taken = 3,
+						   .pickups = 8,
+						   .explored_percent = 64,
+						   .seconds = 134.5};
+	const auto hud = AllocationStats::count;
+	for (int i = 0; i < 60; ++i) {
+		menu.DrawEnemyCounter(static_cast<std::size_t>(i % 11), 10);
+		menu.DrawLevelStats("LEVEL 1 · CHECKPOINT", stats, i % 2 == 0);
+	}
+	EXPECT_EQ(AllocationStats::count - hud, 0u) << "the counter and results";
 }
 #endif
 

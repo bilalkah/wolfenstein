@@ -113,6 +113,9 @@ class Game
 	void CheckGameEvent();
 	void CheckGameOver();
 	void AdvanceTransition(double delta_time);
+	// From the results screen to the next level, or to the win screen after
+	// the last
+	void ContinueFromStats();
 	void DrawTransition();
 	// The level as the player sees it (3D, or the debug view) with the map
 	// over it
@@ -150,10 +153,14 @@ class Game
 	RenderType render_type_ = RenderType::TEXTURE;
 	double result_delay_time_ = 0.0;
 	// Between levels: fading out of the cleared one, or into the next
-	enum class Fade : std::uint8_t { None, Out, In };
+	// Out: to black after a cleared level; Stats: its results over black,
+	// until the player goes on; In: the next level from black
+	enum class Fade : std::uint8_t { None, Out, Stats, In };
 	Fade fade_ = Fade::None;
 	double fade_time_ = 0.0;
 	double cleared_time_ = 0.0;	 // since the level's last enemy died
+	// The cleared level's results, taken as it fades out
+	LevelStats cleared_stats_;
 	// Web: set once the browser grants pointer lock, so losing it pauses
 	bool had_pointer_lock_ = false;
 	int benchmark_frames_ = 0;
@@ -166,6 +173,7 @@ class Game
 	bool soak_saw_result_ = false;
 	bool soak_took_pickup_ = false;
 	bool soak_opened_door_ = false;
+	bool soak_saw_stats_ = false;
 	int soak_first_allocation_ = -1;
 	std::array<std::uint64_t, 12> soak_phase_start_{};
 };

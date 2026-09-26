@@ -1,4 +1,5 @@
 #include "Graphics/renderer_menu.h"
+#include "Core/scene.h"
 #include "Settings/settings.h"
 #include "State/weapon_state.h"
 #include "TextureManager/texture_manager.h"
@@ -57,6 +58,56 @@ void Menu::DrawLevelBanner(std::string_view title, std::string_view name,
 		accent.a = alpha;
 		ui_->Text(name, centre_x, top + 118, ui::FontStyle::Heading, accent,
 				  ui::Align::Center);
+	}
+}
+
+void Menu::DrawEnemyCounter(std::size_t kills, std::size_t enemies) {
+	const auto& config = context_->GetConfig();
+	// Under the corner map, which is 30% of the screen's shorter side
+	const int top = std::min(config.width, config.height) * 3 / 10 + 22;
+	const int right = config.width - 14;
+	const ui::FixedText<32> count("{} / {}", kills, enemies);
+	ui_->Text(count, right, top, ui::FontStyle::Heading, ui::color::kText,
+			  ui::Align::Right);
+	ui_->Text("ENEMIES", right, top + 44, ui::FontStyle::Small,
+			  ui::color::kMuted, ui::Align::Right);
+}
+
+void Menu::DrawLevelStats(std::string_view heading, const LevelStats& stats,
+						  bool prompt) {
+	const auto& config = context_->GetConfig();
+	const int centre_x = config.width / 2;
+	int y = config.height / 2 - 260;
+	ui_->Text("CLEARED", centre_x, y, ui::FontStyle::Title, ui::color::kText,
+			  ui::Align::Center);
+	ui_->Text(heading, centre_x, y + 118, ui::FontStyle::Heading,
+			  ui::color::kAccentBright, ui::Align::Center);
+
+	const SDL_Rect panel{centre_x - 300, y + 190, 600, 280};
+	ui_->FillRect(panel, ui::color::kPanel);
+	ui_->DrawRect(panel, ui::color::kBorder);
+	const auto minutes = static_cast<int>(stats.seconds) / 60;
+	const auto seconds = static_cast<int>(stats.seconds) % 60;
+	const ui::FixedText<32> enemies("{} / {}", stats.kills, stats.enemies);
+	const ui::FixedText<32> pickups("{} / {}", stats.pickups_taken,
+									stats.pickups);
+	const ui::FixedText<16> explored("{}%", stats.explored_percent);
+	const ui::FixedText<16> time("{}:{:02}", minutes, seconds);
+	y = panel.y + 34;
+	for (const auto& [label, value] :
+		 {std::pair<std::string_view, std::string_view>{"Enemies", enemies},
+		  {"Supplies", pickups},
+		  {"Explored", explored},
+		  {"Time", time}}) {
+		ui_->Text(label, panel.x + 48, y, ui::FontStyle::Body,
+				  ui::color::kMuted);
+		ui_->Text(value, panel.x + panel.w - 48, y, ui::FontStyle::Body,
+				  ui::color::kText, ui::Align::Right);
+		y += 56;
+	}
+	if (prompt) {
+		ui_->Text("Press Enter to continue", centre_x, panel.y + panel.h + 40,
+				  ui::FontStyle::Small, ui::color::kMuted, ui::Align::Center);
 	}
 }
 

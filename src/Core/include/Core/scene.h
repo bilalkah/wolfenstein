@@ -32,6 +32,17 @@
 
 namespace wolfenstein {
 
+// How the player did in a level: shown on the HUD and when it is cleared
+struct LevelStats
+{
+	std::size_t kills = 0;
+	std::size_t enemies = 0;
+	std::size_t pickups_taken = 0;
+	std::size_t pickups = 0;
+	int explored_percent = 0;  // of the cells the player can stand in
+	double seconds = 0.0;	   // until the last enemy fell
+};
+
 // How many level objects a scene must hold; known when the level is loaded
 struct SceneCapacity
 {
@@ -108,6 +119,7 @@ class Scene
 	bool IsExplored(int x, int y) const;
 
 	size_t GetNumberOfAliveEnemies() const;
+	LevelStats GetStats() const;
 	const memory::MonotonicArena& LevelMemory() const { return arena_; }
 
 	// How long a door takes to open or close, and stays open
@@ -144,6 +156,11 @@ class Scene
 	std::pmr::vector<Pickup*> pickup_list_;
 	// One flag per map cell, row by row
 	std::pmr::vector<std::uint8_t> explored_;
+	// Cells a character can stand in (not walls), and how many are explored
+	std::size_t open_cells_ = 0;
+	std::size_t explored_open_cells_ = 0;
+	// Simulated time in the level, until it is cleared
+	double elapsed_ = 0.0;
 	// One per door of the map, in its order
 	std::pmr::vector<DoorMotion> doors_;
 	Player* player_ = nullptr;
