@@ -1,5 +1,6 @@
 #include "Core/scene_loader.h"
 #include "GameObjects/dynamic_object.h"
+#include "TextureManager/texture_manager.h"
 #include <algorithm>
 #include <cstdint>
 #include <fstream>
@@ -66,14 +67,22 @@ std::expected<void, std::string> SceneLoader::Prepare(const std::string& file) {
 			return std::unexpected(file + ": unknown enemy type " + spawn.type);
 		}
 	}
+	for (const ObjectSpawn& spawn : data->pickups) {
+		if (!config_.pickups.contains(spawn.type)) {
+			return std::unexpected(file + ": unknown pickup type " +
+								   spawn.type);
+		}
+	}
 	const SceneCapacity capacity{
 		.enemies = static_cast<std::uint32_t>(data->enemies.size()),
 		.dynamic_objects =
-			static_cast<std::uint32_t>(data->dynamic_objects.size())};
+			static_cast<std::uint32_t>(data->dynamic_objects.size()),
+		.pickups = static_cast<std::uint32_t>(data->pickups.size())};
 	largest_memory_ =
 		std::max(largest_memory_, Scene::MemoryFor(*map, capacity));
 	largest_objects_ = std::max(
-		largest_objects_, data->enemies.size() + data->dynamic_objects.size());
+		largest_objects_, data->enemies.size() + data->dynamic_objects.size() +
+							  data->pickups.size());
 	levels_.emplace(file, PreparedLevel{.data = std::move(*data),
 										.map = std::move(*map),
 										.capacity = capacity});
@@ -106,6 +115,15 @@ std::expected<void, std::string> SceneLoader::Populate(
 								   light.width, light.height);
 		if (!added) {
 			return std::unexpected("more objects than the scene can hold");
+		}
+	}
+	for (const ObjectSpawn& spawn : level.data.pickups) {
+		// Checked when the level was prepared
+		const PickupConfig& pickup = config_.pickups.find(spawn.type)->second;
+		if (!scene.AddPickup(spawn.position,
+							 scene.Textures().GetTextureId(pickup.texture),
+							 pickup.width, pickup.height, pickup.effect)) {
+			return std::unexpected("more pickups than the scene can hold");
 		}
 	}
 	scene.FinishLoading();

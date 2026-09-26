@@ -30,10 +30,10 @@ enum class SoundEffect : std::uint8_t {
 	NpcDeath,
 	PlayerPain,
 	Shotgun,
+	Pickup,
 };
-inline constexpr std::size_t kSoundEffectCount = 5;
-static_assert(std::to_underlying(SoundEffect::Shotgun) + 1 ==
-			  kSoundEffectCount);
+inline constexpr std::size_t kSoundEffectCount = 6;
+static_assert(std::to_underlying(SoundEffect::Pickup) + 1 == kSoundEffectCount);
 
 // The mixer channel a sound source plays on: a new sound from the source
 // cuts off its previous one, never another source's

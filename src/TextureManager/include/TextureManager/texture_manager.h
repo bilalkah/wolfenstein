@@ -101,6 +101,8 @@ class TextureManager
 	// Names the textures [begin, end) as a clip: tests without a renderer
 	// define placeholders
 	void DefineCollection(std::string key, uint16_t begin, uint16_t end);
+	// Names the texture `id` (a placeholder, likewise)
+	void DefineTexture(std::string name, int id);
 
   private:
 	// Transparent hashing: looked up with a string_view, no key string built

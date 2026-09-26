@@ -40,6 +40,10 @@ inline const TextureManager& TestTextures() {
 			textures.DefineCollection(light, next, next + kFramesPerClip);
 			next += kFramesPerClip;
 		}
+		// The pickups' sprites
+		for (const char* pickup : {"medkit", "large_medkit", "ammo_box"}) {
+			textures.DefineTexture(pickup, next++);
+		}
 		return true;
 	}();
 	(void)defined;

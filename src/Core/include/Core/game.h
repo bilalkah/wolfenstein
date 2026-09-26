@@ -153,8 +153,9 @@ class Game
 	std::size_t soak_phase_ = 0;
 	std::size_t soak_max_level_ = 0;
 	bool soak_saw_result_ = false;
+	bool soak_took_pickup_ = false;
 	int soak_first_allocation_ = -1;
-	std::array<std::uint64_t, 9> soak_phase_start_{};
+	std::array<std::uint64_t, 10> soak_phase_start_{};
 };
 
 }  // namespace wolfenstein

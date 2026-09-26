@@ -250,5 +250,91 @@
       }
     }
   ],
+  "pickups": [
+    {
+      "type": "medkit",
+      "position": {
+        "x": 28.5,
+        "y": 18.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 28.5,
+        "y": 16.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 16.5,
+        "y": 3.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 17.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 17.5,
+        "y": 30.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 16.5,
+        "y": 28.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 17.5,
+        "y": 20.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 11.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 5.5,
+        "y": 25.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 12.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 1.5,
+        "y": 21.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 2.5,
+        "y": 21.5
+      }
+    }
+  ],
   "staticObjects": []
 }

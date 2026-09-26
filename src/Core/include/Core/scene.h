@@ -22,6 +22,7 @@
 #include "GameMap/map.h"
 #include "GameObjects/dynamic_object.h"
 #include "GameObjects/game_object.h"
+#include "GameObjects/pickup.h"
 #include "NavigationManager/navigation_manager.h"
 #include <cstdint>
 #include <expected>
@@ -36,6 +37,7 @@ struct SceneCapacity
 {
 	std::uint32_t enemies = 0;
 	std::uint32_t dynamic_objects = 0;
+	std::uint32_t pickups = 0;
 };
 
 // Owns one level. Its objects live in fixed-capacity pools whose storage,
@@ -71,6 +73,9 @@ class Scene
 	std::expected<memory::Handle<DynamicObject>, memory::PoolError>
 	AddDynamicObject(const vector2d& pose, const LoopedAnimation& animation,
 					 double width, double height);
+	std::expected<memory::Handle<Pickup>, memory::PoolError> AddPickup(
+		const vector2d& pose, int texture_id, double width, double height,
+		const PickupEffect& effect);
 	// Borrows the player for the scene's life and lets it act in this scene
 	void SetPlayer(Player& player);
 	// Builds what depends on the finished level (the navigation grid): call
@@ -84,6 +89,7 @@ class Scene
 	// its index here
 	std::span<IGameObject* const> GetObjects() const { return objects_; }
 	std::span<Enemy* const> GetEnemies() const { return enemy_list_; }
+	std::span<Pickup* const> GetPickups() const { return pickup_list_; }
 
 	const Map& GetMap() const;
 	Map& GetMap();
@@ -98,6 +104,9 @@ class Scene
 	const memory::MonotonicArena& LevelMemory() const { return arena_; }
 
   private:
+	// The player takes every pickup it stands on and has a use for
+	void CollectPickups();
+
 	const TextureManager& textures_;
 	SoundManager& sound_;
 	// Borrowed; everything below that the scene owns lives in it
@@ -106,8 +115,10 @@ class Scene
 	Map map_;
 	memory::ObjectPool<Enemy> enemies_;
 	memory::ObjectPool<DynamicObject> dynamic_objects_;
+	memory::ObjectPool<Pickup> pickups_;
 	std::pmr::vector<IGameObject*> objects_;
 	std::pmr::vector<Enemy*> enemy_list_;
+	std::pmr::vector<Pickup*> pickup_list_;
 	Player* player_ = nullptr;
 	NavigationManager navigation_{*this, &arena_};
 	size_t number_of_alive_enemies{};

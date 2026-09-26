@@ -92,6 +92,28 @@ TEST_P(LevelDesign, IsPlayable) {
 			<< file << ": a light at " << cell.first << "," << cell.second
 			<< " is in a wall or cut off";
 	}
+
+	// Supplies: health and ammunition somewhere in every level, each where
+	// the player can walk to it
+	bool health = false;
+	bool ammo = false;
+	for (const ObjectSpawn& pickup : level->pickups) {
+		const auto type = testing::GameData().pickups.find(pickup.type);
+		ASSERT_NE(type, testing::GameData().pickups.end())
+			<< file << ": unknown pickup " << pickup.type;
+		health = health || type->second.effect.health > 0.0;
+		ammo = ammo || type->second.effect.ammo_boxes > 0;
+		const Cell cell = CellOf(pickup.position.x, pickup.position.y);
+		EXPECT_TRUE(reachable.contains(cell))
+			<< file << ": a " << pickup.type << " at " << cell.first << ","
+			<< cell.second << " is in a wall or cut off";
+		EXPECT_GE(std::hypot(pickup.position.x - level->player.pose.x,
+							 pickup.position.y - level->player.pose.y),
+				  1.0)
+			<< file << ": a " << pickup.type << " lies at the start";
+	}
+	EXPECT_TRUE(health) << file << " has no health to pick up";
+	EXPECT_TRUE(ammo) << file << " has no ammunition to pick up";
 }
 
 INSTANTIATE_TEST_SUITE_P(Campaign, LevelDesign,

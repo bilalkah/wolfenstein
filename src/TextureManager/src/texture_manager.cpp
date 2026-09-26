@@ -120,6 +120,10 @@ std::span<const std::uint16_t> TextureManager::GetTextureCollection(
 	return found->second;
 }
 
+void TextureManager::DefineTexture(std::string name, int id) {
+	named_.insert_or_assign(std::move(name), id);
+}
+
 void TextureManager::DefineCollection(std::string key, uint16_t begin,
 									  uint16_t end) {
 	auto& ids = texture_collections_[std::move(key)];

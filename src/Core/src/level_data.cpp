@@ -39,15 +39,34 @@ DamageFalloff ToFalloff(const json& falloff) {
 }
 
 WeaponConfig ToWeapon(const json& weapon) {
+	const auto& reserve = weapon.at("reserve");
 	return {.weapon_name = weapon.at("name").get<std::string>(),
 			.label = weapon.at("label").get<std::string>(),
 			.description = weapon.at("description").get<std::string>(),
 			.ammo_capacity = weapon.at("ammo").get<std::size_t>(),
+			.reserve_start = reserve.at("start").get<std::size_t>(),
+			.reserve_max = reserve.at("max").get<std::size_t>(),
+			.box_rounds = reserve.at("box").get<std::size_t>(),
 			.attack_damage = ToDamage(weapon.at("damage")),
 			.attack_range = weapon.at("range").get<double>(),
 			.attack_speed = weapon.at("attack_speed").get<double>(),
 			.reload_speed = weapon.at("reload_speed").get<double>(),
 			.falloff = ToFalloff(weapon.at("falloff"))};
+}
+
+// A pickup gives health, ammo boxes or both; what it does not give is 0
+PickupConfig ToPickup(const json& pickup) {
+	PickupConfig config{
+		.texture = pickup.at("texture").get<std::string>(),
+		.width = pickup.at("width").get<double>(),
+		.height = pickup.at("height").get<double>(),
+		.effect = {.health = pickup.value("health", 0.0),
+				   .ammo_boxes = pickup.value("ammo_boxes", std::size_t{0})}};
+	if (config.effect.health <= 0.0 && config.effect.ammo_boxes == 0) {
+		throw json::other_error::create(503, "a pickup that gives nothing",
+										&pickup);
+	}
+	return config;
 }
 
 EnemyConfig ToEnemy(const std::string& type, const json& enemy) {
@@ -97,6 +116,9 @@ std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 		for (const auto& weapon : root.at("weapons")) {
 			config.weapons.push_back(ToWeapon(weapon));
 		}
+		for (const auto& [type, pickup] : root.at("pickups").items()) {
+			config.pickups.emplace(type, ToPickup(pickup));
+		}
 		config.levels = root.at("levels").get<std::vector<std::string>>();
 		if (config.levels.empty()) {
 			throw json::other_error::create(502, "no levels listed", &root);
@@ -125,6 +147,7 @@ class LevelReader final : public nlohmann::json_sax<json>
 		// Enough for any level so far; more simply grows the list
 		level_.enemies.reserve(32);
 		level_.dynamic_objects.reserve(32);
+		level_.pickups.reserve(32);
 	}
 
 	const std::string& Error() const { return error_; }
@@ -170,6 +193,11 @@ class LevelReader final : public nlohmann::json_sax<json>
 					return take(level_.dynamic_objects.back().type, kType);
 				}
 				break;
+			case Kind::Pickup:
+				if (frame.key == Key::Type) {
+					return take(level_.pickups.back().type, kType);
+				}
+				break;
 			default:
 				break;
 		}
@@ -195,6 +223,7 @@ class LevelReader final : public nlohmann::json_sax<json>
 			case Kind::Player:
 			case Kind::Enemy:
 			case Kind::Object:
+			case Kind::Pickup:
 				if (frame.key == Key::Position) {
 					return PushPosition(frame.kind);
 				}
@@ -205,6 +234,9 @@ class LevelReader final : public nlohmann::json_sax<json>
 			case Kind::Objects:
 				level_.dynamic_objects.emplace_back();
 				return Push(Kind::Object);
+			case Kind::Pickups:
+				level_.pickups.emplace_back();
+				return Push(Kind::Pickup);
 			default:
 				break;
 		}
@@ -219,6 +251,9 @@ class LevelReader final : public nlohmann::json_sax<json>
 		}
 		if (frame.kind == Kind::Root && frame.key == Key::DynamicObjects) {
 			return Push(Kind::Objects);
+		}
+		if (frame.kind == Kind::Root && frame.key == Key::Pickups) {
+			return Push(Kind::Pickups);
 		}
 		if (frame.kind == Kind::Skip || frame.key == Key::Other) {
 			return Push(Kind::Skip);
@@ -249,6 +284,9 @@ class LevelReader final : public nlohmann::json_sax<json>
 			case Kind::Object:
 				return Require(frame, kType, "object type") &&
 					   Require(frame, kPosition, "object position");
+			case Kind::Pickup:
+				return Require(frame, kType, "pickup type") &&
+					   Require(frame, kPosition, "pickup position");
 			case Kind::Position:
 				Top().seen |= kPosition;
 				return Require(frame, frame.required, "x, y and theta");
@@ -282,6 +320,8 @@ class LevelReader final : public nlohmann::json_sax<json>
 		Enemy,
 		Objects,
 		Object,
+		Pickups,
+		Pickup,
 		Position,
 		Skip,  // a value the game does not read
 	};
@@ -292,6 +332,7 @@ class LevelReader final : public nlohmann::json_sax<json>
 		Player,
 		Enemies,
 		DynamicObjects,
+		Pickups,
 		Type,
 		Position,
 		X,
@@ -328,6 +369,8 @@ class LevelReader final : public nlohmann::json_sax<json>
 					return Key::Enemies;
 				if (name == "dynamicObjects")
 					return Key::DynamicObjects;
+				if (name == "pickups")
+					return Key::Pickups;
 				break;
 			case Kind::Player:
 				if (name == "position")
@@ -335,6 +378,7 @@ class LevelReader final : public nlohmann::json_sax<json>
 				break;
 			case Kind::Enemy:
 			case Kind::Object:
+			case Kind::Pickup:
 				if (name == "type")
 					return Key::Type;
 				if (name == "position")
@@ -367,8 +411,10 @@ class LevelReader final : public nlohmann::json_sax<json>
 			frame.y = &position.pose.y;
 			frame.theta = &position.theta;
 		}
-		else {	// objects have no facing
-			vector2d& position = level_.dynamic_objects.back().position;
+		else {	// objects and pickups have no facing
+			vector2d& position = owner == Kind::Pickup
+									 ? level_.pickups.back().position
+									 : level_.dynamic_objects.back().position;
 			frame.x = &position.x;
 			frame.y = &position.y;
 			frame.required = kX | kY;

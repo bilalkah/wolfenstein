@@ -5,19 +5,23 @@ namespace wolfenstein {
 
 namespace {
 
-// Size of the level arena: the pools' storage and bookkeeping, the two
-// object lists and the navigation data, each with room for alignment padding.
+// Size of the level arena: the pools' storage and bookkeeping, the object
+// lists and the navigation data, each with room for alignment padding.
 // Exceeding it throws.
 std::size_t LevelArenaBytes(const Map& map, SceneCapacity capacity) {
 	constexpr std::size_t kSlack = 256;
 	constexpr std::size_t kBookkeeping =
 		sizeof(std::uint32_t) * 2 + sizeof(std::uint8_t);
 	const std::size_t enemies = capacity.enemies;
-	const std::size_t objects = capacity.enemies + capacity.dynamic_objects;
+	const std::size_t pickups = capacity.pickups;
+	const std::size_t objects =
+		capacity.enemies + capacity.dynamic_objects + capacity.pickups;
 	return enemies * (sizeof(Enemy) + alignof(Enemy) + kBookkeeping) +
 		   capacity.dynamic_objects *
 			   (sizeof(DynamicObject) + alignof(DynamicObject) + kBookkeeping) +
+		   pickups * (sizeof(Pickup) + alignof(Pickup) + kBookkeeping) +
 		   objects * sizeof(IGameObject*) + enemies * sizeof(Enemy*) +
+		   pickups * sizeof(Pickup*) +
 		   NavigationManager::MemoryFor(map.GetSizeX(), map.GetSizeY(), objects,
 										enemies) +
 		   map.MemoryBytes() + 8 * kSlack;
@@ -38,10 +42,14 @@ Scene::Scene(const TextureManager& textures, SoundManager& sound,
 	  map_(map, &arena_),
 	  enemies_(capacity.enemies, &arena_),
 	  dynamic_objects_(capacity.dynamic_objects, &arena_),
+	  pickups_(capacity.pickups, &arena_),
 	  objects_(&arena_),
-	  enemy_list_(&arena_) {
-	objects_.reserve(capacity.enemies + capacity.dynamic_objects);
+	  enemy_list_(&arena_),
+	  pickup_list_(&arena_) {
+	objects_.reserve(capacity.enemies + capacity.dynamic_objects +
+					 capacity.pickups);
 	enemy_list_.reserve(capacity.enemies);
+	pickup_list_.reserve(capacity.pickups);
 }
 
 std::expected<memory::Handle<Enemy>, memory::PoolError> Scene::AddEnemy(
@@ -69,6 +77,19 @@ Scene::AddDynamicObject(const vector2d& pose, const LoopedAnimation& animation,
 	return handle;
 }
 
+std::expected<memory::Handle<Pickup>, memory::PoolError> Scene::AddPickup(
+	const vector2d& pose, int texture_id, double width, double height,
+	const PickupEffect& effect) {
+	auto handle = pickups_.Create(pose, texture_id, width, height, effect);
+	if (handle) {
+		Pickup* pickup = pickups_.Get(*handle);
+		pickup->SetId(ObjectId{static_cast<std::uint32_t>(objects_.size())});
+		objects_.push_back(pickup);
+		pickup_list_.push_back(pickup);
+	}
+	return handle;
+}
+
 void Scene::SetPlayer(Player& player) {
 	player_ = &player;
 	player.EnterScene(*this);
@@ -92,6 +113,23 @@ void Scene::Update(double delta_time) {
 
 	ScopedTimer timer(ProfileSection::UpdatePlayer);
 	player_->Update(delta_time);
+	CollectPickups();
+}
+
+void Scene::CollectPickups() {
+	if (!player_->IsAlive()) {
+		return;
+	}
+	const vector2d position = player_->GetPose();
+	for (Pickup* pickup : pickup_list_) {
+		// Close enough that the player's body touches the item
+		const double reach = (player_->GetWidth() + pickup->GetWidth()) / 2;
+		if (!pickup->IsTaken() &&
+			pickup->GetPose().Distance(position) <= reach &&
+			player_->TryPickUp(pickup->GetEffect())) {
+			pickup->Take();
+		}
+	}
 }
 
 const Map& Scene::GetMap() const {

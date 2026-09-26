@@ -205,5 +205,70 @@
       }
     }
   ],
+  "pickups": [
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 1.5,
+        "y": 2.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 1.5,
+        "y": 12.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 15.5,
+        "y": 3.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 16.5,
+        "y": 19.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 9.5,
+        "y": 16.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 1.5,
+        "y": 25.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 26.5,
+        "y": 5.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 19.5,
+        "y": 3.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 19.5,
+        "y": 23.5
+      }
+    }
+  ],
   "staticObjects": []
 }

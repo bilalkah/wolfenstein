@@ -3,6 +3,7 @@ add_library(
     STATIC
     src/static_object.cpp
     src/dynamic_object.cpp
+    src/pickup.cpp
 )
 target_include_directories(game_object PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
