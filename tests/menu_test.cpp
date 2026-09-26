@@ -10,8 +10,10 @@
 #include "Profiler/profiler.h"
 #include "Settings/settings.h"
 #include "test_services.h"
+#include <array>
 #include <gtest/gtest.h>
 #include <memory>
+#include <string>
 
 namespace wolfenstein {
 namespace {
@@ -25,7 +27,9 @@ TEST(Menu, NoFrameAllocates) {
 	RendererContext context("menu test",
 							RenderConfig(1280, 720, 0, 32, 0, 20.0, 1.0, false),
 							camera);
-	Menu menu(context, testing::TestSound(), testing::GameData().weapons);
+	const std::array<std::string, 3> difficulties{"Easy", "Normal", "Hard"};
+	Menu menu(context, testing::TestSound(), testing::GameData().weapons,
+			  difficulties);
 	// The game reads the settings at startup, before its first frame
 	(void)Settings::Get();
 	constexpr double kFrame = 1.0 / 60.0;
@@ -52,6 +56,28 @@ TEST(Menu, NoFrameAllocates) {
 		(void)menu.Update(kFrame);
 	}
 	EXPECT_EQ(AllocationStats::count - sliding, 0u) << "moving a slider";
+
+	// Down to the difficulty, then through its choices
+	SDL_Event down{};
+	down.type = SDL_KEYDOWN;
+	down.key.keysym.sym = SDLK_DOWN;
+	for (int i = 0; i < 3; ++i) {
+		menu.HandleEvent(down);
+		(void)menu.Update(kFrame);
+	}
+	const int before_choosing = Settings::Get().difficulty;
+	const auto choosing = AllocationStats::count;
+	for (int i = 0; i < 6; ++i) {
+		menu.HandleEvent(right);
+		(void)menu.Update(kFrame);
+		if (i == 0) {
+			EXPECT_NE(Settings::Get().difficulty, before_choosing)
+				<< "the difficulty row has focus";
+		}
+	}
+	EXPECT_EQ(AllocationStats::count - choosing, 0u) << "choosing a difficulty";
+	// Six steps through three choices come back round
+	EXPECT_EQ(Settings::Get().difficulty, before_choosing);
 
 	// Over the game: the enemy counter, and a cleared level's results
 	const LevelStats stats{.kills = 7,

@@ -50,6 +50,11 @@ TEST(LevelData, ParsesTheGameConfig) {
 	ASSERT_TRUE(config->pickups.contains("medkit"));
 	EXPECT_DOUBLE_EQ(config->pickups.at("medkit").effect.health, 25.0);
 	EXPECT_EQ(config->pickups.at("medkit").effect.ammo_boxes, 0u);
+	ASSERT_EQ(config->difficulties.size(), 3u);
+	EXPECT_EQ(config->difficulties.front().name, "easy");
+	ASSERT_NE(config->FindDifficulty("hard"), nullptr);
+	EXPECT_GT(config->FindDifficulty("hard")->enemy_damage, 1.0);
+	EXPECT_EQ(config->FindDifficulty("impossible"), nullptr);
 	ASSERT_TRUE(config->pickups.contains("ammo_box"));
 	EXPECT_EQ(config->pickups.at("ammo_box").effect.ammo_boxes, 1u);
 	EXPECT_DOUBLE_EQ(config->pickups.at("ammo_box").effect.health, 0.0);

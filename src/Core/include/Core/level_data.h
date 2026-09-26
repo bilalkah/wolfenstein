@@ -50,6 +50,16 @@ struct PickupConfig
 	PickupEffect effect;
 };
 
+// A difficulty the player can choose, and what it changes
+struct DifficultyConfig
+{
+	std::string name;	// "normal"
+	std::string label;	// shown in the settings
+	double enemy_damage = 1.0;
+	double enemy_health = 1.0;
+	double supplies = 1.0;
+};
+
 // config.json: the game's content shared by every level. A new enemy type
 // or weapon is added there, with its art in textures.json, not in code.
 struct GameConfig
@@ -64,11 +74,15 @@ struct GameConfig
 	std::vector<std::string> levels;
 	// The level the benchmark plays; not part of the campaign
 	std::string benchmark_level;
+	// From easiest to hardest, as the settings offer them
+	std::vector<DifficultyConfig> difficulties;
 	CharacterStats player;
 	DynamicObjectStats light;
 
 	// The named weapon, or nullptr
 	const WeaponConfig* FindWeapon(std::string_view name) const;
+	// The named difficulty, or nullptr
+	const DifficultyConfig* FindDifficulty(std::string_view name) const;
 };
 
 struct EnemySpawn

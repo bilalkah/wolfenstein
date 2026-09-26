@@ -53,9 +53,11 @@ struct MenuAction
 class Menu
 {
   public:
-	// Offers the given weapons, which outlive the menu (the World's config)
+	// Offers the given weapons and difficulties (by label, from easiest),
+	// which outlive the menu (the World's config)
 	Menu(RendererContext& context, SoundManager& sound,
-		 std::span<const WeaponConfig> weapons);
+		 std::span<const WeaponConfig> weapons,
+		 std::span<const std::string> difficulties = {});
 
 	void Open(MenuScreen screen);
 	MenuScreen GetScreen() const { return screen_; }
@@ -99,6 +101,7 @@ class Menu
 	MenuScreen screen_ = MenuScreen::Main;
 	MenuScreen return_screen_ = MenuScreen::Main;
 	std::span<const WeaponConfig> weapon_configs_;
+	std::span<const std::string> difficulties_;
 	std::vector<std::unique_ptr<Weapon>> weapons_;
 	int previewed_weapon_ = -1;
 	int background_texture_ = 0;

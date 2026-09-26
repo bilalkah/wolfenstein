@@ -27,13 +27,15 @@ SDL_Rect ButtonRect(int screen_width, int top, int index) {
 }  // namespace
 
 Menu::Menu(RendererContext& context, SoundManager& sound,
-		   std::span<const WeaponConfig> weapons)
+		   std::span<const WeaponConfig> weapons,
+		   std::span<const std::string> difficulties)
 	: context_(&context),
 	  ui_(std::make_unique<ui::Ui>(
 		  context_->GetRenderer(),
 		  std::string(RESOURCE_DIR) + "font/EternalAncient.ttf",
 		  std::string(RESOURCE_DIR) + "font/Roboto-Light.ttf")),
-	  weapon_configs_(weapons) {
+	  weapon_configs_(weapons),
+	  difficulties_(difficulties) {
 	background_texture_ = context_->Textures().GetTextureId("menu_background");
 	for (const WeaponConfig& config : weapon_configs_) {
 		weapons_.push_back(
@@ -430,6 +432,17 @@ MenuAction Menu::SettingsScreen() {
 	if (ui_->Toggle("Show FPS", {left, y, kRowWidth, kRowHeight},
 					settings.show_fps)) {
 		action.type = MenuAction::Type::SettingsChanged;
+	}
+	y += kRowHeight + kButtonGap;
+	// Applies from the next game
+	if (!difficulties_.empty()) {
+		settings.difficulty = std::clamp(
+			settings.difficulty, 0, static_cast<int>(difficulties_.size()) - 1);
+		if (ui_->Choice("Difficulty", difficulties_,
+						{left, y, kRowWidth, kRowHeight},
+						settings.difficulty)) {
+			action.type = MenuAction::Type::SettingsChanged;
+		}
 	}
 
 	if (ui_->Button("BACK", {(width - 300) / 2, 720, 300, 64}) || input_.back) {

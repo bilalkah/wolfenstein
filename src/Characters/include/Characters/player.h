@@ -63,9 +63,10 @@ class Player : public ICharacter, public IGameObject
 	int GetTextureId() const override;
 	double GetWidth() const override;
 	double GetHeight() const override;
-	// Takes what a pickup gives; false, leaving it lying, if the player has
-	// no use for it (full health, a full reserve)
-	bool TryPickUp(const PickupEffect& effect);
+	// Takes what a pickup gives, scaled by `supplies` (the difficulty's);
+	// false, leaving it lying, if the player has no use for it (full health,
+	// a full reserve)
+	bool TryPickUp(const PickupEffect& effect, double supplies = 1.0);
 	bool IsDamaged() const;
 	bool IsAlive() const;
 	const Weapon& GetWeapon() const;

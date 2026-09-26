@@ -12,6 +12,29 @@
         "level4.json"
     ],
     "benchmark_level": "benchmark.json",
+    "difficulties": [
+        {
+            "name": "easy",
+            "label": "Easy",
+            "enemy_damage": 0.6,
+            "enemy_health": 0.75,
+            "supplies": 1.5
+        },
+        {
+            "name": "normal",
+            "label": "Normal",
+            "enemy_damage": 1.0,
+            "enemy_health": 1.0,
+            "supplies": 1.0
+        },
+        {
+            "name": "hard",
+            "label": "Hard",
+            "enemy_damage": 1.4,
+            "enemy_health": 1.3,
+            "supplies": 0.75
+        }
+    ],
     "weapons": [
         {
             "name": "mp5",

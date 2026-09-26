@@ -79,8 +79,12 @@ void Game::Init() {
 	// Room for the largest level's objects, so switching levels does not
 	// grow the camera's per-object views
 	camera_->ReserveViews(world_->LargestLevelObjects());
-	menu_ = std::make_unique<Menu>(*renderer_context_, world_->Sound(),
-								   world_->Config().weapons);
+	for (const DifficultyConfig& difficulty : world_->Config().difficulties) {
+		difficulty_labels_.push_back(difficulty.label);
+	}
+	menu_ =
+		std::make_unique<Menu>(*renderer_context_, world_->Sound(),
+							   world_->Config().weapons, difficulty_labels_);
 	renderer_3d_ = std::make_unique<Renderer3D>(*renderer_context_);
 	renderer_2d_ = std::make_unique<Renderer2D>(*renderer_context_);
 	minimap_ = std::make_unique<Minimap>(*renderer_context_);
@@ -99,7 +103,18 @@ void Game::ShowLevel() {
 }
 
 void Game::NewGame(std::string_view weapon_name, std::string_view level) {
-	if (auto started = world_->NewGame(weapon_name, level); !started) {
+	// Scripted runs play the normal game, so their results stay comparable
+	const auto& difficulties = world_->Config().difficulties;
+	const std::string_view difficulty =
+		IsScripted()
+			? std::string_view("normal")
+			: std::string_view(
+				  difficulties[static_cast<std::size_t>(std::clamp(
+								   Settings::Get().difficulty, 0,
+								   static_cast<int>(difficulties.size()) - 1))]
+					  .name);
+	if (auto started = world_->NewGame(weapon_name, level, difficulty);
+		!started) {
 		std::cerr << "Cannot start a game: " << started.error() << '\n';
 		std::exit(EXIT_FAILURE);
 	}

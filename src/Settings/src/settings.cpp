@@ -147,16 +147,20 @@ void Settings::Load() {
 		else if (key == "show_fps") {
 			show_fps = number != 0.0;
 		}
+		else if (key == "difficulty") {
+			difficulty = std::clamp(static_cast<int>(number), 0, 9);
+		}
 	}
 }
 
 // Formats into a buffer on the stack: no allocation while the game runs
 void Settings::Save() const {
 	std::array<char, 128> buffer{};
-	const auto written =
-		std::format_to_n(buffer.data(), buffer.size() - 1,
-						 "mouse_sensitivity={}\nvolume={}\nshow_fps={}\n",
-						 mouse_sensitivity, volume, show_fps ? 1 : 0);
+	const auto written = std::format_to_n(
+		buffer.data(), buffer.size() - 1,
+		"mouse_sensitivity={}\nvolume={}\nshow_fps={}\n"
+		"difficulty={}\n",
+		mouse_sensitivity, volume, show_fps ? 1 : 0, difficulty);
 	const auto size =
 		std::min(static_cast<std::size_t>(written.size), buffer.size() - 1);
 	buffer[size] = '\0';

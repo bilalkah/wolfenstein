@@ -1,6 +1,7 @@
 #include "Strike/weapon.h"
 #include "State/weapon_state.h"
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <iostream>
 #include <memory>
@@ -64,12 +65,13 @@ void Weapon::DecreaseAmmo() {
 	ammo_--;
 }
 
-bool Weapon::AddAmmoBoxes(size_t boxes) {
+bool Weapon::AddAmmoBoxes(size_t boxes, double scale) {
 	if (reserve_ >= config_.reserve_max) {
 		return false;
 	}
-	reserve_ =
-		std::min(config_.reserve_max, reserve_ + boxes * config_.box_rounds);
+	const auto rounds = static_cast<size_t>(
+		std::lround(static_cast<double>(boxes * config_.box_rounds) * scale));
+	reserve_ = std::min(config_.reserve_max, reserve_ + rounds);
 	return true;
 }
 
