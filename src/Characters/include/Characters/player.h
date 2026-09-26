@@ -67,6 +67,8 @@ class Player : public ICharacter, public IGameObject
 	// false, leaving it lying, if the player has no use for it (full health,
 	// a full reserve)
 	bool TryPickUp(const PickupEffect& effect, double supplies = 1.0);
+	// Health and rounds as a saved game left them, within their limits
+	void Restore(double health, std::size_t ammo, std::size_t reserve);
 	bool IsDamaged() const;
 	bool IsAlive() const;
 	const Weapon& GetWeapon() const;

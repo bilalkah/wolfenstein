@@ -82,6 +82,23 @@ TEST(World, DifficultyScalesEnemyHealth) {
 	EXPECT_FALSE(world->NewGame("mp5", {}, "impossible"));
 }
 
+// A saved game goes on at its level, at its difficulty, and on through the
+// rest of the campaign
+TEST(World, AGameContinuesAtItsSavedLevel) {
+	auto world = MakeWorld();
+	const auto continued = world->ContinueGame("shotgun", "hard", 2);
+	ASSERT_TRUE(continued) << continued.error();
+	EXPECT_EQ(world->LevelNumber(), 3u);
+	EXPECT_EQ(world->CurrentLevel().GetEnemies().size(),
+			  CampaignLevel(2).enemies.size());
+	EXPECT_EQ(world->Difficulty().name, "hard");
+	EXPECT_TRUE(world->InCampaign());
+	ASSERT_TRUE(world->NextLevel());
+	EXPECT_EQ(world->LevelNumber(), 4u);
+
+	EXPECT_FALSE(world->ContinueGame("shotgun", "hard", 99));
+}
+
 // A new game replaces both the level and the player it borrows
 TEST(World, NewGameStartsOver) {
 	auto world = MakeWorld();

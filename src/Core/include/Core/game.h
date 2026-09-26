@@ -24,6 +24,7 @@
 #include "Graphics/renderer_menu.h"
 #include "Graphics/renderer_result.h"
 #include "Math/vector.h"
+#include "Settings/saved_game.h"
 #include "TextureManager/texture_manager.h"
 #include "TimeManager/time_manager.h"
 #include <array>
@@ -94,6 +95,12 @@ class Game
 	// Fresh player and level 1, keeping the window, camera and menu
 	// A fresh game with the named weapon, in the campaign (or in `level`)
 	void NewGame(std::string_view weapon_name, std::string_view level = {});
+	// Goes on with the saved game, at the level it was saved at
+	void ContinueSavedGame();
+	// What every game does as it starts, new or continued
+	void BeginGame();
+	void SaveProgress();
+	void DescribeSavedGame();
 	// Points every view at the world's current level
 	void ShowLevel();
 	void EnterPlaying();
@@ -137,6 +144,8 @@ class Game
 	std::unique_ptr<Renderer3D> renderer_3d_;
 	std::unique_ptr<Renderer2D> renderer_2d_;
 	// The explored part of the level, in a corner or large (M)
+	// The campaign the player can go on with, if any
+	std::optional<SavedGame> saved_game_;
 	// The difficulties' labels, for the settings screen
 	std::vector<std::string> difficulty_labels_;
 	std::unique_ptr<Minimap> minimap_;

@@ -56,6 +56,24 @@ std::expected<void, std::string> World::NewGame(std::string_view weapon_name,
 						  : level);
 }
 
+std::expected<void, std::string> World::ContinueGame(
+	std::string_view weapon_name, std::string_view difficulty,
+	std::size_t level_index) {
+	const auto& levels = loader_.Config().levels;
+	if (level_index >= levels.size()) {
+		return std::unexpected("the campaign has no level " +
+							   std::to_string(level_index + 1));
+	}
+	if (auto started = NewGame(weapon_name, {}, difficulty); !started) {
+		return started;
+	}
+	if (level_index == 0) {
+		return {};
+	}
+	level_index_ = level_index;
+	return StartLevel(levels[level_index]);
+}
+
 std::expected<void, std::string> World::NextLevel() {
 	if (!HasNextLevel()) {
 		return std::unexpected("no next level");

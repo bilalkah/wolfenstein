@@ -61,6 +61,11 @@ void Weapon::TransitionTo(WeaponStateType type) {
 	state_machine_.TransitionTo(StateFor(type));
 }
 
+void Weapon::SetRounds(size_t ammo, size_t reserve) {
+	ammo_ = std::min(ammo, config_.ammo_capacity);
+	reserve_ = std::min(reserve, config_.reserve_max);
+}
+
 void Weapon::DecreaseAmmo() {
 	ammo_--;
 }

@@ -87,6 +87,19 @@ TEST_F(PickupTest, TheDifficultyScalesWhatPickupsGive) {
 			  mp5.reserve_start + mp5.box_rounds * 3 / 2);
 }
 
+// A saved game's health and rounds, kept within their limits
+TEST_F(PickupTest, RestoringKeepsWithinTheLimits) {
+	player_.Restore(64.0, 9, 70);
+	EXPECT_DOUBLE_EQ(player_.GetHealth(), 64.0);
+	EXPECT_EQ(player_.GetWeapon().GetAmmo(), 9u);
+	EXPECT_EQ(player_.GetWeapon().GetReserve(), 70u);
+	player_.Restore(500.0, 500, 5000);
+	EXPECT_DOUBLE_EQ(player_.GetHealth(), 100.0);
+	EXPECT_EQ(player_.GetWeapon().GetAmmo(), 18u);
+	EXPECT_EQ(player_.GetWeapon().GetReserve(),
+			  testing::Weapon("mp5").reserve_max);
+}
+
 TEST_F(PickupTest, AtFullHealthAMedkitIsLeftLying) {
 	Pickup& medkit = Place("medkit", {1.5, 1.5});
 	scene_.Update(kTick);

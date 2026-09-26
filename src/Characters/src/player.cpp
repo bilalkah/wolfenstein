@@ -6,6 +6,7 @@
 #include "ShootingManager/shooting_manager.h"
 #include "SoundManager/sound_manager.h"
 #include "State/weapon_state.h"
+#include <algorithm>
 #include <memory>
 #include <utility>
 
@@ -106,6 +107,11 @@ bool Player::TryPickUp(const PickupEffect& effect, double supplies) {
 		pickup_animation_.Reset();
 	}
 	return taken;
+}
+
+void Player::Restore(double health, std::size_t ammo, std::size_t reserve) {
+	health_ = std::clamp(health, 1.0, 100.0);
+	weapon_.SetRounds(ammo, reserve);
 }
 
 bool Player::IsDamaged() const {

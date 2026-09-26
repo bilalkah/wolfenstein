@@ -44,6 +44,7 @@ struct MenuAction
 		QuitToMenu,		  // abandon the current game
 		Quit,			  // close the application (native only)
 		SettingsChanged,  // apply Settings::Get() (e.g. volume)
+		Continue,		  // go on with the saved game
 	};
 	Type type = Type::None;
 	// Names a weapon of the configuration the menu was given
@@ -70,6 +71,12 @@ class Menu
 	// given opacity, over whatever is already drawn
 	void DrawLevelBanner(std::string_view title, std::string_view name,
 						 Uint8 alpha);
+	// Offers to go on with a saved game, described on the main screen
+	// ("LEVEL 3 · THE CATACOMBS · HARD"); empty offers none
+	void SetSavedGame(std::string_view description) {
+		saved_game_ = ui::FixedText<96>("{}", description);
+		has_saved_game_ = !description.empty();
+	}
 	// The enemies killed of the level's total, below the corner map
 	void DrawEnemyCounter(std::size_t kills, std::size_t enemies);
 	// A cleared level's results under its `heading` ("LEVEL 1 · CHECKPOINT"),
@@ -101,6 +108,8 @@ class Menu
 	MenuScreen screen_ = MenuScreen::Main;
 	MenuScreen return_screen_ = MenuScreen::Main;
 	std::span<const WeaponConfig> weapon_configs_;
+	ui::FixedText<96> saved_game_{"{}", ""};
+	bool has_saved_game_ = false;
 	std::span<const std::string> difficulties_;
 	std::vector<std::unique_ptr<Weapon>> weapons_;
 	int previewed_weapon_ = -1;
