@@ -51,7 +51,9 @@ Ray Aim(const Scene& scene, const Position2D& eye) {
 
 	double nearest = wall_distance;
 	for (const Enemy* enemy : scene.GetEnemies()) {
-		if (!enemy->IsAlive()) {
+		// A falling enemy (shot dead, its death still playing) no longer
+		// stops a shot
+		if (!enemy->IsAlive() || enemy->GetHealth() <= 0) {
 			continue;
 		}
 		const vector2d pose = enemy->GetPose();
@@ -96,6 +98,8 @@ void ResolvePlayerShot(Scene& scene, const Weapon& weapon,
 		});
 	(*enemy)->DecreaseHealth(CalculateDamage(weapon, aim.distance));
 	(*enemy)->SetAttacked(true);
+	// Aim only offers enemies with health left, so this is the killing shot,
+	// counted once
 	if ((*enemy)->GetHealth() <= 0) {
 		scene.DecreaseAliveEnemies();
 	}
