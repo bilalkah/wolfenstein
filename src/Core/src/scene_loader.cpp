@@ -106,6 +106,7 @@ std::expected<void, std::string> SceneLoader::Populate(
 		if (!scene.AddEnemy(enemy, spawn.position)) {
 			return std::unexpected("more enemies than the scene can hold");
 		}
+		scene.GetEnemies().back()->SetTarget(spawn.target);
 	}
 	const auto& light = config_.light;
 	for (const ObjectSpawn& spawn : level.data.dynamic_objects) {
@@ -127,6 +128,16 @@ std::expected<void, std::string> SceneLoader::Populate(
 			return std::unexpected("more pickups than the scene can hold");
 		}
 	}
+	scene.SetGoals(std::ranges::any_of(level.data.objectives,
+									   [](const Objective& objective) {
+										   return objective.type ==
+												  Objective::Type::KillAll;
+									   }),
+				   std::ranges::any_of(level.data.objectives,
+									   [](const Objective& objective) {
+										   return objective.type ==
+												  Objective::Type::KillTargets;
+									   }));
 	scene.FinishLoading();
 	return {};
 }

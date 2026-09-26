@@ -111,7 +111,8 @@
         "x": 5.5,
         "y": 16.5,
         "theta": -0.79
-      }
+      },
+      "target": true
     },
     {
       "type": "cyber_demon",
@@ -119,7 +120,8 @@
         "x": 2.5,
         "y": 20.5,
         "theta": -0.91
-      }
+      },
+      "target": true
     }
   ],
   "dynamicObjects": [
@@ -348,6 +350,12 @@
         "x": 2.5,
         "y": 10.5
       }
+    }
+  ],
+  "objectives": [
+    {
+      "type": "kill_targets",
+      "text": "Kill the cyber demons guarding the arena"
     }
   ],
   "staticObjects": []

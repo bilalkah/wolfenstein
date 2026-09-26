@@ -79,6 +79,16 @@ std::expected<Map, std::string> Map::FromFile(const std::string& path) {
 														 : KeyColour::None});
 				continue;
 			}
+			if (c == 'X') {
+				if (map.has_exit_) {
+					return std::unexpected(path + ": more than one exit");
+				}
+				map.has_exit_ = true;
+				map.exit_x_ = static_cast<int>(rows);
+				map.exit_y_ = static_cast<int>(map.cells_.size() % map.size_y_);
+				map.cells_.push_back(kExitWall);
+				continue;
+			}
 			if (c < '0' || c > '5') {
 				return std::unexpected(path + ": unknown cell '" +
 									   std::string(1, c) + "'");
@@ -121,7 +131,10 @@ Map::Map(const Map& other, std::pmr::memory_resource* memory)
 	: size_x_(other.size_x_),
 	  size_y_(other.size_y_),
 	  cells_(other.cells_, memory),
-	  doors_(other.doors_, memory) {}
+	  doors_(other.doors_, memory),
+	  has_exit_(other.has_exit_),
+	  exit_x_(other.exit_x_),
+	  exit_y_(other.exit_y_) {}
 
 namespace {
 

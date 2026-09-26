@@ -276,5 +276,11 @@
       }
     }
   ],
+  "objectives": [
+    {
+      "type": "kill_all",
+      "text": "Wipe out the barracks garrison"
+    }
+  ],
   "staticObjects": []
 }

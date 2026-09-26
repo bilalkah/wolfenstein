@@ -95,7 +95,8 @@
         "x": 24.5,
         "y": 27.5,
         "theta": -1.86
-      }
+      },
+      "target": true
     }
   ],
   "dynamicObjects": [
@@ -282,6 +283,12 @@
         "x": 19.5,
         "y": 23.5
       }
+    }
+  ],
+  "objectives": [
+    {
+      "type": "kill_targets",
+      "text": "Destroy the cyber demon at the altar"
     }
   ],
   "staticObjects": []

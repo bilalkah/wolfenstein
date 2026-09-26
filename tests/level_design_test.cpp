@@ -4,6 +4,8 @@
 #include "Core/level_data.h"
 #include "GameMap/map.h"
 #include "test_services.h"
+#include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <deque>
@@ -162,6 +164,24 @@ TEST_P(LevelDesign, IsPlayable) {
 				  1.0)
 			<< file << ": a " << pickup.type << " lies at the start";
 	}
+	// A way out, and what it waits for
+	ASSERT_TRUE(map->HasExit()) << file << " has no exit";
+	const vector2i exit = map->GetExit();
+	const bool exit_reachable = std::ranges::any_of(
+		std::array{Cell{exit.x + 1, exit.y}, Cell{exit.x - 1, exit.y},
+				   Cell{exit.x, exit.y + 1}, Cell{exit.x, exit.y - 1}},
+		[&](const Cell& cell) { return reachable.contains(cell); });
+	EXPECT_TRUE(exit_reachable) << file << ": the exit cannot be reached";
+	EXPECT_FALSE(level->objectives.empty()) << file << " has no objectives";
+	for (const Objective& objective : level->objectives) {
+		EXPECT_FALSE(objective.text.empty()) << file;
+		if (objective.type == Objective::Type::KillTargets) {
+			EXPECT_TRUE(
+				std::ranges::any_of(level->enemies, &EnemySpawn::target))
+				<< file << ": kill_targets without a target";
+		}
+	}
+
 	EXPECT_TRUE(health) << file << " has no health to pick up";
 	EXPECT_TRUE(ammo) << file << " has no ammunition to pick up";
 }

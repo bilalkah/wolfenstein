@@ -188,12 +188,20 @@ class LevelReader final : public nlohmann::json_sax<json>
 		level_.enemies.reserve(32);
 		level_.dynamic_objects.reserve(32);
 		level_.pickups.reserve(32);
+		level_.objectives.reserve(4);
 	}
 
 	const std::string& Error() const { return error_; }
 
 	bool null() override { return Scalar("null"); }
-	bool boolean(bool /*value*/) override { return Scalar("a boolean"); }
+	bool boolean(bool value) override {
+		const Frame& frame = Top();
+		if (frame.kind == Kind::Enemy && frame.key == Key::Target) {
+			level_.enemies.back().target = value;
+			return true;
+		}
+		return Scalar("a boolean");
+	}
 	bool number_integer(number_integer_t value) override {
 		return Number(static_cast<double>(value));
 	}
@@ -238,6 +246,25 @@ class LevelReader final : public nlohmann::json_sax<json>
 					return take(level_.pickups.back().type, kType);
 				}
 				break;
+			case Kind::Objective:
+				if (frame.key == Key::Type) {
+					Objective& objective = level_.objectives.back();
+					if (value == "kill_all") {
+						objective.type = Objective::Type::KillAll;
+					}
+					else if (value == "kill_targets") {
+						objective.type = Objective::Type::KillTargets;
+					}
+					else {
+						return Fail("unknown objective \"" + value + "\"");
+					}
+					frame.seen |= kType;
+					return true;
+				}
+				if (frame.key == Key::Text) {
+					return take(level_.objectives.back().text, kText);
+				}
+				break;
 			default:
 				break;
 		}
@@ -277,6 +304,9 @@ class LevelReader final : public nlohmann::json_sax<json>
 			case Kind::Pickups:
 				level_.pickups.emplace_back();
 				return Push(Kind::Pickup);
+			case Kind::Objectives:
+				level_.objectives.emplace_back();
+				return Push(Kind::Objective);
 			default:
 				break;
 		}
@@ -294,6 +324,9 @@ class LevelReader final : public nlohmann::json_sax<json>
 		}
 		if (frame.kind == Kind::Root && frame.key == Key::Pickups) {
 			return Push(Kind::Pickups);
+		}
+		if (frame.kind == Kind::Root && frame.key == Key::Objectives) {
+			return Push(Kind::Objectives);
 		}
 		if (frame.kind == Kind::Skip || frame.key == Key::Other) {
 			return Push(Kind::Skip);
@@ -327,6 +360,9 @@ class LevelReader final : public nlohmann::json_sax<json>
 			case Kind::Pickup:
 				return Require(frame, kType, "pickup type") &&
 					   Require(frame, kPosition, "pickup position");
+			case Kind::Objective:
+				return Require(frame, kType, "objective type") &&
+					   Require(frame, kText, "objective text");
 			case Kind::Position:
 				Top().seen |= kPosition;
 				return Require(frame, frame.required, "x, y and theta");
@@ -362,6 +398,8 @@ class LevelReader final : public nlohmann::json_sax<json>
 		Object,
 		Pickups,
 		Pickup,
+		Objectives,
+		Objective,
 		Position,
 		Skip,  // a value the game does not read
 	};
@@ -373,7 +411,10 @@ class LevelReader final : public nlohmann::json_sax<json>
 		Enemies,
 		DynamicObjects,
 		Pickups,
+		Objectives,
 		Type,
+		Text,
+		Target,
 		Position,
 		X,
 		Y,
@@ -383,7 +424,7 @@ class LevelReader final : public nlohmann::json_sax<json>
 	// Fields seen in an object, as bits
 	static constexpr std::uint8_t kMap = 1, kPlayer = 2, kEnemies = 4,
 								  kObjects = 8, kType = 16, kPosition = 32,
-								  kX = 1, kY = 2, kTheta = 4;
+								  kText = 64, kX = 1, kY = 2, kTheta = 4;
 
 	struct Frame
 	{
@@ -411,12 +452,23 @@ class LevelReader final : public nlohmann::json_sax<json>
 					return Key::DynamicObjects;
 				if (name == "pickups")
 					return Key::Pickups;
+				if (name == "objectives")
+					return Key::Objectives;
 				break;
 			case Kind::Player:
 				if (name == "position")
 					return Key::Position;
 				break;
+			case Kind::Objective:
+				if (name == "type")
+					return Key::Type;
+				if (name == "text")
+					return Key::Text;
+				break;
 			case Kind::Enemy:
+				if (name == "target")
+					return Key::Target;
+				[[fallthrough]];
 			case Kind::Object:
 			case Kind::Pickup:
 				if (name == "type")

@@ -407,6 +407,10 @@ void Game::SoakStep() {
 			}
 		}
 	}
+	else if (frame == 362) {
+		// ... and the player takes the way out
+		world_->CurrentLevel().UseExit();
+	}
 	else if (frame == 700) {
 		world_->GetPlayer().DecreaseHealth(1000.0);
 	}
@@ -624,6 +628,22 @@ void Game::UpdateAndRender() {
 	Present();
 }
 
+// The first objective of the level not yet done, or once they all are, the
+// way out; empty for a level with neither (the benchmark's)
+std::string_view Game::CurrentObjective() const {
+	const Scene& level = world_->CurrentLevel();
+	for (const Objective& objective : world_->LevelObjectives()) {
+		const bool done = objective.type == Objective::Type::KillAll
+							  ? level.GetNumberOfAliveEnemies() == 0
+							  : level.TargetsLeft() == 0;
+		if (!done) {
+			return objective.text;
+		}
+	}
+	return level.GetMap().HasExit() ? std::string_view("Reach the exit")
+									: std::string_view();
+}
+
 void Game::RenderView(double alpha) {
 	renderer_->RenderScene(clock_.DeltaTime());
 	if (render_type_ == RenderType::TEXTURE) {
@@ -631,15 +651,21 @@ void Game::RenderView(double alpha) {
 						 map_expanded_);
 		const LevelStats stats = world_->CurrentLevel().GetStats();
 		menu_->DrawEnemyCounter(stats.kills, stats.enemies);
-		switch (world_->CurrentLevel().LockedDoorNotice()) {
-			case KeyColour::Gold:
+		switch (world_->CurrentLevel().GetNotice()) {
+			case Scene::Notice::NeedGoldKey:
 				menu_->DrawNotice("You need the gold key");
 				break;
-			case KeyColour::Silver:
+			case Scene::Notice::NeedSilverKey:
 				menu_->DrawNotice("You need the silver key");
 				break;
-			case KeyColour::None:
+			case Scene::Notice::ExitLocked:
+				menu_->DrawNotice("The mission is not done yet");
 				break;
+			case Scene::Notice::None:
+				break;
+		}
+		if (fade_ == Fade::None) {
+			menu_->DrawObjective(CurrentObjective());
 		}
 	}
 }
@@ -716,8 +742,8 @@ void Game::CheckGameOver() {
 			*renderer_context_,
 			renderer_context_->Textures().GetTextureId("game_over"));
 	}
-	if (world_->CurrentLevel().GetNumberOfAliveEnemies() == 0 &&
-		!renderer_result_ && fade_ != Fade::Out && fade_ != Fade::Stats) {
+	if (world_->CurrentLevel().IsComplete() && !renderer_result_ &&
+		fade_ != Fade::Out && fade_ != Fade::Stats) {
 		cleared_time_ += delta_time;
 		if (cleared_time_ >= kClearedPause) {
 			fade_ = Fade::Out;

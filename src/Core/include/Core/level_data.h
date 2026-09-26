@@ -90,6 +90,20 @@ struct EnemySpawn
 {
 	std::string type;
 	Position2D position;
+	// One the level's kill_targets objective asks for
+	bool target = false;
+};
+
+// What a level asks of the player before its exit opens; the text is shown
+// on the HUD while it is not done
+struct Objective
+{
+	enum class Type : std::uint8_t {
+		KillAll,	  // every enemy in the level
+		KillTargets,  // the enemies marked as targets
+	};
+	Type type = Type::KillAll;
+	std::string text;
 };
 
 struct ObjectSpawn
@@ -109,6 +123,9 @@ struct LevelData
 	std::vector<ObjectSpawn> dynamic_objects;
 	// Optional in the file
 	std::vector<ObjectSpawn> pickups;
+	// Optional: a level with an exit (an X cell) and none only needs the
+	// exit; a level without an exit ends when its enemies are all dead
+	std::vector<Objective> objectives;
 };
 
 std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input);

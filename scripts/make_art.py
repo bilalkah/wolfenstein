@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Draws the pickup sprites (health, ammunition, keys) and the door textures,
-and synthesises the pickup sound.
+"""Draws the pickup sprites (health, ammunition, keys), the door textures and
+the exit switch, and synthesises the pickup sound.
 
 Pixel art in the chunky style of the other sprites, written as PNGs (the
 pickups on a transparent background), and a short rising chime as a WAV;
 standard library only, so rerunning gives the same files.
 
     ./scripts/make_art.py   # writes assets/sprites/pickups/*.png,
-                            # assets/textures/door*.png and
+                            # assets/textures/door*.png, exit.png and
                             # assets/sounds/pickup.wav
 """
 
@@ -169,6 +169,46 @@ def door(lock=None):
     return canvas
 
 
+# 3x5 pixel letters for the exit sign
+LETTERS = {
+    "E": ["###", "#..", "##.", "#..", "###"],
+    "X": ["#.#", "#.#", ".#.", "#.#", "#.#"],
+    "I": ["###", ".#.", ".#.", ".#.", "###"],
+    "T": ["###", ".#.", ".#.", ".#.", ".#."],
+}
+
+
+def exit_switch():
+    """The level's way out: a riveted panel under a lit EXIT sign, with a
+    big lever to throw."""
+    canvas = Canvas(64, 64)
+    steel, light, dark = (74, 80, 88, 255), (110, 118, 128, 255), \
+        (44, 48, 54, 255)
+    canvas.rect(0, 0, 63, 63, OUTLINE)
+    canvas.box(1, 1, 62, 62, steel, light, dark)
+    # The sign: green letters on a dark strip
+    canvas.rect(12, 5, 51, 17, OUTLINE)
+    canvas.rect(13, 6, 50, 16, (18, 40, 24, 255))
+    x = 16
+    for letter in "EXIT":
+        for row, line in enumerate(LETTERS[letter]):
+            for column, pixel in enumerate(line):
+                if pixel == "#":
+                    canvas.rect(x + column * 2, 7 + row * 2,
+                                x + column * 2 + 1, 8 + row * 2,
+                                (96, 240, 120, 255))
+        x += 8
+    # The lever in its slot
+    canvas.rect(26, 24, 37, 57, OUTLINE)
+    canvas.rect(27, 25, 36, 56, (30, 32, 36, 255))
+    canvas.rect(30, 30, 33, 48, (150, 156, 164, 255))  # the arm
+    canvas.rect(27, 26, 36, 31, (200, 40, 32, 255))	 # its red handle
+    canvas.rect(27, 26, 36, 26, (240, 110, 96, 255))
+    for rx, ry in ((6, 24), (55, 24), (6, 56), (55, 56)):
+        canvas.rect(rx, ry, rx + 1, ry + 1, (170, 176, 184, 255))
+    return canvas
+
+
 def chime(path):
     """Two quick rising notes with a soft attack and decay."""
     rate = 22050
@@ -203,6 +243,7 @@ def main():
     door().save(ASSETS / "textures" / "door.png")
     door(GOLD).save(ASSETS / "textures" / "door_gold.png")
     door(SILVER).save(ASSETS / "textures" / "door_silver.png")
+    exit_switch().save(ASSETS / "textures" / "exit.png")
     chime(ASSETS / "sounds" / "pickup.wav")
 
 
