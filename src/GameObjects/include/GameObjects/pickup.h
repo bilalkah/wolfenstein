@@ -9,6 +9,7 @@
 #include "GameObjects/game_object.h"
 #include "Math/vector.h"
 #include <cstddef>
+#include <cstdint>
 
 namespace wolfenstein {
 
@@ -19,6 +20,8 @@ struct PickupEffect
 	// Boxes of ammunition for the weapon carried: how many rounds a box holds
 	// is the weapon's
 	std::size_t ammo_boxes = 0;
+	// Keys, as KeyBit()s: the gold key opens gold-locked doors
+	std::uint8_t keys = 0;
 };
 
 // Lies still until taken, then leaves the level: it stays in the scene's

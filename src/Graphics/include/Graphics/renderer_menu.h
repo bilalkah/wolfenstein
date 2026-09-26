@@ -87,6 +87,8 @@ class Menu
 		saved_game_ = ui::FixedText<96>("{}", description);
 		has_saved_game_ = !description.empty();
 	}
+	// A short message across the lower middle of the screen, over the game
+	void DrawNotice(std::string_view text);
 	// The enemies killed of the level's total, below the corner map
 	void DrawEnemyCounter(std::size_t kills, std::size_t enemies);
 	// A cleared level's results under its `heading` ("LEVEL 1 · CHECKPOINT"),

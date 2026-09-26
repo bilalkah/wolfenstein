@@ -15,6 +15,7 @@
 #include "Animation/triggered_single_animation.h"
 #include "Characters/character.h"
 #include "Characters/player_command.h"
+#include "GameMap/map.h"
 #include "GameObjects/game_object.h"
 #include "GameObjects/pickup.h"
 #include "SoundManager/sound_manager.h"
@@ -69,6 +70,11 @@ class Player : public ICharacter, public IGameObject
 	bool TryPickUp(const PickupEffect& effect, double supplies = 1.0);
 	// Health and rounds as a saved game left them, within their limits
 	void Restore(double health, std::size_t ammo, std::size_t reserve);
+	// The keys held, as KeyBit()s; each level's keys open its own doors, so
+	// a level starts with none
+	std::uint8_t GetKeys() const { return keys_; }
+	bool HasKey(KeyColour key) const { return (keys_ & KeyBit(key)) != 0; }
+	void SetKeys(std::uint8_t keys) { keys_ = keys; }
 	// Seconds since the player was last hurt (or since it was made)
 	double SecondsSinceHurt() const { return since_hurt_; }
 	bool IsDamaged() const;
@@ -97,6 +103,7 @@ class Player : public ICharacter, public IGameObject
 	double height_{};
 	double health_{};
 	double since_hurt_{};
+	std::uint8_t keys_{};
 	SoundManager& sound_;
 	SoundChannel sound_channel_;
 	Position2D position_;

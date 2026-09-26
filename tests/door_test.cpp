@@ -10,6 +10,7 @@
 #include "test_services.h"
 #include <gtest/gtest.h>
 #include <numbers>
+#include <string>
 
 namespace wolfenstein {
 namespace {
@@ -18,9 +19,11 @@ constexpr double kTick = 1.0 / 60.0;
 constexpr double kFacingDown = std::numbers::pi / 2;  // towards +y
 
 // A corridor along y with a door at (1, 3): walls above and below it, so
-// the door is the plane y = 3.5
-Map CorridorWithDoor(const char* name) {
-	return Map(testing::WriteMapFile(name, {"3333333", "300D003", "3333333"})
+// the door is the plane y = 3.5. `door` is D, or G or S for a locked one.
+Map CorridorWithDoor(const char* name, char door = 'D') {
+	std::string row = "300D003";
+	row[3] = door;
+	return Map(testing::WriteMapFile(name, {"3333333", row.c_str(), "3333333"})
 				   .string());
 }
 
@@ -39,6 +42,18 @@ TEST(Door, AMapReadsItsDoors) {
 	EXPECT_FALSE(map.IsBlocked(1, 3));
 	map.SetDoorOpenness(0, 5.0);
 	EXPECT_DOUBLE_EQ(map.GetDoors()[0].openness, 1.0);
+}
+
+TEST(Door, GAndSAreLockedDoors) {
+	const Map gold = CorridorWithDoor("wolfenstein_door_gold_test.txt", 'G');
+	ASSERT_NE(gold.FindDoor(1, 3), nullptr);
+	EXPECT_EQ(gold.FindDoor(1, 3)->lock, KeyColour::Gold);
+	EXPECT_TRUE(gold.IsLockedDoor(1, 3));
+	const Map silver =
+		CorridorWithDoor("wolfenstein_door_silver_test.txt", 'S');
+	EXPECT_EQ(silver.FindDoor(1, 3)->lock, KeyColour::Silver);
+	const Map plain = CorridorWithDoor("wolfenstein_door_plain_test.txt");
+	EXPECT_FALSE(plain.IsLockedDoor(1, 3));
 }
 
 TEST(Door, ADoorStandsBetweenTwoWalls) {
@@ -85,14 +100,15 @@ TEST(Door, AClosedDoorBlocksSight) {
 	EXPECT_TRUE(CastLineOfSight(map, {1.5, 1.5}, {1.5, 5.5}).is_hit);
 }
 
-// The player in the corridor, a step before the door
+// The player in the corridor, a step before the door (locked when `door` is
+// G or S)
 class DoorSceneTest : public ::testing::Test
 {
   protected:
 	static constexpr SceneCapacity kCapacity{.enemies = 1};
 
-	DoorSceneTest()
-		: map_(CorridorWithDoor("wolfenstein_door_scene_test.txt")),
+	explicit DoorSceneTest(char door = 'D')
+		: map_(CorridorWithDoor("wolfenstein_door_scene_test.txt", door)),
 		  arena_(Scene::MemoryFor(map_, kCapacity)),
 		  scene_(testing::TestTextures(), testing::TestSound(), map_, kCapacity,
 				 arena_),
@@ -156,6 +172,51 @@ TEST_F(DoorSceneTest, EnemiesOpenTheDoorsTheyReach) {
 	scene_.FinishLoading();
 	Run(Scene::kDoorMoveSeconds + 0.1);
 	EXPECT_DOUBLE_EQ(Openness(), 1.0);
+}
+
+class LockedDoorTest : public DoorSceneTest
+{
+  protected:
+	LockedDoorTest() : DoorSceneTest('G') {}
+};
+
+// Without its key a locked door stays shut, and says which key it needs
+TEST_F(LockedDoorTest, OpensOnlyWithItsKey) {
+	scene_.FinishLoading();
+	player_.SetCommand(PlayerCommand{.use = true});
+	Run(1.0);
+	EXPECT_DOUBLE_EQ(Openness(), 0.0);
+	EXPECT_EQ(scene_.LockedDoorNotice(), KeyColour::Gold);
+
+	player_.SetKeys(KeyBit(KeyColour::Silver));	 // the wrong key
+	Run(1.0);
+	EXPECT_DOUBLE_EQ(Openness(), 0.0);
+
+	player_.SetKeys(KeyBit(KeyColour::Gold));
+	Run(Scene::kDoorMoveSeconds + 0.1);
+	EXPECT_DOUBLE_EQ(Openness(), 1.0);
+
+	// The notice fades once the player stops trying
+	player_.SetCommand(PlayerCommand{});
+	Run(3.0);
+	EXPECT_EQ(scene_.LockedDoorNotice(), KeyColour::None);
+}
+
+TEST_F(LockedDoorTest, EnemiesCannotOpenIt) {
+	ASSERT_TRUE(scene_.AddEnemy(testing::Enemy("soldier"),
+								Position2D({1.5, 4.6}, -kFacingDown)));
+	scene_.FinishLoading();
+	Run(2.0);
+	EXPECT_DOUBLE_EQ(Openness(), 0.0);
+}
+
+// A key is taken once, and kept
+TEST_F(DoorSceneTest, AKeyIsPickedUpOnce) {
+	const PickupEffect gold{.keys = KeyBit(KeyColour::Gold)};
+	EXPECT_TRUE(player_.TryPickUp(gold));
+	EXPECT_TRUE(player_.HasKey(KeyColour::Gold));
+	EXPECT_FALSE(player_.HasKey(KeyColour::Silver));
+	EXPECT_FALSE(player_.TryPickUp(gold)) << "already held";
 }
 
 #ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS

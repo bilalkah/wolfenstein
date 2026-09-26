@@ -139,6 +139,12 @@ void Scene::Update(double delta_time) {
 	UpdateDoors(delta_time);
 }
 
+KeyColour Scene::LockedDoorNotice() const {
+	constexpr double kNoticeSeconds = 2.0;
+	return locked_notice_time_ < kNoticeSeconds ? locked_notice_
+												: KeyColour::None;
+}
+
 void Scene::OpenDoor(std::size_t door) {
 	DoorMotion& motion = doors_[door];
 	if (motion.phase == DoorMotion::Phase::Closed ||
@@ -177,14 +183,25 @@ void Scene::UpdateDoors(double delta_time) {
 			if (const Door* door =
 					map_.FindDoor(static_cast<int>(std::floor(point.x)),
 								  static_cast<int>(std::floor(point.y)))) {
-				OpenDoor(static_cast<std::size_t>(door - doors.data()));
+				if (door->lock == KeyColour::None ||
+					player_->HasKey(door->lock)) {
+					OpenDoor(static_cast<std::size_t>(door - doors.data()));
+				}
+				else {
+					locked_notice_ = door->lock;
+					locked_notice_time_ = 0.0;
+				}
 				break;
 			}
 		}
 	}
-	// Enemies open the doors they walk up to
+	locked_notice_time_ += delta_time;
+	// Enemies open the doors they walk up to, if not locked
 	constexpr double kEnemyReach = 1.2;
 	for (std::size_t i = 0; i < doors.size(); ++i) {
+		if (doors[i].lock != KeyColour::None) {
+			continue;
+		}
 		const vector2d centre{doors[i].x + 0.5, doors[i].y + 0.5};
 		if (std::ranges::any_of(enemy_list_, [&](const Enemy* enemy) {
 				return enemy->IsAlive() &&

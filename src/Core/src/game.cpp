@@ -631,6 +631,16 @@ void Game::RenderView(double alpha) {
 						 map_expanded_);
 		const LevelStats stats = world_->CurrentLevel().GetStats();
 		menu_->DrawEnemyCounter(stats.kills, stats.enemies);
+		switch (world_->CurrentLevel().LockedDoorNotice()) {
+			case KeyColour::Gold:
+				menu_->DrawNotice("You need the gold key");
+				break;
+			case KeyColour::Silver:
+				menu_->DrawNotice("You need the silver key");
+				break;
+			case KeyColour::None:
+				break;
+		}
 	}
 }
 

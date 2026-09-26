@@ -64,6 +64,16 @@ void Menu::DrawLevelBanner(std::string_view title, std::string_view name,
 	}
 }
 
+void Menu::DrawNotice(std::string_view text) {
+	const auto& config = context_->GetConfig();
+	const auto size = ui_->MeasureText(text, ui::FontStyle::Body);
+	const SDL_Rect panel{(config.width - size.x) / 2 - 24,
+						 config.height * 2 / 3 - 12, size.x + 48, size.y + 24};
+	ui_->FillRect(panel, ui::color::kPanel);
+	ui_->Text(text, config.width / 2, panel.y + 12, ui::FontStyle::Body,
+			  ui::color::kText, ui::Align::Center);
+}
+
 void Menu::DrawEnemyCounter(std::size_t kills, std::size_t enemies) {
 	const auto& config = context_->GetConfig();
 	// Under the corner map, which is 30% of the screen's shorter side

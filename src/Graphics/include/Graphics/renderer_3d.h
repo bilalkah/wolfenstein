@@ -78,7 +78,9 @@ class Renderer3D : public IRenderer
 	int far_texture_ = 0;  // where no wall is in view
 	int crosshair_texture_ = 0;
 	int damage_texture_ = 0;
-	int door_texture_ = 0;
+	// By lock: none, gold, silver
+	std::array<int, 3> door_textures_{};
+	std::array<int, 3> key_textures_{};	 // held keys on the HUD
 	int shown_fps_ = 0;
 	double fps_elapsed_ = 0.0;
 	int fps_frames_ = 0;

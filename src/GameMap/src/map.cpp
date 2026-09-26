@@ -67,12 +67,16 @@ std::expected<Map, std::string> Map::FromFile(const std::string& path) {
 								   std::to_string(map.size_y_) + " map");
 		}
 		for (const char c : line) {
-			if (c == 'D') {
+			// D a door; G and S doors locked with the gold and silver keys
+			if (c == 'D' || c == 'G' || c == 'S') {
 				const auto column = map.cells_.size() % map.size_y_;
 				map.cells_.push_back(
 					static_cast<std::uint16_t>(kDoorCell + map.doors_.size()));
 				map.doors_.push_back({.x = static_cast<std::uint16_t>(rows),
-									  .y = static_cast<std::uint16_t>(column)});
+									  .y = static_cast<std::uint16_t>(column),
+									  .lock = c == 'G'	 ? KeyColour::Gold
+											  : c == 'S' ? KeyColour::Silver
+														 : KeyColour::None});
 				continue;
 			}
 			if (c < '0' || c > '5') {
@@ -158,6 +162,11 @@ bool Map::IsWall(int x, int y) const {
 	const std::uint16_t cell =
 		GetCells()[static_cast<std::size_t>(x), static_cast<std::size_t>(y)];
 	return cell != 0 && !IsDoorCell(cell);
+}
+
+bool Map::IsLockedDoor(int x, int y) const {
+	const Door* door = FindDoor(x, y);
+	return door != nullptr && door->lock != KeyColour::None;
 }
 
 const Door* Map::FindDoor(int x, int y) const {

@@ -109,6 +109,9 @@ class Scene
 	void DecreaseAliveEnemies();
 	// Starts opening the door with this index in the map (if not open)
 	void OpenDoor(std::size_t door);
+	// The key a locked door the player just tried needs (for a moment after
+	// the try), or KeyColour::None
+	KeyColour LockedDoorNotice() const;
 
 	void Update(double delta_time);
 
@@ -184,6 +187,8 @@ class Scene
 	Difficulty difficulty_;
 	// One per door of the map, in its order
 	std::pmr::vector<DoorMotion> doors_;
+	KeyColour locked_notice_ = KeyColour::None;
+	double locked_notice_time_ = 1e9;  // since the player tried it
 	Player* player_ = nullptr;
 	NavigationManager navigation_{*this, &arena_};
 	size_t number_of_alive_enemies{};
