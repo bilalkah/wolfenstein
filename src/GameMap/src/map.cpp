@@ -1,4 +1,5 @@
 #include "GameMap/map.h"
+#include <algorithm>
 #include <charconv>
 #include <cmath>
 #include <cstdlib>
@@ -66,6 +67,14 @@ std::expected<Map, std::string> Map::FromFile(const std::string& path) {
 								   std::to_string(map.size_y_) + " map");
 		}
 		for (const char c : line) {
+			if (c == 'D') {
+				const auto column = map.cells_.size() % map.size_y_;
+				map.cells_.push_back(
+					static_cast<std::uint16_t>(kDoorCell + map.doors_.size()));
+				map.doors_.push_back({.x = static_cast<std::uint16_t>(rows),
+									  .y = static_cast<std::uint16_t>(column)});
+				continue;
+			}
 			if (c < '0' || c > '5') {
 				return std::unexpected(path + ": unknown cell '" +
 									   std::string(1, c) + "'");
@@ -79,13 +88,36 @@ std::expected<Map, std::string> Map::FromFile(const std::string& path) {
 							   " rows, expected " +
 							   std::to_string(map.size_x_));
 	}
+	// A door stands between two walls facing each other, the way through
+	// open on its other sides
+	for (Door& door : map.doors_) {
+		const int x = door.x;
+		const int y = door.y;
+		const auto open = [&](int cx, int cy) {
+			return !map.IsWall(cx, cy) && map.FindDoor(cx, cy) == nullptr;
+		};
+		if (map.IsWall(x, y - 1) && map.IsWall(x, y + 1) && open(x - 1, y) &&
+			open(x + 1, y)) {
+			door.across_x = true;
+		}
+		else if (map.IsWall(x - 1, y) && map.IsWall(x + 1, y) &&
+				 open(x, y - 1) && open(x, y + 1)) {
+			door.across_x = false;
+		}
+		else {
+			return std::unexpected(path + ": the door at " + std::to_string(x) +
+								   "," + std::to_string(y) +
+								   " is not between two walls");
+		}
+	}
 	return map;
 }
 
 Map::Map(const Map& other, std::pmr::memory_resource* memory)
 	: size_x_(other.size_x_),
 	  size_y_(other.size_y_),
-	  cells_(other.cells_, memory) {}
+	  cells_(other.cells_, memory),
+	  doors_(other.doors_, memory) {}
 
 namespace {
 
@@ -108,8 +140,37 @@ bool Map::Contains(int x, int y) const {
 }
 
 bool Map::IsBlocked(int x, int y) const {
-	return !Contains(x, y) || GetCells()[static_cast<std::size_t>(x),
-										 static_cast<std::size_t>(y)] != 0;
+	if (!Contains(x, y)) {
+		return true;
+	}
+	const std::uint16_t cell =
+		GetCells()[static_cast<std::size_t>(x), static_cast<std::size_t>(y)];
+	if (IsDoorCell(cell)) {
+		return doors_[cell - kDoorCell].openness < kPassableOpenness;
+	}
+	return cell != 0;
+}
+
+bool Map::IsWall(int x, int y) const {
+	if (!Contains(x, y)) {
+		return true;
+	}
+	const std::uint16_t cell =
+		GetCells()[static_cast<std::size_t>(x), static_cast<std::size_t>(y)];
+	return cell != 0 && !IsDoorCell(cell);
+}
+
+const Door* Map::FindDoor(int x, int y) const {
+	if (!Contains(x, y)) {
+		return nullptr;
+	}
+	const std::uint16_t cell =
+		GetCells()[static_cast<std::size_t>(x), static_cast<std::size_t>(y)];
+	return IsDoorCell(cell) ? &doors_[cell - kDoorCell] : nullptr;
+}
+
+void Map::SetDoorOpenness(std::size_t door, double openness) {
+	doors_[door].openness = std::clamp(openness, 0.0, 1.0);
 }
 
 bool Map::IsBlocked(const vector2d& position) const {

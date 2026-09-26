@@ -78,6 +78,7 @@ class Renderer3D : public IRenderer
 	int far_texture_ = 0;  // where no wall is in view
 	int crosshair_texture_ = 0;
 	int damage_texture_ = 0;
+	int door_texture_ = 0;
 	int shown_fps_ = 0;
 	double fps_elapsed_ = 0.0;
 	int fps_frames_ = 0;

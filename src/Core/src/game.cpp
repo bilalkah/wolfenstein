@@ -200,7 +200,7 @@ void Game::SoakStep() {
 		int start;
 		const char* name;
 	};
-	static constexpr std::array<Phase, 11> kPhases = {{
+	static constexpr std::array<Phase, 12> kPhases = {{
 		{0, "play_3d"},
 		{90, "view_2d"},
 		{135, "map"},
@@ -208,6 +208,7 @@ void Game::SoakStep() {
 		{240, "settings"},
 		{300, "play"},
 		{330, "pickup"},
+		{345, "door"},
 		{360, "level_transition"},
 		{700, "death"},
 		{900, "new_game"},
@@ -282,6 +283,16 @@ void Game::SoakStep() {
 		const auto pickups = world_->CurrentLevel().GetPickups();
 		soak_took_pickup_ = !pickups.empty() && pickups.front()->IsTaken();
 	}
+	else if (frame == 345) {
+		// A door starts sliding open, drawn as it moves
+		if (!world_->CurrentLevel().GetMap().GetDoors().empty()) {
+			world_->CurrentLevel().OpenDoor(0);
+		}
+	}
+	else if (frame == 355) {
+		const auto doors = world_->CurrentLevel().GetMap().GetDoors();
+		soak_opened_door_ = !doors.empty() && doors.front().openness > 0.0;
+	}
 	else if (frame == 360) {
 		// As if every enemy were shot: the level is cleared and the game
 		// fades into the next one
@@ -308,6 +319,8 @@ void Game::SoakStep() {
 				  << ",\"saw_result\":" << (soak_saw_result_ ? "true" : "false")
 				  << ",\"took_pickup\":"
 				  << (soak_took_pickup_ ? "true" : "false")
+				  << ",\"opened_door\":"
+				  << (soak_opened_door_ ? "true" : "false")
 				  << ",\"first_allocating_frame\":" << soak_first_allocation_
 				  << ",\"allocations\":"
 				  << AllocationStats::count - soak_allocations_
@@ -468,6 +481,7 @@ PlayerCommand Game::SampleCommand() const {
 		(SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON_LMASK) != 0 ||
 		keys[SDL_SCANCODE_LCTRL] != 0;
 	command.reload = keys[SDL_SCANCODE_R] != 0;
+	command.use = keys[SDL_SCANCODE_E] != 0 || keys[SDL_SCANCODE_SPACE] != 0;
 	return command;
 }
 

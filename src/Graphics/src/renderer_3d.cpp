@@ -48,6 +48,7 @@ Renderer3D::Renderer3D(RendererContext& context) : IRenderer(context) {
 	far_texture_ = context_->Textures().GetTextureId("solid_black");
 	crosshair_texture_ = context_->Textures().GetTextureId("crosshair");
 	damage_texture_ = context_->Textures().GetTextureId("damage_taken");
+	door_texture_ = context_->Textures().GetTextureId("door");
 
 	const SDL_Color white{255, 255, 255, 255};
 	for (int digit = 0; digit < 10; ++digit) {
@@ -140,9 +141,13 @@ void Renderer3D::RenderIfRayHit(const int& horizontal_slice, const Ray& ray) {
 		CalculateVerticalSlice(distance);
 
 	auto hit_point = ray.is_hit_vertical ? ray.hit_point.y : ray.hit_point.x;
-	hit_point = std::fmod(hit_point, 1.0);
+	// A door slid part open shows the rest of its texture
+	hit_point = std::fmod(hit_point, 1.0) - ray.texture_shift;
 	// A wall ray's id is the map cell it hit; the manifest gives its texture
-	const int wall_texture = context_->Textures().GetWallTexture(ray.wall_id);
+	const int wall_texture =
+		Map::IsDoorCell(static_cast<std::uint16_t>(ray.wall_id))
+			? door_texture_
+			: context_->Textures().GetWallTexture(ray.wall_id);
 	const auto& texture = context_->Textures().GetTexture(wall_texture);
 	const auto texture_height = texture.height;
 	const auto texture_width = texture.width;

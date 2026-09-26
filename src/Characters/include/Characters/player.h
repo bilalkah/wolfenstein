@@ -50,6 +50,8 @@ class Player : public ICharacter, public IGameObject
 	void EnterScene(Scene& scene) { scene_ = &scene; }
 	// What to do from the next update on; the player reads no input device
 	void SetCommand(const PlayerCommand& command);
+	// Whether the player is trying to open what is in front of them
+	bool IsUsing() const { return command_.use; }
 	void SetPose(const vector2d& pose) override;
 	ObjectType GetObjectType() const override;
 	vector2d GetPose() const override;
