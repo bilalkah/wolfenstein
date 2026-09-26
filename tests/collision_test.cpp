@@ -8,6 +8,7 @@
 #include "test_services.h"
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <gtest/gtest.h>
 #include <numbers>
 
@@ -182,6 +183,56 @@ TEST_F(CollisionTest, EnemiesRouteAroundLamps) {
 	EXPECT_TRUE(std::ranges::none_of(path, [&](const GridCell& cell) {
 		return cell.x == lamp.x && cell.y == lamp.y;
 	}));
+}
+
+// Coming at a wall's corner at an angle, the body stops at the corner as it
+// would at the wall's face: no part of it enters the wall
+TEST(WallCollision, CornersAreSolidToo) {
+	// A room with a pillar at (3, 3); walk diagonally at its corner
+	const Map map(
+		testing::WriteMapFile("wolfenstein_corner_test.txt",
+							  {"3333333", "3000003", "3000003", "3003003",
+							   "3000003", "3000003", "3333333"})
+			.string());
+	const auto inside_a_wall = [&](const vector2d& pose) {
+		constexpr double kHalf = kCollisionDistance * 0.98;
+		for (const double dx : {-kHalf, kHalf}) {
+			for (const double dy : {-kHalf, kHalf}) {
+				if (map.IsBlocked(vector2d{pose.x + dx, pose.y + dy})) {
+					return true;
+				}
+			}
+		}
+		return false;
+	};
+	for (const double angle : {0.6, 0.785, 1.0}) {
+		vector2d pose{1.6, 1.6};
+		const vector2d step{0.01 * std::cos(angle), 0.01 * std::sin(angle)};
+		for (int tick = 0; tick < 300; ++tick) {
+			if (!CheckWallCollision(map, pose, {step.x, 0})) {
+				pose.x += step.x;
+			}
+			if (!CheckWallCollision(map, pose, {0, step.y})) {
+				pose.y += step.y;
+			}
+			ASSERT_FALSE(inside_a_wall(pose))
+				<< "angle " << angle << " at " << pose.x << "," << pose.y;
+		}
+	}
+}
+
+// Flush against a wall, a body still slides along it, and can always step
+// away from it
+TEST(WallCollision, AlongAndAwayFromAWall) {
+	const Map map(
+		testing::WriteMapFile("wolfenstein_along_test.txt",
+							  {"33333", "30003", "30003", "30003", "33333"})
+			.string());
+	// Pressed against the wall at x = 1 (standing just clear of it)
+	const vector2d pose{1.0 + kCollisionDistance + 1e-6, 2.5};
+	EXPECT_TRUE(CheckWallCollision(map, pose, {-0.01, 0}));
+	EXPECT_FALSE(CheckWallCollision(map, pose, {0, 0.05})) << "along it";
+	EXPECT_FALSE(CheckWallCollision(map, pose, {0.05, 0})) << "away from it";
 }
 
 }  // namespace

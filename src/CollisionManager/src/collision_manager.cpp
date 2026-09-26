@@ -5,24 +5,32 @@ namespace wolfenstein {
 
 bool CheckWallCollision(const Map& map, const vector2d& pose,
 						const vector2d& delta_pose) {
-	auto px = pose.x;
-	auto py = pose.y;
-
-	if (delta_pose.x > 0) {
-		px += kCollisionDistance;
+	// The body is a square kCollisionDistance each way from its centre. The
+	// edge it moves towards, where the move ends, must be clear at both its
+	// corners: checking only its middle let a body cut into a wall's corner
+	// coming at it at an angle. Only that edge is checked, so a body can
+	// always move away from a wall it touches. The corners stand in a hair,
+	// so a body flush with a wall along its side still slides along it.
+	constexpr double kSide = kCollisionDistance * 0.99;
+	const vector2d end = pose + delta_pose;
+	const auto clear = [&](double x, double y) {
+		return !map.IsBlocked(vector2d{x, y});
+	};
+	if (delta_pose.x != 0.0) {
+		const double edge =
+			end.x + std::copysign(kCollisionDistance, delta_pose.x);
+		if (!clear(edge, end.y - kSide) || !clear(edge, end.y + kSide)) {
+			return true;
+		}
 	}
-	else if (delta_pose.x < 0) {
-		px -= kCollisionDistance;
+	if (delta_pose.y != 0.0) {
+		const double edge =
+			end.y + std::copysign(kCollisionDistance, delta_pose.y);
+		if (!clear(end.x - kSide, edge) || !clear(end.x + kSide, edge)) {
+			return true;
+		}
 	}
-
-	if (delta_pose.y > 0) {
-		py += kCollisionDistance;
-	}
-	else if (delta_pose.y < 0) {
-		py -= kCollisionDistance;
-	}
-
-	return map.IsBlocked(vector2d{px, py});
+	return false;
 }
 
 vector2d PushOutOf(const vector2d& centre, double solid, const vector2d& from,

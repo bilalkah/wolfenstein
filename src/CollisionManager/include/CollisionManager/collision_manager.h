@@ -22,8 +22,8 @@ namespace wolfenstein {
 // How close a character's centre may come to a wall
 inline constexpr double kCollisionDistance = 0.2;
 
-// Whether moving from pose in the direction of delta_pose would bring a
-// character within kCollisionDistance of a wall
+// Whether moving from pose by delta_pose would bring a character's body (a
+// square kCollisionDistance each way) into a wall, corners included
 bool CheckWallCollision(const Map& map, const vector2d& pose,
 						const vector2d& delta_pose);
 
