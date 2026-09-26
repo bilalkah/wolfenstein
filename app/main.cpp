@@ -10,6 +10,7 @@
  */
 
 #include "Core/game.h"
+#include <algorithm>
 #include <cstdlib>
 #include <string_view>
 
@@ -18,11 +19,24 @@ int main(int argc, char** argv) {
 	GeneralConfig config(1200, 900, 0, 20, 120, 15.0, ToRadians(60.0), false);
 
 	Game game(config);
+	// --debug (anywhere): P shows the whole level in 2D, enemies and all
+	for (int i = 1; i < argc; ++i) {
+		if (std::string_view(argv[i]) == "--debug") {
+			game.EnableDebugView();
+		}
+	}
 	// --benchmark [frames]: run the performance benchmark instead of the game
 	if (argc > 1 && std::string_view(argv[1]) == "--benchmark") {
 		constexpr int kDefaultFrames = 2000;
 		const int frames = argc > 2 ? std::atoi(argv[2]) : 0;
 		game.StartBenchmark(frames > 0 ? frames : kDefaultFrames);
+	}
+	// --soak [frames]: play a scripted session and report the allocations
+	// made after startup (there must be none)
+	else if (argc > 1 && std::string_view(argv[1]) == "--soak") {
+		constexpr int kMinimumFrames = 1000;
+		const int frames = argc > 2 ? std::atoi(argv[2]) : 0;
+		game.StartSoak(std::max(frames, kMinimumFrames));
 	}
 	game.Run();
 

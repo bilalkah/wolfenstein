@@ -13,6 +13,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_video.h>
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cmath>
@@ -30,10 +31,18 @@ namespace wolfenstein {
 
 namespace {
 
-constexpr int kGameOverTexture = 10;
-constexpr int kWinTexture = 11;
 // Time between the end of a level (or death) and what follows it
 constexpr double kEndOfLevelDelay = 2.0;
+// A cleared level: a moment to take it in, then a fade to black, the next
+// level built at black, and a fade back in under its title
+constexpr double kClearedPause = 1.0;
+constexpr double kFadeOutSeconds = 0.8;
+constexpr double kFadeInSeconds = 1.0;
+// The level's title stays up a little longer than the fade, then fades too
+constexpr double kBannerSeconds = 2.4;
+constexpr double kBannerFadeSeconds = 0.6;
+// Frames the soak session spends at the main menu before starting a game
+constexpr int kSoakMenuFrames = 60;
 
 }  // namespace
 
@@ -48,14 +57,14 @@ Game::Game(GeneralConfig& config) : config_(config) {
 void Game::Init() {
 	Camera2DConfig camera_config = {config_.screen_width, config_.fov,
 									config_.view_distance};
-	camera_ = std::make_shared<Camera2D>(camera_config);
+	camera_ = std::make_unique<Camera2D>(camera_config);
 
 	RenderConfig render_config = {config_.screen_width, config_.screen_height,
 								  config_.padding,		config_.scale,
 								  config_.fps,			config_.view_distance,
 								  config_.fov,			config_.fullscreen};
 
-	renderer_context_ = std::make_shared<RendererContext>(
+	renderer_context_ = std::make_unique<RendererContext>(
 		"Wolfenstein", render_config, *camera_);
 	auto world = World::Create(renderer_context_->Textures(), RESOURCE_DIR);
 	if (!world) {
@@ -63,9 +72,14 @@ void Game::Init() {
 		std::exit(EXIT_FAILURE);
 	}
 	world_ = std::move(*world);
-	menu_ = std::make_unique<Menu>(renderer_context_, world_->Sound());
-	renderer_3d_ = std::make_unique<Renderer3D>(renderer_context_);
-	renderer_2d_ = std::make_unique<Renderer2D>(renderer_context_);
+	// Room for the largest level's objects, so switching levels does not
+	// grow the camera's per-object views
+	camera_->ReserveViews(world_->LargestLevelObjects());
+	menu_ = std::make_unique<Menu>(*renderer_context_, world_->Sound(),
+								   world_->Config().weapons);
+	renderer_3d_ = std::make_unique<Renderer3D>(*renderer_context_);
+	renderer_2d_ = std::make_unique<Renderer2D>(*renderer_context_);
+	minimap_ = std::make_unique<Minimap>(*renderer_context_);
 	ApplySettings();
 }
 
@@ -74,23 +88,29 @@ void Game::Init() {
 void Game::ShowLevel() {
 	renderer_3d_->SetScene(world_->CurrentLevel());
 	renderer_2d_->SetScene(world_->CurrentLevel());
+	minimap_->SetScene(world_->CurrentLevel());
 	// Loading is not a frame: the next frame starts timing from here
 	clock_.Restart();
 	step_.Reset();
 }
 
-void Game::NewGame(const std::string& weapon_name) {
-	if (auto started = world_->NewGame(weapon_name); !started) {
+void Game::NewGame(std::string_view weapon_name, std::string_view level) {
+	if (auto started = world_->NewGame(weapon_name, level); !started) {
 		std::cerr << "Cannot start a game: " << started.error() << '\n';
 		std::exit(EXIT_FAILURE);
 	}
 	render_type_ = RenderType::TEXTURE;
 	renderer_ = renderer_3d_.get();
+	map_expanded_ = false;
 	ShowLevel();
 
 	renderer_result_.reset();
-	level_transition_time_ = 0.0;
 	result_delay_time_ = 0.0;
+	cleared_time_ = 0.0;
+	// A new game fades in under the first level's title; the benchmark
+	// measures the plain game from its first frame
+	fade_ = IsBenchmark() ? Fade::None : Fade::In;
+	fade_time_ = 0.0;
 }
 
 void Game::EnterPlaying() {
@@ -150,7 +170,7 @@ void Game::StartBenchmark(int frames) {
 	const auto load_start = std::chrono::steady_clock::now();
 	const auto load_allocations = AllocationStats::count;
 	const auto load_bytes = AllocationStats::bytes;
-	NewGame("mp5");
+	NewGame("mp5", world_->Config().benchmark_level);
 	const std::chrono::duration<double, std::milli> load_time =
 		std::chrono::steady_clock::now() - load_start;
 	Profiler::GetInstance().AddStartupTime(load_time.count());
@@ -158,6 +178,155 @@ void Game::StartBenchmark(int frames) {
 		load_time.count(), AllocationStats::count - load_allocations,
 		AllocationStats::bytes - load_bytes);
 	state_ = GameState::Playing;
+}
+
+// Plays a scripted session through everything a player can reach once a
+// game has started, and reports every allocation it makes: there must be
+// none. Like a player, it starts at the main menu; startup and the menu
+// before the first game (when, on the web, the audio device makes its first
+// callbacks) are not counted.
+void Game::StartSoak(int frames) {
+	soak_frames_ = frames + kSoakMenuFrames;
+	clock_.SetFixedDeltaTime(1.0 / 60.0);
+	state_ = GameState::Menu;
+	menu_->Open(MenuScreen::Main);
+}
+
+// The session, by frame. Each step drives the game through the same calls a
+// player's input would; allocations are counted per phase
+void Game::SoakStep() {
+	struct Phase
+	{
+		int start;
+		const char* name;
+	};
+	static constexpr std::array<Phase, 11> kPhases = {{
+		{0, "play_3d"},
+		{90, "view_2d"},
+		{135, "map"},
+		{180, "pause"},
+		{240, "settings"},
+		{300, "play"},
+		{330, "pickup"},
+		{360, "level_transition"},
+		{700, "death"},
+		{900, "new_game"},
+		{960, "play_again"},
+	}};
+	// The main menu, then the player starts a game: counting begins there
+	if (soak_frame_ < kSoakMenuFrames) {
+		++soak_frame_;
+		return;
+	}
+	if (soak_frame_ == kSoakMenuFrames) {
+		soak_allocations_ = AllocationStats::count;
+		soak_bytes_ = AllocationStats::bytes;
+		HandleMenuAction(
+			{.type = MenuAction::Type::StartGame,
+			 .weapon = world_->Config().weapons.front().weapon_name});
+	}
+	const int frame = soak_frame_++ - kSoakMenuFrames;
+	if (soak_first_allocation_ < 0 &&
+		AllocationStats::count != soak_allocations_) {
+		// Allocated during the previous frame
+		soak_first_allocation_ = frame - 1;
+	}
+	soak_max_level_ = std::max(soak_max_level_, world_->LevelNumber());
+	soak_saw_result_ = soak_saw_result_ || state_ == GameState::Result;
+	for (std::size_t i = 0; i < kPhases.size(); ++i) {
+		if (frame == kPhases[i].start) {
+			soak_phase_ = i;
+			soak_phase_start_[i] = AllocationStats::count;
+		}
+	}
+
+	if (frame == 90) {
+		render_type_ = RenderType::LINE;
+		renderer_ = renderer_2d_.get();
+	}
+	else if (frame == 135) {
+		// Back in 3D, with the map large (M)
+		render_type_ = RenderType::TEXTURE;
+		renderer_ = renderer_3d_.get();
+		map_expanded_ = true;
+	}
+	else if (frame == 180) {
+		map_expanded_ = false;
+		Pause();
+	}
+	else if (frame == 240) {
+		menu_->Open(MenuScreen::Settings);
+	}
+	else if (frame > 240 && frame < 300) {
+		// Nudge a setting every frame: its value is redrawn as new text
+		SDL_Event right{};
+		right.type = SDL_KEYDOWN;
+		right.key.keysym.sym = SDLK_RIGHT;
+		menu_->HandleEvent(right);
+	}
+	else if (frame == 300) {
+		HandleMenuAction({.type = MenuAction::Type::Resume, .weapon = {}});
+	}
+	else if (frame == 330) {
+		// Hurt, the player steps onto the level's first pickup: taken next
+		// tick, with its sound and flash
+		Player& player = world_->GetPlayer();
+		const auto pickups = world_->CurrentLevel().GetPickups();
+		if (!pickups.empty()) {
+			player.DecreaseHealth(30.0);
+			player.SetPosition(Position2D(pickups.front()->GetPose(),
+										  player.GetPosition().theta));
+		}
+	}
+	else if (frame == 340) {
+		const auto pickups = world_->CurrentLevel().GetPickups();
+		soak_took_pickup_ = !pickups.empty() && pickups.front()->IsTaken();
+	}
+	else if (frame == 360) {
+		// As if every enemy were shot: the level is cleared and the game
+		// fades into the next one
+		Scene& level = world_->CurrentLevel();
+		for (Enemy* enemy : level.GetEnemies()) {
+			if (enemy->GetHealth() > 0) {
+				enemy->DecreaseHealth(enemy->GetHealth() + 1.0);
+				enemy->SetAttacked(true);
+				level.DecreaseAliveEnemies();
+			}
+		}
+	}
+	else if (frame == 700) {
+		world_->GetPlayer().DecreaseHealth(1000.0);
+	}
+	else if (frame == 900) {
+		HandleMenuAction(
+			{.type = MenuAction::Type::StartGame,
+			 .weapon = world_->Config().weapons.back().weapon_name});
+	}
+	else if (frame >= soak_frames_ - kSoakMenuFrames) {
+		std::cout << "SOAK_RESULT {\"frames\":" << frame
+				  << ",\"max_level\":" << soak_max_level_
+				  << ",\"saw_result\":" << (soak_saw_result_ ? "true" : "false")
+				  << ",\"took_pickup\":"
+				  << (soak_took_pickup_ ? "true" : "false")
+				  << ",\"first_allocating_frame\":" << soak_first_allocation_
+				  << ",\"allocations\":"
+				  << AllocationStats::count - soak_allocations_
+				  << ",\"bytes\":" << AllocationStats::bytes - soak_bytes_
+				  << ",\"phases\":{";
+		for (std::size_t i = 0; i < kPhases.size(); ++i) {
+			const std::uint64_t end = i + 1 < kPhases.size()
+										  ? soak_phase_start_[i + 1]
+										  : AllocationStats::count;
+			std::cout << (i > 0 ? "," : "") << '"' << kPhases[i].name
+					  << "\":" << end - soak_phase_start_[i];
+		}
+		std::cout << "}}\n" << std::flush;
+		running_ = false;
+	}
+}
+
+bool Game::IsScripted() const {
+	return IsBenchmark() || soak_frames_ > 0;
 }
 
 bool Game::IsBenchmark() const {
@@ -180,6 +349,9 @@ void Game::Run() {
 }
 
 bool Game::Tick() {
+	if (soak_frames_ > 0) {
+		SoakStep();
+	}
 	switch (state_) {
 		case GameState::Menu:
 			MenuTick();
@@ -227,7 +399,7 @@ void Game::PausedTick() {
 		return;
 	}
 	clock_.Tick();
-	renderer_->RenderScene(clock_.DeltaTime());
+	RenderView(1.0);
 	const auto action = menu_->Update(clock_.DeltaTime());
 	Present();
 	HandleMenuAction(action);
@@ -238,7 +410,9 @@ void Game::ResultTick() {
 		return;
 	}
 	clock_.Tick();
-	renderer_result_->Render(clock_.DeltaTime());
+	if (renderer_result_) {
+		renderer_result_->Render(clock_.DeltaTime());
+	}
 	const auto action = menu_->Update(clock_.DeltaTime());
 	Present();
 	HandleMenuAction(action);
@@ -261,8 +435,11 @@ void Game::GameTick() {
 		CheckGameOver();
 	}
 #ifndef __EMSCRIPTEN__
-	// In the browser requestAnimationFrame already paces the frames
-	clock_.SleepForHz(config_.fps);
+	// In the browser requestAnimationFrame already paces the frames; scripted
+	// runs step a fixed time and need no pacing
+	if (!IsScripted()) {
+		clock_.SleepForHz(config_.fps);
+	}
 #endif
 }
 
@@ -302,8 +479,8 @@ void Game::UpdateAndRender() {
 	clock_.Tick();
 	// The benchmark plays without input, so a run cannot depend on what the
 	// keyboard or mouse happen to do
-	world_->GetPlayer().SetCommand(IsBenchmark() ? PlayerCommand{}
-												 : SampleCommand());
+	world_->GetPlayer().SetCommand(IsScripted() ? PlayerCommand{}
+												: SampleCommand());
 
 	// The simulation advances in fixed ticks, whatever the frame rate, so
 	// the same commands always play out the same way. A long stall (a
@@ -318,10 +495,20 @@ void Game::UpdateAndRender() {
 	{
 		ScopedTimer timer(ProfileSection::Camera);
 		camera_->Update(world_->GetPlayer().GetRenderPosition(alpha), alpha);
+		camera_->ExploreView();
 	}
-	renderer_->RenderScene(clock_.DeltaTime());
+	RenderView(alpha);
+	DrawTransition();
 	ScopedTimer timer(ProfileSection::Present);
 	Present();
+}
+
+void Game::RenderView(double alpha) {
+	renderer_->RenderScene(clock_.DeltaTime());
+	if (render_type_ == RenderType::TEXTURE) {
+		minimap_->Render(world_->GetPlayer().GetRenderPosition(alpha),
+						 map_expanded_);
+	}
 }
 
 void Game::CheckGameEvent() {
@@ -331,7 +518,7 @@ void Game::CheckGameEvent() {
 			running_ = false;
 			return;
 		}
-		if (IsBenchmark()) {
+		if (IsScripted()) {
 			continue;
 		}
 		if (event.type == SDL_WINDOWEVENT &&
@@ -344,7 +531,10 @@ void Game::CheckGameEvent() {
 				Pause();
 				return;
 			}
-			if (event.key.keysym.sym == SDLK_p) {
+			if (event.key.keysym.sym == SDLK_m) {
+				map_expanded_ = !map_expanded_;
+			}
+			if (event.key.keysym.sym == SDLK_p && debug_view_) {
 				if (render_type_ == RenderType::TEXTURE) {
 					render_type_ = RenderType::LINE;
 					renderer_ = renderer_2d_.get();
@@ -360,7 +550,7 @@ void Game::CheckGameEvent() {
 #ifdef __EMSCRIPTEN__
 	// Browsers release the pointer lock on Esc without passing the key on, so
 	// losing the lock is what pauses the game there
-	if (!IsBenchmark()) {
+	if (!IsScripted()) {
 		EmscriptenPointerlockChangeEvent status;
 		if (emscripten_get_pointerlock_status(&status) ==
 			EMSCRIPTEN_RESULT_SUCCESS) {
@@ -378,28 +568,26 @@ void Game::CheckGameEvent() {
 void Game::CheckGameOver() {
 	const double delta_time = clock_.DeltaTime();
 	if (!world_->GetPlayer().IsAlive() && !renderer_result_) {
-		renderer_result_ = std::make_unique<RendererResult>(renderer_context_,
-															kGameOverTexture);
+		renderer_result_.emplace(
+			*renderer_context_,
+			renderer_context_->Textures().GetTextureId("game_over"));
 	}
 	if (world_->CurrentLevel().GetNumberOfAliveEnemies() == 0 &&
-		!renderer_result_) {
-		if (world_->HasNextLevel()) {
-			level_transition_time_ += delta_time;
-			if (level_transition_time_ >= kEndOfLevelDelay) {
-				if (auto next = world_->NextLevel(); !next) {
-					std::cerr << "Cannot load the next level: " << next.error()
-							  << '\n';
-					std::exit(EXIT_FAILURE);
-				}
-				ShowLevel();
-				level_transition_time_ = 0.0;
+		!renderer_result_ && fade_ != Fade::Out) {
+		cleared_time_ += delta_time;
+		if (cleared_time_ >= kClearedPause) {
+			if (world_->HasNextLevel()) {
+				fade_ = Fade::Out;
+				fade_time_ = 0.0;
+			}
+			else {
+				renderer_result_.emplace(
+					*renderer_context_,
+					renderer_context_->Textures().GetTextureId("win"));
 			}
 		}
-		else {
-			renderer_result_ = std::make_unique<RendererResult>(
-				renderer_context_, kWinTexture);
-		}
 	}
+	AdvanceTransition(delta_time);
 
 	if (renderer_result_) {
 		result_delay_time_ += delta_time;
@@ -408,6 +596,58 @@ void Game::CheckGameOver() {
 			SDL_SetRelativeMouseMode(SDL_FALSE);
 			menu_->Open(MenuScreen::Result);
 		}
+	}
+}
+
+// Moves the fade between levels on; at full black the next level replaces
+// the cleared one (built from data read at startup, so without a hitch)
+void Game::AdvanceTransition(double delta_time) {
+	if (fade_ == Fade::None) {
+		return;
+	}
+	fade_time_ += delta_time;
+	if (fade_ == Fade::Out && fade_time_ >= kFadeOutSeconds) {
+		if (auto next = world_->NextLevel(); !next) {
+			std::cerr << "Cannot load the next level: " << next.error() << '\n';
+			std::exit(EXIT_FAILURE);
+		}
+		ShowLevel();
+		cleared_time_ = 0.0;
+		fade_ = Fade::In;
+		fade_time_ = 0.0;
+	}
+	else if (fade_ == Fade::In && fade_time_ >= kBannerSeconds) {
+		fade_ = Fade::None;
+	}
+}
+
+// Draws the fade over the frame: black going up to full while the cleared
+// level fades out, then down again, with the next level's title, as it
+// fades in
+void Game::DrawTransition() {
+	if (fade_ == Fade::None) {
+		return;
+	}
+	double black = 0.0;
+	if (fade_ == Fade::Out) {
+		black = std::min(fade_time_ / kFadeOutSeconds, 1.0);
+	}
+	else {
+		black = std::max(1.0 - fade_time_ / kFadeInSeconds, 0.0);
+	}
+	SDL_Renderer* renderer = renderer_context_->GetRenderer();
+	if (black > 0.0) {
+		SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+		SDL_SetRenderDrawColor(renderer, 0, 0, 0,
+							   static_cast<Uint8>(std::lround(black * 255)));
+		SDL_RenderFillRect(renderer, nullptr);
+	}
+	if (fade_ == Fade::In) {
+		const double banner = std::clamp(
+			(kBannerSeconds - fade_time_) / kBannerFadeSeconds, 0.0, 1.0);
+		const ui::FixedText<16> title("LEVEL {}", world_->LevelNumber());
+		menu_->DrawLevelBanner(title, world_->LevelName(),
+							   static_cast<Uint8>(std::lround(banner * 255)));
 	}
 }
 
@@ -463,7 +703,7 @@ void Game::BenchmarkStep() {
 	if (profiler.GetFrameCount() >=
 		static_cast<std::size_t>(benchmark_frames_)) {
 		std::cout << "BENCHMARK_RESULT " << profiler.ReportJson(kWarmupFrames)
-				  << std::endl;
+				  << '\n';
 		running_ = false;
 	}
 }

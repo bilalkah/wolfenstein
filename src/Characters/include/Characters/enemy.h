@@ -24,16 +24,22 @@ namespace wolfenstein {
 
 class Scene;
 
-struct AnimationTime
-{
-	double idle_animation_speed{};
-};
-
+// How an enemy type behaves
 struct StateConfig
 {
-	AnimationTime animation_time;
-	double follow_range_max{};
-	double follow_range_min{};
+	double idle_frame_seconds{};  // how long each idle frame shows
+	double follow_range{};		  // how near the player must be to be chased
+};
+
+// An enemy type as config.json describes it
+struct EnemyConfig
+{
+	std::string type;  // names its animation clips: "<type>_walk"
+	double translation_speed{};
+	double width{};
+	double height{};
+	StateConfig behaviour;
+	SimpleWeaponConfig weapon;
 };
 
 // Pinned (not copyable or movable): its states point back to it. Lives in
@@ -42,7 +48,8 @@ struct StateConfig
 class Enemy : public ICharacter, public IGameObject
 {
   public:
-	Enemy(Scene& scene, std::string bot_name, CharacterConfig config);
+	// Placed at `position`, as a level file spawns it
+	Enemy(Scene& scene, const EnemyConfig& config, const Position2D& position);
 	Scene& GetScene() { return scene_; }
 	void Update(double delta_time) override;
 	void TransitionTo(EnemyStateType type);
@@ -64,14 +71,14 @@ class Enemy : public ICharacter, public IGameObject
 	ObjectType GetObjectType() const override;
 	vector2d GetPose() const override;
 	vector2d GetRenderPose(double alpha) const override;
-	Position2D GetPosition() const override;
+	const Position2D& GetPosition() const override { return position_; }
 	const std::string& GetBotName() const;
 	// Plays on the enemy's own channel, cutting off its previous sound
 	void PlaySound(SoundEffect effect);
 	int GetTextureId() const override;
 	double GetWidth() const override;
 	double GetHeight() const override;
-	StateConfig GetStateConfig() const;
+	const StateConfig& GetStateConfig() const { return config_.behaviour; }
 	const Ray& GetCrosshairRay() const;
 	const SimpleWeapon& GetWeapon() const;
 
@@ -88,8 +95,8 @@ class Enemy : public ICharacter, public IGameObject
 	Position2D position_;
 	vector2d next_pose;
 	vector2d previous_pose_;
-	StateConfig state_config_;
-	std::string bot_name_;
+	// Borrowed from the game config, which outlives every enemy
+	const EnemyConfig& config_;
 	SoundChannel sound_channel_;
 	Ray crosshair_ray;
 	EnemyState& StateFor(EnemyStateType type);

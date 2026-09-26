@@ -7,6 +7,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <iostream>
 namespace wolfenstein {
 
@@ -36,37 +37,26 @@ void Renderer3D::TextureDeleter::operator()(
 	SDL_DestroyTexture(texture);
 }
 
-Renderer3D::Renderer3D(std::shared_ptr<RendererContext> context)
-	: IRenderer(std::move(context)) {
+Renderer3D::Renderer3D(RendererContext& context) : IRenderer(context) {
 	// One command per wall column (2 px wide), plus objects and the weapon
 	constexpr std::size_t kExtraCommands = 64;
 	render_queue_.reserve(
 		static_cast<std::size_t>(context_->GetConfig().width) / 2 +
 		kExtraCommands);
 	hud_digits_ = context_->Textures().GetTextureCollection("digits");
-
-	// SDL queues draw calls, and grows its command pool and vertex buffer
-	// whenever a frame queues more of them than any frame before: the first
-	// frame with more sprites in view than ever allocated inside SDL. A frame
-	// and a half's worth of copies here grows both once, at load time (they
-	// keep their capacity). The copies land in the back buffer, which the
-	// next frame clears.
-	auto* renderer = context_->GetRenderer();
-	const auto& warm_up = context_->Textures().GetTexture(hud_digits_[0]);
-	const SDL_Rect pixel{0, 0, 1, 1};
-	for (std::size_t i = 0; i < render_queue_.capacity() * 3 / 2; ++i) {
-		SDL_RenderCopy(renderer, warm_up.texture, &pixel, &pixel);
-	}
-	SDL_RenderFlush(renderer);
+	sky_texture_ = context_->Textures().GetTextureId("sky");
+	far_texture_ = context_->Textures().GetTextureId("solid_black");
+	crosshair_texture_ = context_->Textures().GetTextureId("crosshair");
+	damage_texture_ = context_->Textures().GetTextureId("damage_taken");
 
 	const SDL_Color white{255, 255, 255, 255};
 	for (int digit = 0; digit < 10; ++digit) {
-		const char text[] = {static_cast<char>('0' + digit), '\0'};
+		const std::array<char, 2> text{static_cast<char>('0' + digit), '\0'};
 		SDL_Surface* surface =
-			TTF_RenderText_Solid(context_->GetFont(), text, white);
+			TTF_RenderText_Solid(context_->GetFont(), text.data(), white);
 		if (surface == nullptr) {
 			std::cerr << "Failed to render FPS digit: " << TTF_GetError()
-					  << std::endl;
+					  << '\n';
 			continue;
 		}
 		auto& glyph = fps_digits_[static_cast<std::size_t>(digit)];
@@ -75,7 +65,12 @@ Renderer3D::Renderer3D(std::shared_ptr<RendererContext> context)
 		glyph.width = surface->w;
 		glyph.height = surface->h;
 		SDL_FreeSurface(surface);
+		// Drawn once now, so its first draw in play costs nothing extra
+		const SDL_Rect pixel{0, 0, 1, 1};
+		SDL_RenderCopy(context_->GetRenderer(), glyph.texture.get(), nullptr,
+					   &pixel);
 	}
+	SDL_RenderFlush(context_->GetRenderer());
 }
 
 void Renderer3D::Enqueue(int texture_id, const SDL_Rect& src_rect,
@@ -107,10 +102,10 @@ void Renderer3D::RenderScene(double delta_time) {
 }
 
 void Renderer3D::RenderBackground() {
-	const auto config = context_->GetConfig();
+	const auto& config = context_->GetConfig();
 	auto renderer_ = context_->GetRenderer();
 	// Render sky
-	auto sky_texture = context_->Textures().GetTexture(0);
+	const auto& sky_texture = context_->Textures().GetTexture(sky_texture_);
 	SDL_Rect src_rect = {0, 0, sky_texture.width, sky_texture.height};
 	SDL_Rect dest_rect = {0, 0, config.width, config.height / 2};
 	SDL_RenderCopy(renderer_, sky_texture.texture, &src_rect, &dest_rect);
@@ -146,25 +141,27 @@ void Renderer3D::RenderIfRayHit(const int& horizontal_slice, const Ray& ray) {
 
 	auto hit_point = ray.is_hit_vertical ? ray.hit_point.y : ray.hit_point.x;
 	hit_point = std::fmod(hit_point, 1.0);
-	const auto texture_height =
-		context_->Textures().GetTexture(ray.wall_id).height;
-	const auto texture_width =
-		context_->Textures().GetTexture(ray.wall_id).width;
+	// A wall ray's id is the map cell it hit; the manifest gives its texture
+	const int wall_texture = context_->Textures().GetWallTexture(ray.wall_id);
+	const auto& texture = context_->Textures().GetTexture(wall_texture);
+	const auto texture_height = texture.height;
+	const auto texture_width = texture.width;
 	int texture_point = static_cast<int>(hit_point * texture_width);
 
 	SDL_Rect src_rect = {texture_point, 0, 2, texture_height};
 	SDL_Rect dest_rect = {horizontal_slice, draw_start, 2, line_height};
-	Enqueue(ray.wall_id, src_rect, dest_rect, distance);
+	Enqueue(wall_texture, src_rect, dest_rect, distance);
 }
 
 void Renderer3D::RenderIfRayHitNot(const int& horizontal_slice) {
-	const auto config_ = context_->GetConfig();
+	const auto& config_ = context_->GetConfig();
 	const auto [line_height, draw_start, draw_end] =
 		CalculateVerticalSlice(config_.view_distance);
 
-	SDL_Rect src_rect = {0, 0, 2, context_->Textures().GetTexture(7).height};
+	SDL_Rect src_rect = {0, 0, 2,
+						 context_->Textures().GetTexture(far_texture_).height};
 	SDL_Rect dest_rect = {horizontal_slice, draw_start, 2, line_height};
-	Enqueue(7, src_rect, dest_rect, config_.view_distance);
+	Enqueue(far_texture_, src_rect, dest_rect, config_.view_distance);
 }
 
 void Renderer3D::RenderObjects() {
@@ -179,6 +176,12 @@ void Renderer3D::RenderObjects() {
 
 		const Ray& first = rays->first;
 		const Ray& last = rays->second;
+		// A sprite the viewer stands in (lights do not block movement) would
+		// cover the screen: it is not drawn
+		constexpr double kNearestSprite = 0.25;
+		if (first.perpendicular_distance < kNearestSprite) {
+			continue;
+		}
 
 		auto [line_height, draw_start, draw_end] =
 			CalculateVerticalSlice(first.perpendicular_distance);
@@ -207,7 +210,7 @@ void Renderer3D::RenderObjects() {
 
 int Renderer3D::CalculateHorizontalSlice(const double& angle) {
 	const auto& camera_ptr = context_->GetCamera();
-	const auto config_ = context_->GetConfig();
+	const auto& config_ = context_->GetConfig();
 	const auto horizontal_slice =
 		static_cast<int>(angle / camera_ptr.GetDeltaAngle()) * 2 +
 		config_.width / 2;
@@ -217,8 +220,15 @@ int Renderer3D::CalculateHorizontalSlice(const double& angle) {
 
 std::tuple<int, int, int> Renderer3D::CalculateVerticalSlice(
 	const double& distance) {
-	const auto config_ = context_->GetConfig();
-	auto line_height = static_cast<int>(config_.height / distance);
+	const auto& config_ = context_->GetConfig();
+	// Near zero distance the height tends to infinity, and converting that to
+	// an int is undefined: clamp the distance and the result
+	constexpr double kNearest = 0.01;
+	constexpr double kTallest = 32.0;  // screen heights
+	const double height =
+		std::min(config_.height / std::max(distance, kNearest),
+				 config_.height * kTallest);
+	auto line_height = static_cast<int>(height);
 	int draw_start = -line_height / 2 + config_.height / 2;
 	int draw_end = line_height / 2 + config_.height / 2;
 	return std::make_tuple(line_height, draw_start, draw_end);
@@ -226,10 +236,11 @@ std::tuple<int, int, int> Renderer3D::CalculateVerticalSlice(
 
 void Renderer3D::RenderWeapon() {
 	const auto& player_ptr = scene_->GetPlayer();
-	const auto config_ = context_->GetConfig();
+	const auto& config_ = context_->GetConfig();
 
 	// Render crosshair
-	auto crosshair_texture = context_->Textures().GetTexture(6);
+	const auto& crosshair_texture =
+		context_->Textures().GetTexture(crosshair_texture_);
 	const auto crosshair_height = crosshair_texture.height;
 	const auto crosshair_width = crosshair_texture.width;
 	SDL_Rect crosshair_src_rect{0, 0, crosshair_width, crosshair_height};
@@ -242,7 +253,7 @@ void Renderer3D::RenderWeapon() {
 		config_.width / 2 - crosshair_width_slice / 2,
 		config_.height / 2 - crosshair_height_slice / 2, crosshair_width_slice,
 		crosshair_height_slice};
-	Enqueue(6, crosshair_src_rect, crosshair_dest_rect, 0.0);
+	Enqueue(crosshair_texture_, crosshair_src_rect, crosshair_dest_rect, 0.0);
 
 	auto texture_id = player_ptr.GetTextureId();
 	const auto texture_height =
@@ -260,14 +271,13 @@ void Renderer3D::RenderWeapon() {
 
 	// Check if player is damaged
 	if (player_ptr.IsDamaged()) {
-		auto& damage_texture =
-			context_->Textures().GetTexture(player_ptr.GetDamageTextureId());
+		auto& damage_texture = context_->Textures().GetTexture(damage_texture_);
 		SDL_Rect damage_src_rect{0, 0, damage_texture.width,
 								 damage_texture.height};
 		SDL_Rect damage_dest_rect{0, 0, config_.width, config_.height};
 		SDL_SetTextureAlphaMod(damage_texture.texture,
 							   player_ptr.GetDamageAlpha());
-		Enqueue(9, damage_src_rect, damage_dest_rect, -1.0);
+		Enqueue(damage_texture_, damage_src_rect, damage_dest_rect, -1.0);
 	}
 }
 
@@ -292,22 +302,34 @@ void Renderer3D::RenderTextures() {
 
 void Renderer3D::RenderHUD(double delta_time) {
 	const auto& player = scene_->GetPlayer();
-	const auto config = context_->GetConfig();
+	const auto& config = context_->GetConfig();
 	auto& textures = context_->Textures();
 	const int digit_width = config.width / 40;
 
-	const auto draw_digit = [&](int digit, int x) {
+	// Digits stand on the same baseline, `width` wide
+	const auto draw_digit = [&](int digit, int x, int width) {
 		const auto& texture =
 			textures.GetTexture(hud_digits_[static_cast<std::size_t>(digit)]);
 		const double ratio =
 			static_cast<double>(texture.height) / texture.width;
-		const int height = static_cast<int>(digit_width * ratio);
+		const int height = static_cast<int>(width * ratio);
 		const SDL_Rect src_rect{0, 0, texture.width, texture.height};
-		const SDL_Rect dest_rect{x, config.height - height - 10, digit_width,
-								 height};
+		const SDL_Rect dest_rect{x, config.height - height - 10, width, height};
 		SDL_RenderCopy(context_->GetRenderer(), texture.texture, &src_rect,
 					   &dest_rect);
 	};
+
+	// A gold flash over the view after taking a pickup
+	if (const std::uint8_t alpha = player.GetPickupAlpha(); alpha > 0) {
+		SDL_Renderer* renderer = context_->GetRenderer();
+		SDL_BlendMode previous = SDL_BLENDMODE_NONE;
+		SDL_GetRenderDrawBlendMode(renderer, &previous);
+		SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+		SDL_SetRenderDrawColor(renderer, 255, 208, 96, alpha);
+		const SDL_Rect screen{0, 0, config.width, config.height};
+		SDL_RenderFillRect(renderer, &screen);
+		SDL_SetRenderDrawBlendMode(renderer, previous);
+	}
 
 	std::array<int, 10> digits{};
 
@@ -316,16 +338,25 @@ void Renderer3D::RenderHUD(double delta_time) {
 		ToDigits(std::max(0, static_cast<int>(player.GetHealth())), digits);
 	int x = config.width / 40;
 	for (std::size_t i = 0; i < health_digits; ++i, x += digit_width) {
-		draw_digit(digits[i], x);
+		draw_digit(digits[i], x, digit_width);
 	}
-	draw_digit(kPercentDigit, x);
+	draw_digit(kPercentDigit, x, digit_width);
 
-	// Ammo, bottom right, drawn right to left
-	const std::size_t ammo_digits =
-		ToDigits(static_cast<int>(player.GetWeapon().GetAmmo()), digits);
+	// Ammo, bottom right, drawn right to left: the rounds in reserve in
+	// smaller digits, then those in the magazine
+	const Weapon& weapon = player.GetWeapon();
+	const int reserve_width = digit_width * 3 / 5;
+	const std::size_t reserve_digits =
+		ToDigits(static_cast<int>(weapon.GetReserve()), digits);
 	x = config.width - config.width / 30;
+	for (std::size_t i = reserve_digits; i-- > 0; x -= reserve_width) {
+		draw_digit(digits[i], x, reserve_width);
+	}
+	x -= digit_width;
+	const std::size_t ammo_digits =
+		ToDigits(static_cast<int>(weapon.GetAmmo()), digits);
 	for (std::size_t i = ammo_digits; i-- > 0; x -= digit_width) {
-		draw_digit(digits[i], x);
+		draw_digit(digits[i], x, digit_width);
 	}
 
 	if (Settings::Get().show_fps) {

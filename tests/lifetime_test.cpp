@@ -14,8 +14,8 @@ namespace wolfenstein {
 namespace {
 
 TEST(Lifetime, WeaponIsDestroyedWithItsLastOwner) {
-	auto weapon = std::make_shared<Weapon>("mp5", testing::TestTextures(),
-										   testing::TestSound());
+	auto weapon = std::make_shared<Weapon>(
+		testing::Weapon("mp5"), testing::TestTextures(), testing::TestSound());
 	weapon->Reload();  // switch state once, as in play
 	const std::weak_ptr<Weapon> observer = weapon;
 
@@ -32,17 +32,20 @@ Map RoomMap() {
 }
 
 TEST(Lifetime, EnemiesLiveInTheLevelArena) {
-	Scene scene(testing::TestTextures(), testing::TestSound(), RoomMap(),
-				SceneCapacity{.enemies = 2});
+	const Map map = RoomMap();
+	constexpr SceneCapacity kCapacity{.enemies = 2};
+	memory::MonotonicArena arena(Scene::MemoryFor(map, kCapacity));
+	Scene scene(testing::TestTextures(), testing::TestSound(), map, kCapacity,
+				arena);
 	const std::size_t before = scene.LevelMemory().Used();
-	const CharacterConfig config(Position2D({2.5, 2.5}, 0.0), 1.0, 1.0, 0.5,
-								 0.5);
-	ASSERT_TRUE(scene.AddEnemy("soldier", config));
-	ASSERT_TRUE(scene.AddEnemy("soldier", config));
+	const EnemyConfig& soldier = testing::Enemy("soldier");
+	const Position2D spawn({2.5, 2.5}, 0.0);
+	ASSERT_TRUE(scene.AddEnemy(soldier, spawn));
+	ASSERT_TRUE(scene.AddEnemy(soldier, spawn));
 	EXPECT_EQ(scene.GetEnemies().size(), 2u);
 	EXPECT_EQ(scene.LevelMemory().Used(), before);	// storage reserved up front
 
-	const auto third = scene.AddEnemy("soldier", config);
+	const auto third = scene.AddEnemy(soldier, spawn);
 	ASSERT_FALSE(third.has_value());
 	EXPECT_EQ(third.error(), memory::PoolError::Full);
 }
@@ -51,11 +54,13 @@ TEST(Lifetime, EnemiesLiveInTheLevelArena) {
 // come out of the same arena, which was sized for them, so building them
 // neither throws nor touches the heap for them
 TEST(Lifetime, NavigationLivesInTheLevelArena) {
-	Scene scene(testing::TestTextures(), testing::TestSound(), RoomMap(),
-				SceneCapacity{.enemies = 1});
-	ASSERT_TRUE(scene.AddEnemy(
-		"soldier",
-		CharacterConfig(Position2D({1.5, 1.5}, 0.0), 1.0, 1.0, 0.4, 0.4)));
+	const Map map = RoomMap();
+	constexpr SceneCapacity kCapacity{.enemies = 1};
+	memory::MonotonicArena arena(Scene::MemoryFor(map, kCapacity));
+	Scene scene(testing::TestTextures(), testing::TestSound(), map, kCapacity,
+				arena);
+	ASSERT_TRUE(
+		scene.AddEnemy(testing::Enemy("soldier"), Position2D({1.5, 1.5}, 0.0)));
 	const std::size_t before = scene.LevelMemory().Used();
 	scene.FinishLoading();
 	EXPECT_GT(scene.LevelMemory().Used(), before);

@@ -11,4 +11,6 @@ target_link_libraries(
     PUBLIC
     wolfenstein::sdl2
     wolfenstein::sdl2_image
+    PRIVATE
+    nlohmann_json::nlohmann_json
 )

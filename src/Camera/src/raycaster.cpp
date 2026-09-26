@@ -93,7 +93,7 @@ void PrepareRay(const Position2D& position, const double ray_theta, Ray& ray,
 }  // namespace
 
 void RayCaster::Update(const Map& map, const Position2D& position,
-					   RayVector& rays) {
+					   RayVector& rays) const {
 	const auto cells = map.GetCells();
 	double ray_theta = position.theta - (fov_ / 2);
 	for (auto& ray : rays) {

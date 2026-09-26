@@ -12,7 +12,7 @@
 #ifndef COLLISION_MANAGER_INCLUDE_COLLISION_MANAGER_H
 #define COLLISION_MANAGER_INCLUDE_COLLISION_MANAGER_H
 
-#include "Map/map.h"
+#include "GameMap/map.h"
 #include "Math/vector.h"
 
 namespace wolfenstein {

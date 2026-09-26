@@ -48,6 +48,9 @@ class NavigationManager
 	// Refers to its scene
 	NavigationManager(const NavigationManager&) = delete;
 	NavigationManager& operator=(const NavigationManager&) = delete;
+	NavigationManager(NavigationManager&&) = delete;
+	NavigationManager& operator=(NavigationManager&&) = delete;
+	~NavigationManager() = default;
 
 	// Builds the pathfinding grid from the scene's map and sizes the per-enemy
 	// routes; call once the level's map and objects are in place

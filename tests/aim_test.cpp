@@ -17,17 +17,21 @@ constexpr double kFacingDown = std::numbers::pi / 2;  // towards +y
 class AimTest : public ::testing::Test
 {
   protected:
+	static constexpr SceneCapacity kCapacity{.enemies = 1};
+
 	explicit AimTest(std::initializer_list<const char*> rows = {"3333333",
 																"3000003",
 																"3333333"})
-		: scene_(testing::TestTextures(), testing::TestSound(),
-				 Map(testing::WriteMapFile("wolfenstein_aim_test.txt", rows)
-						 .string()),
-				 SceneCapacity{.enemies = 1}) {
-		EXPECT_TRUE(scene_.AddEnemy(
-			"soldier",
-			CharacterConfig(Position2D({1.5, 5.5}, 0.0), 1.0, 1.0, 0.4, 0.4)));
+		: map_(
+			  testing::WriteMapFile("wolfenstein_aim_test.txt", rows).string()),
+		  arena_(Scene::MemoryFor(map_, kCapacity)),
+		  scene_(testing::TestTextures(), testing::TestSound(), map_, kCapacity,
+				 arena_) {
+		EXPECT_TRUE(scene_.AddEnemy(testing::Enemy("soldier"),
+									Position2D({1.5, 5.5}, 0.0)));
 	}
+	Map map_;
+	memory::MonotonicArena arena_;
 	Scene scene_;
 };
 
@@ -40,6 +44,25 @@ TEST_F(AimTest, HitsTheEnemyInTheLineOfFire) {
 
 TEST_F(AimTest, MissesWhenAimingAside) {
 	EXPECT_FALSE(Aim(scene_, Position2D({1.5, 1.5}, kFacingDown + 0.5)).is_hit);
+}
+
+// Shot dead, an enemy falls for a while (pain, then its death) before it
+// stops being alive. Shots at it meanwhile must not count it again: a count
+// below zero wrapped round, and the level never ended.
+TEST_F(AimTest, AFallingEnemyIsKilledOnce) {
+	const Weapon weapon(testing::Weapon("mp5"), testing::TestTextures(),
+						testing::TestSound());
+	const Position2D eye({1.5, 1.5}, kFacingDown);
+	ASSERT_EQ(scene_.GetNumberOfAliveEnemies(), 1u);
+	for (int shot = 0; shot < 40; ++shot) {	 // many more than it takes
+		ResolvePlayerShot(scene_, weapon, eye);
+	}
+	const Enemy& enemy = *scene_.GetEnemies().front();
+	EXPECT_LE(enemy.GetHealth(), 0.0);
+	EXPECT_TRUE(enemy.IsAlive());  // still falling: no update ran
+	EXPECT_EQ(scene_.GetNumberOfAliveEnemies(), 0u);
+	// Shots pass through it now
+	EXPECT_FALSE(Aim(scene_, eye).is_hit);
 }
 
 class AimThroughWallTest : public AimTest

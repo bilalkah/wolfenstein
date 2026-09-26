@@ -19,32 +19,37 @@
 
 namespace wolfenstein {
 
-// An enemy's weapon: its stats and what its crosshair currently points at.
-// A plain value its enemy holds; firing is ResolveEnemyShot's job.
+// An enemy weapon as config.json describes it
+struct SimpleWeaponConfig
+{
+	std::string weapon_name;
+	std::pair<double, double> attack_damage;  // at point blank, at range
+	double attack_range{};
+	double attack_speed{};
+	double attack_rate{};
+};
+
+// An enemy's weapon: its stats (borrowed from the config) and what its
+// crosshair currently points at. Its enemy holds it by value; firing is
+// ResolveEnemyShot's job.
 class SimpleWeapon
 {
   public:
-	// The weapon an enemy type carries; exits for an unknown type
-	static SimpleWeapon ForEnemy(std::string_view enemy_type);
+	explicit SimpleWeapon(const SimpleWeaponConfig& config);
 
 	void SetCrosshairRay(const Ray& ray) { crosshair_ray_ = ray; }
-	std::pair<double, double> GetAttackDamage() const { return attack_damage_; }
-	double GetAttackRange() const { return attack_range_; }
-	double GetAttackSpeed() const { return attack_speed_; }
-	double GetAttackRate() const { return attack_rate_; }
+	std::pair<double, double> GetAttackDamage() const {
+		return config_->attack_damage;
+	}
+	double GetAttackRange() const { return config_->attack_range; }
+	double GetAttackSpeed() const { return config_->attack_speed; }
+	double GetAttackRate() const { return config_->attack_rate; }
 	const Ray& GetCrosshair() const { return crosshair_ray_; }
-	const std::string& GetWeaponName() const { return weapon_name_; }
+	const std::string& GetWeaponName() const { return config_->weapon_name; }
 
   private:
-	SimpleWeapon(std::string weapon_name,
-				 std::pair<double, double> attack_damage, double attack_range,
-				 double attack_speed, double attack_rate);
-
-	std::string weapon_name_;
-	std::pair<double, double> attack_damage_;  // at point blank, at range
-	double attack_range_{};
-	double attack_speed_{};
-	double attack_rate_{};
+	// Borrowed from the game config, which outlives every enemy
+	const SimpleWeaponConfig* config_;
 	Ray crosshair_ray_;
 };
 

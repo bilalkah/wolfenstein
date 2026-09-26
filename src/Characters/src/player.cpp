@@ -11,8 +11,8 @@
 
 namespace wolfenstein {
 
-Player::Player(CharacterConfig& config, std::shared_ptr<Weapon> weapon,
-			   SoundManager& sound)
+Player::Player(CharacterConfig& config, const WeaponConfig& weapon,
+			   const TextureManager& textures, SoundManager& sound)
 	: translation_speed_(config.translation_speed),
 	  width_(config.width),
 	  height_(config.height),
@@ -21,32 +21,21 @@ Player::Player(CharacterConfig& config, std::shared_ptr<Weapon> weapon,
 	  sound_channel_(sound.AllocateChannel()),
 	  position_(config.initial_position),
 	  previous_position_(config.initial_position),
-	  damage_animation_(9, 1) {
-	SetWeapon(std::move(weapon));
-}
+	  weapon_(weapon, textures, sound),
+	  damage_animation_(1.0),
+	  pickup_animation_(3.0, 80, 0) {}
 
 void Player::Update(double delta_time) {
-
-	// One health point per second; a member, not a function-local static,
-	// so a new game does not inherit the last one's timer
-	regen_time_ += delta_time;
-	if (regen_time_ >= 1.0) {
-		regen_time_ = 0.0;
-		IncreaseHealth(1);
-	}
 	previous_position_ = position_;
+	pickup_animation_.Update(delta_time);
 	if (!is_alive_) {
 		return;
 	}
 	ShootOrReload();
-	weapon_->Update(delta_time);
+	weapon_.Update(delta_time);
 	Move(delta_time);
 	Rotate(delta_time);
 	damage_animation_.Update(delta_time);
-}
-
-void Player::SetWeapon(std::shared_ptr<Weapon> weapon) {
-	weapon_ = std::move(weapon);
 }
 
 void Player::SetPose(const vector2d& pose) {
@@ -86,27 +75,36 @@ double Player::GetHealth() const {
 	return health_;
 }
 
-Position2D Player::GetPosition() const {
-	return position_;
-}
-
 Position2D Player::GetRenderPosition(double alpha) const {
 	return Interpolate(previous_position_, position_, alpha);
 }
 
 int Player::GetTextureId() const {
-	return weapon_->GetTextureId();
+	return weapon_.GetTextureId();
 }
-
-int Player::GetDamageTextureId() const {
-	return damage_animation_.GetCurrentFrame();
-};
 
 double Player::GetWidth() const {
 	return width_;
 }
 double Player::GetHeight() const {
 	return height_;
+}
+
+bool Player::TryPickUp(const PickupEffect& effect) {
+	bool taken = false;
+	if (effect.health > 0.0 && health_ < 100.0) {
+		IncreaseHealth(effect.health);
+		taken = true;
+	}
+	if (effect.ammo_boxes > 0 && weapon_.AddAmmoBoxes(effect.ammo_boxes)) {
+		taken = true;
+	}
+	if (taken) {
+		sound_.PlayEffect(sound_channel_, SoundEffect::Pickup);
+		picked_up_ = true;
+		pickup_animation_.Reset();
+	}
+	return taken;
 }
 
 bool Player::IsDamaged() const {
@@ -118,7 +116,7 @@ bool Player::IsAlive() const {
 }
 
 const Weapon& Player::GetWeapon() const {
-	return *weapon_;
+	return weapon_;
 }
 
 void Player::SetCommand(const PlayerCommand& command) {
@@ -154,10 +152,10 @@ void Player::Rotate(double delta_time) {
 
 void Player::ShootOrReload() {
 	if (command_.reload) {
-		weapon_->Reload();
+		weapon_.Reload();
 	}
-	if (command_.fire && weapon_->Attack()) {
-		ResolvePlayerShot(*scene_, *weapon_, position_);
+	if (command_.fire && weapon_.Attack()) {
+		ResolvePlayerShot(*scene_, weapon_, position_);
 	}
 }
 

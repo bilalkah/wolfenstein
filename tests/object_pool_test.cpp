@@ -1,6 +1,6 @@
-#include "Memory/object_pool.h"
-#include "Memory/asan.h"
-#include "Memory/monotonic_arena.h"
+#include "Allocators/object_pool.h"
+#include "Allocators/asan.h"
+#include "Allocators/monotonic_arena.h"
 #include <bit>
 #include <cstdint>
 #include <gtest/gtest.h>
@@ -109,7 +109,7 @@ TEST(ObjectPool, RespectsOverAlignedTypes) {
 
 // All of a pool's memory can come from a level arena
 TEST(ObjectPool, TakesItsStorageFromAnArena) {
-	MonotonicArena arena(64 * 1024);
+	MonotonicArena arena(std::size_t{64} * 1024);
 	int live = 0;
 	{
 		ObjectPool<Tracked> pool(100, &arena);

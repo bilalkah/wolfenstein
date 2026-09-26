@@ -2,6 +2,7 @@
 #include "State/state.h"
 #include "Strike/weapon.h"
 #include "test_services.h"
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <string>
 #include <vector>
@@ -13,7 +14,7 @@ struct TestOwner;
 template <>
 struct StateType<TestOwner>
 {
-	enum class Type { First, Second };
+	enum class Type : std::uint8_t { First, Second };
 };
 
 namespace {
@@ -106,7 +107,8 @@ TEST(StateMachine, EnteringAStateResetsIt) {
 // A weapon owns all of its states: reloading and returning to loaded switch
 // between them without touching the heap
 TEST(StateMachine, WeaponTransitionsDoNotAllocate) {
-	Weapon weapon("mp5", testing::TestTextures(), testing::TestSound());
+	Weapon weapon(testing::Weapon("mp5"), testing::TestTextures(),
+				  testing::TestSound());
 	const auto before = AllocationStats::count;
 	for (int i = 0; i < 100; ++i) {
 		weapon.Reload();

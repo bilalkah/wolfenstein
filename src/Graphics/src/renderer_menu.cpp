@@ -12,23 +12,9 @@ namespace wolfenstein {
 
 namespace {
 
-constexpr int kMenuBackgroundTexture = 8;
-
 constexpr int kButtonWidth = 420;
 constexpr int kButtonHeight = 72;
 constexpr int kButtonGap = 18;
-
-struct WeaponInfo
-{
-	const char* name;
-	const char* title;
-	const char* description;
-};
-
-constexpr std::array<WeaponInfo, 2> kWeapons = {{
-	{"mp5", "MP5", "Fast and steady. A big magazine, lighter hits."},
-	{"shotgun", "SHOTGUN", "Two shells, devastating up close."},
-}};
 
 // A column of equally sized buttons centred horizontally, starting at top
 SDL_Rect ButtonRect(int screen_width, int top, int index) {
@@ -39,15 +25,38 @@ SDL_Rect ButtonRect(int screen_width, int top, int index) {
 
 }  // namespace
 
-Menu::Menu(std::shared_ptr<RendererContext> context, SoundManager& sound)
-	: context_(std::move(context)),
+Menu::Menu(RendererContext& context, SoundManager& sound,
+		   std::span<const WeaponConfig> weapons)
+	: context_(&context),
 	  ui_(std::make_unique<ui::Ui>(
 		  context_->GetRenderer(),
 		  std::string(RESOURCE_DIR) + "font/EternalAncient.ttf",
-		  std::string(RESOURCE_DIR) + "font/Roboto-Light.ttf")) {
-	for (const auto& info : kWeapons) {
+		  std::string(RESOURCE_DIR) + "font/Roboto-Light.ttf")),
+	  weapon_configs_(weapons) {
+	background_texture_ = context_->Textures().GetTextureId("menu_background");
+	for (const WeaponConfig& config : weapon_configs_) {
 		weapons_.push_back(
-			std::make_shared<Weapon>(info.name, context_->Textures(), sound));
+			std::make_unique<Weapon>(config, context_->Textures(), sound));
+	}
+}
+
+void Menu::DrawLevelBanner(std::string_view title, std::string_view name,
+						   Uint8 alpha) {
+	if (alpha == 0) {
+		return;
+	}
+	const auto& config = context_->GetConfig();
+	const int centre_x = config.width / 2;
+	const int top = config.height / 2 - 110;
+	SDL_Color heading = ui::color::kText;
+	heading.a = alpha;
+	ui_->Text(title, centre_x, top, ui::FontStyle::Title, heading,
+			  ui::Align::Center);
+	if (!name.empty()) {
+		SDL_Color accent = ui::color::kAccentBright;
+		accent.a = alpha;
+		ui_->Text(name, centre_x, top + 118, ui::FontStyle::Heading, accent,
+				  ui::Align::Center);
 	}
 }
 
@@ -189,7 +198,7 @@ MenuAction Menu::WeaponSelectScreen(double delta_time) {
 		bool focused = false;
 		if (ui_->Selectable(card, focused)) {
 			action.type = MenuAction::Type::StartGame;
-			action.weapon = kWeapons[i].name;
+			action.weapon = weapon_configs_[i].weapon_name;
 		}
 		if (focused) {
 			focused_card = static_cast<int>(i);
@@ -220,7 +229,8 @@ void Menu::DrawWeaponCard(const SDL_Rect& rect, const Weapon& weapon,
 	// Weapon sprite, scaled to fit the preview area and kept in proportion
 	const SDL_Rect preview{rect.x + kPadding, rect.y + kPadding,
 						   rect.w - 2 * kPadding, 230};
-	const auto texture = context_->Textures().GetTexture(weapon.GetTextureId());
+	const auto& texture =
+		context_->Textures().GetTexture(weapon.GetTextureId());
 	if (texture.texture != nullptr && texture.width > 0 && texture.height > 0) {
 		const double scale =
 			std::min(static_cast<double>(preview.w) / texture.width,
@@ -233,15 +243,13 @@ void Menu::DrawWeaponCard(const SDL_Rect& rect, const Weapon& weapon,
 					   &dest);
 	}
 
-	const auto it = std::ranges::find_if(kWeapons, [&](const WeaponInfo& info) {
-		return weapon.GetWeaponName() == info.name;
-	});
-	const WeaponInfo& info = *it;
+	const auto info = std::ranges::find(weapon_configs_, weapon.GetWeaponName(),
+										&WeaponConfig::weapon_name);
 	int y = preview.y + preview.h + 22;
-	ui_->Text(info.title, rect.x + kPadding, y, ui::FontStyle::Heading,
+	ui_->Text(info->label, rect.x + kPadding, y, ui::FontStyle::Heading,
 			  focused ? ui::color::kText : ui::color::kMuted);
 	y += 62;
-	ui_->Text(info.description, rect.x + kPadding, y, ui::FontStyle::Small,
+	ui_->Text(info->description, rect.x + kPadding, y, ui::FontStyle::Small,
 			  ui::color::kMuted);
 	y += 44;
 
@@ -259,16 +267,16 @@ void Menu::DrawWeaponCard(const SDL_Rect& rect, const Weapon& weapon,
 	const double rate = 1.0 / weapon.GetAttackSpeed();
 	struct Stat
 	{
-		const char* label;
+		const char* label = nullptr;
 		ui::FixedText<16> value;
-		double fill;
+		double fill = 0.0;
 	};
 	const std::array<Stat, 4> stats = {{
 		{"Damage", ui::FixedText<16>("{:.0f}-{:.0f}", min_damage, max_damage),
 		 (max_damage + min_damage) / 2 / best_damage},
 		{"Fire rate", ui::FixedText<16>("{:.1f}/s", rate), rate / best_rate},
 		{"Magazine", ui::FixedText<16>("{}", weapon.GetAmmoCapacity()),
-		 weapon.GetAmmoCapacity() / best_capacity},
+		 static_cast<double>(weapon.GetAmmoCapacity()) / best_capacity},
 		{"Reload", ui::FixedText<16>("{:.1f}s", weapon.GetReloadSpeed()),
 		 best_reload / weapon.GetReloadSpeed()},
 	}};
@@ -308,7 +316,7 @@ MenuAction Menu::ControlsScreen() {
 		{"Turn", "Mouse, or Left / Right arrows"},
 		{"Fire", "Left click, or Left Ctrl"},
 		{"Reload", "R"},
-		{"Map view", "P"},
+		{"Map", "M"},
 		{"Pause", "Esc"},
 		{"Menus", "Arrow keys, Enter, Esc"},
 	}};
@@ -414,19 +422,18 @@ MenuAction Menu::ResultScreen() {
 }
 
 void Menu::DrawBackground() {
-	SDL_RenderCopy(
-		context_->GetRenderer(),
-		context_->Textures().GetTexture(kMenuBackgroundTexture).texture,
-		nullptr, nullptr);
+	SDL_RenderCopy(context_->GetRenderer(),
+				   context_->Textures().GetTexture(background_texture_).texture,
+				   nullptr, nullptr);
 }
 
 void Menu::DrawDimmer(Uint8 alpha) {
-	const auto config = context_->GetConfig();
+	const auto& config = context_->GetConfig();
 	ui_->FillRect({0, 0, config.width, config.height}, {0, 0, 0, alpha});
 }
 
 void Menu::DrawHint(std::string_view text) {
-	const auto config = context_->GetConfig();
+	const auto& config = context_->GetConfig();
 	// Dark strip so the hint stays readable over the background art
 	ui_->FillRect({0, config.height - 64, config.width, 64}, {0, 0, 0, 170});
 	ui_->Text(text, config.width / 2, config.height - 46, ui::FontStyle::Small,

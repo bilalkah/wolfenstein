@@ -33,7 +33,7 @@ struct Camera2DConfig
 	double depth;
 };
 
-typedef std::pair<Ray, Ray> RayPair;
+using RayPair = std::pair<Ray, Ray>;
 
 class Scene;
 class Camera2D
@@ -47,6 +47,12 @@ class Camera2D
 
 	// Borrows the scene until the next call; the game owns it
 	void SetScene(Scene& scene);
+	// Marks what the view shows as explored in the scene: the floor the rays
+	// cross, the walls they end on, and the cells around the eye
+	void ExploreView();
+	// Makes room for this many objects' views up front, so SetScene never
+	// grows them
+	void ReserveViews(std::size_t objects) { views_.reserve(objects); }
 	const RayVector& GetRays() const;
 	// The centre ray and what it points at, for drawing only: shots are
 	// resolved by the simulation (Aim), not from the view
@@ -54,7 +60,7 @@ class Camera2D
 	// The rays bounding an object in the current frame, or nullptr if the
 	// object is not visible
 	const RayPair* FindObjectRays(ObjectId id) const;
-	Position2D GetPosition() const;
+	const Position2D& GetPosition() const { return eye_; }
 	double GetFov() const;
 	double GetDeltaAngle() const;
 

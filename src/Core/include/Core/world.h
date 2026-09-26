@@ -10,30 +10,39 @@
 #include "Core/scene.h"
 #include "Core/scene_loader.h"
 #include "SoundManager/sound_manager.h"
+#include <cassert>
+#include <cstddef>
 #include <expected>
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 
 namespace wolfenstein {
 
 class TextureManager;
 
-// Owns everything the game simulates: the level loader and the game
-// configuration, the sound, the player and the current level. The Game owns
-// one World next to the presentation (window, renderers, menu), which
-// borrows from it.
+// Owns everything the game simulates: the game content (configuration and
+// levels, read at startup), the sound, the player and the current level. The
+// Game owns one World next to the presentation (window, renderers, menu),
+// which borrows from it.
+//
+// Everything it needs while the game runs is set up when it is created: one
+// arena sized for the largest level, reset and reused for each level, and
+// room for the player and the scene, built in place. Starting a game or a
+// level allocates nothing.
 //
 // Members are declared in dependency order, so they are destroyed in the
-// reverse: the level (which borrows the player and the sound) first, then
-// the player, then the sound. Nothing here is global, so tests and, later, a
-// server can create worlds of their own.
+// reverse: the level (which borrows the player, the sound and the arena)
+// first. Nothing here is global, so tests and, later, a server can create
+// worlds of their own.
 class World
 {
   public:
-	// Reads the game configuration and opens the audio device (running
-	// silently if there is none). The error says what could not be loaded.
+	// Reads the game content and opens the audio device (running silently if
+	// there is none). The error says what could not be loaded.
 	static std::expected<std::unique_ptr<World>, std::string> Create(
-		const TextureManager& textures, std::string asset_dir);
+		const TextureManager& textures, const std::string& asset_dir);
 
 	// The world borrows the textures, which outlive it
 	World(const TextureManager& textures, SceneLoader loader,
@@ -43,28 +52,51 @@ class World
 	World& operator=(const World&) = delete;
 	World(World&&) = delete;
 	World& operator=(World&&) = delete;
+	~World() = default;
 
-	// A fresh player carrying the named weapon, in the first level. The
-	// previous level and player are gone afterwards: views borrowing them
-	// must be pointed at the new level before they draw again.
-	std::expected<void, std::string> NewGame(const std::string& weapon_name);
-	// Replaces the finished level with the next one (same caveat)
+	// A fresh player carrying the named weapon, in the campaign's first level
+	// (or in `level`, e.g. the benchmark's). The previous level and player
+	// are gone afterwards: views borrowing them must be pointed at the new
+	// level before they draw again.
+	std::expected<void, std::string> NewGame(std::string_view weapon_name,
+											 std::string_view level = {});
+	// Replaces the finished level with the campaign's next one (same caveat)
 	std::expected<void, std::string> NextLevel();
 	bool HasNextLevel() const;
+	// 1 for the campaign's first level
+	std::size_t LevelNumber() const { return level_index_ + 1; }
+	// The current level's name from its file; empty if it has none
+	std::string_view LevelName() const { return level_->data.name; }
 
-	bool HasLevel() const { return scene_ != nullptr; }
-	Scene& CurrentLevel() { return *scene_; }
-	Player& GetPlayer() { return *player_; }
+	bool HasLevel() const { return scene_.has_value(); }
+	// Both exist once NewGame succeeded
+	Scene& CurrentLevel() {
+		assert(scene_ && "no level loaded");
+		return *scene_;
+	}
+	Player& GetPlayer() {
+		assert(player_ && "no game started");
+		return *player_;
+	}
 	SoundManager& Sound() { return *sound_; }
+	const GameConfig& Config() const { return loader_.Config(); }
+	// The most objects any level has: what per-object views are sized for
+	std::size_t LargestLevelObjects() const {
+		return loader_.LargestLevelObjects();
+	}
 
   private:
-	std::expected<void, std::string> LoadLevel(const std::string& level_file);
+	std::expected<void, std::string> StartLevel(std::string_view level_file);
 
 	const TextureManager& textures_;
 	SceneLoader loader_;
 	std::unique_ptr<SoundManager> sound_;
-	std::unique_ptr<Player> player_;
-	std::unique_ptr<Scene> scene_;
+	memory::MonotonicArena level_memory_;
+	std::optional<Player> player_;
+	std::optional<Scene> scene_;
+	const PreparedLevel* level_ = nullptr;
+	std::size_t level_index_ = 0;
+	bool in_campaign_ = true;
 };
 
 }  // namespace wolfenstein

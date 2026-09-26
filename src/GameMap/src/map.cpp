@@ -1,10 +1,11 @@
-#include "Map/map.h"
+#include "GameMap/map.h"
 #include <charconv>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <string_view>
+#include <utility>
 
 namespace wolfenstein {
 
@@ -81,17 +82,29 @@ std::expected<Map, std::string> Map::FromFile(const std::string& path) {
 	return map;
 }
 
-Map::Map(const std::string& map_path) {
-	auto map = FromFile(map_path);
+Map::Map(const Map& other, std::pmr::memory_resource* memory)
+	: size_x_(other.size_x_),
+	  size_y_(other.size_y_),
+	  cells_(other.cells_, memory) {}
+
+namespace {
+
+Map LoadOrExit(const std::string& map_path) {
+	auto map = Map::FromFile(map_path);
 	if (!map) {
 		std::cerr << "Cannot load map: " << map.error() << '\n';
 		std::exit(EXIT_FAILURE);
 	}
-	*this = std::move(*map);
+	return std::move(*map);
 }
 
+}  // namespace
+
+Map::Map(const std::string& map_path) : Map(LoadOrExit(map_path)) {}
+
 bool Map::Contains(int x, int y) const {
-	return x >= 0 && x < size_x_ && y >= 0 && y < size_y_;
+	return x >= 0 && std::cmp_less(x, size_x_) && y >= 0 &&
+		   std::cmp_less(y, size_y_);
 }
 
 bool Map::IsBlocked(int x, int y) const {

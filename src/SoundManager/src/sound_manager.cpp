@@ -30,7 +30,8 @@ std::expected<std::unique_ptr<SoundManager>, std::string> SoundManager::Open(
 		  std::tuple{SoundEffect::NpcPain, "npc_pain.wav", 32},
 		  std::tuple{SoundEffect::NpcDeath, "npc_death.wav", 64},
 		  std::tuple{SoundEffect::PlayerPain, "player_pain.wav", 64},
-		  std::tuple{SoundEffect::Shotgun, "shotgun.wav", 64}}) {
+		  std::tuple{SoundEffect::Shotgun, "shotgun.wav", 64},
+		  std::tuple{SoundEffect::Pickup, "pickup.wav", 64}}) {
 		if (auto loaded = sound->LoadSound(effect, sound_dir + file, volume);
 			!loaded) {
 			return std::unexpected(loaded.error());
@@ -63,6 +64,9 @@ SoundManager::~SoundManager() {
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
+// Changes the audio device, not the manager's members, but is not const:
+// it changes what the manager plays
+// NOLINTNEXTLINE(readability-make-member-function-const)
 void SoundManager::SetMasterVolume(double volume) {
 	if (!open_) {
 		return;
@@ -90,7 +94,7 @@ void SoundManager::PlayEffect(SoundChannel channel, SoundEffect effect) {
 	const int index = std::to_underlying(channel);
 	Mix_HaltChannel(index);
 	if (Mix_PlayChannel(index, chunks_[std::to_underlying(effect)], 0) == -1) {
-		std::cerr << "Failed to play sound: " << Mix_GetError() << std::endl;
+		std::cerr << "Failed to play sound: " << Mix_GetError() << '\n';
 	}
 }
 

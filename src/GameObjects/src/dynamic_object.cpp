@@ -1,11 +1,14 @@
 #include "GameObjects/dynamic_object.h"
+#include <utility>
 
 namespace wolfenstein {
 
-DynamicObject::DynamicObject(const vector2d& pose_,
-							 const LoopedAnimation& animation_,
+DynamicObject::DynamicObject(const vector2d& pose_, LoopedAnimation animation_,
 							 const double width_, const double height_)
-	: pose(pose_), animation(animation_), width(width_), height(height_) {}
+	: pose(pose_),
+	  animation(std::move(animation_)),
+	  width(width_),
+	  height(height_) {}
 
 void DynamicObject::Update(double delta_time) {
 	animation.Update(delta_time);

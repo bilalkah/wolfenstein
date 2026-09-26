@@ -23,15 +23,16 @@ namespace wolfenstein {
 class RendererResult
 {
   public:
-	RendererResult(std::shared_ptr<RendererContext> context,
-				   const uint16_t texture_id);
+	// Fades in the texture with the given id (the win or game over screen)
+	RendererResult(RendererContext& context, int texture_id);
 
 	void Render(double delta_time);
 
   private:
 	void ClearScreen();
 	void RenderScreen(double delta_time);
-	std::shared_ptr<RendererContext> context_;
+	RendererContext* context_;
+	int texture_id_;
 	TriggeredSingleAnimation result_animation_;
 };
 
