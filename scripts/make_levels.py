@@ -6,7 +6,8 @@ corridors joining them, pillars and accent walls, where the player starts,
 which enemies guard which rooms and what supplies lie in them. The script
 carves the rooms out of solid wall, gives every wall the texture of the room
 it faces, hangs a door in each corridor (locked, for some, with a key found
-elsewhere in the level), places enemies, lights and pickups inside their rooms
+elsewhere in the level), sets the exit switch in a wall, places enemies,
+lights and pickups inside their rooms
 (deterministically, so rerunning gives the same files) and checks the result:
 a solid border, every room reachable from the start, no enemy close to the
 start and nothing standing in a wall.
@@ -26,7 +27,7 @@ from pathlib import Path
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 
-CONCRETE, BRICK, MOSS, DEMON, EAGLE = 1, 2, 3, 4, 5
+CONCRETE, BRICK, MOSS, DEMON, EAGLE, EXIT = 1, 2, 3, 4, 5, 6
 # How far from the start no enemy may stand, in map units
 SAFE_RADIUS = 6.0
 # The least distance between two enemies placed in the same room
@@ -45,7 +46,8 @@ class Room:
     x1: int
     y1: int
     wall: int = CONCRETE
-    # (count, type) of enemies guarding it, and how many lights
+    # (count, type) of enemies guarding it, or (count, type, "target") for
+    # ones a kill_targets objective asks for; and how many lights
     enemies: list = field(default_factory=list)
     lights: int = 0
     light: str = "green_light"
@@ -76,6 +78,10 @@ class Level:
     # Corridors (by index) whose door is locked: "gold" or "silver". The key
     # is a pickup in some room, and must be reachable without its own door.
     locks: dict = field(default_factory=dict)
+    # The exit switch: a wall cell next to a room's floor
+    exit: tuple = None
+    # What the level asks before its exit opens: {"type", "text"}
+    objectives: list = field(default_factory=list)
     seed: int = 1
 
 
@@ -117,6 +123,8 @@ def texture_map(level, grid):
             cells[x][y] = best
     for x, y, texture in level.pillars + level.accents:
         cells[x][y] = texture
+    if level.exit is not None:
+        cells[level.exit[0]][level.exit[1]] = EXIT
     return cells
 
 
@@ -159,7 +167,7 @@ def place(level, cells, reachable):
                     if (x, y) in reachable and open_around(x, y)]
         rng.shuffle(interior)
         placed = []
-        for count, kind in room.enemies:
+        for count, kind, *mark in room.enemies:
             for _ in range(count):
                 for x, y in interior:
                     point = (x + 0.5, y + 0.5)
@@ -171,9 +179,12 @@ def place(level, cells, reachable):
                     # Facing the room's centre, as if keeping watch over it
                     cx, cy = room.centre()
                     theta = round(math.atan2(cy - point[1], cx - point[0]), 2)
-                    enemies.append({"type": kind,
-                                    "position": {"x": point[0], "y": point[1],
-                                                 "theta": theta}})
+                    enemy = {"type": kind,
+                             "position": {"x": point[0], "y": point[1],
+                                          "theta": theta}}
+                    if mark == ["target"]:
+                        enemy["target"] = True
+                    enemies.append(enemy)
                     break
                 else:
                     raise ValueError(f"{level.file}: no room for a {kind} "
@@ -254,7 +265,7 @@ def write(level):
     rows, cols = level.size
     map_file = level.file.replace(".json", ".txt")
     lines = [f"height {rows}", f"width {cols}"]
-    lines += ["".join(door_marks.get((x, y), str(c))
+    lines += ["".join(door_marks.get((x, y), "X" if c == EXIT else str(c))
                       for y, c in enumerate(row))
               for x, row in enumerate(cells)]
     (ASSETS / "maps" / map_file).write_text("\n".join(lines) + "\n")
@@ -266,6 +277,7 @@ def write(level):
         "enemies": enemies,
         "dynamicObjects": lights,
         "pickups": pickups,
+        "objectives": level.objectives,
         "staticObjects": [],
     }
     (ASSETS / "levels" / level.file).write_text(json.dumps(data, indent=2) + "\n")
@@ -307,7 +319,10 @@ LEVELS = [
           pillars=[(11, 7, CONCRETE), (11, 12, CONCRETE), (11, 17, CONCRETE),
                    (12, 7, CONCRETE), (12, 12, CONCRETE), (12, 17, CONCRETE)],
           accents=[(0, 21, EAGLE), (21, 18, EAGLE)],
-          locks={6: "gold"}),  # the office
+          locks={6: "gold"},  # the office
+          exit=(21, 23),
+          objectives=[{"type": "kill_all",
+                       "text": "Clear the checkpoint of its guards"}]),
 
     # Red-brick barracks around a pillared courtyard. The first demons.
     Level("level2.json", "THE BARRACKS", (26, 30), seed=22,
@@ -340,7 +355,10 @@ LEVELS = [
           pillars=[(10, 13, BRICK), (10, 18, BRICK), (15, 13, BRICK),
                    (15, 18, BRICK)],
           accents=[(0, 19, EAGLE), (0, 20, EAGLE), (25, 19, EAGLE)],
-          locks={1: "gold"}),  # the dormitory
+          locks={1: "gold"},  # the dormitory
+          exit=(25, 26),
+          objectives=[{"type": "kill_all",
+                       "text": "Wipe out the barracks garrison"}]),
 
     # Catacombs of mossy stone: narrow tunnels between burial chambers.
     Level("level3.json", "THE CATACOMBS", (28, 30), seed=33,
@@ -365,7 +383,8 @@ LEVELS = [
                    enemies=[(1, "soldier"), (1, "caco_demon")], lights=2,
                    pickups=[(1, "medkit"), (1, "ammo_box")]),
               Room("altar", 19, 16, 26, 28, DEMON,
-                   enemies=[(1, "cyber_demon")], lights=3, light="red_light",
+                   enemies=[(1, "cyber_demon", "target")], lights=3,
+                   light="red_light",
                    pickups=[(1, "ammo_box")]),
           ],
           corridors=[((2, 5), (2, 8)), ((5, 2), (8, 2)), ((7, 13), (8, 13)),
@@ -376,7 +395,10 @@ LEVELS = [
                    (13, 17, DEMON), (22, 21, MOSS), (22, 23, MOSS)],
           accents=[(27, 21, DEMON), (27, 22, DEMON), (8, 16, DEMON)],
           # the tomb; both ways into the altar
-          locks={6: "silver", 7: "gold", 8: "gold"}),
+          locks={6: "silver", 7: "gold", 8: "gold"},
+          exit=(27, 26),
+          objectives=[{"type": "kill_targets",
+                       "text": "Destroy the cyber demon at the altar"}]),
 
     # The sanctum: banner halls leading to an arena where it ends.
     Level("level4.json", "THE SANCTUM", (30, 32), seed=44,
@@ -405,7 +427,7 @@ LEVELS = [
                    enemies=[(1, "caco_demon"), (1, "cyber_demon")], lights=2,
                    pickups=[(1, "medkit"), (1, "ammo_box"), (1, "gold_key")]),
               Room("arena", 1, 10, 10, 21, DEMON,
-                   enemies=[(2, "cyber_demon")], lights=4,
+                   enemies=[(2, "cyber_demon", "target")], lights=4,
                    light="red_light",
                    pickups=[(1, "large_medkit"), (1, "ammo_box")]),
           ],
@@ -419,7 +441,10 @@ LEVELS = [
           accents=[(0, 14, EAGLE), (0, 17, EAGLE), (29, 14, EAGLE),
                    (29, 17, EAGLE)],
           # the east wing; every way into the arena
-          locks={2: "silver", 5: "gold", 6: "gold", 7: "gold"}),
+          locks={2: "silver", 5: "gold", 6: "gold", 7: "gold"},
+          exit=(0, 15),
+          objectives=[{"type": "kill_targets",
+                       "text": "Kill the cyber demons guarding the arena"}]),
 ]
 
 

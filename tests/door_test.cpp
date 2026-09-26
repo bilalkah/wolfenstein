@@ -186,7 +186,7 @@ TEST_F(LockedDoorTest, OpensOnlyWithItsKey) {
 	player_.SetCommand(PlayerCommand{.use = true});
 	Run(1.0);
 	EXPECT_DOUBLE_EQ(Openness(), 0.0);
-	EXPECT_EQ(scene_.LockedDoorNotice(), KeyColour::Gold);
+	EXPECT_EQ(scene_.GetNotice(), Scene::Notice::NeedGoldKey);
 
 	player_.SetKeys(KeyBit(KeyColour::Silver));	 // the wrong key
 	Run(1.0);
@@ -199,7 +199,7 @@ TEST_F(LockedDoorTest, OpensOnlyWithItsKey) {
 	// The notice fades once the player stops trying
 	player_.SetCommand(PlayerCommand{});
 	Run(3.0);
-	EXPECT_EQ(scene_.LockedDoorNotice(), KeyColour::None);
+	EXPECT_EQ(scene_.GetNotice(), Scene::Notice::None);
 }
 
 TEST_F(LockedDoorTest, EnemiesCannotOpenIt) {

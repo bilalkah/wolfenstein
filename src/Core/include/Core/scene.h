@@ -109,9 +109,24 @@ class Scene
 	void DecreaseAliveEnemies();
 	// Starts opening the door with this index in the map (if not open)
 	void OpenDoor(std::size_t door);
-	// The key a locked door the player just tried needs (for a moment after
-	// the try), or KeyColour::None
-	KeyColour LockedDoorNotice() const;
+	// A message for the player, for a moment after what caused it
+	enum class Notice : std::uint8_t {
+		None,
+		NeedGoldKey,  // tried a gold-locked door without the key
+		NeedSilverKey,
+		ExitLocked,	 // used the exit before the objectives were done
+	};
+	Notice GetNotice() const;
+
+	// What the level asks before its exit opens (its objectives' types)
+	void SetGoals(bool kill_all, bool kill_targets);
+	std::size_t TargetsLeft() const;
+	bool ObjectivesDone() const;
+	// Whether the level is over: its exit used with the objectives done, or
+	// for a level without an exit, every enemy dead
+	bool IsComplete() const;
+	// The player uses the exit switch
+	void UseExit();
 
 	void Update(double delta_time);
 
@@ -152,6 +167,8 @@ class Scene
   private:
 	// The player takes every pickup it stands on and has a use for
 	void CollectPickups();
+	void HandleUse();
+	void ShowNotice(Notice notice);
 	// Opens doors the player uses or an enemy reaches, and moves every door
 	// on: open doors close again once their doorway is clear
 	void UpdateDoors(double delta_time);
@@ -187,8 +204,11 @@ class Scene
 	Difficulty difficulty_;
 	// One per door of the map, in its order
 	std::pmr::vector<DoorMotion> doors_;
-	KeyColour locked_notice_ = KeyColour::None;
-	double locked_notice_time_ = 1e9;  // since the player tried it
+	Notice notice_ = Notice::None;
+	double notice_time_ = 1e9;	// since it was shown
+	bool kill_all_ = false;
+	bool kill_targets_ = false;
+	bool completed_ = false;
 	Player* player_ = nullptr;
 	NavigationManager navigation_{*this, &arena_};
 	size_t number_of_alive_enemies{};

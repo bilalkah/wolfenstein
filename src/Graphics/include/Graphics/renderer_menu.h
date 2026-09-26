@@ -89,6 +89,9 @@ class Menu
 	}
 	// A short message across the lower middle of the screen, over the game
 	void DrawNotice(std::string_view text);
+	// The level's current objective, at the top of the screen; empty draws
+	// nothing
+	void DrawObjective(std::string_view text);
 	// The enemies killed of the level's total, below the corner map
 	void DrawEnemyCounter(std::size_t kills, std::size_t enemies);
 	// A cleared level's results under its `heading` ("LEVEL 1 · CHECKPOINT"),

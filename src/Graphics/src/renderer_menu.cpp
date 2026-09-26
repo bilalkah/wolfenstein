@@ -74,6 +74,20 @@ void Menu::DrawNotice(std::string_view text) {
 			  ui::color::kText, ui::Align::Center);
 }
 
+void Menu::DrawObjective(std::string_view text) {
+	if (text.empty()) {
+		return;
+	}
+	const auto& config = context_->GetConfig();
+	const auto size = ui_->MeasureText(text, ui::FontStyle::Small);
+	const SDL_Rect panel{(config.width - size.x) / 2 - 18, 12, size.x + 36,
+						 size.y + 16};
+	ui_->FillRect(panel, ui::color::kPanel);
+	ui_->FillRect({panel.x, panel.y, 4, panel.h}, ui::color::kAccent);
+	ui_->Text(text, config.width / 2, panel.y + 8, ui::FontStyle::Small,
+			  ui::color::kText, ui::Align::Center);
+}
+
 void Menu::DrawEnemyCounter(std::size_t kills, std::size_t enemies) {
 	const auto& config = context_->GetConfig();
 	// Under the corner map, which is 30% of the screen's shorter side

@@ -1,3 +1,4 @@
+#include "GameMap/map.h"
 #include "TextureManager/texture_manager.h"
 #include <algorithm>
 #include <filesystem>
@@ -38,7 +39,8 @@ TEST(TextureManifest, TheShippedManifestIsComplete) {
 			[name](const auto& texture) { return texture.first == name; }))
 			<< name;
 	}
-	EXPECT_EQ(manifest->walls.size(), 5u);	// map cells 1 to 5
+	// Map cells 1 to 5, and the exit switch
+	EXPECT_EQ(manifest->walls.size(), std::size_t{Map::kExitWall});
 }
 
 TEST(TextureManifest, RejectsAClipWithoutFrames) {

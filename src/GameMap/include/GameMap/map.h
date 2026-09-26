@@ -49,7 +49,8 @@ struct Door
 };
 
 // The level's grid of cells: 0 is free, a door cell is kDoorCell plus the
-// door's index, anything else a wall whose value is its texture id. Cells
+// door's index, anything else a wall whose value is its texture id. The
+// exit switch (X in a map file) is a wall drawn with the kExitWall texture. Cells
 // are stored in one row-major block (a vector of rows would allocate once
 // per row and scatter them across the heap) and read through std::mdspan,
 // so cell (x, y) is GetCells()[x, y].
@@ -61,6 +62,8 @@ class Map
 
 	// Door cells are numbered from here; wall textures stay far below
 	static constexpr std::uint16_t kDoorCell = 0x8000;
+	// The wall texture of the exit switch
+	static constexpr std::uint16_t kExitWall = 6;
 	// A door this far open lets characters and sight through
 	static constexpr double kPassableOpenness = 0.8;
 	static constexpr bool IsDoorCell(std::uint16_t cell) {
@@ -108,6 +111,13 @@ class Map
 	// floored, not truncated: truncation would map -0.5 to cell 0.
 	bool IsBlocked(const vector2d& position) const;
 
+	// The exit switch's cell, if the level has one
+	bool HasExit() const { return has_exit_; }
+	bool IsExit(int x, int y) const {
+		return has_exit_ && x == exit_x_ && y == exit_y_;
+	}
+	vector2i GetExit() const { return {exit_x_, exit_y_}; }
+
 	std::span<const Door> GetDoors() const { return doors_; }
 	// The door in cell (x, y), or nullptr
 	const Door* FindDoor(int x, int y) const;
@@ -120,6 +130,9 @@ class Map
 	std::uint16_t size_y_{};  // columns
 	std::pmr::vector<std::uint16_t> cells_;
 	std::pmr::vector<Door> doors_;
+	bool has_exit_ = false;
+	int exit_x_ = 0;
+	int exit_y_ = 0;
 };
 
 }  // namespace wolfenstein

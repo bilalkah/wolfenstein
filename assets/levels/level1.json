@@ -210,5 +210,11 @@
       }
     }
   ],
+  "objectives": [
+    {
+      "type": "kill_all",
+      "text": "Clear the checkpoint of its guards"
+    }
+  ],
   "staticObjects": []
 }

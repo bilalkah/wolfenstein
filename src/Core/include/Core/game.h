@@ -132,6 +132,7 @@ class Game
 	// The level as the player sees it (3D, or the debug view) with the map
 	// over it
 	void RenderView(double alpha);
+	std::string_view CurrentObjective() const;
 	void BenchmarkStep();
 	void SoakStep();
 	// Benchmark or soak: no input devices, a fixed time step

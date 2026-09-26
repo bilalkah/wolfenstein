@@ -10,14 +10,15 @@ namespace wolfenstein {
 namespace {
 
 // Walls by map cell value (the wall texture): concrete, brick, moss, demon
-// faces, eagle banners
-constexpr std::array<SDL_Color, 6> kWallColours{{
+// faces, eagle banners, and the exit
+constexpr std::array<SDL_Color, 7> kWallColours{{
 	{150, 150, 150, 235},
 	{150, 150, 150, 235},
 	{176, 74, 58, 235},
 	{100, 132, 84, 235},
 	{156, 52, 64, 235},
 	{84, 100, 156, 235},
+	{96, 232, 120, 245},  // the exit switch
 }};
 constexpr SDL_Color kFloor{56, 56, 60, 215};
 constexpr SDL_Color kPanel{0, 0, 0, 150};

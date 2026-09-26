@@ -22,7 +22,8 @@
     "textures/2.png",
     "textures/3.png",
     "textures/4.png",
-    "textures/5.png"
+    "textures/5.png",
+    "textures/exit.png"
   ],
   "clips": {
     "digits": [

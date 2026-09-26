@@ -16,6 +16,7 @@
 #include <expected>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -87,6 +88,10 @@ class World
 	const DifficultyConfig& Difficulty() const { return *difficulty_; }
 	// 1 for the campaign's first level
 	std::size_t LevelNumber() const { return level_index_ + 1; }
+	// What the current level asks of the player, from its file
+	std::span<const Objective> LevelObjectives() const {
+		return level_->data.objectives;
+	}
 	// The current level's name from its file; empty if it has none
 	std::string_view LevelName() const { return level_->data.name; }
 

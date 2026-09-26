@@ -31,6 +31,7 @@ add_executable(unit_tests
     exploration_test.cpp
     door_test.cpp
     level_stats_test.cpp
+    objective_test.cpp
     saved_game_test.cpp
     texture_manifest_test.cpp
 )

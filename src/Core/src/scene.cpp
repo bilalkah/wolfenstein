@@ -136,13 +136,86 @@ void Scene::Update(double delta_time) {
 	ScopedTimer timer(ProfileSection::UpdatePlayer);
 	player_->Update(delta_time);
 	CollectPickups();
+	notice_time_ += delta_time;
+	HandleUse();
 	UpdateDoors(delta_time);
 }
 
-KeyColour Scene::LockedDoorNotice() const {
+Scene::Notice Scene::GetNotice() const {
 	constexpr double kNoticeSeconds = 2.0;
-	return locked_notice_time_ < kNoticeSeconds ? locked_notice_
-												: KeyColour::None;
+	return notice_time_ < kNoticeSeconds ? notice_ : Notice::None;
+}
+
+void Scene::ShowNotice(Notice notice) {
+	notice_ = notice;
+	notice_time_ = 0.0;
+}
+
+void Scene::SetGoals(bool kill_all, bool kill_targets) {
+	kill_all_ = kill_all;
+	kill_targets_ = kill_targets;
+}
+
+std::size_t Scene::TargetsLeft() const {
+	return static_cast<std::size_t>(
+		std::ranges::count_if(enemy_list_, [](const Enemy* enemy) {
+			return enemy->IsTarget() && enemy->GetHealth() > 0.0;
+		}));
+}
+
+bool Scene::ObjectivesDone() const {
+	return (!kill_all_ || number_of_alive_enemies == 0) &&
+		   (!kill_targets_ || TargetsLeft() == 0);
+}
+
+bool Scene::IsComplete() const {
+	return map_.HasExit() ? completed_ : number_of_alive_enemies == 0;
+}
+
+void Scene::UseExit() {
+	if (!map_.HasExit()) {
+		return;
+	}
+	if (ObjectivesDone()) {
+		completed_ = true;
+	}
+	else {
+		ShowNotice(Notice::ExitLocked);
+	}
+}
+
+// The player uses what is just ahead: a door (if it has the key) or the
+// exit switch
+void Scene::HandleUse() {
+	if (!player_->IsAlive() || !player_->IsUsing()) {
+		return;
+	}
+	const Position2D& eye = player_->GetPosition();
+	const vector2d facing{std::cos(eye.theta), std::sin(eye.theta)};
+	for (const double reach : {0.6, 1.2}) {
+		const vector2d point = eye.pose + facing * reach;
+		const int x = static_cast<int>(std::floor(point.x));
+		const int y = static_cast<int>(std::floor(point.y));
+		if (map_.IsExit(x, y)) {
+			UseExit();
+			return;
+		}
+		if (const Door* door = map_.FindDoor(x, y)) {
+			if (door->lock == KeyColour::None || player_->HasKey(door->lock)) {
+				OpenDoor(
+					static_cast<std::size_t>(door - map_.GetDoors().data()));
+			}
+			else {
+				ShowNotice(door->lock == KeyColour::Gold
+							   ? Notice::NeedGoldKey
+							   : Notice::NeedSilverKey);
+			}
+			return;
+		}
+		if (map_.IsWall(x, y)) {
+			return;	 // nothing to use through a wall
+		}
+	}
 }
 
 void Scene::OpenDoor(std::size_t door) {
@@ -174,28 +247,6 @@ void Scene::UpdateDoors(double delta_time) {
 	if (doors.empty()) {
 		return;
 	}
-	// The player opens the door just ahead
-	if (player_->IsAlive() && player_->IsUsing()) {
-		const Position2D& eye = player_->GetPosition();
-		const vector2d facing{std::cos(eye.theta), std::sin(eye.theta)};
-		for (const double reach : {0.6, 1.2}) {
-			const vector2d point = eye.pose + facing * reach;
-			if (const Door* door =
-					map_.FindDoor(static_cast<int>(std::floor(point.x)),
-								  static_cast<int>(std::floor(point.y)))) {
-				if (door->lock == KeyColour::None ||
-					player_->HasKey(door->lock)) {
-					OpenDoor(static_cast<std::size_t>(door - doors.data()));
-				}
-				else {
-					locked_notice_ = door->lock;
-					locked_notice_time_ = 0.0;
-				}
-				break;
-			}
-		}
-	}
-	locked_notice_time_ += delta_time;
 	// Enemies open the doors they walk up to, if not locked
 	constexpr double kEnemyReach = 1.2;
 	for (std::size_t i = 0; i < doors.size(); ++i) {
