@@ -131,10 +131,6 @@ class Ui
 				const SDL_Rect& rect, double& value, double min, double max,
 				double step);
 	bool Toggle(std::string_view label, const SDL_Rect& rect, bool& value);
-	// One of `options`: left/right step through them, a click or Enter
-	// moves to the next (wrapping round); returns true when it changed
-	bool Choice(std::string_view label, std::span<const std::string> options,
-				const SDL_Rect& rect, int& value);
 	// A focusable area whose contents the caller draws; `focused` reports
 	// whether it has focus this frame
 	bool Selectable(const SDL_Rect& rect, bool& focused);

@@ -28,6 +28,7 @@ struct LevelStats;
 
 enum class MenuScreen : std::uint8_t {
 	Main,
+	DifficultySelect,  // a new game: first the difficulty, then the weapon
 	WeaponSelect,
 	Controls,
 	Settings,
@@ -39,7 +40,7 @@ struct MenuAction
 {
 	enum class Type : std::uint8_t {
 		None,
-		StartGame,		  // with `weapon`
+		StartGame,		  // with `weapon`, at `difficulty`
 		Resume,			  // leave the pause screen
 		QuitToMenu,		  // abandon the current game
 		Quit,			  // close the application (native only)
@@ -49,16 +50,25 @@ struct MenuAction
 	Type type = Type::None;
 	// Names a weapon of the configuration the menu was given
 	std::string_view weapon;
+	// Index into the difficulties the menu was given
+	std::size_t difficulty = 0;
+};
+
+// A difficulty a new game offers
+struct DifficultyChoice
+{
+	std::string label;
+	std::string description;
 };
 
 class Menu
 {
   public:
-	// Offers the given weapons and difficulties (by label, from easiest),
-	// which outlive the menu (the World's config)
+	// Offers the given weapons and difficulties (from easiest), which
+	// outlive the menu
 	Menu(RendererContext& context, SoundManager& sound,
 		 std::span<const WeaponConfig> weapons,
-		 std::span<const std::string> difficulties = {});
+		 std::span<const DifficultyChoice> difficulties = {});
 
 	void Open(MenuScreen screen);
 	MenuScreen GetScreen() const { return screen_; }
@@ -86,6 +96,7 @@ class Menu
 
   private:
 	MenuAction MainScreen();
+	MenuAction DifficultySelectScreen();
 	MenuAction WeaponSelectScreen(double delta_time);
 	MenuAction ControlsScreen();
 	MenuAction SettingsScreen();
@@ -110,7 +121,10 @@ class Menu
 	std::span<const WeaponConfig> weapon_configs_;
 	ui::FixedText<96> saved_game_{"{}", ""};
 	bool has_saved_game_ = false;
-	std::span<const std::string> difficulties_;
+	std::span<const DifficultyChoice> difficulties_;
+	// The difficulty chosen for the game about to start; at first the
+	// middle one (normal)
+	std::size_t chosen_difficulty_ = 0;
 	std::vector<std::unique_ptr<Weapon>> weapons_;
 	int previewed_weapon_ = -1;
 	int background_texture_ = 0;

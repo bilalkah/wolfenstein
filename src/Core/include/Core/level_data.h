@@ -53,8 +53,9 @@ struct PickupConfig
 // A difficulty the player can choose, and what it changes
 struct DifficultyConfig
 {
-	std::string name;	// "normal"
-	std::string label;	// shown in the settings
+	std::string name;		  // "normal"
+	std::string label;		  // shown when a new game starts
+	std::string description;  // likewise
 	double enemy_damage = 1.0;
 	double enemy_health = 1.0;
 	double supplies = 1.0;
@@ -74,7 +75,7 @@ struct GameConfig
 	std::vector<std::string> levels;
 	// The level the benchmark plays; not part of the campaign
 	std::string benchmark_level;
-	// From easiest to hardest, as the settings offer them
+	// From easiest to hardest, as a new game offers them
 	std::vector<DifficultyConfig> difficulties;
 	CharacterStats player;
 	DynamicObjectStats light;
