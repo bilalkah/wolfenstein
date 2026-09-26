@@ -14,14 +14,16 @@
 
 #include "GameObjects/object_id.h"
 #include "Math/vector.h"
+#include <cstdint>
 
 namespace wolfenstein {
 
-enum class ObjectType {
+enum class ObjectType : std::uint8_t {
 	STATIC_OBJECT,
 	DYNAMIC_OBJECT,
 	CHARACTER_PLAYER,
-	CHARACTER_ENEMY
+	CHARACTER_ENEMY,
+	PICKUP
 };
 
 class IGameObject
@@ -48,6 +50,9 @@ class IGameObject
 	// Where to draw the object `alpha` of the way from the previous
 	// simulation tick to the latest; objects that move override it
 	virtual vector2d GetRenderPose(double /*alpha*/) const { return GetPose(); }
+	// False while the object is out of the level (a pickup already taken):
+	// it stays in the scene's list but is not drawn
+	virtual bool IsVisible() const { return true; }
 	virtual int GetTextureId() const = 0;
 	virtual double GetWidth() const = 0;
 	virtual double GetHeight() const = 0;

@@ -13,7 +13,7 @@
 #define CAMERA_INCLUDE_CAMERA_SINGLE_RAYCASTER_H_
 
 #include "Camera/ray.h"
-#include "Map/map.h"
+#include "GameMap/map.h"
 #include "Math/vector.h"
 
 namespace wolfenstein {

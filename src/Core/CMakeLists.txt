@@ -82,6 +82,7 @@ target_link_libraries(
     single_raycaster
     renderer_interface
     renderer_2d
+    minimap
     renderer_3d
     renderer_menu
     renderer_result

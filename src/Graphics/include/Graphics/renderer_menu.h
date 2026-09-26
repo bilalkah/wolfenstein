@@ -15,17 +15,27 @@
 #include "Graphics/renderer_interface.h"
 #include "Strike/weapon.h"
 #include "UI/ui.h"
+#include <cstdint>
 #include <memory>
+#include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace wolfenstein {
 
-enum class MenuScreen { Main, WeaponSelect, Controls, Settings, Pause, Result };
+enum class MenuScreen : std::uint8_t {
+	Main,
+	WeaponSelect,
+	Controls,
+	Settings,
+	Pause,
+	Result
+};
 
 struct MenuAction
 {
-	enum class Type {
+	enum class Type : std::uint8_t {
 		None,
 		StartGame,		  // with `weapon`
 		Resume,			  // leave the pause screen
@@ -34,13 +44,16 @@ struct MenuAction
 		SettingsChanged,  // apply Settings::Get() (e.g. volume)
 	};
 	Type type = Type::None;
-	std::string weapon;
+	// Names a weapon of the configuration the menu was given
+	std::string_view weapon;
 };
 
 class Menu
 {
   public:
-	Menu(std::shared_ptr<RendererContext> context, SoundManager& sound);
+	// Offers the given weapons, which outlive the menu (the World's config)
+	Menu(RendererContext& context, SoundManager& sound,
+		 std::span<const WeaponConfig> weapons);
 
 	void Open(MenuScreen screen);
 	MenuScreen GetScreen() const { return screen_; }
@@ -49,6 +62,10 @@ class Menu
 	// Draws the current screen without presenting, so the pause and result
 	// screens can draw over the game frame, and returns the player's choice
 	MenuAction Update(double delta_time);
+	// Draws a level's title and name across the middle of the screen, at the
+	// given opacity, over whatever is already drawn
+	void DrawLevelBanner(std::string_view title, std::string_view name,
+						 Uint8 alpha);
 
   private:
 	MenuAction MainScreen();
@@ -68,13 +85,15 @@ class Menu
 	// Leaves Controls or Settings for the screen they were opened from
 	void GoBack();
 
-	std::shared_ptr<RendererContext> context_;
+	RendererContext* context_;
 	std::unique_ptr<ui::Ui> ui_;
 	ui::Input input_;
 	MenuScreen screen_ = MenuScreen::Main;
 	MenuScreen return_screen_ = MenuScreen::Main;
-	std::vector<std::shared_ptr<Weapon>> weapons_;
+	std::span<const WeaponConfig> weapon_configs_;
+	std::vector<std::unique_ptr<Weapon>> weapons_;
 	int previewed_weapon_ = -1;
+	int background_texture_ = 0;
 };
 
 }  // namespace wolfenstein

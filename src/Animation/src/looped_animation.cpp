@@ -13,7 +13,7 @@ namespace wolfenstein {
 std::span<const std::uint16_t> LoopedAnimation::Clip(
 	const TextureManager& textures, std::string_view owner,
 	std::string_view clip) {
-	std::array<char, 64> name;
+	std::array<char, 64> name{};
 	const std::size_t size = owner.size() + 1 + clip.size();
 	if (size > name.size()) {
 		std::cerr << "Animation clip name too long: " << owner << '_' << clip

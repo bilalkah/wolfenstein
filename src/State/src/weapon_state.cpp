@@ -104,7 +104,7 @@ void ReloadingState::Update(const double& delta_time) {
 	reload_time_ += delta_time;
 	if (reload_time_ >= reload_speed_) {
 		animation_.Reset();
-		context_->SetAmmo(context_->GetAmmoCapacity());
+		context_->FinishReload();
 		context_->TransitionTo(WeaponStateType::Loaded);
 		return;
 	}

@@ -1,34 +1,21 @@
 #include "Strike/weapon.h"
 #include "State/weapon_state.h"
+#include <algorithm>
 #include <cstddef>
 #include <iostream>
 #include <memory>
-#include <stdexcept>
 #include <string>
 #include <utility>
 namespace wolfenstein {
 
-namespace {
-auto GetWeaponConfig = [](const std::string& weapon_name) -> WeaponConfig {
-	if (weapon_name == "mp5") {
-		return {"mp5", 18, 25, 2, 8, 0.5, 1.5};
-	}
-	else if (weapon_name == "shotgun") {
-		return {"shotgun", 2, 60, 2, 7, 0.7, 3.5};
-	}
-	else {
-		throw std::invalid_argument("Invalid weapon name");
-	}
-};
-}  // namespace
-
-Weapon::Weapon(std::string weapon_name, const TextureManager& textures,
+Weapon::Weapon(const WeaponConfig& config, const TextureManager& textures,
 			   SoundManager& sound)
 	: textures_(textures),
 	  sound_(sound),
-	  weapon_properties_(GetWeaponConfig(weapon_name)),
+	  config_(config),
 	  sound_channel_(sound.AllocateChannel()) {
-	ammo_ = weapon_properties_.ammo_capacity;
+	ammo_ = config_.ammo_capacity;
+	reserve_ = config_.reserve_start;
 	for (const auto type : {WeaponStateType::Loaded, WeaponStateType::OutOfAmmo,
 							WeaponStateType::Reloading}) {
 		StateFor(type).SetContext(*this);
@@ -56,38 +43,34 @@ void Weapon::Update(double delta_time) {
 	state_machine_.Update(delta_time);
 }
 
-void Weapon::Charge() {
-	ammo_ = weapon_properties_.ammo_capacity;
-}
-
 void Weapon::Reload() {
-	if (state_machine_.Current().GetType() != WeaponStateType::Reloading) {
+	if (state_machine_.Current().GetType() != WeaponStateType::Reloading &&
+		ammo_ < config_.ammo_capacity && reserve_ > 0) {
 		TransitionTo(WeaponStateType::Reloading);
 	}
+}
+
+void Weapon::FinishReload() {
+	const size_t moved = std::min(config_.ammo_capacity - ammo_, reserve_);
+	ammo_ += moved;
+	reserve_ -= moved;
 }
 
 void Weapon::TransitionTo(WeaponStateType type) {
 	state_machine_.TransitionTo(StateFor(type));
 }
 
-void Weapon::SetAmmo(size_t ammo) {
-	ammo_ = ammo;
-}
-
-void Weapon::IncreaseAmmo() {
-	ammo_++;
-}
-
-void Weapon::IncreaseAmmo(size_t amount) {
-	ammo_ += amount;
-}
-
 void Weapon::DecreaseAmmo() {
 	ammo_--;
 }
 
-void Weapon::DecreaseAmmo(size_t amount) {
-	ammo_ -= amount;
+bool Weapon::AddAmmoBoxes(size_t boxes) {
+	if (reserve_ >= config_.reserve_max) {
+		return false;
+	}
+	reserve_ =
+		std::min(config_.reserve_max, reserve_ + boxes * config_.box_rounds);
+	return true;
 }
 
 size_t Weapon::GetAmmo() const {
@@ -95,27 +78,27 @@ size_t Weapon::GetAmmo() const {
 }
 
 size_t Weapon::GetAmmoCapacity() const {
-	return weapon_properties_.ammo_capacity;
+	return config_.ammo_capacity;
 }
 
 std::pair<double, double> Weapon::GetAttackDamage() const {
-	return weapon_properties_.attack_damage;
+	return config_.attack_damage;
 }
 
 double Weapon::GetAttackRange() const {
-	return weapon_properties_.attack_range;
+	return config_.attack_range;
 }
 
 double Weapon::GetAttackSpeed() const {
-	return weapon_properties_.attack_speed;
+	return config_.attack_speed;
 }
 
 double Weapon::GetReloadSpeed() const {
-	return weapon_properties_.reload_speed;
+	return config_.reload_speed;
 }
 
 const std::string& Weapon::GetWeaponName() const {
-	return weapon_properties_.weapon_name;
+	return config_.weapon_name;
 }
 
 int Weapon::GetTextureId() const {

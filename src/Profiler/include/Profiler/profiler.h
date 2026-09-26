@@ -125,8 +125,8 @@ class ScopedTimer
   private:
 	ProfileSection section_;
 	std::chrono::steady_clock::time_point start_;
-	std::uint64_t start_allocations_;
-	std::uint64_t start_bytes_;
+	std::uint64_t start_allocations_{};
+	std::uint64_t start_bytes_{};
 };
 
 }  // namespace wolfenstein

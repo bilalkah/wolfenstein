@@ -4,25 +4,19 @@
 
 namespace wolfenstein {
 
-TriggeredSingleAnimation::TriggeredSingleAnimation(const uint16_t texture_id,
-												   const double animation_speed,
+TriggeredSingleAnimation::TriggeredSingleAnimation(double animation_speed,
 												   int alpha_start,
 												   int alpha_end)
-	: texture_id(texture_id),
-	  animation_speed(animation_speed),
+	: animation_speed(animation_speed),
 	  alpha_start(alpha_start),
 	  alpha_end(alpha_end) {}
 
-void TriggeredSingleAnimation::Update(const double& delta_time) {
+void TriggeredSingleAnimation::Update(double delta_time) {
 	progress_ = std::min(progress_ + delta_time * animation_speed, 1.0);
 }
 
 void TriggeredSingleAnimation::Reset() {
 	progress_ = 0.0;
-}
-
-int TriggeredSingleAnimation::GetCurrentFrame() const {
-	return texture_id;
 }
 
 bool TriggeredSingleAnimation::IsAnimationFinishedOnce() const {

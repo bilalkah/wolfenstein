@@ -2,6 +2,7 @@ add_library(
     renderer_interface
     STATIC
     src/renderer_interface.cpp
+    src/quad_batch.cpp
 )
 target_include_directories(renderer_interface PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -29,6 +30,21 @@ target_include_directories(renderer_2d PUBLIC
 )
 target_link_libraries(
     renderer_2d
+    PUBLIC
+    renderer_interface
+)
+
+add_library(
+    minimap
+    STATIC
+    src/minimap.cpp
+)
+target_include_directories(minimap PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(
+    minimap
     PUBLIC
     renderer_interface
 )

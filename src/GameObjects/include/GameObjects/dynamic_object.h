@@ -21,8 +21,7 @@ namespace wolfenstein {
 class DynamicObject : public IGameObject
 {
   public:
-	explicit DynamicObject(const vector2d& pose_,
-						   const LoopedAnimation& animation_,
+	explicit DynamicObject(const vector2d& pose_, LoopedAnimation animation_,
 						   const double width_, const double height_);
 
 	void Update(double delta_time) override;
