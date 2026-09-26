@@ -103,6 +103,10 @@ bool Player::TryPickUp(const PickupEffect& effect, double supplies) {
 		weapon_.AddAmmoBoxes(effect.ammo_boxes, supplies)) {
 		taken = true;
 	}
+	if ((effect.keys & ~keys_) != 0) {
+		keys_ |= effect.keys;
+		taken = true;
+	}
 	if (taken) {
 		sound_.PlayEffect(sound_channel_, SoundEffect::Pickup);
 		picked_up_ = true;

@@ -5,8 +5,8 @@ Each level is a set of rooms (floor rectangles, each with a wall texture), the
 corridors joining them, pillars and accent walls, where the player starts,
 which enemies guard which rooms and what supplies lie in them. The script
 carves the rooms out of solid wall, gives every wall the texture of the room
-it faces, hangs a door in each corridor, places enemies, lights and pickups
-inside their rooms
+it faces, hangs a door in each corridor (locked, for some, with a key found
+elsewhere in the level), places enemies, lights and pickups inside their rooms
 (deterministically, so rerunning gives the same files) and checks the result:
 a solid border, every room reachable from the start, no enemy close to the
 start and nothing standing in a wall.
@@ -73,6 +73,9 @@ class Level:
     pillars: list = field(default_factory=list)  # (x, y, texture)
     # Wall cells given a feature texture (banner, demon faces): (x, y, texture)
     accents: list = field(default_factory=list)
+    # Corridors (by index) whose door is locked: "gold" or "silver". The key
+    # is a pickup in some room, and must be reachable without its own door.
+    locks: dict = field(default_factory=dict)
     seed: int = 1
 
 
@@ -220,7 +223,7 @@ def doors(level, cells):
     """A door in each corridor: its middle cell with walls facing each other
     across it and the way through open on the other two sides."""
     placed = []
-    for (x0, y0), (x1, y1) in level.corridors:
+    for index, ((x0, y0), (x1, y1)) in enumerate(level.corridors):
         run = [(x, y) for x in range(min(x0, x1), max(x0, x1) + 1)
                for y in range(min(y0, y1), max(y0, y1) + 1)]
         candidates = []
@@ -231,8 +234,12 @@ def doors(level, cells):
             open_y = cells[x][y - 1] == 0 and cells[x][y + 1] == 0
             if (walls_y and open_x) or (walls_x and open_y):
                 candidates.append((x, y))
+        lock = level.locks.get(index)
         if candidates:
-            placed.append(candidates[len(candidates) // 2])
+            placed.append((candidates[len(candidates) // 2], lock))
+        elif lock is not None:
+            raise ValueError(f"{level.file}: corridor {index} is locked but "
+                             f"has no cell a door fits in")
     return placed
 
 
@@ -241,11 +248,13 @@ def write(level):
     cells = texture_map(level, grid)
     reachable = check(level, cells)
     enemies, lights, pickups = place(level, cells, reachable)
-    door_cells = set(doors(level, cells))
+    door_marks = {cell: {"gold": "G", "silver": "S", None: "D"}[lock]
+                  for cell, lock in doors(level, cells)}
+    door_cells = door_marks.keys()
     rows, cols = level.size
     map_file = level.file.replace(".json", ".txt")
     lines = [f"height {rows}", f"width {cols}"]
-    lines += ["".join("D" if (x, y) in door_cells else str(c)
+    lines += ["".join(door_marks.get((x, y), str(c))
                       for y, c in enumerate(row))
               for x, row in enumerate(cells)]
     (ASSETS / "maps" / map_file).write_text("\n".join(lines) + "\n")
@@ -266,8 +275,9 @@ def write(level):
     supplies = {}
     for pickup in pickups:
         supplies[pickup["type"]] = supplies.get(pickup["type"], 0) + 1
+    locked = sum(mark != "D" for mark in door_marks.values())
     print(f"{level.file}: {rows}x{cols}, {kinds}, {len(lights)} lights, "
-          f"{len(door_cells)} doors, {supplies}")
+          f"{len(door_cells)} doors ({locked} locked), {supplies}")
 
 
 EAST, SOUTH, WEST, NORTH = 1.57, 0.0, -1.57, 3.14
@@ -286,7 +296,7 @@ LEVELS = [
               Room("yard", 9, 2, 14, 23, enemies=[(1, "soldier")], lights=4,
                    pickups=[(1, "medkit"), (1, "ammo_box")]),
               Room("armory", 17, 1, 20, 8, enemies=[(1, "soldier")], lights=1,
-                   pickups=[(2, "ammo_box")]),
+                   pickups=[(2, "ammo_box"), (1, "gold_key")]),
               Room("office", 17, 12, 20, 24, BRICK,
                    enemies=[(1, "soldier")], lights=2, light="red_light",
                    pickups=[(1, "medkit")]),
@@ -296,7 +306,8 @@ LEVELS = [
                      ((15, 4), (16, 4)), ((15, 18), (16, 18))],
           pillars=[(11, 7, CONCRETE), (11, 12, CONCRETE), (11, 17, CONCRETE),
                    (12, 7, CONCRETE), (12, 12, CONCRETE), (12, 17, CONCRETE)],
-          accents=[(0, 21, EAGLE), (21, 18, EAGLE)]),
+          accents=[(0, 21, EAGLE), (21, 18, EAGLE)],
+          locks={6: "gold"}),  # the office
 
     # Red-brick barracks around a pillared courtyard. The first demons.
     Level("level2.json", "THE BARRACKS", (26, 30), seed=22,
@@ -315,7 +326,7 @@ LEVELS = [
                    light="red_light", pickups=[(1, "medkit")]),
               Room("chapel", 1, 12, 5, 27, BRICK,
                    enemies=[(1, "soldier"), (1, "caco_demon")], lights=3,
-                   light="red_light"),
+                   light="red_light", pickups=[(1, "gold_key")]),
               Room("quarters", 20, 12, 24, 27, BRICK,
                    enemies=[(1, "soldier")], lights=2, light="red_light",
                    pickups=[(1, "medkit")]),
@@ -328,7 +339,8 @@ LEVELS = [
                      ((6, 25), (7, 25)), ((18, 25), (19, 25))],
           pillars=[(10, 13, BRICK), (10, 18, BRICK), (15, 13, BRICK),
                    (15, 18, BRICK)],
-          accents=[(0, 19, EAGLE), (0, 20, EAGLE), (25, 19, EAGLE)]),
+          accents=[(0, 19, EAGLE), (0, 20, EAGLE), (25, 19, EAGLE)],
+          locks={1: "gold"}),  # the dormitory
 
     # Catacombs of mossy stone: narrow tunnels between burial chambers.
     Level("level3.json", "THE CATACOMBS", (28, 30), seed=33,
@@ -338,7 +350,7 @@ LEVELS = [
                    pickups=[(1, "ammo_box")]),
               Room("ossuary", 1, 9, 6, 17, MOSS,
                    enemies=[(2, "soldier")], lights=2,
-                   pickups=[(1, "medkit")]),
+                   pickups=[(1, "medkit"), (1, "silver_key")]),
               Room("crypt", 9, 1, 15, 7, MOSS,
                    enemies=[(1, "soldier"), (1, "caco_demon")], lights=2,
                    pickups=[(1, "ammo_box")]),
@@ -348,7 +360,7 @@ LEVELS = [
                    pickups=[(1, "medkit"), (1, "ammo_box")]),
               Room("well", 1, 22, 9, 28, MOSS,
                    enemies=[(1, "caco_demon")], lights=2,
-                   pickups=[(1, "large_medkit")]),
+                   pickups=[(1, "large_medkit"), (1, "gold_key")]),
               Room("tomb", 19, 3, 26, 12, MOSS,
                    enemies=[(1, "soldier"), (1, "caco_demon")], lights=2,
                    pickups=[(1, "medkit"), (1, "ammo_box")]),
@@ -362,7 +374,9 @@ LEVELS = [
                      ((17, 18), (18, 18)), ((23, 13), (23, 15))],
           pillars=[(12, 14, DEMON), (12, 17, DEMON), (13, 14, DEMON),
                    (13, 17, DEMON), (22, 21, MOSS), (22, 23, MOSS)],
-          accents=[(27, 21, DEMON), (27, 22, DEMON), (8, 16, DEMON)]),
+          accents=[(27, 21, DEMON), (27, 22, DEMON), (8, 16, DEMON)],
+          # the tomb; both ways into the altar
+          locks={6: "silver", 7: "gold", 8: "gold"}),
 
     # The sanctum: banner halls leading to an arena where it ends.
     Level("level4.json", "THE SANCTUM", (30, 32), seed=44,
@@ -374,7 +388,8 @@ LEVELS = [
               Room("west wing", 16, 1, 23, 9, BRICK,
                    enemies=[(2, "soldier"), (1, "caco_demon")], lights=2,
                    light="red_light",
-                   pickups=[(1, "medkit"), (1, "ammo_box")]),
+                   pickups=[(1, "medkit"), (1, "ammo_box"),
+                            (1, "silver_key")]),
               Room("east wing", 16, 22, 23, 30, BRICK,
                    enemies=[(2, "soldier"), (1, "caco_demon")], lights=2,
                    light="red_light",
@@ -388,7 +403,7 @@ LEVELS = [
                    pickups=[(1, "ammo_box")]),
               Room("reliquary", 5, 23, 12, 30, MOSS,
                    enemies=[(1, "caco_demon"), (1, "cyber_demon")], lights=2,
-                   pickups=[(1, "medkit"), (1, "ammo_box")]),
+                   pickups=[(1, "medkit"), (1, "ammo_box"), (1, "gold_key")]),
               Room("arena", 1, 10, 10, 21, DEMON,
                    enemies=[(2, "cyber_demon")], lights=4,
                    light="red_light",
@@ -396,13 +411,15 @@ LEVELS = [
           ],
           corridors=[((23, 15), (24, 16)), ((19, 10), (19, 10)),
                      ((19, 21), (19, 21)), ((13, 4), (15, 4)),
-                     ((13, 27), (15, 27)), ((11, 15), (12, 16)),
+                     ((13, 27), (15, 27)), ((11, 15), (12, 15)),
                      ((8, 9), (8, 9)), ((8, 22), (8, 22))],
           pillars=[(15, 13, DEMON), (15, 18, DEMON), (20, 13, DEMON),
                    (20, 18, DEMON), (4, 13, DEMON), (4, 18, DEMON),
                    (7, 13, DEMON), (7, 18, DEMON)],
           accents=[(0, 14, EAGLE), (0, 17, EAGLE), (29, 14, EAGLE),
-                   (29, 17, EAGLE)]),
+                   (29, 17, EAGLE)],
+          # the east wing; every way into the arena
+          locks={2: "silver", 5: "gold", 6: "gold", 7: "gold"}),
 ]
 
 

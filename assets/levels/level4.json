@@ -168,29 +168,29 @@
     {
       "type": "red_light",
       "position": {
-        "x": 20.5,
-        "y": 20.5
-      }
-    },
-    {
-      "type": "red_light",
-      "position": {
-        "x": 16.5,
+        "x": 17.5,
         "y": 11.5
       }
     },
     {
       "type": "red_light",
       "position": {
-        "x": 22.5,
-        "y": 17.5
+        "x": 20.5,
+        "y": 19.5
       }
     },
     {
       "type": "red_light",
       "position": {
         "x": 15.5,
-        "y": 19.5
+        "y": 20.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 15.5,
+        "y": 17.5
       }
     },
     {
@@ -224,29 +224,29 @@
     {
       "type": "red_light",
       "position": {
-        "x": 1.5,
-        "y": 11.5
-      }
-    },
-    {
-      "type": "red_light",
-      "position": {
         "x": 10.5,
-        "y": 19.5
+        "y": 21.5
       }
     },
     {
       "type": "red_light",
       "position": {
-        "x": 2.5,
-        "y": 10.5
+        "x": 8.5,
+        "y": 13.5
       }
     },
     {
       "type": "red_light",
       "position": {
         "x": 7.5,
-        "y": 10.5
+        "y": 12.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 7.5,
+        "y": 19.5
       }
     }
   ],
@@ -280,6 +280,13 @@
       }
     },
     {
+      "type": "silver_key",
+      "position": {
+        "x": 23.5,
+        "y": 6.5
+      }
+    },
+    {
       "type": "medkit",
       "position": {
         "x": 17.5,
@@ -296,8 +303,8 @@
     {
       "type": "large_medkit",
       "position": {
-        "x": 17.5,
-        "y": 20.5
+        "x": 22.5,
+        "y": 14.5
       }
     },
     {
@@ -322,9 +329,16 @@
       }
     },
     {
+      "type": "gold_key",
+      "position": {
+        "x": 9.5,
+        "y": 23.5
+      }
+    },
+    {
       "type": "large_medkit",
       "position": {
-        "x": 1.5,
+        "x": 2.5,
         "y": 21.5
       }
     },
@@ -332,7 +346,7 @@
       "type": "ammo_box",
       "position": {
         "x": 2.5,
-        "y": 21.5
+        "y": 10.5
       }
     }
   ],

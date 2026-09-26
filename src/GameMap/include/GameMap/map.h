@@ -24,6 +24,13 @@
 
 namespace wolfenstein {
 
+// The keys that lock doors, as bits of a set of keys held
+enum class KeyColour : std::uint8_t { None = 0, Gold = 1, Silver = 2 };
+
+constexpr std::uint8_t KeyBit(KeyColour key) {
+	return static_cast<std::uint8_t>(key);
+}
+
 // A sliding door in a cell between two walls facing each other. It is a
 // plane across the middle of the cell, at right angles to the way through,
 // that slides into the wall as it opens.
@@ -37,6 +44,8 @@ struct Door
 	bool across_x{};
 	// 0 closed, 1 open: how much of the doorway is clear
 	double openness{};
+	// The key it needs, if locked
+	KeyColour lock = KeyColour::None;
 };
 
 // The level's grid of cells: 0 is free, a door cell is kDoorCell plus the
@@ -93,6 +102,8 @@ class Map
 	// Whether a cell is a wall (or outside the map): blocked for good,
 	// whatever the doors do
 	bool IsWall(int x, int y) const;
+	// Whether a cell is a door that needs a key
+	bool IsLockedDoor(int x, int y) const;
 	// The same for the cell containing a world position. Positions are
 	// floored, not truncated: truncation would map -0.5 to cell 0.
 	bool IsBlocked(const vector2d& position) const;

@@ -221,6 +221,13 @@
       }
     },
     {
+      "type": "silver_key",
+      "position": {
+        "x": 5.5,
+        "y": 17.5
+      }
+    },
+    {
       "type": "ammo_box",
       "position": {
         "x": 15.5,
@@ -246,6 +253,13 @@
       "position": {
         "x": 1.5,
         "y": 25.5
+      }
+    },
+    {
+      "type": "gold_key",
+      "position": {
+        "x": 1.5,
+        "y": 28.5
       }
     },
     {

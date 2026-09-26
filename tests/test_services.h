@@ -44,7 +44,10 @@ inline const TextureManager& TestTextures() {
 		for (const char* pickup : {"medkit", "large_medkit", "ammo_box"}) {
 			textures.DefineTexture(pickup, next++);
 		}
-		textures.DefineTexture("door", next++);
+		for (const char* name :
+			 {"door", "door_gold", "door_silver", "gold_key", "silver_key"}) {
+			textures.DefineTexture(name, next++);
+		}
 		return true;
 	}();
 	(void)defined;

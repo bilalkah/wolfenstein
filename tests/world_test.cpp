@@ -120,6 +120,7 @@ TEST(World, AGameComesBackAsItWasLeft) {
 	level.Explore(13, 15);
 	level.Explore(0, 0);
 	level.RestoreSeconds(42.5);
+	player.SetKeys(KeyBit(KeyColour::Silver));
 
 	const auto captured = world->Capture();
 	ASSERT_TRUE(captured);
@@ -154,6 +155,8 @@ TEST(World, AGameComesBackAsItWasLeft) {
 	EXPECT_TRUE(again.IsExplored(0, 0));
 	EXPECT_FALSE(again.IsExplored(1, 1));
 	EXPECT_DOUBLE_EQ(again.GetStats().seconds, 42.5);
+	EXPECT_TRUE(back.HasKey(KeyColour::Silver));
+	EXPECT_FALSE(back.HasKey(KeyColour::Gold));
 }
 
 // Saved only when nothing is fighting the player

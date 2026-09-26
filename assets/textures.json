@@ -11,7 +11,11 @@
     "medkit": "sprites/pickups/medkit.png",
     "large_medkit": "sprites/pickups/large_medkit.png",
     "ammo_box": "sprites/pickups/ammo_box.png",
-    "door": "textures/door.png"
+    "door": "textures/door.png",
+    "door_gold": "textures/door_gold.png",
+    "door_silver": "textures/door_silver.png",
+    "gold_key": "sprites/pickups/gold_key.png",
+    "silver_key": "sprites/pickups/silver_key.png"
   },
   "walls": [
     "textures/1.png",

@@ -1,4 +1,5 @@
 #include "Core/level_data.h"
+#include "GameMap/map.h"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -54,15 +55,34 @@ WeaponConfig ToWeapon(const json& weapon) {
 			.falloff = ToFalloff(weapon.at("falloff"))};
 }
 
-// A pickup gives health, ammo boxes or both; what it does not give is 0
+// The key a pickup is ("key": "gold"), as a KeyBit, or 0
+std::uint8_t ToKeys(const json& pickup) {
+	if (!pickup.contains("key")) {
+		return 0;
+	}
+	const auto& key = pickup.at("key");
+	const auto name = key.get<std::string>();
+	if (name == "gold") {
+		return KeyBit(KeyColour::Gold);
+	}
+	if (name == "silver") {
+		return KeyBit(KeyColour::Silver);
+	}
+	throw json::other_error::create(505, "unknown key \"" + name + "\"", &key);
+}
+
+// A pickup gives health, ammo boxes, a key or some of them; what it does not
+// give is 0
 PickupConfig ToPickup(const json& pickup) {
 	PickupConfig config{
 		.texture = pickup.at("texture").get<std::string>(),
 		.width = pickup.at("width").get<double>(),
 		.height = pickup.at("height").get<double>(),
 		.effect = {.health = pickup.value("health", 0.0),
-				   .ammo_boxes = pickup.value("ammo_boxes", std::size_t{0})}};
-	if (config.effect.health <= 0.0 && config.effect.ammo_boxes == 0) {
+				   .ammo_boxes = pickup.value("ammo_boxes", std::size_t{0}),
+				   .keys = ToKeys(pickup)}};
+	if (config.effect.health <= 0.0 && config.effect.ammo_boxes == 0 &&
+		config.effect.keys == 0) {
 		throw json::other_error::create(503, "a pickup that gives nothing",
 										&pickup);
 	}

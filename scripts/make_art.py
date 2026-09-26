@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Draws the pickup sprites and the door texture, and synthesises the pickup
-sound.
+"""Draws the pickup sprites (health, ammunition, keys) and the door textures,
+and synthesises the pickup sound.
 
 Pixel art in the chunky style of the other sprites, written as PNGs (the
 pickups on a transparent background), and a short rising chime as a WAV;
 standard library only, so rerunning gives the same files.
 
     ./scripts/make_art.py   # writes assets/sprites/pickups/*.png,
-                            # assets/textures/door.png and
+                            # assets/textures/door*.png and
                             # assets/sounds/pickup.wav
 """
 
@@ -107,8 +107,35 @@ def ammo_box():
     return canvas
 
 
-def door():
-    """A steel door: riveted plates, a bracing band, a viewing slit."""
+# Metal colours for keys and locks: face, highlight, shadow
+GOLD = ((214, 170, 56, 255), (250, 222, 120, 255), (140, 100, 24, 255))
+SILVER = ((176, 184, 196, 255), (232, 236, 244, 255), (104, 110, 124, 255))
+
+
+def key(metal):
+    """A large old key lying flat: a ring bow, a shaft and a toothed bit."""
+    face, light, dark = metal
+    canvas = Canvas(40, 40)
+    # Bow: a square ring
+    canvas.rect(4, 12, 17, 27, OUTLINE)
+    canvas.rect(5, 13, 16, 26, face)
+    canvas.rect(5, 13, 16, 14, light)
+    canvas.rect(9, 17, 12, 22, OUTLINE)
+    # Shaft
+    canvas.rect(17, 17, 36, 22, OUTLINE)
+    canvas.rect(17, 18, 36, 21, face)
+    canvas.rect(17, 18, 36, 18, light)
+    canvas.rect(17, 21, 36, 21, dark)
+    # Bit: two teeth below the shaft's end
+    for x in (27, 32):
+        canvas.rect(x, 22, x + 3, 29, OUTLINE)
+        canvas.rect(x + 1, 22, x + 2, 28, dark)
+    return canvas
+
+
+def door(lock=None):
+    """A steel door: riveted plates, a bracing band, a viewing slit. A locked
+    door's band and handle are its key's metal, with a keyhole."""
     canvas = Canvas(64, 64)
     steel, light, dark = (86, 100, 122, 255), (122, 138, 160, 255), \
         (52, 62, 78, 255)
@@ -129,6 +156,16 @@ def door():
     canvas.rect(23, 13, 40, 15, (16, 16, 20, 255))
     canvas.rect(50, 44, 53, 51, OUTLINE)  # handle
     canvas.rect(51, 45, 52, 50, (200, 170, 90, 255))
+    if lock is not None:
+        face, light, dark = lock
+        canvas.rect(2, 30, 61, 33, face)  # the band in the key's metal
+        canvas.rect(2, 30, 61, 30, light)
+        canvas.rect(2, 33, 61, 33, dark)
+        canvas.rect(46, 40, 57, 55, OUTLINE)  # lock plate with a keyhole
+        canvas.rect(47, 41, 56, 54, face)
+        canvas.rect(47, 41, 56, 41, light)
+        canvas.rect(50, 44, 53, 47, OUTLINE)
+        canvas.rect(51, 48, 52, 51, OUTLINE)
     return canvas
 
 
@@ -161,7 +198,11 @@ def main():
     for name, draw in (("medkit", medkit), ("large_medkit", large_medkit),
                        ("ammo_box", ammo_box)):
         draw().save(ASSETS / "sprites" / "pickups" / f"{name}.png")
+    key(GOLD).save(ASSETS / "sprites" / "pickups" / "gold_key.png")
+    key(SILVER).save(ASSETS / "sprites" / "pickups" / "silver_key.png")
     door().save(ASSETS / "textures" / "door.png")
+    door(GOLD).save(ASSETS / "textures" / "door_gold.png")
+    door(SILVER).save(ASSETS / "textures" / "door_silver.png")
     chime(ASSETS / "sounds" / "pickup.wav")
 
 

@@ -112,6 +112,9 @@ std::optional<SavedGame> SavedGame::Parse(std::string_view text) {
 		else if (key == "taken") {
 			read = ParseNumber(value, game.taken);
 		}
+		else if (key == "keys") {
+			read = ParseNumber(value, game.keys);
+		}
 		else if (key == "explored_cells") {
 			read = ParseNumber(value, game.explored_cells) &&
 				   game.explored_cells <= kMaxExploredCells;
@@ -153,6 +156,7 @@ std::size_t SavedGame::Format(std::span<char> out) const {
 	writer.Line("seconds", seconds)
 		.Line("killed", killed)
 		.Line("taken", taken)
+		.Line("keys", keys)
 		.Line("explored_cells", explored_cells);
 	// Only the bytes the explored cells use
 	std::array<char, kMaxExploredCells / 8 * 2> hex{};

@@ -196,6 +196,13 @@
       }
     },
     {
+      "type": "gold_key",
+      "position": {
+        "x": 20.5,
+        "y": 8.5
+      }
+    },
+    {
       "type": "medkit",
       "position": {
         "x": 20.5,

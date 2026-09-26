@@ -98,6 +98,7 @@ std::expected<void, std::string> SceneLoader::Populate(
 	Scene& scene, const PreparedLevel& level, Player& player) const {
 	player.SetPosition(level.data.player);
 	player.IncreaseHealth(100);
+	player.SetKeys(0);	// the last level's keys open nothing here
 	scene.SetPlayer(player);
 	for (const EnemySpawn& spawn : level.data.enemies) {
 		// Checked when the level was prepared

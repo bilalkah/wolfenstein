@@ -48,7 +48,11 @@ Renderer3D::Renderer3D(RendererContext& context) : IRenderer(context) {
 	far_texture_ = context_->Textures().GetTextureId("solid_black");
 	crosshair_texture_ = context_->Textures().GetTextureId("crosshair");
 	damage_texture_ = context_->Textures().GetTextureId("damage_taken");
-	door_texture_ = context_->Textures().GetTextureId("door");
+	door_textures_ = {context_->Textures().GetTextureId("door"),
+					  context_->Textures().GetTextureId("door_gold"),
+					  context_->Textures().GetTextureId("door_silver")};
+	key_textures_ = {0, context_->Textures().GetTextureId("gold_key"),
+					 context_->Textures().GetTextureId("silver_key")};
 
 	const SDL_Color white{255, 255, 255, 255};
 	for (int digit = 0; digit < 10; ++digit) {
@@ -144,16 +148,20 @@ void Renderer3D::RenderIfRayHit(const int& horizontal_slice, const Ray& ray) {
 	// A door slid part open shows the rest of its texture
 	hit_point = std::fmod(hit_point, 1.0) - ray.texture_shift;
 	// A wall ray's id is the map cell it hit; the manifest gives its texture
+	const auto cell = static_cast<std::uint16_t>(ray.wall_id);
 	const int wall_texture =
-		Map::IsDoorCell(static_cast<std::uint16_t>(ray.wall_id))
-			? door_texture_
+		Map::IsDoorCell(cell)
+			? door_textures_[static_cast<std::size_t>(
+				  scene_->GetMap().GetDoors()[cell - Map::kDoorCell].lock)]
 			: context_->Textures().GetWallTexture(ray.wall_id);
 	const auto& texture = context_->Textures().GetTexture(wall_texture);
 	const auto texture_height = texture.height;
 	const auto texture_width = texture.width;
 	int texture_point = static_cast<int>(hit_point * texture_width);
 
-	SDL_Rect src_rect = {texture_point, 0, 2, texture_height};
+	// One texel wide: two would squeeze a pair of texels into the column,
+	// which stripes a low-resolution texture seen up close
+	SDL_Rect src_rect = {texture_point, 0, 1, texture_height};
 	SDL_Rect dest_rect = {horizontal_slice, draw_start, 2, line_height};
 	Enqueue(wall_texture, src_rect, dest_rect, distance);
 }
@@ -346,6 +354,21 @@ void Renderer3D::RenderHUD(double delta_time) {
 		draw_digit(digits[i], x, digit_width);
 	}
 	draw_digit(kPercentDigit, x, digit_width);
+
+	// The keys held, after the health
+	x += digit_width * 2;
+	for (const KeyColour key : {KeyColour::Gold, KeyColour::Silver}) {
+		if (!player.HasKey(key)) {
+			continue;
+		}
+		const auto& texture =
+			textures.GetTexture(key_textures_[static_cast<std::size_t>(key)]);
+		const int size = digit_width * 3 / 2;
+		const SDL_Rect src{0, 0, texture.width, texture.height};
+		const SDL_Rect dest{x, config.height - size - 10, size, size};
+		SDL_RenderCopy(context_->GetRenderer(), texture.texture, &src, &dest);
+		x += size + digit_width / 4;
+	}
 
 	// Ammo, bottom right, drawn right to left: the rounds in reserve in
 	// smaller digits, then those in the magazine

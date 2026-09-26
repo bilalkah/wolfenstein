@@ -106,6 +106,7 @@ std::expected<void, std::string> World::ContinueGame(const SavedGame& saved) {
 		}
 	}
 	scene.RestoreSeconds(saved.seconds);
+	player.SetKeys(static_cast<std::uint8_t>(saved.keys));
 	return {};
 }
 
@@ -125,7 +126,8 @@ std::optional<SavedGame> World::Capture() const {
 					.x = position.pose.x,
 					.y = position.pose.y,
 					.theta = position.theta,
-					.seconds = scene.GetStats().seconds};
+					.seconds = scene.GetStats().seconds,
+					.keys = player_->GetKeys()};
 	for (std::size_t i = 0; i < config.weapons.size(); ++i) {
 		if (config.weapons[i].weapon_name == weapon.GetWeaponName()) {
 			saved.weapon = i;
