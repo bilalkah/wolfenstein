@@ -3,8 +3,9 @@
 --soak` or benchmarks/run_web_soak.mjs), read from stdin.
 
 Fails unless nothing was allocated after startup and the session really went
-where the script sends it: through a pickup, a door, a level's results and
-the next one's briefing, a level transition and a player's death.
+where the script sends it: through a pickup, a door, a secret, a level's
+results and the next one's briefing, a level transition and a player's
+death.
 """
 
 import json
@@ -35,6 +36,8 @@ def main():
         failures.append("the session never opened a door")
     if not report.get("saw_stats"):
         failures.append("the session never showed a level's results")
+    if not report.get("found_secret"):
+        failures.append("the session never pushed a secret")
     if not report.get("saw_briefing"):
         failures.append("the session never showed a briefing")
     if failures:

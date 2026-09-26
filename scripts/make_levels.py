@@ -6,8 +6,8 @@ corridors joining them, pillars and accent walls, where the player starts,
 which enemies guard which rooms and what supplies lie in them. The script
 carves the rooms out of solid wall, gives every wall the texture of the room
 it faces, hangs a door in each corridor (locked, for some, with a key found
-elsewhere in the level), sets the exit switch in a wall, places enemies,
-lights and pickups inside their rooms
+elsewhere in the level), sets the exit switch in a wall, hides supply rooms
+behind push-walls, places enemies, lights and pickups inside their rooms
 (deterministically, so rerunning gives the same files) and checks the result:
 a solid border, every room reachable from the start, no enemy close to the
 start and nothing standing in a wall.
@@ -84,6 +84,8 @@ class Level:
     objectives: list = field(default_factory=list)
     # Shown before the level starts
     briefing: str = ""
+    # How many hidden supply rooms, each behind a push-wall
+    secrets: int = 0
     seed: int = 1
 
 
@@ -101,6 +103,62 @@ def carve(level):
     for x, y, _ in level.pillars:
         grid[x][y] = None
     return grid
+
+
+SECRET_DEPTH = 3  # cells of hidden room behind a push-wall
+SECRET_SUPPLIES = ("large_medkit", "ammo_box")
+
+
+def secrets(level, grid):
+    """Carves level.secrets hidden rooms, each behind a push-wall in a
+    straight stretch of a room's wall with solid rock behind it. Returns
+    (x, y, dx, dy) of each push-wall and the pickups inside."""
+    rows, cols = level.size
+    rng = random.Random(level.seed + 7)  # apart from the other placements
+    rooms = [room for index, room in enumerate(level.rooms) if index > 0]
+    rng.shuffle(rooms)
+    found, supplies = [], []
+    for room in rooms:
+        if len(found) == level.secrets:
+            break
+        spots = [(x, y, dx, dy) for x, y in room.cells()
+                 for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))]
+        rng.shuffle(spots)
+        for fx, fy, dx, dy in spots:
+            wx, wy = fx + dx, fy + dy
+            lx, ly = dy, dx  # across the way in
+            # Solid: the wall, its neighbours along the wall, the room behind
+            # and a margin round it (which may be the map's border); the room
+            # itself inside the border
+            def solid(k, side):
+                x, y = wx + k * dx + side * lx, wy + k * dy + side * ly
+                inner = 1 <= k <= SECRET_DEPTH and abs(side) <= 1
+                if inner:
+                    inside = 0 < x < rows - 1 and 0 < y < cols - 1
+                else:
+                    inside = 0 <= x < rows and 0 <= y < cols
+                return inside and grid[x][y] is None
+            if not all(solid(k, side) for k in range(0, SECRET_DEPTH + 2)
+                       for side in range(-2, 3)):
+                continue
+            if (wx, wy) == level.exit or any(
+                    (wx, wy) == (x, y) for x, y, _ in level.accents):
+                continue
+            for k in range(1, SECRET_DEPTH + 1):
+                for side in (-1, 0, 1):
+                    grid[wx + k * dx + side * lx][wy + k * dy + side * ly] = -2
+            found.append((wx, wy, dx, dy))
+            # Either side of where the wall ends up, two cells in
+            for side, kind in zip((-1, 1), SECRET_SUPPLIES):
+                x = wx + 2 * dx + side * lx
+                y = wy + 2 * dy + side * ly
+                supplies.append({"type": kind,
+                                 "position": {"x": x + 0.5, "y": y + 0.5}})
+            break
+    if len(found) != level.secrets:
+        raise ValueError(f"{level.file}: room for only {len(found)} of "
+                         f"{level.secrets} secrets")
+    return found, supplies
 
 
 def texture_map(level, grid):
@@ -258,9 +316,11 @@ def doors(level, cells):
 
 def write(level):
     grid = carve(level)
+    hidden, hidden_supplies = secrets(level, grid)
     cells = texture_map(level, grid)
     reachable = check(level, cells)
     enemies, lights, pickups = place(level, cells, reachable)
+    pickups += hidden_supplies
     door_marks = {cell: {"gold": "G", "silver": "S", None: "D"}[lock]
                   for cell, lock in doors(level, cells)}
     door_cells = door_marks.keys()
@@ -281,6 +341,8 @@ def write(level):
         "dynamicObjects": lights,
         "pickups": pickups,
         "objectives": level.objectives,
+        "secrets": [{"x": x, "y": y, "dx": dx, "dy": dy}
+                    for x, y, dx, dy in hidden],
         "staticObjects": [],
     }
     (ASSETS / "levels" / level.file).write_text(json.dumps(data, indent=2) + "\n")
@@ -292,7 +354,8 @@ def write(level):
         supplies[pickup["type"]] = supplies.get(pickup["type"], 0) + 1
     locked = sum(mark != "D" for mark in door_marks.values())
     print(f"{level.file}: {rows}x{cols}, {kinds}, {len(lights)} lights, "
-          f"{len(door_cells)} doors ({locked} locked), {supplies}")
+          f"{len(door_cells)} doors ({locked} locked), {len(hidden)} secrets, "
+          f"{supplies}")
 
 
 EAST, SOUTH, WEST, NORTH = 1.57, 0.0, -1.57, 3.14
@@ -300,7 +363,7 @@ EAST, SOUTH, WEST, NORTH = 1.57, 0.0, -1.57, 3.14
 LEVELS = [
     # A concrete checkpoint: guard hall, barracks, a yard and two back rooms.
     # Soldiers only.
-    Level("level1.json", "CHECKPOINT", (22, 26), seed=11,
+    Level("level1.json", "CHECKPOINT", (22, 30), seed=11,
           start=(2.5, 3.5, EAST),
           rooms=[
               Room("gatehouse", 1, 1, 4, 6, lights=2, pickups=[(1, "ammo_box")]),
@@ -324,6 +387,7 @@ LEVELS = [
           accents=[(0, 21, EAGLE), (21, 18, EAGLE)],
           locks={6: "gold"},  # the office
           exit=(21, 23),
+          secrets=1,
           briefing="A checkpoint guards the only road into the valley. Its garrison is small but alert. The way on is through the officer's office, and the gold key to it is kept in the armory. Clear the checkpoint and get out through the office.",
           objectives=[{"type": "kill_all",
                        "text": "Clear the checkpoint of its guards"}]),
@@ -361,6 +425,7 @@ LEVELS = [
           accents=[(0, 19, EAGLE), (0, 20, EAGLE), (25, 19, EAGLE)],
           locks={1: "gold"},  # the dormitory
           exit=(25, 26),
+          secrets=1,
           briefing="Past the checkpoint lie the barracks. Something has come up from under the chapel: the soldiers are not alone any more. Wipe out the garrison and take the stairs at the back of the quarters.",
           objectives=[{"type": "kill_all",
                        "text": "Wipe out the barracks garrison"}]),
@@ -402,6 +467,7 @@ LEVELS = [
           # the tomb; both ways into the altar
           locks={6: "silver", 7: "gold", 8: "gold"},
           exit=(27, 26),
+          secrets=2,
           briefing="Under the barracks the old catacombs open into a burial hall where a cyber demon keeps watch over an altar. The way down is sealed with two locks. Find the keys, destroy the demon and throw the switch behind the altar.",
           objectives=[{"type": "kill_targets",
                        "text": "Destroy the cyber demon at the altar"}]),
@@ -449,6 +515,7 @@ LEVELS = [
           # the east wing; every way into the arena
           locks={2: "silver", 5: "gold", 6: "gold", 7: "gold"},
           exit=(0, 15),
+          secrets=2,
           briefing="The sanctum is where it began. Two cyber demons guard the arena at its heart, behind gold-locked gates. Take the silver key from the west wing, the gold one from the reliquary, and end this.",
           objectives=[{"type": "kill_targets",
                        "text": "Kill the cyber demons guarding the arena"}]),

@@ -121,6 +121,8 @@ TEST(World, AGameComesBackAsItWasLeft) {
 	level.Explore(0, 0);
 	level.RestoreSeconds(42.5);
 	player.SetKeys(KeyBit(KeyColour::Silver));
+	ASSERT_FALSE(level.GetMap().GetPushWalls().empty());
+	level.GetMap().Push(0);	 // still sliding when saved
 
 	const auto captured = world->Capture();
 	ASSERT_TRUE(captured);
@@ -156,6 +158,11 @@ TEST(World, AGameComesBackAsItWasLeft) {
 	EXPECT_FALSE(again.IsExplored(1, 1));
 	EXPECT_DOUBLE_EQ(again.GetStats().seconds, 42.5);
 	EXPECT_TRUE(back.HasKey(KeyColour::Silver));
+	const PushWall& secret = again.GetMap().GetPushWalls()[0];
+	EXPECT_TRUE(secret.pushed);
+	EXPECT_FALSE(secret.moving) << "restored where it ends";
+	EXPECT_TRUE(again.GetMap().IsWall(secret.x + 2 * secret.dx,
+									  secret.y + 2 * secret.dy));
 	EXPECT_FALSE(back.HasKey(KeyColour::Gold));
 }
 

@@ -43,6 +43,7 @@ struct SavedGame
 	std::uint64_t killed = 0;
 	std::uint64_t taken = 0;
 	std::uint32_t keys = 0;			 // held, as the game's key bits
+	std::uint64_t secrets = 0;		 // bit i: the level's secret i was pushed
 	std::size_t explored_cells = 0;	 // how many cells `explored` covers
 	std::array<std::uint8_t, kMaxExploredCells / 8> explored{};
 

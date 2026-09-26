@@ -209,12 +209,34 @@
         "x": 20.5,
         "y": 23.5
       }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 16.5,
+        "y": 27.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 18.5,
+        "y": 27.5
+      }
     }
   ],
   "objectives": [
     {
       "type": "kill_all",
       "text": "Clear the checkpoint of its guards"
+    }
+  ],
+  "secrets": [
+    {
+      "x": 17,
+      "y": 25,
+      "dx": 0,
+      "dy": 1
     }
   ],
   "staticObjects": []
