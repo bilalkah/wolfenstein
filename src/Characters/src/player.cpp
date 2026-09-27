@@ -8,6 +8,7 @@
 #include "State/weapon_state.h"
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <memory>
 #include <utility>
 
@@ -80,6 +81,9 @@ void Player::SelectWeapon(std::size_t index) {
 
 void Player::Update(double delta_time) {
 	previous_position_ = position_;
+	// The view settles back after a shot's kick within a tenth of a second
+	constexpr double kKickSettling = 30.0;	// per second
+	kick_ *= std::exp(-kKickSettling * delta_time);
 	pickup_animation_.Update(delta_time);
 	since_hurt_ += delta_time;
 	if (!is_alive_) {
@@ -271,6 +275,7 @@ void Player::ShootOrReload() {
 		weapon.Reload();
 	}
 	if (command_.fire && weapon.Attack()) {
+		kick_ = std::max(kick_, weapon.GetKick());
 		ResolvePlayerShot(*scene_, weapon, position_);
 	}
 }

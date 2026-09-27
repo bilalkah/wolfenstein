@@ -50,11 +50,11 @@
                 "box": 0
             },
             "damage": [
-                34,
-                34
+                40,
+                40
             ],
             "range": 1.2,
-            "attack_speed": 0.45,
+            "attack_speed": 0.4,
             "reload_speed": 0.5,
             "falloff": "linear"
         },
@@ -69,31 +69,33 @@
                 "box": 16
             },
             "damage": [
-                20,
-                3
+                24,
+                8
             ],
-            "range": 8,
-            "attack_speed": 0.4,
+            "range": 10,
+            "attack_speed": 0.35,
             "reload_speed": 1.2,
-            "falloff": "linear"
+            "falloff": "linear",
+            "kick": 0.012
         },
         {
             "name": "mp5",
             "label": "MP5",
-            "ammo": 18,
+            "ammo": 30,
             "reserve": {
-                "start": 54,
+                "start": 60,
                 "max": 180,
-                "box": 36
+                "box": 30
             },
             "damage": [
-                25,
-                2
+                14,
+                5
             ],
-            "range": 8,
-            "attack_speed": 0.5,
-            "reload_speed": 1.5,
-            "falloff": "linear"
+            "range": 9,
+            "attack_speed": 0.11,
+            "reload_speed": 1.6,
+            "falloff": "linear",
+            "kick": 0.006
         },
         {
             "name": "shotgun",
@@ -105,13 +107,16 @@
                 "box": 8
             },
             "damage": [
-                60,
-                2
+                16,
+                1
             ],
             "range": 7,
-            "attack_speed": 0.7,
-            "reload_speed": 3.5,
-            "falloff": "exponential"
+            "attack_speed": 0.6,
+            "reload_speed": 2.4,
+            "falloff": "exponential",
+            "kick": 0.03,
+            "pellets": 7,
+            "spread": 8
         }
     ],
     "config_enemy": {
@@ -119,13 +124,14 @@
             "t_speed": 0.8,
             "width": 0.3,
             "height": 0.6,
+            "health": 60,
             "weapon": {
                 "name": "rifle",
                 "damage": [
-                    15,
-                    5
+                    12,
+                    4
                 ],
-                "range": 5.0,
+                "range": 6.0,
                 "attack_speed": 0.7,
                 "attack_rate": 1.0
             },
@@ -138,10 +144,11 @@
             "t_speed": 0.8,
             "width": 0.4,
             "height": 0.8,
+            "health": 120,
             "weapon": {
                 "name": "melee",
                 "damage": [
-                    17,
+                    18,
                     8
                 ],
                 "range": 2.0,
@@ -157,10 +164,11 @@
             "t_speed": 0.8,
             "width": 0.5,
             "height": 1.0,
+            "health": 300,
             "weapon": {
                 "name": "laser gun",
                 "damage": [
-                    19,
+                    20,
                     10
                 ],
                 "range": 7.0,

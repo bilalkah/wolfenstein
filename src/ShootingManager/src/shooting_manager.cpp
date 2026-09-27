@@ -8,6 +8,7 @@
 #include "Strike/simple_weapon.h"
 #include "Strike/weapon.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <utility>
 
@@ -28,6 +29,68 @@ double CalculateDamage(const Weapon& weapon, double distance) {
 									weapon.GetAttackRange(), distance);
 	}
 	std::unreachable();
+}
+
+// A shot that met no enemy strikes the wall it hit (if within reach): a
+// puff of dust there and a mark on it. Doors and secret walls move, so keep
+// no marks.
+void MarkWall(Scene& scene, const Ray& aim) {
+	if (aim.wall_id == 0) {
+		return;
+	}
+	const vector2d toward_eye = aim.direction * -1.0;
+	scene.ShowImpact(Scene::Impact::Dust, aim.hit_point + toward_eye * 0.05);
+	if (Map::IsDoorCell(static_cast<std::uint16_t>(aim.wall_id))) {
+		return;
+	}
+	const auto [x, y] = HitCell(aim);
+	if (scene.GetMap().FindPushWall(x, y) != nullptr) {
+		return;
+	}
+	const double along =
+		aim.is_hit_vertical ? aim.hit_point.y : aim.hit_point.x;
+	// Shots fly half a wall up; a little scatter keeps marks from stacking
+	static constexpr std::array<float, 7> kScatter{0.0F,   0.03F, -0.04F, 0.05F,
+												   -0.02F, 0.04F, -0.05F};
+	constexpr double kSpread = 977.0;  // any large step scatters the index
+	const auto shot =
+		static_cast<std::size_t>(std::fabs(along) * kSpread) % kScatter.size();
+	scene.AddWallMark({.x = x,
+					   .y = y,
+					   .face = HitFace(aim),
+					   .across = static_cast<float>(along - std::floor(along)),
+					   .down = 0.5F + kScatter[shot]});
+}
+
+void ResolveOneShot(Scene& scene, const Weapon& weapon, const Position2D& eye) {
+	const Ray aim = Aim(scene, eye);
+	if (!aim.is_hit) {
+		if (!weapon.IsMelee()) {
+			MarkWall(scene, aim);
+		}
+		return;
+	}
+	// A blade reaches only the enemy in front of it
+	if (weapon.IsMelee() && aim.distance > weapon.GetAttackRange()) {
+		return;
+	}
+	const auto enemies = scene.GetEnemies();
+	const auto enemy =
+		std::ranges::find_if(enemies, [&aim](const Enemy* candidate) {
+			return candidate->GetId() == aim.object_id;
+		});
+	// Blood, in front of the enemy as the shooter sees it
+	const vector2d back = eye.pose - aim.hit_point;
+	scene.ShowImpact(Scene::Impact::Blood,
+					 aim.hit_point + back * ((*enemy)->GetWidth() / 2 + 0.05) /
+										 std::max(aim.distance, 0.01));
+	(*enemy)->DecreaseHealth(CalculateDamage(weapon, aim.distance));
+	(*enemy)->SetAttacked(true);
+	// Aim only offers enemies with health left, so this is the killing shot,
+	// counted once
+	if ((*enemy)->GetHealth() <= 0) {
+		scene.DecreaseAliveEnemies();
+	}
 }
 
 }  // namespace
@@ -87,23 +150,17 @@ Ray Aim(const Scene& scene, const Position2D& eye) {
 
 void ResolvePlayerShot(Scene& scene, const Weapon& weapon,
 					   const Position2D& eye) {
-	const Ray aim = Aim(scene, eye);
-	// A blade reaches only the enemy in front of it
-	if (!aim.is_hit ||
-		(weapon.IsMelee() && aim.distance > weapon.GetAttackRange())) {
-		return;
-	}
-	const auto enemies = scene.GetEnemies();
-	const auto enemy =
-		std::ranges::find_if(enemies, [&aim](const Enemy* candidate) {
-			return candidate->GetId() == aim.object_id;
-		});
-	(*enemy)->DecreaseHealth(CalculateDamage(weapon, aim.distance));
-	(*enemy)->SetAttacked(true);
-	// Aim only offers enemies with health left, so this is the killing shot,
-	// counted once
-	if ((*enemy)->GetHealth() <= 0) {
-		scene.DecreaseAliveEnemies();
+	// Each pellet flies on its own line, fanned evenly across the spread
+	const std::size_t pellets = std::max<std::size_t>(weapon.GetPellets(), 1);
+	for (std::size_t pellet = 0; pellet < pellets; ++pellet) {
+		const double offset =
+			pellets == 1
+				? 0.0
+				: weapon.GetSpread() * (static_cast<double>(pellet) /
+											static_cast<double>(pellets - 1) -
+										0.5);
+		ResolveOneShot(scene, weapon,
+					   Position2D(eye.pose, SumRadian(eye.theta, offset)));
 	}
 }
 

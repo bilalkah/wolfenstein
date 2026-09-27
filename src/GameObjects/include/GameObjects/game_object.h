@@ -23,7 +23,8 @@ enum class ObjectType : std::uint8_t {
 	DYNAMIC_OBJECT,
 	CHARACTER_PLAYER,
 	CHARACTER_ENEMY,
-	PICKUP
+	PICKUP,
+	EFFECT	// a puff where a shot lands
 };
 
 class IGameObject

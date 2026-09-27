@@ -21,9 +21,11 @@
 #include "Characters/player.h"
 #include "GameMap/map.h"
 #include "GameObjects/dynamic_object.h"
+#include "GameObjects/effect.h"
 #include "GameObjects/game_object.h"
 #include "GameObjects/pickup.h"
 #include "NavigationManager/navigation_manager.h"
+#include <array>
 #include <cstdint>
 #include <expected>
 #include <memory_resource>
@@ -136,8 +138,30 @@ class Scene
 
 	void Update(double delta_time);
 
-	// Every level object, in update and draw order; an object's ObjectId is
-	// its index here
+	// Where a shot lands: a puff of blood on an enemy, of dust on a wall
+	enum class Impact : std::uint8_t { Blood, Dust };
+	// Puffs showing at once, at most: a new one takes the oldest's place
+	static constexpr std::size_t kEffects = 12;
+	// Bullet marks the walls keep: a new one takes the oldest's place
+	static constexpr std::size_t kWallMarks = 32;
+	// A mark where a shot struck the face of a wall cell: across the face
+	// (as its texture runs, 0 to 1) and down it (0 at the top)
+	struct WallMark
+	{
+		int x = 0;
+		int y = 0;
+		std::uint8_t face = 0;	// as HitFace() tells it
+		float across = 0.0F;
+		float down = 0.0F;
+	};
+	void ShowImpact(Impact impact, const vector2d& pose);
+	void AddWallMark(const WallMark& mark);
+	std::span<const WallMark> GetWallMarks() const {
+		return std::span(wall_marks_).first(wall_mark_count_);
+	}
+
+	// Every level object, in update and draw order, the effects last; an
+	// object's ObjectId is its index here
 	std::span<IGameObject* const> GetObjects() const { return objects_; }
 	std::span<Enemy* const> GetEnemies() const { return enemy_list_; }
 	std::span<Pickup* const> GetPickups() const { return pickup_list_; }
@@ -216,6 +240,14 @@ class Scene
 	bool kill_targets_ = false;
 	bool completed_ = false;
 	Player* player_ = nullptr;
+	// Kept for the level's life, joining the objects when it is loaded
+	std::array<Effect, kEffects> effects_{};
+	std::size_t next_effect_ = 0;
+	std::span<const std::uint16_t> blood_frames_;
+	std::span<const std::uint16_t> dust_frames_;
+	std::array<WallMark, kWallMarks> wall_marks_{};
+	std::size_t wall_mark_count_ = 0;
+	std::size_t next_wall_mark_ = 0;
 	NavigationManager navigation_{*this, &arena_};
 	size_t number_of_alive_enemies{};
 };

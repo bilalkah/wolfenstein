@@ -68,16 +68,24 @@ TEST(World, NextLevelPlaysTheCampaignInOrder) {
 // The difficulty sets how much health enemies start with, in every level
 TEST(World, DifficultyScalesEnemyHealth) {
 	auto world = MakeWorld();
-	for (const auto& [difficulty, health] :
-		 {std::pair{"easy", 75.0}, std::pair{"normal", 100.0},
-		  std::pair{"hard", 130.0}}) {
+	// The first enemy's health, as its type has it, scaled
+	const auto expected = [&](double scale) {
+		const Enemy& first = *world->CurrentLevel().GetEnemies().front();
+		return scale *
+			   testing::GameData().enemies.at(first.GetBotName()).health;
+	};
+	for (const auto& [difficulty, scale] :
+		 {std::pair{"easy", 0.75}, std::pair{"normal", 1.0},
+		  std::pair{"hard", 1.3}}) {
 		ASSERT_TRUE(world->NewGame("mp5", {}, difficulty));
 		EXPECT_DOUBLE_EQ(
-			world->CurrentLevel().GetEnemies().front()->GetHealth(), health)
+			world->CurrentLevel().GetEnemies().front()->GetHealth(),
+			expected(scale))
 			<< difficulty;
 		ASSERT_TRUE(world->NextLevel());
 		EXPECT_DOUBLE_EQ(
-			world->CurrentLevel().GetEnemies().front()->GetHealth(), health)
+			world->CurrentLevel().GetEnemies().front()->GetHealth(),
+			expected(scale))
 			<< difficulty << ", level 2";
 	}
 	EXPECT_FALSE(world->NewGame("mp5", {}, "impossible"));

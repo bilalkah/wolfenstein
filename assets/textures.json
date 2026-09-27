@@ -18,7 +18,8 @@
     "gold_key": "sprites/pickups/gold_key.png",
     "silver_key": "sprites/pickups/silver_key.png",
     "mp5_pickup": "sprites/pickups/mp5_pickup.png",
-    "shotgun_pickup": "sprites/pickups/shotgun_pickup.png"
+    "shotgun_pickup": "sprites/pickups/shotgun_pickup.png",
+    "bullet_mark": "textures/bullet_mark.png"
   },
   "walls": [
     "textures/1.png",
@@ -307,6 +308,18 @@
       "sprites/weapon/pistol/reload/3.png",
       "sprites/weapon/pistol/reload/4.png",
       "sprites/weapon/pistol/reload/5.png"
+    ],
+    "blood_puff": [
+      "sprites/effects/blood/0.png",
+      "sprites/effects/blood/1.png",
+      "sprites/effects/blood/2.png",
+      "sprites/effects/blood/3.png"
+    ],
+    "dust_puff": [
+      "sprites/effects/dust/0.png",
+      "sprites/effects/dust/1.png",
+      "sprites/effects/dust/2.png",
+      "sprites/effects/dust/3.png"
     ]
   }
 }

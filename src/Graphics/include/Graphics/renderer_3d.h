@@ -57,6 +57,9 @@ class Renderer3D : public IRenderer
 	void RenderObjects();
 	int CalculateHorizontalSlice(const double& angle);
 	std::tuple<int, int, int> CalculateVerticalSlice(const double& distance);
+	// The bullet marks on the wall a column shows, `across` its face
+	void RenderWallMarks(int horizontal_slice, const Ray& ray, double across,
+						 int draw_start, int line_height, double distance);
 	void RenderWeapon();
 	void RenderTextures();
 	void RenderHUD(double delta_time);
@@ -85,6 +88,9 @@ class Renderer3D : public IRenderer
 	std::array<int, 3> door_textures_{};
 	std::array<int, 3> key_textures_{};	 // held keys on the HUD
 	int mark_texture_ = 0;				 // on secret walls
+	int bullet_mark_texture_ = 0;		 // where shots struck walls
+	// How far the view is kicked down this frame (a shot's recoil), pixels
+	int kick_ = 0;
 	int shown_fps_ = 0;
 	double fps_elapsed_ = 0.0;
 	int fps_frames_ = 0;

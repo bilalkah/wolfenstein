@@ -108,6 +108,9 @@ class Player : public ICharacter, public IGameObject
 	void SelectWeapon(std::size_t index);
 	// Where to draw the view `alpha` of the way from the previous tick
 	Position2D GetRenderPosition(double alpha) const;
+	// How far the last shot's kick still jolts the view, a share of the
+	// screen's height easing back to 0
+	double GetKick() const { return kick_; }
 	// Opacity of the damage overlay, fading out after a hit
 	std::uint8_t GetDamageAlpha() const { return damage_animation_.GetAlpha(); }
 	// Opacity of the flash after taking a pickup, 0 when none is showing
@@ -130,6 +133,7 @@ class Player : public ICharacter, public IGameObject
 	double height_{};
 	double health_{};
 	double since_hurt_{};
+	double kick_{};
 	std::uint8_t keys_{};
 	SoundManager& sound_;
 	SoundChannel sound_channel_;

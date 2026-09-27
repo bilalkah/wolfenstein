@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <nlohmann/json.hpp>
+#include <numbers>
 #include <string_view>
 #include <utility>
 
@@ -53,7 +54,10 @@ WeaponConfig ToWeapon(const json& weapon) {
 			.attack_range = weapon.at("range").get<double>(),
 			.attack_speed = weapon.at("attack_speed").get<double>(),
 			.reload_speed = weapon.at("reload_speed").get<double>(),
-			.falloff = ToFalloff(weapon.at("falloff"))};
+			.falloff = ToFalloff(weapon.at("falloff")),
+			.kick = weapon.value("kick", 0.0),
+			.pellets = weapon.value("pellets", std::size_t{1}),
+			.spread = weapon.value("spread", 0.0) * std::numbers::pi / 180.0};
 }
 
 // The key a pickup is ("key": "gold"), as a KeyBit, or 0
@@ -110,6 +114,7 @@ EnemyConfig ToEnemy(const std::string& type, const json& enemy) {
 			.translation_speed = enemy.at("t_speed").get<double>(),
 			.width = enemy.at("width").get<double>(),
 			.height = enemy.at("height").get<double>(),
+			.health = enemy.value("health", 100.0),
 			.behaviour = {.idle_frame_seconds =
 							  ai.at("idle_frame_seconds").get<double>(),
 						  .follow_range = ai.at("follow_range").get<double>()},

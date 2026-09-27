@@ -135,10 +135,11 @@ TEST_F(ArsenalTest, TheKnifeReachesOnlyTheEnemyInFront) {
 	scene_.FinishLoading();
 	Enemy& enemy = *scene_.GetEnemies().front();
 	const Weapon& knife = player_.GetWeapon(kKnife);
+	const double health = enemy.GetHealth();
 	ResolvePlayerShot(scene_, knife, Position2D({1.5, 1.5}, kFacingDown));
-	EXPECT_DOUBLE_EQ(enemy.GetHealth(), 100.0) << "three cells away";
+	EXPECT_DOUBLE_EQ(enemy.GetHealth(), health) << "three cells away";
 	ResolvePlayerShot(scene_, knife, Position2D({1.5, 3.6}, kFacingDown));
-	EXPECT_LT(enemy.GetHealth(), 100.0) << "within reach";
+	EXPECT_LT(enemy.GetHealth(), health) << "within reach";
 }
 
 #ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS

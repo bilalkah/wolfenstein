@@ -1,5 +1,6 @@
 #include "Core/scene.h"
 #include "Profiler/profiler.h"
+#include "TextureManager/texture_manager.h"
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -17,8 +18,8 @@ std::size_t LevelArenaBytes(const Map& map, SceneCapacity capacity) {
 		sizeof(std::uint32_t) * 2 + sizeof(std::uint8_t);
 	const std::size_t enemies = capacity.enemies;
 	const std::size_t pickups = capacity.pickups;
-	const std::size_t objects =
-		capacity.enemies + capacity.dynamic_objects + capacity.pickups;
+	const std::size_t objects = capacity.enemies + capacity.dynamic_objects +
+								capacity.pickups + Scene::kEffects;
 	return enemies * (sizeof(Enemy) + alignof(Enemy) + kBookkeeping) +
 		   capacity.dynamic_objects *
 			   (sizeof(DynamicObject) + alignof(DynamicObject) + kBookkeeping) +
@@ -56,7 +57,7 @@ Scene::Scene(const TextureManager& textures, SoundManager& sound,
 	  doors_(map.GetDoors().size(), DoorMotion{}, &arena_) {
 	map_.ReservePushWalls(capacity.secrets);
 	objects_.reserve(capacity.enemies + capacity.dynamic_objects +
-					 capacity.pickups);
+					 capacity.pickups + kEffects);
 	const int size_x = map_.GetSizeX();
 	const int size_y = map_.GetSizeY();
 	for (int x = 0; x < size_x; ++x) {
@@ -113,7 +114,31 @@ void Scene::SetPlayer(Player& player) {
 }
 
 void Scene::FinishLoading() {
+	blood_frames_ = textures_.GetTextureCollection("blood_puff");
+	dust_frames_ = textures_.GetTextureCollection("dust_puff");
+	for (Effect& effect : effects_) {
+		effect.SetId(ObjectId{static_cast<std::uint32_t>(objects_.size())});
+		objects_.push_back(&effect);
+	}
 	navigation_.Build();
+}
+
+void Scene::ShowImpact(Impact impact, const vector2d& pose) {
+	// Drawn 0.4 of a wall wide and 0.8 high: the puff is where shots fly in
+	// the art, half a wall up
+	constexpr double kFrameSeconds = 0.06;
+	constexpr double kWidth = 0.4;
+	constexpr double kHeight = 0.8;
+	effects_[next_effect_].Start(
+		pose, impact == Impact::Blood ? blood_frames_ : dust_frames_,
+		kFrameSeconds, kWidth, kHeight);
+	next_effect_ = (next_effect_ + 1) % kEffects;
+}
+
+void Scene::AddWallMark(const WallMark& mark) {
+	wall_marks_[next_wall_mark_] = mark;
+	next_wall_mark_ = (next_wall_mark_ + 1) % kWallMarks;
+	wall_mark_count_ = std::min(wall_mark_count_ + 1, kWallMarks);
 }
 
 void Scene::DecreaseAliveEnemies() {

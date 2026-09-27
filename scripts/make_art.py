@@ -10,7 +10,9 @@ standard library only, so rerunning gives the same files.
     ./scripts/make_art.py   # writes assets/sprites/pickups/*.png,
                             # assets/sprites/weapon/{knife,pistol}/*/*.png,
                             # assets/textures/door*.png, exit.png,
-                            # secret_mark.png and assets/sounds/pickup.wav
+                            # secret_mark.png, the puffs where shots land
+                            # (assets/sprites/effects/*), bullet_mark.png
+                            # and assets/sounds/pickup.wav
 """
 
 import math
@@ -414,6 +416,81 @@ def chime(path):
             for sample in frames))
 
 
+# --------------------------------------------------------------- impacts
+
+# A shot lands half a wall up; the puffs are drawn on a canvas the effect's
+# size (0.4 of a wall by 0.8 of one), the puff where that height is
+PUFF_CANVAS = (32, 64)
+PUFF_CENTRE = (16, 24)
+
+
+def splatter(canvas, cx, cy, radius, colour, seed, count, spread, fall=0.0):
+    """A blob of `radius` and `count` droplets flung up to `spread` from it,
+    dropping by `fall` px per px of distance; the same seed gives the same
+    drops."""
+    state = seed
+    def rand():
+        nonlocal state
+        state = (state * 1103515245 + 12345) & 0x7FFFFFFF
+        return state / 0x7FFFFFFF
+    for y in range(canvas.height):
+        for x in range(canvas.width):
+            if (x - cx) ** 2 + (y - cy) ** 2 <= radius * radius:
+                canvas.pixels[y][x] = colour
+    for _ in range(count):
+        angle = rand() * math.tau
+        distance = radius + rand() * spread
+        x = round(cx + math.cos(angle) * distance)
+        y = round(cy + math.sin(angle) * distance + fall * distance)
+        size = 1 if rand() < 0.6 else 2
+        canvas.rect(x, y, x + size - 1, y + size - 1, colour)
+
+
+def blood_puff(frame):
+    canvas = Canvas(*PUFF_CANVAS)
+    cx, cy = PUFF_CENTRE
+    dark, red, bright = (96, 8, 8, 255), (168, 18, 16, 255), (224, 46, 36, 255)
+    if frame == 0:
+        splatter(canvas, cx, cy, 3, red, 7, 6, 3)
+        splatter(canvas, cx, cy, 1, bright, 3, 0, 0)
+    elif frame == 1:
+        splatter(canvas, cx, cy, 5, dark, 11, 10, 6, 0.1)
+        splatter(canvas, cx, cy, 3, red, 5, 6, 4)
+        splatter(canvas, cx - 1, cy - 1, 1, bright, 3, 0, 0)
+    elif frame == 2:
+        splatter(canvas, cx, cy + 1, 5, (96, 8, 8, 200), 13, 12, 8, 0.3)
+        splatter(canvas, cx, cy + 1, 3, (150, 16, 14, 220), 9, 4, 3, 0.3)
+    else:
+        splatter(canvas, cx, cy + 3, 3, (80, 6, 6, 140), 17, 10, 9, 0.6)
+    return canvas
+
+
+def dust_puff(frame):
+    canvas = Canvas(*PUFF_CANVAS)
+    cx, cy = PUFF_CENTRE
+    if frame == 0:
+        splatter(canvas, cx, cy, 2, (150, 142, 128, 255), 19, 5, 3)
+        cross(canvas, cx, cy, 3, 1, (255, 236, 150, 255), (255, 196, 64, 255))
+    elif frame == 1:
+        splatter(canvas, cx, cy, 4, (132, 126, 114, 230), 23, 8, 5)
+        splatter(canvas, cx - 1, cy - 1, 2, (170, 162, 148, 240), 29, 0, 0)
+    elif frame == 2:
+        splatter(canvas, cx, cy - 1, 6, (128, 122, 112, 150), 31, 8, 5, -0.1)
+    else:
+        splatter(canvas, cx, cy - 2, 7, (128, 122, 112, 70), 37, 6, 4, -0.2)
+    return canvas
+
+
+def bullet_mark():
+    """A chipped hole: black in the middle, a dark bruise round it and a
+    pale ring of stone knocked bare, so it reads on dark walls and light."""
+    canvas = Canvas(16, 16)
+    splatter(canvas, 7.5, 7.5, 6.2, (168, 160, 148, 110), 41, 8, 1.5)
+    splatter(canvas, 7.5, 7.5, 4.4, (52, 48, 44, 210), 43, 5, 1.2)
+    splatter(canvas, 7.5, 7.5, 2.4, (10, 8, 8, 255), 47, 0, 0)
+    return canvas
+
+
 def main():
     for name, draw in (("medkit", medkit), ("large_medkit", large_medkit),
                        ("ammo_box", ammo_box)):
@@ -433,6 +510,12 @@ def main():
                 frame.save(ASSETS / "sprites" / "weapon" / weapon / clip /
                            f"{index}.png")
     secret_mark().save(ASSETS / "textures" / "secret_mark.png")
+    for frame in range(4):
+        blood_puff(frame).save(ASSETS / "sprites" / "effects" / "blood" /
+                               f"{frame}.png")
+        dust_puff(frame).save(ASSETS / "sprites" / "effects" / "dust" /
+                              f"{frame}.png")
+    bullet_mark().save(ASSETS / "textures" / "bullet_mark.png")
     chime(ASSETS / "sounds" / "pickup.wav")
 
 

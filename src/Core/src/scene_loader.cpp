@@ -95,7 +95,7 @@ std::expected<void, std::string> SceneLoader::Prepare(const std::string& file) {
 		std::max(largest_memory_, Scene::MemoryFor(*map, capacity));
 	largest_objects_ = std::max(
 		largest_objects_, data->enemies.size() + data->dynamic_objects.size() +
-							  data->pickups.size());
+							  data->pickups.size() + Scene::kEffects);
 	levels_.emplace(file, PreparedLevel{.data = std::move(*data),
 										.map = std::move(*map),
 										.capacity = capacity});

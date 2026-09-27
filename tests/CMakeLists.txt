@@ -35,6 +35,8 @@ add_executable(unit_tests
     secret_test.cpp
     collision_test.cpp
     arsenal_test.cpp
+    impact_test.cpp
+    balance_test.cpp
     saved_game_test.cpp
     texture_manifest_test.cpp
 )

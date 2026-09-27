@@ -44,6 +44,12 @@ struct WeaponConfig
 	double attack_speed{};
 	double reload_speed{};
 	DamageFalloff falloff = DamageFalloff::Linear;
+	// How far a shot jolts the view up, as a share of the screen's height
+	double kick{};
+	// Shot fired at once (a shotgun's pellets), fanned evenly across
+	// `spread` radians; each does the damage above
+	std::size_t pellets = 1;
+	double spread{};
 };
 
 // Pinned (not copyable or movable): its states point back to it
@@ -58,6 +64,9 @@ class Weapon
 
 	// Needs no ammunition and reaches only as far as its range (the knife)
 	bool IsMelee() const { return config_.ammo_capacity == 0; }
+	double GetKick() const { return config_.kick; }
+	std::size_t GetPellets() const { return config_.pellets; }
+	double GetSpread() const { return config_.spread; }
 	// Pulls the trigger; true if a shot was fired (the caller resolves it)
 	bool Attack();
 	void Update(double delta_time);

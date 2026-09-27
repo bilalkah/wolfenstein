@@ -42,14 +42,18 @@ Renderer3D::Renderer3D(RendererContext& context) : IRenderer(context) {
 	// secret wall, its mark; the weapon, crosshair and overlays. The level's
 	// objects are added by ReserveObjects.
 	constexpr std::size_t kOverlays = 8;
+	// Bullet marks: a few columns each, as far as the room allows
+	constexpr std::size_t kMarkColumns = Scene::kWallMarks * 16;
 	render_queue_.reserve(
-		static_cast<std::size_t>(context_->GetConfig().width) + kOverlays);
+		static_cast<std::size_t>(context_->GetConfig().width) + kOverlays +
+		kMarkColumns);
 	hud_digits_ = context_->Textures().GetTextureCollection("digits");
 	sky_texture_ = context_->Textures().GetTextureId("sky");
 	far_texture_ = context_->Textures().GetTextureId("solid_black");
 	crosshair_texture_ = context_->Textures().GetTextureId("crosshair");
 	damage_texture_ = context_->Textures().GetTextureId("damage_taken");
 	mark_texture_ = context_->Textures().GetTextureId("secret_mark");
+	bullet_mark_texture_ = context_->Textures().GetTextureId("bullet_mark");
 	door_textures_ = {context_->Textures().GetTextureId("door"),
 					  context_->Textures().GetTextureId("door_gold"),
 					  context_->Textures().GetTextureId("door_silver")};
@@ -93,6 +97,9 @@ void Renderer3D::Enqueue(int texture_id, const SDL_Rect& src_rect,
 void Renderer3D::RenderScene(double delta_time) {
 	ScopedTimer render_timer(ProfileSection::Render);
 	render_queue_.clear();
+	// A shot kicks the view up: the world drops on the screen for a moment
+	kick_ = static_cast<int>(scene_->GetPlayer().GetKick() *
+							 context_->GetConfig().height);
 	ClearScreen();
 	RenderBackground();
 	{
@@ -118,11 +125,11 @@ void Renderer3D::RenderBackground() {
 	// Render sky
 	const auto& sky_texture = context_->Textures().GetTexture(sky_texture_);
 	SDL_Rect src_rect = {0, 0, sky_texture.width, sky_texture.height};
-	SDL_Rect dest_rect = {0, 0, config.width, config.height / 2};
+	SDL_Rect dest_rect = {0, 0, config.width, config.height / 2 + kick_};
 	SDL_RenderCopy(renderer_, sky_texture.texture, &src_rect, &dest_rect);
 	// Render ground black
 	SDL_SetRenderDrawColor(renderer_, 50, 50, 50, 255);
-	SDL_Rect ground_rect = {0, config.height / 2, config.width,
+	SDL_Rect ground_rect = {0, config.height / 2 + kick_, config.width,
 							config.height / 2};
 	SDL_RenderFillRect(renderer_, &ground_rect);
 }
@@ -171,6 +178,9 @@ void Renderer3D::RenderIfRayHit(const int& horizontal_slice, const Ray& ray) {
 	SDL_Rect dest_rect = {horizontal_slice, draw_start, 2, line_height};
 	Enqueue(wall_texture, src_rect, dest_rect, distance);
 
+	RenderWallMarks(horizontal_slice, ray, hit_point, draw_start, line_height,
+					distance);
+
 	// A secret wall not yet pushed gives itself away to a careful eye: a
 	// faint crack over the lower middle of its face
 	const vector2d inside = ray.hit_point + ray.direction * 1e-4;
@@ -192,6 +202,41 @@ void Renderer3D::RenderIfRayHit(const int& horizontal_slice, const Ray& ray) {
 				static_cast<int>(kHeight * line_height)};
 			Enqueue(mark_texture_, mark_src, mark_dest, distance);
 		}
+	}
+}
+
+void Renderer3D::RenderWallMarks(int horizontal_slice, const Ray& ray,
+								 double across, int draw_start, int line_height,
+								 double distance) {
+	const auto marks = scene_->GetWallMarks();
+	if (marks.empty()) {
+		return;
+	}
+	// A mark is this share of a wall across, and as tall
+	constexpr double kSize = 0.075;
+	const auto [x, y] = HitCell(ray);
+	const std::uint8_t face = HitFace(ray);
+	const auto& texture = context_->Textures().GetTexture(bullet_mark_texture_);
+	for (const Scene::WallMark& mark : marks) {
+		const double left = mark.across - kSize / 2;
+		const double part = (across - left) / kSize;
+		if (mark.x != x || mark.y != y || mark.face != face || part < 0.0 ||
+			part >= 1.0) {
+			continue;
+		}
+		// Room was set aside for marks; past it they go undrawn rather
+		// than grow the queue in play
+		if (render_queue_.size() == render_queue_.capacity()) {
+			return;
+		}
+		const SDL_Rect src{static_cast<int>(part * texture.width), 0, 1,
+						   texture.height};
+		const SDL_Rect dest{
+			horizontal_slice,
+			draw_start +
+				static_cast<int>((mark.down - kSize / 2) * line_height),
+			2, std::max(1, static_cast<int>(kSize * line_height))};
+		Enqueue(bullet_mark_texture_, src, dest, distance);
 	}
 }
 
@@ -271,8 +316,8 @@ std::tuple<int, int, int> Renderer3D::CalculateVerticalSlice(
 		std::min(config_.height / std::max(distance, kNearest),
 				 config_.height * kTallest);
 	auto line_height = static_cast<int>(height);
-	int draw_start = -line_height / 2 + config_.height / 2;
-	int draw_end = line_height / 2 + config_.height / 2;
+	int draw_start = -line_height / 2 + config_.height / 2 + kick_;
+	int draw_end = line_height / 2 + config_.height / 2 + kick_;
 	return std::make_tuple(line_height, draw_start, draw_end);
 }
 

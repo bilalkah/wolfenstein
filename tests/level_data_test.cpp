@@ -1,6 +1,7 @@
 #include "Core/level_data.h"
 #include <fstream>
 #include <gtest/gtest.h>
+#include <numbers>
 #include <sstream>
 #include <string>
 
@@ -53,9 +54,15 @@ TEST(LevelData, ParsesTheGameConfig) {
 	// Rounds carried besides the magazine, and what the pickups give
 	const WeaponConfig* mp5 = config->FindWeapon("mp5");
 	ASSERT_NE(mp5, nullptr);
-	EXPECT_EQ(mp5->reserve_start, 54u);
+	EXPECT_EQ(mp5->reserve_start, 60u);
 	EXPECT_EQ(mp5->reserve_max, 180u);
-	EXPECT_EQ(mp5->box_rounds, 36u);
+	EXPECT_EQ(mp5->box_rounds, 30u);
+	// A shotgun blast is a fan of pellets
+	EXPECT_EQ(shotgun->pellets, 7u);
+	EXPECT_NEAR(shotgun->spread, 8.0 * std::numbers::pi / 180.0, 1e-12);
+	EXPECT_EQ(mp5->pellets, 1u);
+	// Each enemy type has its own health
+	EXPECT_DOUBLE_EQ(config->enemies.at("soldier").health, 60.0);
 	ASSERT_TRUE(config->pickups.contains("medkit"));
 	EXPECT_DOUBLE_EQ(config->pickups.at("medkit").effect.health, 25.0);
 	EXPECT_EQ(config->pickups.at("medkit").effect.ammo_boxes, 0u);

@@ -95,7 +95,8 @@ TEST_F(PickupTest, RestoringKeepsWithinTheLimits) {
 	EXPECT_EQ(player_.GetWeapon().GetReserve(), 70u);
 	player_.Restore(500.0, 500, 5000);
 	EXPECT_DOUBLE_EQ(player_.GetHealth(), 100.0);
-	EXPECT_EQ(player_.GetWeapon().GetAmmo(), 18u);
+	EXPECT_EQ(player_.GetWeapon().GetAmmo(),
+			  testing::Weapon("mp5").ammo_capacity);
 	EXPECT_EQ(player_.GetWeapon().GetReserve(),
 			  testing::Weapon("mp5").reserve_max);
 }
@@ -185,31 +186,35 @@ class ReserveTest : public ::testing::Test
 };
 
 TEST_F(ReserveTest, AReloadFillsTheMagazineFromTheReserve) {
-	Empty(18);
+	const WeaponConfig& mp5 = testing::Weapon("mp5");
+	const std::size_t magazine = mp5.ammo_capacity;
+	Empty(magazine);
 	FinishReloading();
-	EXPECT_EQ(weapon_.GetAmmo(), 18u);
-	EXPECT_EQ(weapon_.GetReserve(), 54u - 18u);
+	EXPECT_EQ(weapon_.GetAmmo(), magazine);
+	EXPECT_EQ(weapon_.GetReserve(), mp5.reserve_start - magazine);
 
 	// Only the rounds missing are moved
 	Empty(5);
 	FinishReloading();
-	EXPECT_EQ(weapon_.GetAmmo(), 18u);
-	EXPECT_EQ(weapon_.GetReserve(), 54u - 23u);
+	EXPECT_EQ(weapon_.GetAmmo(), magazine);
+	EXPECT_EQ(weapon_.GetReserve(), mp5.reserve_start - magazine - 5);
 }
 
 TEST_F(ReserveTest, AnEmptyReserveCannotReload) {
-	for (int reload = 0; reload < 3; ++reload) {  // spend the 54 in reserve
-		Empty(18);
+	const WeaponConfig& mp5 = testing::Weapon("mp5");
+	const std::size_t magazine = mp5.ammo_capacity;
+	// Spend the reserve a magazine at a time
+	while (weapon_.GetReserve() > 0) {
+		Empty(magazine);
 		FinishReloading();
 	}
-	ASSERT_EQ(weapon_.GetReserve(), 0u);
-	ASSERT_TRUE(weapon_.AddAmmoBoxes(1));  // 36 more
-	Empty(18);
-	FinishReloading();
-	Empty(18);
-	FinishReloading();
-	EXPECT_EQ(weapon_.GetReserve(), 0u);
-	Empty(18);
+	ASSERT_TRUE(weapon_.AddAmmoBoxes(1));
+	ASSERT_EQ(weapon_.GetReserve(), mp5.box_rounds);
+	while (weapon_.GetReserve() > 0) {
+		Empty(magazine);
+		FinishReloading();
+	}
+	Empty(magazine);
 	// Nothing left to reload with: the magazine stays empty
 	FinishReloading();
 	EXPECT_EQ(weapon_.GetAmmo(), 0u);
@@ -217,8 +222,8 @@ TEST_F(ReserveTest, AnEmptyReserveCannotReload) {
 
 TEST_F(ReserveTest, AFullMagazineIsNotReloaded) {
 	FinishReloading();
-	EXPECT_EQ(weapon_.GetAmmo(), 18u);
-	EXPECT_EQ(weapon_.GetReserve(), 54u);
+	EXPECT_EQ(weapon_.GetAmmo(), testing::Weapon("mp5").ammo_capacity);
+	EXPECT_EQ(weapon_.GetReserve(), testing::Weapon("mp5").reserve_start);
 }
 
 }  // namespace

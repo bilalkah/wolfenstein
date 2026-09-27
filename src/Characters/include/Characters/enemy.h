@@ -38,6 +38,7 @@ struct EnemyConfig
 	double translation_speed{};
 	double width{};
 	double height{};
+	double health = 100.0;	// before the difficulty scales it
 	StateConfig behaviour;
 	SimpleWeaponConfig weapon;
 };

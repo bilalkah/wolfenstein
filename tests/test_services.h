@@ -35,8 +35,9 @@ inline const TextureManager& TestTextures() {
 				define(weapon, clip);
 			}
 		}
-		// The levels' animated lights
-		for (const char* light : {"green_light", "red_light"}) {
+		// The levels' animated lights, and the puffs where shots land
+		for (const char* light :
+			 {"green_light", "red_light", "blood_puff", "dust_puff"}) {
 			textures.DefineCollection(light, next, next + kFramesPerClip);
 			next += kFramesPerClip;
 		}
@@ -46,7 +47,7 @@ inline const TextureManager& TestTextures() {
 			textures.DefineTexture(pickup, next++);
 		}
 		for (const char* name : {"door", "door_gold", "door_silver", "gold_key",
-								 "silver_key", "secret_mark"}) {
+								 "silver_key", "secret_mark", "bullet_mark"}) {
 			textures.DefineTexture(name, next++);
 		}
 		return true;
