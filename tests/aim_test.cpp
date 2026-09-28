@@ -42,6 +42,20 @@ TEST_F(AimTest, HitsTheEnemyInTheLineOfFire) {
 	EXPECT_NEAR(aim.distance, 4.0, 1e-9);
 }
 
+// Looking up or down, the shot climbs or falls as it flies (from the eye,
+// half a wall up): the soldier four units off is 0.6 of a wall tall
+TEST_F(AimTest, AShotPassesOverAHeadOrIntoTheFloor) {
+	const Position2D eye({1.5, 1.5}, kFacingDown);
+	const double tall = scene_.GetEnemies().front()->GetHeight();
+	const auto at_height = [](double height) {
+		return (height - kEyeHeight) / 4.0;	 // the pitch that meets it there
+	};
+	EXPECT_TRUE(Aim(scene_, eye, at_height(tall - 0.05)).is_hit) << "the head";
+	EXPECT_TRUE(Aim(scene_, eye, at_height(0.05)).is_hit) << "the feet";
+	EXPECT_FALSE(Aim(scene_, eye, at_height(tall + 0.05)).is_hit) << "over it";
+	EXPECT_FALSE(Aim(scene_, eye, at_height(-0.05)).is_hit) << "the floor";
+}
+
 TEST_F(AimTest, MissesWhenAimingAside) {
 	EXPECT_FALSE(Aim(scene_, Position2D({1.5, 1.5}, kFacingDown + 0.5)).is_hit);
 }

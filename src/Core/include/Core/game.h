@@ -64,6 +64,17 @@ struct GeneralConfig
 	bool fullscreen;
 };
 
+// Mouse motion as the player's view moves: a turn, in radians, and a look
+// up (+) or down, as a share of the screen's height. A mouse pixel moves
+// the picture as far either way.
+struct MouseLook
+{
+	double turn = 0.0;
+	double up = 0.0;
+};
+MouseLook ToMouseLook(int dx, int dy, double sensitivity,
+					  const GeneralConfig& view);
+
 class Game
 {
   public:

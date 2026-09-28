@@ -93,147 +93,131 @@
       : `Loading ${megabytes(loaded)} / ${megabytes(total)} MB`;
   }
 
-  // Downloads the big files in chunks over several connections at once, the
-  // way download managers do: on some networks one connection stalls while
-  // the others run at full speed, and a stalled chunk is simply asked for
-  // again. A server that ignores ranges sends the whole file in one piece.
+  // Downloads each big file in pieces over a few connections at once, as
+  // download managers do. On a lossy network a TCP connection that hits a
+  // bad patch backs off for seconds at a time (each retry waits twice as
+  // long), even once the network recovers; a new connection does not. So a
+  // piece that brings nothing for kStallMs is dropped (the server resets
+  // its end, see scripts/serve_web.py) and the rest of it asked for again
+  // from the byte it reached, on a new connection: nothing is fetched twice.
   const nativeFetch = window.fetch.bind(window);
-  const kChunkBytes = 512 * 1024;
-  const kStallMs = 1000;  // no bytes for this long: drop the connection
-  const kMaxRetries = 20;
-
-  // The connections the downloads share: a browser opens 6 per server, and
-  // a request waiting for one must not count as stalled
-  let freeConnections = 6;
-  const waiting = [];
-  async function withConnection(work) {
-    if (freeConnections) {
-      --freeConnections;
-    }
-    else {
-      await new Promise((resolve) => waiting.push(resolve));
-    }
-    try {
-      return await work();
-    } finally {
-      const next = waiting.shift();
-      if (next) next();
-      else ++freeConnections;
-    }
-  }
-
-  // Bytes [start, end] of `url` in one request; throws if it stalls
-  async function fetchRange(url, start, end, onBytes) {
-    const controller = new AbortController();
-    let timer = 0;
-    const rearm = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => controller.abort(), kStallMs);
-    };
-    rearm();
-    try {
-      const response = await nativeFetch(url, {
-        signal: controller.signal,
-        headers: { Range: `bytes=${start}-${end}` },
-      });
-      if (!response.ok) {
-        throw Object.assign(new Error(`${url}: HTTP ${response.status}`), { fatal: true });
-      }
-      const reader = response.body.getReader();
-      const parts = [];
-      let length = 0;
-      for (;;) {
-        rearm();
-        const { done, value } = await reader.read();
-        if (done) break;
-        parts.push(value);
-        length += value.length;
-        onBytes(length);
-      }
-      const bytes = new Uint8Array(length);
-      let offset = 0;
-      for (const part of parts) {
-        bytes.set(part, offset);
-        offset += part.length;
-      }
-      return { response, bytes };
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
-  async function fetchRangeRetrying(url, start, end, onBytes) {
-    for (let attempt = 0; ; ++attempt) {
-      try {
-        return await withConnection(() => fetchRange(url, start, end, onBytes));
-      } catch (error) {
-        onBytes(0);
-        if (error.fatal || attempt >= kMaxRetries) throw error;
-        console.warn(`${url}: bytes ${start}-${end} stalled, asking again`);
-      }
-    }
-  }
+  const kPieceBytes = 1024 * 1024;
+  const kConnections = 4;
+  const kStallMs = 2000;
+  // Requests in a row that bring nothing before a piece is given up: any
+  // progress starts the count again
+  const kMaxRetries = 30;
 
   // Which build a response's bytes are from: its date (or tag)
   const stampOf = (response) =>
     response.headers.get('Last-Modified') ?? response.headers.get('ETag');
+  const fatal = (text) => Object.assign(new Error(text), { fatal: true });
+  const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  // `url` as a Response whose body streams in order as the chunks arrive,
-  // and the version of the file they are all from ("<size> <stamp>", null
-  // if the server tells neither). A chunk from another build (the file was
-  // rebuilt mid-download) fails the stream rather than mix the two.
-  async function chunkedFetch(url, type, onProgress) {
-    let total = 0;
-    const received = [];
-    const report = () => onProgress(received.reduce((sum, bytes) => sum + bytes, 0), total);
-    const counter = (index) => (bytes) => {
-      received[index] = bytes;
-      report();
-    };
-
-    // The first chunk tells the file's size, or brings the whole file
-    const first = await fetchRangeRetrying(url, 0, kChunkBytes - 1, counter(0));
-    const size = /\/(\d+)$/.exec(first.response.headers.get('Content-Range') ?? '');
-    const stamp = stampOf(first.response);
-    const chunks = [Promise.resolve(first.bytes)];
-    if (first.response.status === 206 && size) {
-      total = Number(size[1]);
-      for (let start = kChunkBytes; start < total; start += kChunkBytes) {
-        const end = Math.min(start + kChunkBytes, total) - 1;
-        const chunk = fetchRangeRetrying(url, start, end, counter(chunks.length))
-          .then(({ response, bytes }) => {
-            if (stampOf(response) !== stamp) {
-              throw new Error(`${url} changed while it was downloading`);
-            }
-            return bytes;
-          });
-        chunk.catch(() => {});  // reported when the stream reaches it
-        chunks.push(chunk);
+  // Bytes [start, end] of `url` (of the build `stamp`) into `file`, however
+  // many requests it takes; `onBytes` hears of every byte that arrives
+  async function fetchPiece(url, stamp, file, start, end, onBytes) {
+    let at = start;
+    for (let idle = 0; at <= end;) {
+      const before = at;
+      const controller = new AbortController();
+      let timer = 0;
+      const rearm = () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => controller.abort(), kStallMs);
+      };
+      try {
+        rearm();
+        const response = await nativeFetch(url, {
+          cache: 'no-store',
+          signal: controller.signal,
+          headers: { Range: `bytes=${at}-${end}` },
+        });
+        if (response.status !== 206) {
+          throw fatal(`${url}: HTTP ${response.status} for a range`);
+        }
+        if (stampOf(response) !== stamp) {
+          throw fatal(`${url} changed while it was downloading`);
+        }
+        const reader = response.body.getReader();
+        for (;;) {
+          rearm();
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (at + value.length > end + 1) throw fatal(`${url}: more bytes than asked for`);
+          file.set(value, at);
+          at += value.length;
+          onBytes(value.length);
+        }
+      } catch (error) {
+        if (error.fatal) throw error;
+      } finally {
+        clearTimeout(timer);
+        controller.abort();  // a stalled request: let its connection go
+      }
+      if (at <= end) {
+        idle = at === before ? idle + 1 : 0;
+        if (idle > kMaxRetries) throw new Error(`${url}: no bytes after ${kMaxRetries} tries`);
+        console.warn(`${url}: bytes ${at}-${end} stalled, asking again`);
+        await pause(100);
       }
     }
-    else {
-      total = first.bytes.length;
-    }
-    report();
+  }
 
+  // `url` (`size` bytes of the build `stamp`) as a Response whose body
+  // streams in order as its pieces complete
+  function piecedFetch(url, type, size, stamp, onProgress) {
+    const file = new Uint8Array(size);
+    let received = 0;
+    const onBytes = (bytes) => {
+      received += bytes;
+      onProgress(received, size);
+    };
+    const pieces = [];
+    for (let start = 0; start < size; start += kPieceBytes) {
+      let settle;
+      const done = new Promise((resolve, reject) => { settle = { resolve, reject }; });
+      done.catch(() => {});  // reported when the stream reaches it
+      pieces.push({ start, end: Math.min(start + kPieceBytes, size) - 1, done, settle });
+    }
+    // A few workers take the pieces in order, one at a time each
     let next = 0;
+    let failed = null;
+    async function worker() {
+      while (next < pieces.length && !failed) {
+        const piece = pieces[next++];
+        try {
+          await fetchPiece(url, stamp, file, piece.start, piece.end, onBytes);
+          piece.settle.resolve();
+        } catch (error) {
+          failed = error;
+          piece.settle.reject(error);
+        }
+      }
+      if (failed) pieces.forEach((piece) => piece.settle.reject(failed));
+    }
+    for (let i = 0; i < kConnections; ++i) worker();
+    onProgress(0, size);
+
+    let index = 0;
     const body = new ReadableStream({
       async pull(stream) {
-        if (next === chunks.length) {
+        if (index === pieces.length) {
           stream.close();
           return;
         }
+        const piece = pieces[index++];
         try {
-          stream.enqueue(await chunks[next++]);
+          await piece.done;
+          stream.enqueue(file.subarray(piece.start, piece.end + 1));
         } catch (error) {
           stream.error(error);
         }
       },
     });
-    const response = new Response(body, {
-      headers: { 'Content-Type': type, 'Content-Length': String(total) },
+    return new Response(body, {
+      headers: { 'Content-Type': type, 'Content-Length': String(size) },
     });
-    return { response, version: stamp ? `${total} ${stamp}` : null };
   }
 
   // The downloaded files are kept in the browser and used again while the
@@ -265,54 +249,57 @@
     });
   }
 
-  // What identifies the server's copy of `url`: its size and date (or tag).
-  // Null if the server tells neither, or does not answer.
-  async function remoteVersion(url) {
-    for (let attempt = 0; attempt < 3; ++attempt) {
+  // The server's copy of `url`: its size and date (or tag), which identify
+  // it, and whether it can be fetched in pieces. Null if it tells neither,
+  // or does not answer.
+  async function remoteFile(url) {
+    for (let attempt = 0; attempt < 5; ++attempt) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), kStallMs);
       try {
-        return await withConnection(async () => {
-          const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), kStallMs);
-          try {
-            const response = await nativeFetch(url, {
-              method: 'HEAD', cache: 'no-store', signal: controller.signal,
-            });
-            const tag = stampOf(response);
-            const size = response.headers.get('Content-Length');
-            return response.ok && tag && size ? `${size} ${tag}` : null;
-          } finally {
-            clearTimeout(timer);
-          }
+        const response = await nativeFetch(url, {
+          method: 'HEAD', cache: 'no-store', signal: controller.signal,
         });
+        const stamp = stampOf(response);
+        const size = Number(response.headers.get('Content-Length'));
+        if (!response.ok || !stamp || !size) return null;
+        return {
+          size,
+          stamp,
+          version: `${size} ${stamp}`,
+          ranges: response.headers.get('Accept-Ranges') === 'bytes',
+        };
       } catch {
-        // stalled: ask again
+        // no answer: ask again
+      } finally {
+        clearTimeout(timer);
       }
     }
     return null;
   }
 
   async function cachedFetch(url, type, onProgress) {
-    const version = await remoteVersion(url);
-    if (version) {
-      const kept = await inStore('readonly', (files) => files.get(url)).catch(() => undefined);
-      if (kept?.version === version) {
-        onProgress(kept.blob.size, kept.blob.size);
-        return new Response(kept.blob, {
-          headers: { 'Content-Type': type, 'Content-Length': String(kept.blob.size) },
-        });
-      }
+    const remote = await remoteFile(url);
+    if (!remote) return nativeFetch(url);  // unknown: fetched as it is
+    const kept = await inStore('readonly', (files) => files.get(url)).catch(() => undefined);
+    if (kept?.version === remote.version) {
+      onProgress(kept.blob.size, kept.blob.size);
+      return new Response(kept.blob, {
+        headers: { 'Content-Type': type, 'Content-Length': String(kept.blob.size) },
+      });
     }
-    const download = await chunkedFetch(url, type, onProgress);
-    // Kept under the version its bytes came from, and only if they all
-    // arrived: a failed or mixed download is fetched afresh next time
-    if (!download.version) return download.response;
-    const [forGame, forStore] = download.response.body.tee();
+    if (!remote.ranges) return nativeFetch(url);
+    const response = piecedFetch(url, type, remote.size, remote.stamp, onProgress);
+    // Kept only if every piece arrived: a failed download is fetched afresh
+    // next time
+    const [forGame, forStore] = response.body.tee();
     new Response(forStore).blob()
       .then((blob) => inStore('readwrite', (files) =>
-        files.put({ version: download.version, blob }, url)))
+        files.put({ version: remote.version, blob }, url)))
       .catch((error) => console.warn(`${url}: not kept for the next visit:`, error));
-    return new Response(forGame, { headers: download.response.headers });
+    return new Response(forGame, { headers: response.headers });
   }
+
 
   // A game that fails to start may have met a stale or broken copy of its
   // files: the page forgets its copies and loads afresh, once. Only a

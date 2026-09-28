@@ -37,6 +37,9 @@ struct Texture
 	SDL_Texture* texture{};
 	int width{};
 	int height{};
+	// The average colour of the image's top rows: a sky's, carried on above
+	// it when the player looks higher than the image reaches
+	SDL_Color top_colour{0, 0, 0, 255};
 };
 
 // assets/textures.json: which images the game loads, as paths under the

@@ -154,7 +154,10 @@ class Scene
 		float across = 0.0F;
 		float down = 0.0F;
 	};
-	void ShowImpact(Impact impact, const vector2d& pose);
+	// A puff at `pose`, `elevation` above where shots fly level (half a wall
+	// up)
+	void ShowImpact(Impact impact, const vector2d& pose,
+					double elevation = 0.0);
 	void AddWallMark(const WallMark& mark);
 	std::span<const WallMark> GetWallMarks() const {
 		return std::span(wall_marks_).first(wall_mark_count_);

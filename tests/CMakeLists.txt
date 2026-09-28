@@ -37,6 +37,7 @@ add_executable(unit_tests
     arsenal_test.cpp
     impact_test.cpp
     balance_test.cpp
+    mouse_look_test.cpp
     saved_game_test.cpp
     texture_manifest_test.cpp
 )

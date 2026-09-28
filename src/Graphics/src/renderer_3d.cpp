@@ -97,9 +97,10 @@ void Renderer3D::Enqueue(int texture_id, const SDL_Rect& src_rect,
 void Renderer3D::RenderScene(double delta_time) {
 	ScopedTimer render_timer(ProfileSection::Render);
 	render_queue_.clear();
-	// A shot kicks the view up: the world drops on the screen for a moment
-	kick_ = static_cast<int>(scene_->GetPlayer().GetKick() *
-							 context_->GetConfig().height);
+	// Looking up, or a shot's kick, drops the world down the screen
+	const Player& player = scene_->GetPlayer();
+	horizon_shift_ = static_cast<int>((player.GetPitch() + player.GetKick()) *
+									  context_->GetConfig().height);
 	ClearScreen();
 	RenderBackground();
 	{
@@ -121,17 +122,57 @@ void Renderer3D::RenderScene(double delta_time) {
 
 void Renderer3D::RenderBackground() {
 	const auto& config = context_->GetConfig();
-	auto renderer_ = context_->GetRenderer();
-	// Render sky
-	const auto& sky_texture = context_->Textures().GetTexture(sky_texture_);
-	SDL_Rect src_rect = {0, 0, sky_texture.width, sky_texture.height};
-	SDL_Rect dest_rect = {0, 0, config.width, config.height / 2 + kick_};
-	SDL_RenderCopy(renderer_, sky_texture.texture, &src_rect, &dest_rect);
-	// Render ground black
-	SDL_SetRenderDrawColor(renderer_, 50, 50, 50, 255);
-	SDL_Rect ground_rect = {0, config.height / 2 + kick_, config.width,
-							config.height / 2};
-	SDL_RenderFillRect(renderer_, &ground_rect);
+	auto* renderer = context_->GetRenderer();
+	const auto& sky = context_->Textures().GetTexture(sky_texture_);
+	const int horizon = config.height / 2 + horizon_shift_;
+
+	// The sky keeps the size it has looking straight ahead (half the screen
+	// tall, its proportions kept) whichever way the player looks: it sits on
+	// the horizon, and turns with the view, a panorama repeating every sky
+	// width
+	const int sky_height = config.height / 2;
+	const int sky_width = sky.width * sky_height / sky.height;
+	const double pixels_per_radian = config.width / config.fov;
+	const double turned =
+		context_->GetCamera().GetPosition().theta * pixels_per_radian;
+	const int offset =
+		static_cast<int>(std::fmod(turned, sky_width) + sky_width) % sky_width;
+	const int sky_top = horizon - sky_height;
+	for (int x = -offset; x < config.width; x += sky_width) {
+		const SDL_Rect band{x, sky_top, sky_width, sky_height};
+		SDL_RenderCopy(renderer, sky.texture, nullptr, &band);
+	}
+	// Looking higher than the image reaches: above it, the colour of its top
+	// edge, into which the edge fades more the further up the player looks
+	if (sky_top > 0) {
+		const SDL_Color top = sky.top_colour;
+		SDL_SetRenderDrawColor(renderer, top.r, top.g, top.b, 255);
+		const SDL_Rect above{0, 0, config.width, sky_top};
+		SDL_RenderFillRect(renderer, &above);
+
+		const auto from = static_cast<float>(sky_top);
+		const auto to =
+			from + static_cast<float>(std::min(sky_top, sky_height / 3));
+		const auto right = static_cast<float>(config.width);
+		const SDL_Color opaque{top.r, top.g, top.b, 255};
+		const SDL_Color clear{top.r, top.g, top.b, 0};
+		const std::array<SDL_Vertex, 4> fade{{{{0.0F, from}, opaque, {}},
+											  {{right, from}, opaque, {}},
+											  {{0.0F, to}, clear, {}},
+											  {{right, to}, clear, {}}}};
+		constexpr std::array<int, 6> kTriangles{0, 1, 2, 1, 3, 2};
+		SDL_BlendMode mode = SDL_BLENDMODE_NONE;
+		SDL_GetRenderDrawBlendMode(renderer, &mode);
+		SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+		SDL_RenderGeometry(renderer, nullptr, fade.data(),
+						   static_cast<int>(fade.size()), kTriangles.data(),
+						   static_cast<int>(kTriangles.size()));
+		SDL_SetRenderDrawBlendMode(renderer, mode);
+	}
+
+	SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
+	const SDL_Rect ground{0, horizon, config.width, config.height - horizon};
+	SDL_RenderFillRect(renderer, &ground);
 }
 
 void Renderer3D::RenderWalls() {
@@ -272,6 +313,8 @@ void Renderer3D::RenderObjects() {
 
 		auto [line_height, draw_start, draw_end] =
 			CalculateVerticalSlice(first.perpendicular_distance);
+		// Standing on the floor, or raised off it
+		draw_end -= static_cast<int>(line_height * object->GetElevation());
 		const auto height = object->GetHeight();
 		line_height = static_cast<int>(line_height * height);
 		draw_start = draw_end - line_height;
@@ -316,8 +359,8 @@ std::tuple<int, int, int> Renderer3D::CalculateVerticalSlice(
 		std::min(config_.height / std::max(distance, kNearest),
 				 config_.height * kTallest);
 	auto line_height = static_cast<int>(height);
-	int draw_start = -line_height / 2 + config_.height / 2 + kick_;
-	int draw_end = line_height / 2 + config_.height / 2 + kick_;
+	int draw_start = -line_height / 2 + config_.height / 2 + horizon_shift_;
+	int draw_end = line_height / 2 + config_.height / 2 + horizon_shift_;
 	return std::make_tuple(line_height, draw_start, draw_end);
 }
 

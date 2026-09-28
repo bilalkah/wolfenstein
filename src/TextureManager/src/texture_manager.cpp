@@ -1,11 +1,57 @@
 #include "TextureManager/texture_manager.h"
 #include <SDL2/SDL_image.h>
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <numeric>
 
 namespace wolfenstein {
+
+namespace {
+
+// The average colour of an image's top few rows
+SDL_Color TopColour(SDL_Surface* image) {
+	constexpr int kRows = 4;
+	const int rows = std::min(kRows, image->h);
+	SDL_Surface* top = SDL_CreateRGBSurfaceWithFormat(0, image->w, rows, 32,
+													  SDL_PIXELFORMAT_RGBA32);
+	if (top == nullptr || rows == 0) {
+		SDL_FreeSurface(top);
+		return {0, 0, 0, 255};
+	}
+	// Copied as it is, not blended onto the empty surface
+	SDL_BlendMode mode = SDL_BLENDMODE_NONE;
+	SDL_GetSurfaceBlendMode(image, &mode);
+	SDL_SetSurfaceBlendMode(image, SDL_BLENDMODE_NONE);
+	SDL_Rect source{0, 0, image->w, rows};
+	SDL_BlitSurface(image, &source, top, nullptr);
+	SDL_SetSurfaceBlendMode(image, mode);
+
+	std::array<std::uint64_t, 4> sum{};
+	const auto* pixels = static_cast<const std::uint8_t*>(top->pixels);
+	for (int y = 0; y < rows; ++y) {
+		const auto* row = pixels + static_cast<std::ptrdiff_t>(y) * top->pitch;
+		for (int x = 0; x < image->w; ++x) {
+			for (std::size_t channel = 0; channel < sum.size(); ++channel) {
+				sum[channel] += row[static_cast<std::ptrdiff_t>(x) * 4 +
+									static_cast<std::ptrdiff_t>(channel)];
+			}
+		}
+	}
+	SDL_FreeSurface(top);
+	const auto count =
+		static_cast<std::uint64_t>(rows) * static_cast<std::uint64_t>(image->w);
+	const auto average = [&](std::size_t channel) {
+		return static_cast<std::uint8_t>(sum[channel] / count);
+	};
+	return {average(0), average(1), average(2), average(3)};
+}
+
+}  // namespace
 
 std::expected<TextureManifest, std::string> ParseTextureManifest(
 	std::istream& input) {
@@ -44,10 +90,17 @@ TextureManager::Load(SDL_Renderer* renderer, const TextureManifest& manifest,
 		}
 		const std::string full_path = asset_dir + path;
 		Texture texture;
-		texture.texture = IMG_LoadTexture(renderer, full_path.c_str());
-		if (texture.texture == nullptr) {
+		SDL_Surface* image = IMG_Load(full_path.c_str());
+		if (image == nullptr) {
 			return std::unexpected("cannot load " + full_path + ": " +
 								   IMG_GetError());
+		}
+		texture.top_colour = TopColour(image);
+		texture.texture = SDL_CreateTextureFromSurface(renderer, image);
+		SDL_FreeSurface(image);
+		if (texture.texture == nullptr) {
+			return std::unexpected("cannot load " + full_path + ": " +
+								   SDL_GetError());
 		}
 		SDL_QueryTexture(texture.texture, nullptr, nullptr, &texture.width,
 						 &texture.height);

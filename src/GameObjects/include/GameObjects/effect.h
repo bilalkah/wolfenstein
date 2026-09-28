@@ -21,14 +21,17 @@ class Effect : public IGameObject
 {
   public:
 	// Shows `frames` at `pose`, each for `frame_seconds`, drawn width x
-	// height (the art places the puff within that); restarts it if playing
+	// height (the art places the puff within that) and raised `elevation`
+	// off the floor; restarts it if playing
 	void Start(const vector2d& pose, std::span<const std::uint16_t> frames,
-			   double frame_seconds, double width, double height) {
+			   double frame_seconds, double width, double height,
+			   double elevation = 0.0) {
 		pose_ = pose;
 		frames_ = frames;
 		frame_seconds_ = frame_seconds;
 		width_ = width;
 		height_ = height;
+		elevation_ = elevation;
 		age_ = 0.0;
 	}
 
@@ -45,6 +48,7 @@ class Effect : public IGameObject
 	}
 	double GetWidth() const override { return width_; }
 	double GetHeight() const override { return height_; }
+	double GetElevation() const override { return elevation_; }
 	bool IsVisible() const override {
 		return !frames_.empty() &&
 			   age_ < frame_seconds_ * static_cast<double>(frames_.size());
@@ -61,6 +65,7 @@ class Effect : public IGameObject
 	double frame_seconds_ = 1.0;
 	double width_ = 0.0;
 	double height_ = 0.0;
+	double elevation_ = 0.0;
 	double age_ = 0.0;
 };
 

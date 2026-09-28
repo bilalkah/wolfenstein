@@ -112,6 +112,7 @@ ObjectType Player::GetObjectType() const {
 
 void Player::SetPosition(const Position2D position) {
 	position_ = position;
+	pitch_ = 0.0;  // a new place: looking straight ahead
 	// A teleport, not a move: nothing to interpolate across
 	previous_position_ = position;
 }
@@ -246,6 +247,8 @@ void Player::Rotate(double delta_time) {
 	if (turn != 0.0) {
 		position_.theta = SumRadian(position_.theta, turn);
 	}
+	pitch_ = std::clamp(pitch_ + command_.look_up, -kMaxPitch, kMaxPitch);
+	command_.look_up = 0.0;
 }
 
 // A number key takes that weapon in hand; the wheel steps through those
@@ -277,7 +280,7 @@ void Player::ShootOrReload() {
 	}
 	if (command_.fire && weapon.Attack()) {
 		kick_ = std::max(kick_, weapon.GetKick());
-		ResolvePlayerShot(*scene_, weapon, position_);
+		ResolvePlayerShot(*scene_, weapon, position_, pitch_);
 	}
 }
 

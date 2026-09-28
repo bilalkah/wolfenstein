@@ -60,6 +60,8 @@ class IGameObject
 	virtual int GetTextureId() const = 0;
 	virtual double GetWidth() const = 0;
 	virtual double GetHeight() const = 0;
+	// How far above the floor it is drawn (a puff where a shot struck high)
+	virtual double GetElevation() const { return 0.0; }
 
 	ObjectId GetId() const { return id_; }
 	// Set by the scene when it takes the object in

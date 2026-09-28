@@ -38,9 +38,9 @@ class ImpactTest : public ::testing::Test
 		scene_.SetPlayer(player_);
 	}
 
-	void Shoot(std::size_t weapon, double theta) {
+	void Shoot(std::size_t weapon, double theta, double pitch = 0.0) {
 		ResolvePlayerShot(scene_, player_.GetWeapon(weapon),
-						  Position2D({1.5, 1.5}, theta));
+						  Position2D({1.5, 1.5}, theta), pitch);
 	}
 
 	std::vector<const IGameObject*> Puffs() const {
@@ -98,6 +98,42 @@ TEST_F(ImpactTest, AShotAtAnEnemyDrawsBloodNotAMark) {
 	// In front of the enemy, as the shooter sees it
 	EXPECT_GT(puffs[0]->GetPose().y, 1.5);
 	EXPECT_LT(puffs[0]->GetPose().y, 3.5);
+}
+
+// The mouse looks up and down, as far as the limit either way
+TEST_F(ImpactTest, LookingUpAndDownStopsAtTheLimit) {
+	player_.SetCommand({.look_up = 0.25});
+	scene_.Update(kTick);
+	EXPECT_DOUBLE_EQ(player_.GetPitch(), 0.25);
+	player_.SetCommand({.look_up = 0.25});
+	scene_.Update(kTick);
+	EXPECT_DOUBLE_EQ(player_.GetPitch(), Player::kMaxPitch);
+	player_.SetCommand({.look_up = -2.0});
+	scene_.Update(kTick);
+	EXPECT_DOUBLE_EQ(player_.GetPitch(), -Player::kMaxPitch);
+	// Applied once, like turning with the mouse
+	scene_.Update(kTick);
+	EXPECT_DOUBLE_EQ(player_.GetPitch(), -Player::kMaxPitch);
+}
+
+// Aimed up, a shot marks the wall higher, and the dust flies there
+TEST_F(ImpactTest, AShotAimedUpStrikesHigher) {
+	scene_.FinishLoading();
+	constexpr double kPitch = 0.6;	// the wall is half a unit off: 0.3 higher
+	Shoot(kPistol, kEast, kPitch);
+	ASSERT_EQ(scene_.GetWallMarks().size(), 1u);
+	EXPECT_NEAR(scene_.GetWallMarks()[0].down, 0.2, 0.06) << "0.2 from the top";
+	const auto puffs = Puffs();
+	ASSERT_EQ(puffs.size(), 1u);
+	EXPECT_NEAR(puffs[0]->GetElevation(), 0.3, 1e-6);
+}
+
+// Aimed at the floor well short of the wall, a shot marks nothing
+TEST_F(ImpactTest, AShotIntoTheFloorMarksNoWall) {
+	scene_.FinishLoading();
+	Shoot(kPistol, kSouth, -Player::kMaxPitch);	 // the door is 3 units off
+	EXPECT_TRUE(scene_.GetWallMarks().empty());
+	EXPECT_TRUE(Puffs().empty());
 }
 
 // A shotgun's pellets fan out: a spread of marks, one per pellet

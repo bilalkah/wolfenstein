@@ -580,6 +580,20 @@ void Game::GameTick() {
 #endif
 }
 
+MouseLook ToMouseLook(int dx, int dy, double sensitivity,
+					  const GeneralConfig& view) {
+	constexpr double kRadiansPerPixel = 0.005;
+	const double turn = dx * kRadiansPerPixel * sensitivity;
+	// Looking up slides the view by as many screen pixels as turning the
+	// same mouse distance does (the screen shows width / fov pixels a
+	// radian), as a share of the screen's height; the mouse pushed away
+	// looks up
+	const double pixels_per_radian = view.screen_width / view.fov;
+	const double up = -dy * kRadiansPerPixel * sensitivity * pixels_per_radian /
+					  view.screen_height;
+	return {.turn = turn, .up = up};
+}
+
 // Reads this frame's player input from the keyboard and mouse
 PlayerCommand Game::SampleCommand() const {
 	const Uint8* keys = SDL_GetKeyboardState(nullptr);
@@ -593,12 +607,14 @@ PlayerCommand Game::SampleCommand() const {
 
 	// Relative mouse mode reports motion since the last call, which also
 	// works under browser pointer lock (unlike warping the cursor)
-	constexpr double kRadiansPerPixel = 0.005;
 	int dx = 0;
-	SDL_GetRelativeMouseState(&dx, nullptr);
+	int dy = 0;
+	SDL_GetRelativeMouseState(&dx, &dy);
 	if (SDL_GetRelativeMouseMode()) {
-		command.look =
-			dx * kRadiansPerPixel * Settings::Get().mouse_sensitivity;
+		const MouseLook look =
+			ToMouseLook(dx, dy, Settings::Get().mouse_sensitivity, config_);
+		command.look = look.turn;
+		command.look_up = look.up;
 	}
 
 	command.fire =

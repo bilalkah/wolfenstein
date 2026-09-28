@@ -22,6 +22,9 @@ struct PlayerCommand
 	std::int8_t turn = 0;  // keyboard turning, at a fixed rate
 	// Mouse look, in radians; applied once, not per tick
 	double look = 0.0;
+	// Mouse look up (+) or down, as a share of the screen's height; applied
+	// once
+	double look_up = 0.0;
 	bool fire = false;
 	bool reload = false;
 	// Opens the door in front

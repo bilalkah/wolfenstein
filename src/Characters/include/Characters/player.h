@@ -111,6 +111,12 @@ class Player : public ICharacter, public IGameObject
 	// How far the last shot's kick still jolts the view, a share of the
 	// screen's height easing back to 0
 	double GetKick() const { return kick_; }
+	// How far up (+) or down the player looks: the view slides by this share
+	// of the screen's height, and a shot `d` away flies at 0.5 + pitch * d
+	// (a wall is 1 high, the eye half way up it)
+	double GetPitch() const { return pitch_; }
+	// The furthest the player looks up or down
+	static constexpr double kMaxPitch = 0.4;
 	// Opacity of the damage overlay, fading out after a hit
 	std::uint8_t GetDamageAlpha() const { return damage_animation_.GetAlpha(); }
 	// Opacity of the flash after taking a pickup, 0 when none is showing
@@ -134,6 +140,7 @@ class Player : public ICharacter, public IGameObject
 	double health_{};
 	double since_hurt_{};
 	double kick_{};
+	double pitch_{};
 	std::uint8_t keys_{};
 	SoundManager& sound_;
 	SoundChannel sound_channel_;

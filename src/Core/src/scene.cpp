@@ -123,7 +123,7 @@ void Scene::FinishLoading() {
 	navigation_.Build();
 }
 
-void Scene::ShowImpact(Impact impact, const vector2d& pose) {
+void Scene::ShowImpact(Impact impact, const vector2d& pose, double elevation) {
 	// Drawn 0.4 of a wall wide and 0.8 high: the puff is where shots fly in
 	// the art, half a wall up
 	constexpr double kFrameSeconds = 0.06;
@@ -131,7 +131,7 @@ void Scene::ShowImpact(Impact impact, const vector2d& pose) {
 	constexpr double kHeight = 0.8;
 	effects_[next_effect_].Start(
 		pose, impact == Impact::Blood ? blood_frames_ : dust_frames_,
-		kFrameSeconds, kWidth, kHeight);
+		kFrameSeconds, kWidth, kHeight, elevation);
 	next_effect_ = (next_effect_ + 1) % kEffects;
 }
 

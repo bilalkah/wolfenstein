@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Serves the web build to this machine and the local network.
 
-Like `python3 -m http.server`, plus byte ranges: the page resumes a download
-that stalls (see web/shell.html) from the byte it stopped at, instead of
-starting the file over.
+Like `python3 -m http.server`, plus byte ranges, so the page can fetch a
+file in pieces over several connections and resume a stalled piece from the
+byte it stopped at (see web/shell.html); and a connection that stops taking
+data is reset rather than left sending into a dead link.
 
 Usage: serve_web.py <directory> [port]
 """
@@ -13,6 +14,7 @@ import http.server
 import os
 import re
 import socket
+import struct
 import sys
 
 RANGE = re.compile(r"bytes=(\d+)-(\d*)$")
@@ -20,6 +22,18 @@ RANGE = re.compile(r"bytes=(\d+)-(\d*)$")
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
+    # A connection that takes nothing (a read or a write) for this long is
+    # dropped: the page has given up on it and asked again elsewhere
+    timeout = 5
+
+    def handle(self):
+        try:
+            super().handle()
+        except (TimeoutError, ConnectionError):
+            # Reset, not closed: a close would leave whatever is queued to be
+            # sent on, competing with the connections that still work
+            self.request.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER,
+                                    struct.pack("ii", 1, 0))
 
     def send_head(self):
         # One handler serves every request of a kept-alive connection
