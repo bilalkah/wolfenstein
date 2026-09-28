@@ -108,8 +108,6 @@ class ReloadingState : public WeaponState
 class RaisingState : public WeaponState
 {
   public:
-	// How long taking a weapon in hand takes
-	static constexpr double kSeconds = 0.4;
 	// The share of the reload clip, from its end, that shows it
 	static constexpr std::size_t kShareOfReload = 3;  // a third
 
@@ -120,6 +118,7 @@ class RaisingState : public WeaponState
 
   private:
 	double time_{0.0};
+	double seconds_{0.0};  // its weapon's raise_seconds
 };
 
 }  // namespace wolfenstein

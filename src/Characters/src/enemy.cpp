@@ -87,6 +87,7 @@ void Enemy::Update(double delta_time) {
 	if (!is_alive_) {
 		return;
 	}
+	since_flinch_ += delta_time;
 	{
 		ScopedTimer timer(ProfileSection::LineOfSight);
 		crosshair_ray = CastLineOfSight(scene_.GetMap(), position_.pose,
@@ -166,6 +167,24 @@ void Enemy::SetNextPose(vector2d pose) {
 
 void Enemy::SetAttacked(bool value) {
 	is_attacked_ = value;
+}
+
+bool Enemy::TakeHit() {
+	if (!is_attacked_) {
+		return false;
+	}
+	is_attacked_ = false;
+	if (health_ > 0.0 &&
+		since_flinch_ < config_.behaviour.pain_cooldown_seconds) {
+		return false;
+	}
+	since_flinch_ = 0.0;
+	retaliating_ = true;
+	return true;
+}
+
+bool Enemy::TakeRetaliation() {
+	return std::exchange(retaliating_, false);
 }
 
 void Enemy::RestoreDead() {

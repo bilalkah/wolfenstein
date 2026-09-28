@@ -14,9 +14,11 @@
 
 #include "Camera/ray.h"
 #include "Characters/character.h"
+#include <optional>
 
 namespace wolfenstein {
 
+class Enemy;
 class Player;
 class Scene;
 class SimpleWeapon;
@@ -34,6 +36,20 @@ inline constexpr double kEyeHeight = 0.5;
 // climbs `pitch` for every unit it flies, from the eye half a wall up, and
 // passes over or under what it does not meet at that height.
 Ray Aim(const Scene& scene, const Position2D& eye, double pitch = 0.0);
+
+// Where a shot from `eye`, climbing `pitch` a unit, crosses an enemy's
+// picture (a board facing the shooter, as it is drawn): across it from the
+// left and down it from the top, each 0 to 1, and how far it flew. Nothing
+// if it passes beside, over or under it, or through a part of the frame
+// shown that is empty (between the legs, beside the head).
+struct Crossing
+{
+	double across = 0.0;
+	double down = 0.0;
+	double distance = 0.0;
+};
+std::optional<Crossing> Cross(const Scene& scene, const Position2D& eye,
+							  double pitch, const Enemy& enemy);
 
 // The player fired from `eye`: damages the enemy it hits, if any, and counts
 // it in the scene if the shot kills it

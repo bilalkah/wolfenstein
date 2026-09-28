@@ -113,6 +113,25 @@ TEST_F(ArsenalTest, ARaiseClipIsPreferred) {
 		testing::TestTextures().FindTextureCollection("shotgun_raise").front());
 }
 
+// Each weapon takes its own time coming up: the shotgun longer than the rest
+TEST_F(ArsenalTest, EachWeaponComesUpInItsOwnTime) {
+	const double shotgun = testing::Weapon("shotgun").raise_seconds;
+	ASSERT_GT(shotgun, testing::Weapon("pistol").raise_seconds);
+	player_.SetOwnedWeapons(0b101);	 // pistol, shotgun
+	Command({.weapon = kShotgun});
+	Weapon& weapon = player_.GetWeapon(kShotgun);
+	player_.SetCommand({});
+	const int almost = static_cast<int>(shotgun / kTick) - 2;
+	for (int tick = 1; tick < almost; ++tick) {
+		scene_.Update(kTick);
+	}
+	EXPECT_FALSE(weapon.Attack()) << "still coming up";
+	for (int tick = 0; tick < 4; ++tick) {
+		scene_.Update(kTick);
+	}
+	EXPECT_TRUE(weapon.Attack());
+}
+
 // Coming up is not a reload: no rounds move, and a reload asked for meanwhile
 // is not taken
 TEST_F(ArsenalTest, ComingUpIsNotAReload) {

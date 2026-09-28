@@ -57,7 +57,8 @@ WeaponConfig ToWeapon(const json& weapon) {
 			.falloff = ToFalloff(weapon.at("falloff")),
 			.kick = weapon.value("kick", 0.0),
 			.pellets = weapon.value("pellets", std::size_t{1}),
-			.spread = weapon.value("spread", 0.0) * std::numbers::pi / 180.0};
+			.spread = weapon.value("spread", 0.0) * std::numbers::pi / 180.0,
+			.raise_seconds = weapon.value("raise_seconds", 0.4)};
 }
 
 // The key a pickup is ("key": "gold"), as a KeyBit, or 0
@@ -107,7 +108,16 @@ PickupConfig ToPickup(const json& pickup,
 	return config;
 }
 
-EnemyConfig ToEnemy(const std::string& type, const json& enemy) {
+// Hit zones as config.json gives them ("hit_zones"), over `defaults`
+HitZones ToHitZones(const json& zones, HitZones defaults) {
+	return {.head_share = zones.value("head_share", defaults.head_share),
+			.head_damage = zones.value("head_damage", defaults.head_damage),
+			.leg_share = zones.value("leg_share", defaults.leg_share),
+			.leg_damage = zones.value("leg_damage", defaults.leg_damage)};
+}
+
+EnemyConfig ToEnemy(const std::string& type, const json& enemy,
+					const HitZones& zones) {
 	const auto& weapon = enemy.at("weapon");
 	const auto& ai = enemy.at("ai");
 	return {.type = type,
@@ -117,7 +127,12 @@ EnemyConfig ToEnemy(const std::string& type, const json& enemy) {
 			.health = enemy.value("health", 100.0),
 			.behaviour = {.idle_frame_seconds =
 							  ai.at("idle_frame_seconds").get<double>(),
-						  .follow_range = ai.at("follow_range").get<double>()},
+						  .follow_range = ai.at("follow_range").get<double>(),
+						  .pain_cooldown_seconds =
+							  ai.value("pain_cooldown_seconds", 1.2)},
+			.hit_zones = enemy.contains("hit_zones")
+							 ? ToHitZones(enemy.at("hit_zones"), zones)
+							 : zones,
 			.weapon = {.weapon_name = weapon.at("name").get<std::string>(),
 					   .attack_damage = ToDamage(weapon.at("damage")),
 					   .attack_range = weapon.at("range").get<double>(),
@@ -156,8 +171,11 @@ const DifficultyConfig* GameConfig::FindDifficulty(
 std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 	return Parse(input, [](const json& root) {
 		GameConfig config;
+		const HitZones zones = root.contains("hit_zones")
+								   ? ToHitZones(root.at("hit_zones"), {})
+								   : HitZones{};
 		for (const auto& [type, enemy] : root.at("config_enemy").items()) {
-			config.enemies.emplace(type, ToEnemy(type, enemy));
+			config.enemies.emplace(type, ToEnemy(type, enemy, zones));
 		}
 		for (const auto& weapon : root.at("weapons")) {
 			config.weapons.push_back(ToWeapon(weapon));

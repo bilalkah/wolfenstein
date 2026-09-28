@@ -18,6 +18,10 @@ namespace {
 class EnemyStateTest : public ::testing::Test
 {
   protected:
+	// How long after flinching it can flinch again
+	const double kCooldown =
+		testing::Enemy("soldier").behaviour.pain_cooldown_seconds;
+
 	void SetUp() override {
 		scene_.SetPlayer(player_);
 		ASSERT_TRUE(scene_.AddEnemy(testing::Enemy("soldier"),
@@ -54,19 +58,52 @@ class EnemyStateTest : public ::testing::Test
 TEST_F(EnemyStateTest, PainIsReenteredWithAFreshTimer) {
 	ASSERT_EQ(enemy_->GetStateType(), EnemyStateType::Idle);
 
-	Hit(30.0);
+	Hit(10.0);
 	enemy_->Update(0.016);
 	EXPECT_EQ(enemy_->GetStateType(), EnemyStateType::Pain);
 
 	enemy_->Update(0.3);  // longer than the pain animation
 	EXPECT_EQ(enemy_->GetStateType(), EnemyStateType::Walk);
+	enemy_->Update(kCooldown);	// able to flinch again
 
-	Hit(30.0);
+	Hit(10.0);
 	enemy_->Update(0.016);
 	ASSERT_EQ(enemy_->GetStateType(), EnemyStateType::Pain);
 	// A timer left over from the first visit would end the pain right away
 	enemy_->Update(0.1);
 	EXPECT_EQ(enemy_->GetStateType(), EnemyStateType::Pain);
+}
+
+// Hit again soon after flinching, it is hurt but does not flinch: steady
+// fire must not keep an enemy from shooting back
+TEST_F(EnemyStateTest, ItFlinchesOnlyOnceInACooldown) {
+	Hit(10.0);
+	enemy_->Update(0.016);
+	ASSERT_EQ(enemy_->GetStateType(), EnemyStateType::Pain);
+	enemy_->Update(0.3);
+	ASSERT_EQ(enemy_->GetStateType(), EnemyStateType::Walk);
+
+	const double health = enemy_->GetHealth();
+	Hit(10.0);
+	enemy_->Update(0.016);
+	EXPECT_EQ(enemy_->GetStateType(), EnemyStateType::Walk) << "no flinch";
+	EXPECT_DOUBLE_EQ(enemy_->GetHealth(), health - 10.0) << "but hurt";
+	// A hit it did not flinch at is spent: it does not flinch later for it
+	enemy_->Update(kCooldown);
+	EXPECT_EQ(enemy_->GetStateType(), EnemyStateType::Walk);
+}
+
+// The killing hit always drops it, cooldown or not
+TEST_F(EnemyStateTest, TheKillingHitIsNeverShrugged) {
+	Hit(10.0);
+	enemy_->Update(0.016);
+	enemy_->Update(0.3);
+	ASSERT_EQ(enemy_->GetStateType(), EnemyStateType::Walk);
+	Hit(enemy_->GetHealth());
+	enemy_->Update(0.016);
+	ASSERT_EQ(enemy_->GetStateType(), EnemyStateType::Pain);
+	enemy_->Update(0.3);
+	EXPECT_EQ(enemy_->GetStateType(), EnemyStateType::Death);
 }
 
 TEST_F(EnemyStateTest, AFatalHitLeadsToDeath) {
@@ -75,6 +112,38 @@ TEST_F(EnemyStateTest, AFatalHitLeadsToDeath) {
 	ASSERT_EQ(enemy_->GetStateType(), EnemyStateType::Pain);
 	enemy_->Update(0.3);
 	EXPECT_EQ(enemy_->GetStateType(), EnemyStateType::Death);
+}
+
+// The complaint this answers: hitting an enemy every few tenths of a second
+// kept it flinching, so it never fired. It must still hurt the player.
+TEST(EnemyUnderFire, StillShootsBack) {
+	CharacterConfig config{Position2D({1.5, 4.5}, 0.0), 1.0, 1.0, 0.4, 0.4};
+	Player player(config, testing::Weapon("pistol"), testing::TestTextures(),
+				  testing::TestSound());
+	static constexpr SceneCapacity kCapacity{.enemies = 1};
+	// A corridor along y (a map file's rows run along x): they see each other
+	Map map(testing::WriteMapFile("wolfenstein_under_fire_test.txt",
+								  {"333333", "300003", "333333"})
+				.string());
+	memory::MonotonicArena arena(Scene::MemoryFor(map, kCapacity));
+	Scene scene(testing::TestTextures(), testing::TestSound(), map, kCapacity,
+				arena);
+	scene.SetPlayer(player);
+	ASSERT_TRUE(
+		scene.AddEnemy(testing::Enemy("soldier"), Position2D({1.5, 1.5}, 0.0)));
+	scene.FinishLoading();
+	Enemy& enemy = *scene.GetEnemies().front();
+
+	constexpr double kTick = 1.0 / 60.0;
+	for (int tick = 0; tick < 600; ++tick) {  // ten seconds
+		if (tick % 18 == 0) {				  // a hit every 0.3 s
+			enemy.DecreaseHealth(0.5);
+			enemy.SetAttacked(true);
+		}
+		scene.Update(kTick);
+	}
+	ASSERT_TRUE(enemy.IsAlive());
+	EXPECT_LT(player.GetHealth(), 100.0);
 }
 
 }  // namespace

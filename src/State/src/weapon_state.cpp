@@ -134,7 +134,7 @@ void ReloadingState::OnContextSet() {
 void RaisingState::Update(const double& delta_time) {
 	animation_.Update(delta_time);
 	time_ += delta_time;
-	if (time_ >= kSeconds) {
+	if (time_ >= seconds_) {
 		context_->TransitionTo(context_->GetAmmo() == 0 && !context_->IsMelee()
 								   ? WeaponStateType::OutOfAmmo
 								   : WeaponStateType::Loaded);
@@ -161,8 +161,9 @@ void RaisingState::OnContextSet() {
 		frames = reload.last(
 			std::max<std::size_t>(reload.size() / kShareOfReload, 1));
 	}
+	seconds_ = context_->GetRaiseSeconds();
 	animation_ =
-		LoopedAnimation(frames, kSeconds / static_cast<double>(frames.size()));
+		LoopedAnimation(frames, seconds_ / static_cast<double>(frames.size()));
 }
 
 }  // namespace wolfenstein

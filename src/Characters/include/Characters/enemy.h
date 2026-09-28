@@ -29,6 +29,29 @@ struct StateConfig
 {
 	double idle_frame_seconds{};  // how long each idle frame shows
 	double follow_range{};		  // how near the player must be to be chased
+	// A hit makes it flinch (its pain) at most once in this long; hits in
+	// between only hurt it, so steady fire cannot keep it from shooting back
+	double pain_cooldown_seconds{1.2};
+};
+
+// Where a shot strikes a figure changes what it does: the head is the top
+// head_share of the figure (its visible part, in the frame shown), the legs
+// the bottom leg_share, and the rest the body
+struct HitZones
+{
+	double head_share = 0.2;
+	double head_damage = 2.0;
+	double leg_share = 0.45;
+	double leg_damage = 0.6;
+
+	// What a hit `down` the figure (0 at its top, 1 at its feet) does, as a
+	// share of the weapon's damage
+	double Scale(double down) const {
+		if (down < head_share) {
+			return head_damage;
+		}
+		return down > 1.0 - leg_share ? leg_damage : 1.0;
+	}
 };
 
 // An enemy type as config.json describes it
@@ -40,6 +63,7 @@ struct EnemyConfig
 	double height{};
 	double health = 100.0;	// before the difficulty scales it
 	StateConfig behaviour;
+	HitZones hit_zones;
 	SimpleWeaponConfig weapon;
 };
 
@@ -62,6 +86,13 @@ class Enemy : public ICharacter, public IGameObject
 
 	void SetNextPose(vector2d pose);
 	void SetAttacked(bool value);
+	// Takes the hit it was dealt, if any: true if it flinches, which it
+	// does at most once every pain_cooldown_seconds, and always for the
+	// killing hit
+	bool TakeHit();
+	// Out of its pain, it shoots back as soon as it can: true once after a
+	// flinch
+	bool TakeRetaliation();
 	void SetDeath();
 	// Lying dead as a saved game left it: straight to the end of its death,
 	// in silence
@@ -92,6 +123,7 @@ class Enemy : public ICharacter, public IGameObject
 	double GetWidth() const override;
 	double GetHeight() const override;
 	const StateConfig& GetStateConfig() const { return config_.behaviour; }
+	const HitZones& GetHitZones() const { return config_.hit_zones; }
 	const Ray& GetCrosshairRay() const;
 	const SimpleWeapon& GetWeapon() const;
 
@@ -100,6 +132,8 @@ class Enemy : public ICharacter, public IGameObject
 
 	Scene& scene_;
 	bool is_attacked_{};
+	bool retaliating_{};
+	double since_flinch_{1e9};	// seconds since it last flinched
 	bool is_alive_{};
 	bool silent_{};	 // while being restored
 	bool target_{};

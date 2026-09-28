@@ -7,9 +7,11 @@
 #include "ShootingManager/shooting_helper.h"
 #include "Strike/simple_weapon.h"
 #include "Strike/weapon.h"
+#include "TextureManager/texture_manager.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <optional>
 #include <utility>
 
 namespace wolfenstein {
@@ -93,7 +95,17 @@ void ResolveOneShot(Scene& scene, const Weapon& weapon, const Position2D& eye,
 					 aim.hit_point + back * ((*enemy)->GetWidth() / 2 + 0.05) /
 										 std::max(aim.distance, 0.01),
 					 height - kEyeHeight);
-	(*enemy)->DecreaseHealth(CalculateDamage(weapon, aim.distance));
+	// Where on the figure it struck: its head, body or legs, as shares of
+	// the frame's visible part
+	double scale = 1.0;
+	if (const auto crossing = Cross(scene, eye, pitch, **enemy)) {
+		const auto [top, bottom] =
+			scene.Textures().SolidRows((*enemy)->GetTextureId());
+		const double down = std::clamp(
+			(crossing->down - top) / std::max(bottom - top, 1e-6), 0.0, 1.0);
+		scale = (*enemy)->GetHitZones().Scale(down);
+	}
+	(*enemy)->DecreaseHealth(scale * CalculateDamage(weapon, aim.distance));
 	(*enemy)->SetAttacked(true);
 	// Aim only offers enemies with health left, so this is the killing shot,
 	// counted once
@@ -104,6 +116,33 @@ void ResolveOneShot(Scene& scene, const Weapon& weapon, const Position2D& eye,
 
 }  // namespace
 
+std::optional<Crossing> Cross(const Scene& scene, const Position2D& eye,
+							  double pitch, const Enemy& enemy) {
+	const vector2d to = enemy.GetPose() - eye.pose;
+	const double distance = to.Magnitude();
+	constexpr double kTouching = 1e-9;
+	if (distance < kTouching) {
+		return std::nullopt;
+	}
+	const vector2d towards = to / distance;
+	const vector2d facing{std::cos(eye.theta), std::sin(eye.theta)};
+	const double approach = facing.Dot(towards);
+	if (approach <= 0.0) {
+		return std::nullopt;  // behind the shooter
+	}
+	// How far the shot flies to the board, and where on it it passes
+	const double along = distance / approach;
+	const vector2d off_centre = facing * along - to;
+	const vector2d right{-towards.y, towards.x};  // the viewer's right
+	const double across = 0.5 + off_centre.Dot(right) / enemy.GetWidth();
+	const double down = 1.0 - (kEyeHeight + pitch * along) / enemy.GetHeight();
+	if (across < 0.0 || across >= 1.0 || down < 0.0 || down >= 1.0 ||
+		!scene.Textures().IsSolidAt(enemy.GetTextureId(), across, down)) {
+		return std::nullopt;
+	}
+	return Crossing{.across = across, .down = down, .distance = along};
+}
+
 Ray Aim(const Scene& scene, const Position2D& eye, double pitch) {
 	// How far a shot reaches: as far as the player can see (the view
 	// distance), beyond which the camera never offered an enemy as a target
@@ -112,15 +151,6 @@ Ray Aim(const Scene& scene, const Position2D& eye, double pitch) {
 	const double wall_distance = std::min(aim.distance, kReach);
 	aim.is_hit = false;	 // from here: whether an enemy is hit
 
-	const vector2d facing{std::cos(eye.theta), std::sin(eye.theta)};
-	// Signed angle between the line of fire and the direction to `point`
-	const auto angle_to = [&](const vector2d& point) {
-		const double angle =
-			std::atan2(point.y - eye.pose.y, point.x - eye.pose.x);
-		return CalculateAngleBetweenTwoVectorsSigned(
-			{std::cos(angle), std::sin(angle)}, facing);
-	};
-
 	double nearest = wall_distance;
 	for (const Enemy* enemy : scene.GetEnemies()) {
 		// A falling enemy (shot dead, its death still playing) no longer
@@ -128,35 +158,13 @@ Ray Aim(const Scene& scene, const Position2D& eye, double pitch) {
 		if (!enemy->IsAlive() || enemy->GetHealth() <= 0) {
 			continue;
 		}
-		const vector2d pose = enemy->GetPose();
-		const double distance = pose.Distance(eye.pose);
-		if (distance >= nearest) {
-			continue;
-		}
-		// Over its head or into the floor before it
-		const double height = kEyeHeight + pitch * distance;
-		if (height < 0.0 || height > enemy->GetHeight()) {
-			continue;
-		}
-		// The enemy's left and right edges, as seen from the eye: the line
-		// of fire hits it if it passes between them
-		const double half_width = enemy->GetWidth() / 2;
-		const double centre =
-			std::atan2(pose.y - eye.pose.y, pose.x - eye.pose.x);
-		const double left_edge = SubRadian(centre, ToRadians(90.0));
-		const double right_edge = SumRadian(centre, ToRadians(90.0));
-		const double left =
-			angle_to(pose + vector2d{half_width * std::cos(left_edge),
-									 half_width * std::sin(left_edge)});
-		const double right =
-			angle_to(pose + vector2d{half_width * std::cos(right_edge),
-									 half_width * std::sin(right_edge)});
-		if (left <= 0 && right >= 0) {
+		const double distance = enemy->GetPose().Distance(eye.pose);
+		if (distance < nearest && Cross(scene, eye, pitch, *enemy)) {
 			nearest = distance;
 			aim.is_hit = true;
 			aim.distance = distance;
 			aim.object_id = enemy->GetId();
-			aim.hit_point = pose;
+			aim.hit_point = enemy->GetPose();
 		}
 	}
 	return aim;

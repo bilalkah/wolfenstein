@@ -27,7 +27,7 @@ void IdleState::Update(const double& delta_time) {
 		context_->TransitionTo(EnemyStateType::Walk);
 		return;
 	}
-	if (context_->IsAttacked()) {
+	if (context_->TakeHit()) {
 		context_->TransitionTo(EnemyStateType::Pain);
 		return;
 	}
@@ -56,7 +56,7 @@ void WalkState::Update(const double& delta_time) {
 	const auto distance =
 		context_->GetScene().GetNavigation().EuclideanDistanceToPlayer(
 			bot_position);
-	if (context_->IsAttacked()) {
+	if (context_->TakeHit()) {
 		context_->GetScene().GetNavigation().ResetPath(context_->GetId());
 		context_->SetNextPose(bot_position.pose);
 		context_->TransitionTo(EnemyStateType::Pain);
@@ -102,7 +102,8 @@ void WalkState::OnContextSet() {
 
 void WalkState::OnEnter() {
 	EnemyState::OnEnter();
-	attack_counter_ = 0.0;
+	// Out of its pain it shoots back at once; else it waits its rate
+	attack_counter_ = context_->TakeRetaliation() ? attack_rate_ : 0.0;
 	is_attacked_ = false;
 }
 
@@ -117,7 +118,7 @@ void AttackState::Update(const double& delta_time) {
 	if (attack_counter_ == 0.0) {
 		context_->Shoot();
 	}
-	if (context_->IsAttacked()) {
+	if (context_->TakeHit()) {
 		context_->TransitionTo(EnemyStateType::Pain);
 		return;
 	}

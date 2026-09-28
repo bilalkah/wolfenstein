@@ -51,6 +51,10 @@ SDL_Color TopColour(SDL_Surface* image) {
 	return {average(0), average(1), average(2), average(3)};
 }
 
+// The largest image given a mask: a sprite's; walls and backgrounds are
+// bigger and are never shot through
+constexpr int kMaskPixels = 512 * 512;
+
 }  // namespace
 
 std::expected<TextureManifest, std::string> ParseTextureManifest(
@@ -96,6 +100,24 @@ TextureManager::Load(SDL_Renderer* renderer, const TextureManifest& manifest,
 								   IMG_GetError());
 		}
 		texture.top_colour = TopColour(image);
+		const auto id = static_cast<int>(manager->textures_.size());
+		if (image->w * image->h <= kMaskPixels) {
+			SDL_Surface* rgba =
+				SDL_ConvertSurfaceFormat(image, SDL_PIXELFORMAT_RGBA32, 0);
+			if (rgba != nullptr) {
+				constexpr std::uint8_t kHalf = 128;
+				const auto* pixels =
+					static_cast<const std::uint8_t*>(rgba->pixels);
+				manager->SetMask(
+					id, MaskOf(rgba->w, rgba->h, [&](int x, int y) {
+						return pixels[static_cast<std::ptrdiff_t>(y) *
+										  rgba->pitch +
+									  static_cast<std::ptrdiff_t>(x) * 4 + 3] >=
+							   kHalf;
+					}));
+				SDL_FreeSurface(rgba);
+			}
+		}
 		texture.texture = SDL_CreateTextureFromSurface(renderer, image);
 		SDL_FreeSurface(image);
 		if (texture.texture == nullptr) {
@@ -104,7 +126,6 @@ TextureManager::Load(SDL_Renderer* renderer, const TextureManifest& manifest,
 		}
 		SDL_QueryTexture(texture.texture, nullptr, nullptr, &texture.width,
 						 &texture.height);
-		const auto id = static_cast<int>(manager->textures_.size());
 		manager->textures_.push_back(texture);
 		loaded.emplace(path, id);
 		return id;
@@ -180,6 +201,75 @@ std::span<const std::uint16_t> TextureManager::FindTextureCollection(
 		return {};
 	}
 	return found->second;
+}
+
+template <typename Solid>
+TextureManager::Mask TextureManager::MaskOf(int width, int height,
+											Solid solid) {
+	Mask mask{.width = width,
+			  .height = height,
+			  .top = height,
+			  .bottom = -1,
+			  .bits = {}};
+	const auto pixels =
+		static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
+	mask.bits.resize((pixels + 63) / 64);
+	for (int y = 0; y < height; ++y) {
+		for (int x = 0; x < width; ++x) {
+			if (!solid(x, y)) {
+				continue;
+			}
+			const auto index =
+				static_cast<std::size_t>(y) * static_cast<std::size_t>(width) +
+				static_cast<std::size_t>(x);
+			mask.bits[index / 64] |= std::uint64_t{1} << (index % 64);
+			mask.top = std::min(mask.top, y);
+			mask.bottom = std::max(mask.bottom, y);
+		}
+	}
+	return mask;
+}
+
+void TextureManager::SetMask(int id, Mask mask) {
+	const auto index = static_cast<std::size_t>(id);
+	if (masks_.size() <= index) {
+		masks_.resize(index + 1);
+	}
+	masks_[index] = std::move(mask);
+}
+
+bool TextureManager::IsSolidAt(int texture_id, double across,
+							   double down) const {
+	const auto index = static_cast<std::size_t>(texture_id);
+	if (index >= masks_.size() || masks_[index].bits.empty()) {
+		return true;
+	}
+	const Mask& mask = masks_[index];
+	const int x =
+		std::clamp(static_cast<int>(across * mask.width), 0, mask.width - 1);
+	const int y =
+		std::clamp(static_cast<int>(down * mask.height), 0, mask.height - 1);
+	return mask.At(x, y);
+}
+
+std::pair<double, double> TextureManager::SolidRows(int texture_id) const {
+	const auto index = static_cast<std::size_t>(texture_id);
+	if (index >= masks_.size() || masks_[index].bits.empty() ||
+		masks_[index].bottom < masks_[index].top) {
+		return {0.0, 1.0};
+	}
+	const Mask& mask = masks_[index];
+	return {static_cast<double>(mask.top) / mask.height,
+			static_cast<double>(mask.bottom + 1) / mask.height};
+}
+
+void TextureManager::DefineMask(int id,
+								std::span<const std::string_view> rows) {
+	const int width = rows.empty() ? 0 : static_cast<int>(rows[0].size());
+	SetMask(id, MaskOf(width, static_cast<int>(rows.size()), [&](int x, int y) {
+				return rows[static_cast<std::size_t>(y)]
+						   [static_cast<std::size_t>(x)] == '#';
+			}));
 }
 
 void TextureManager::DefineTexture(std::string name, int id) {

@@ -62,6 +62,9 @@ TEST(LevelData, ParsesTheGameConfig) {
 	EXPECT_EQ(mp5->pellets, 1u);
 	// Each enemy type has its own health
 	EXPECT_DOUBLE_EQ(config->enemies.at("soldier").health, 60.0);
+	// Where a shot lands on a figure: the head hurts twice as much
+	EXPECT_DOUBLE_EQ(config->enemies.at("soldier").hit_zones.head_damage, 2.0);
+	EXPECT_DOUBLE_EQ(config->enemies.at("soldier").hit_zones.leg_damage, 0.6);
 	ASSERT_TRUE(config->pickups.contains("medkit"));
 	EXPECT_DOUBLE_EQ(config->pickups.at("medkit").effect.health, 25.0);
 	EXPECT_EQ(config->pickups.at("medkit").effect.ammo_boxes, 0u);

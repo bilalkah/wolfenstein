@@ -12,49 +12,52 @@
 
 namespace wolfenstein::testing {
 
-// Textures for tests: no renderer, so no image is loaded, but every clip the
-// enemies and weapons look up is defined, over placeholder ids
+// Defines on `textures` every clip the enemies and weapons look up, over
+// placeholder ids: tests have no renderer, so load no image
+inline void DefineTestTextures(TextureManager& textures) {
+	constexpr std::uint16_t kFramesPerClip = 3;
+	std::uint16_t next = 0;
+	const auto define = [&](const std::string& owner, const char* clip) {
+		textures.DefineCollection(owner + "_" + clip, next,
+								  next + kFramesPerClip);
+		next += kFramesPerClip;
+	};
+	for (const char* enemy : {"soldier", "caco_demon", "cyber_demon"}) {
+		for (const char* clip : {"idle", "walk", "attack", "pain", "death"}) {
+			define(enemy, clip);
+		}
+	}
+	for (const char* weapon : {"blade", "pistol", "mp5", "shotgun"}) {
+		for (const char* clip : {"loaded", "outofammo", "reload"}) {
+			define(weapon, clip);
+		}
+	}
+	// A raise clip for the shotgun (a weapon may have one)
+	define("shotgun", "raise");
+	// The levels' animated lights, and the puffs where shots land
+	for (const char* light :
+		 {"green_light", "red_light", "blood_puff", "dust_puff"}) {
+		textures.DefineCollection(light, next, next + kFramesPerClip);
+		next += kFramesPerClip;
+	}
+	// The pickups' sprites
+	for (const char* pickup : {"medkit", "large_medkit", "ammo_box",
+							   "mp5_pickup", "shotgun_pickup"}) {
+		textures.DefineTexture(pickup, next++);
+	}
+	for (const char* name : {"door", "door_gold", "door_silver", "gold_key",
+							 "silver_key", "secret_mark", "bullet_mark"}) {
+		textures.DefineTexture(name, next++);
+	}
+}
+
+// The textures most tests share
 inline const TextureManager& TestTextures() {
-	static TextureManager textures;
-	static const bool defined = [] {
-		constexpr std::uint16_t kFramesPerClip = 3;
-		std::uint16_t next = 0;
-		const auto define = [&](const std::string& owner, const char* clip) {
-			textures.DefineCollection(owner + "_" + clip, next,
-									  next + kFramesPerClip);
-			next += kFramesPerClip;
-		};
-		for (const char* enemy : {"soldier", "caco_demon", "cyber_demon"}) {
-			for (const char* clip :
-				 {"idle", "walk", "attack", "pain", "death"}) {
-				define(enemy, clip);
-			}
-		}
-		for (const char* weapon : {"blade", "pistol", "mp5", "shotgun"}) {
-			for (const char* clip : {"loaded", "outofammo", "reload"}) {
-				define(weapon, clip);
-			}
-		}
-		// A raise clip for the shotgun (a weapon may have one)
-		define("shotgun", "raise");
-		// The levels' animated lights, and the puffs where shots land
-		for (const char* light :
-			 {"green_light", "red_light", "blood_puff", "dust_puff"}) {
-			textures.DefineCollection(light, next, next + kFramesPerClip);
-			next += kFramesPerClip;
-		}
-		// The pickups' sprites
-		for (const char* pickup : {"medkit", "large_medkit", "ammo_box",
-								   "mp5_pickup", "shotgun_pickup"}) {
-			textures.DefineTexture(pickup, next++);
-		}
-		for (const char* name : {"door", "door_gold", "door_silver", "gold_key",
-								 "silver_key", "secret_mark", "bullet_mark"}) {
-			textures.DefineTexture(name, next++);
-		}
-		return true;
+	static const TextureManager& textures = [] -> TextureManager& {
+		static TextureManager defined;
+		DefineTestTextures(defined);
+		return defined;
 	}();
-	(void)defined;
 	return textures;
 }
 

@@ -97,9 +97,16 @@
             "falloff": "exponential",
             "kick": 0.03,
             "pellets": 7,
-            "spread": 8
+            "spread": 8,
+            "raise_seconds": 0.7
         }
     ],
+    "hit_zones": {
+        "head_share": 0.2,
+        "head_damage": 2.0,
+        "leg_share": 0.45,
+        "leg_damage": 0.6
+    },
     "config_enemy": {
         "soldier": {
             "t_speed": 0.8,

@@ -104,6 +104,16 @@ class TextureManager
 	// The frames of a clip art may leave out ("mp5_raise"); empty if absent
 	std::span<const std::uint16_t> FindTextureCollection(
 		std::string_view collection_name) const;
+	// Whether the texture shows at (across, down), each 0 to 1 from its
+	// top left: a pixel at least half opaque. Shots meet only those. True
+	// for a texture without a mask (large images, test placeholders).
+	bool IsSolidAt(int texture_id, double across, double down) const;
+	// The rows its visible part spans, as shares of its height from the
+	// top: [0, 1] without a mask
+	std::pair<double, double> SolidRows(int texture_id) const;
+	// Gives the texture `id` a mask, one string a row, '#' where it shows
+	// (tests, which load no images)
+	void DefineMask(int id, std::span<const std::string_view> rows);
 	// Names the textures [begin, end) as a clip: tests without a renderer
 	// define placeholders
 	void DefineCollection(std::string key, uint16_t begin, uint16_t end);
@@ -127,6 +137,27 @@ class TextureManager
 	StringMap<int> named_;
 	std::vector<int> walls_;
 	StringMap<std::vector<uint16_t>> texture_collections_;
+	// Which pixels show, a bit each, row by row, for textures small enough
+	// to be sprites (walls and backgrounds have none)
+	struct Mask
+	{
+		int width = 0;
+		int height = 0;
+		int top = 0;	 // the first row that shows anything
+		int bottom = 0;	 // the last
+		std::vector<std::uint64_t> bits;
+		bool At(int x, int y) const {
+			const auto index =
+				static_cast<std::size_t>(y) * static_cast<std::size_t>(width) +
+				static_cast<std::size_t>(x);
+			return ((bits[index / 64] >> (index % 64)) & 1U) != 0;
+		}
+	};
+	std::vector<Mask> masks_;
+	// A width x height mask where `solid(x, y)` holds
+	template <typename Solid>
+	static Mask MaskOf(int width, int height, Solid solid);
+	void SetMask(int id, Mask mask);
 };
 
 }  // namespace wolfenstein

@@ -50,6 +50,8 @@ struct WeaponConfig
 	// `spread` radians; each does the damage above
 	std::size_t pellets = 1;
 	double spread{};
+	// How long taking it in hand takes, the gun coming up
+	double raise_seconds = 0.4;
 };
 
 // Pinned (not copyable or movable): its states point back to it
@@ -67,6 +69,7 @@ class Weapon
 	double GetKick() const { return config_.kick; }
 	std::size_t GetPellets() const { return config_.pellets; }
 	double GetSpread() const { return config_.spread; }
+	double GetRaiseSeconds() const { return config_.raise_seconds; }
 	// Pulls the trigger; true if a shot was fired (the caller resolves it)
 	bool Attack();
 	void Update(double delta_time);

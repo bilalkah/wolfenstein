@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Cuts an animated GIF of a weapon in the player's hand into the game's
-clips: the frames each clip plays, as PNGs, with the GIF's background colour
-(its top-left pixel) made transparent, and textures.json pointed at them.
+clips: the frames the clips play, each stored once as a PNG with the GIF's
+background colour (its top-left pixel) made transparent, and textures.json
+listing which of them each clip plays.
 
 Needs Pillow (pip install pillow).
 
@@ -42,21 +43,28 @@ def main():
     background = images[0].getpixel((0, 0))
     manifest_path = ASSETS / "textures.json"
     manifest = json.loads(manifest_path.read_text())
+    # Each GIF frame a clip plays is stored once, in the order the clips
+    # first show them (see scripts/pack_frames.py)
+    folder = ASSETS / "sprites" / "weapon" / args.weapon
+    for old in folder.rglob("*.png"):
+        old.unlink()
+    (folder / "frames").mkdir(parents=True, exist_ok=True)
+    stored = {}  # a frame's pixels -> its file: frames alike are one file
     for clip in ("loaded", "outofammo", "reload"):
-        folder = ASSETS / "sprites" / "weapon" / args.weapon / clip
-        folder.mkdir(parents=True, exist_ok=True)
-        for old in folder.glob("*.png"):
-            old.unlink()
         paths = []
-        for index, frame in enumerate(frames_of(getattr(args, clip))):
+        for frame in frames_of(getattr(args, clip)):
             image = images[frame].copy()
             pixels = image.load()
             for y in range(image.height):
                 for x in range(image.width):
                     if pixels[x, y] == background:
                         pixels[x, y] = (0, 0, 0, 0)
-            image.save(folder / f"{index}.png", optimize=True)
-            paths.append(f"sprites/weapon/{args.weapon}/{clip}/{index}.png")
+            key = image.tobytes()
+            if key not in stored:
+                name = f"sprites/weapon/{args.weapon}/frames/{len(stored)}.png"
+                image.save(ASSETS / name, optimize=True)
+                stored[key] = name
+            paths.append(stored[key])
         manifest["clips"][f"{args.weapon}_{clip}"] = paths
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
 
