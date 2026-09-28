@@ -80,6 +80,8 @@ void Enemy::PlaySound(SoundEffect effect) {
 void Enemy::Shoot() {
 	ResolveEnemyShot(scene_.GetPlayer(), weapon_,
 					 scene_.GetDifficulty().enemy_damage);
+	// The others within earshot come to the fight
+	scene_.MakeNoise(position_.pose, weapon_.GetNoiseRange());
 }
 
 void Enemy::Update(double delta_time) {

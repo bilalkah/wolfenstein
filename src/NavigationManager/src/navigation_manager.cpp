@@ -20,6 +20,7 @@ NavigationManager::NavigationManager(const Scene& scene,
 	: scene_(scene),
 	  // Weight 0.6: f = 0.4 g + 0.6 h, the tuning the game has always used
 	  path_finder_(0.6, memory),
+	  solids_(memory),
 	  routes_(memory),
 	  obstacles_(memory),
 	  cells_(memory) {}
@@ -32,35 +33,54 @@ std::size_t NavigationManager::MemoryFor(int map_rows, int map_cols,
 	const auto cells =
 		static_cast<std::size_t>(height) * static_cast<std::size_t>(width);
 	constexpr std::size_t kPadding = alignof(std::max_align_t);
-	return GridPathFinder::MemoryFor(height, width) + objects * sizeof(Route) +
+	return GridPathFinder::MemoryFor(height, width) +
+		   objects * (sizeof(Route) + sizeof(Solid)) +
 		   2 * enemies * sizeof(GridCell) + cells * sizeof(GridCell) +
-		   3 * kPadding;
+		   4 * kPadding;
 }
 
 void NavigationManager::Build() {
 	// Each map cell splits into kCellsPerSide^2 pathfinding cells, built
 	// straight into the path finder's grid. Walls block a route, and locked
 	// doors, which enemies cannot open (they open the others as they reach
-	// them), and what stands on the floor for good (lamps).
+	// them).
 	const Map& map = scene_.GetMap();
-	const auto objects = scene_.GetObjects();
-	const auto stands_in = [&](int x, int y) {
-		return std::ranges::any_of(objects, [&](const IGameObject* object) {
-			if (object->GetObjectType() != ObjectType::DYNAMIC_OBJECT ||
-				object->GetCollisionRadius() <= 0.0) {
-				return false;
-			}
-			const GridCell cell = ToCell(object->GetPose());
-			return cell.x == x && cell.y == y;
-		});
-	};
 	path_finder_.SetGrid(
 		map.GetSizeX() * kCellsPerSide, map.GetSizeY() * kCellsPerSide,
 		[&](int x, int y) {
 			return map.IsWall(x / kCellsPerSide, y / kCellsPerSide) ||
-				   map.IsLockedDoor(x / kCellsPerSide, y / kCellsPerSide) ||
-				   stands_in(x, y);
+				   map.IsLockedDoor(x / kCellsPerSide, y / kCellsPerSide);
 		});
+
+	// What stands on the floor for good (lamps) crowds the cells round it:
+	// the cells where the widest enemy's centre could not be. A lamp stands
+	// where four cells meet, so it crowds all four, and a route through one
+	// of them would aim the enemy at a point it cannot reach.
+	double clearance = 0.0;
+	for (const Enemy* enemy : scene_.GetEnemies()) {
+		clearance = std::max(clearance, enemy->GetWidth() / 2);
+	}
+	solids_.clear();
+	solids_.reserve(scene_.GetObjects().size());
+	for (const IGameObject* object : scene_.GetObjects()) {
+		if (object->GetObjectType() != ObjectType::DYNAMIC_OBJECT ||
+			object->GetCollisionRadius() <= 0.0) {
+			continue;
+		}
+		const Solid solid{.centre = object->GetPose(),
+						  .radius = object->GetCollisionRadius()};
+		solids_.push_back(solid);
+		const double reach = solid.radius + clearance;
+		const GridCell low = ToCell(solid.centre - vector2d{reach, reach});
+		const GridCell high = ToCell(solid.centre + vector2d{reach, reach});
+		for (int x = low.x; x <= high.x; ++x) {
+			for (int y = low.y; y <= high.y; ++y) {
+				if (CellCentre({x, y}).Distance(solid.centre) < reach) {
+					path_finder_.SetExtraCost({x, y}, kSqueezeCost);
+				}
+			}
+		}
+	}
 
 	// A path visits each free cell at most once, so the scratch path never
 	// grows during play
@@ -78,10 +98,12 @@ vector2d NavigationManager::CellCentre(GridCell cell) {
 	return vector2d{(cell.x + 0.5) * kCellSize, (cell.y + 0.5) * kCellSize};
 }
 
-void NavigationManager::CollectDynamicObstacles() {
+void NavigationManager::CollectDynamicObstacles(ObjectId self) {
 	obstacles_.clear();
 	for (const auto& enemy : scene_.GetEnemies()) {
-		if (!enemy->IsAlive()) {
+		// Its own next cell would stand in its way, turning it aside
+		// from its own route every other query
+		if (!enemy->IsAlive() || enemy->GetId() == self) {
 			continue;
 		}
 		obstacles_.push_back(ToCell(enemy->GetPose()));
@@ -107,10 +129,15 @@ vector2d NavigationManager::FindPath(Position2D start, Position2D end,
 		return stay();
 	}
 
-	CollectDynamicObstacles();
-	if (!path_finder_.FindPath(ToCell(start.pose), ToCell(end.pose), obstacles_,
-							   cells_) ||
-		cells_.size() < 2) {
+	// Round the other enemies if it can; if they fill the way (a doorway),
+	// through them, as enemies pass each other
+	CollectDynamicObstacles(id);
+	const GridCell from = ToCell(start.pose);
+	const GridCell to = ToCell(end.pose);
+	const bool found =
+		path_finder_.FindPath(from, to, obstacles_, cells_) ||
+		(!obstacles_.empty() && path_finder_.FindPath(from, to, {}, cells_));
+	if (!found || cells_.size() < 2) {
 		return stay();
 	}
 	// Skip the start cell: the enemy is already there
@@ -118,7 +145,76 @@ vector2d NavigationManager::FindPath(Position2D start, Position2D end,
 	route.size =
 		static_cast<std::uint32_t>(std::min(path.size(), Route::kCapacity));
 	std::ranges::copy(path.first(route.size), route.cells.begin());
-	return CellCentre(path[std::min<std::size_t>(1, path.size() - 1)]);
+	const auto objects = scene_.GetObjects();
+	const double radius = ToIndex(id) < objects.size()
+							  ? objects[ToIndex(id)]->GetCollisionRadius()
+							  : 0.0;
+	return SteerRound(
+		start.pose, CellCentre(path[std::min<std::size_t>(1, path.size() - 1)]),
+		radius);
+}
+
+vector2d NavigationManager::SteerRound(const vector2d& from, vector2d target,
+									   double radius) const {
+	// Heading for the edge of a solid's reach would graze it: a little
+	// past it
+	constexpr double kMargin = 0.02;
+	const auto reach_of = [&](const Solid& solid) {
+		return solid.radius + radius + kMargin;
+	};
+	for (const Solid& solid : solids_) {
+		const vector2d out = target - solid.centre;
+		const double distance = std::hypot(out.x, out.y);
+		if (distance < reach_of(solid) && distance > 1e-9) {
+			target = solid.centre + out * (reach_of(solid) / distance);
+		}
+	}
+
+	// The nearest solid the straight way passes within reach of
+	const vector2d way = target - from;
+	const double length = std::hypot(way.x, way.y);
+	if (length < 1e-9) {
+		return target;
+	}
+	const Solid* in_way = nullptr;
+	double nearest = length;
+	for (const Solid& solid : solids_) {
+		const vector2d to_centre = solid.centre - from;
+		// How far along the way it comes closest
+		const double along =
+			(to_centre.x * way.x + to_centre.y * way.y) / length;
+		const vector2d closest =
+			from + way * (std::clamp(along, 0.0, length) / length);
+		if (along > 0.0 && along < nearest &&
+			closest.Distance(solid.centre) < reach_of(solid)) {
+			in_way = &solid;
+			nearest = along;
+		}
+	}
+	if (in_way == nullptr) {
+		return target;
+	}
+
+	// Round it, turning from its centre towards the target's side: to
+	// where the way from here touches its reach, or along its edge if
+	// already there
+	const vector2d to_centre = in_way->centre - from;
+	const double distance = std::hypot(to_centre.x, to_centre.y);
+	if (distance < 1e-9) {
+		return target;
+	}
+	const double reach = reach_of(*in_way);
+	const double side =
+		to_centre.x * way.y - to_centre.y * way.x < 0.0 ? -1.0 : 1.0;
+	const double turn = side * std::asin(std::min(1.0, reach / distance));
+	const vector2d centre_way = to_centre * (1.0 / distance);
+	const vector2d round{
+		centre_way.x * std::cos(turn) - centre_way.y * std::sin(turn),
+		centre_way.x * std::sin(turn) + centre_way.y * std::cos(turn)};
+	const double ahead =
+		std::max(std::sqrt(std::max(distance * distance - reach * reach, 0.0)),
+				 kCellSize);
+	return from + round * ahead;
 }
 
 vector2d NavigationManager::FindPathToPlayer(Position2D start, ObjectId id) {

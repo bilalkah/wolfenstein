@@ -428,28 +428,41 @@ MenuAction Menu::SettingsScreen() {
 			  ui::color::kText, ui::Align::Center);
 
 	auto& settings = Settings::Get();
-	MenuAction action;
 	constexpr int kRowWidth = 760;
-	constexpr int kRowHeight = 76;
+	constexpr int kRowHeight = 64;
+	constexpr int kRowGap = 12;
 	const int left = (width - kRowWidth) / 2;
-	int y = 200;
-
-	if (ui_->Slider("Mouse sensitivity",
-					ui::FixedText<>("{:.2f}x", settings.mouse_sensitivity),
-					{left, y, kRowWidth, kRowHeight},
-					settings.mouse_sensitivity, Settings::kMinMouseSensitivity,
-					Settings::kMaxMouseSensitivity, 0.05)) {
-		action.type = MenuAction::Type::SettingsChanged;
-	}
-	y += kRowHeight + kButtonGap;
-	if (ui_->Slider("Volume", ui::FixedText<>("{:.0f}%", settings.volume * 100),
-					{left, y, kRowWidth, kRowHeight}, settings.volume, 0.0, 1.0,
-					0.05)) {
-		action.type = MenuAction::Type::SettingsChanged;
-	}
-	y += kRowHeight + kButtonGap;
-	if (ui_->Toggle("Show FPS", {left, y, kRowWidth, kRowHeight},
-					settings.show_fps)) {
+	int y = 150;
+	// Each row below the last
+	const auto next_row = [&] {
+		const SDL_Rect rect{left, y, kRowWidth, kRowHeight};
+		y += kRowHeight + kRowGap;
+		return rect;
+	};
+	const auto percent = [](double share) {
+		return ui::FixedText<>("{:.0f}%", share * 100);
+	};
+	// Every row is drawn, and any change applied at once
+	bool changed = false;
+	changed |= ui_->Slider(
+		"Mouse sensitivity",
+		ui::FixedText<>("{:.2f}x", settings.mouse_sensitivity), next_row(),
+		settings.mouse_sensitivity, Settings::kMinMouseSensitivity,
+		Settings::kMaxMouseSensitivity, 0.05);
+	changed |=
+		ui_->Toggle("Invert mouse Y", next_row(), settings.invert_mouse_y);
+	changed |= ui_->Slider(
+		"Field of view", ui::FixedText<>("{:.0f}\u00b0", settings.fov),
+		next_row(), settings.fov, Settings::kMinFov, Settings::kMaxFov, 5.0);
+	changed |= ui_->Slider("Volume", percent(settings.volume), next_row(),
+						   settings.volume, 0.0, 1.0, 0.05);
+	changed |= ui_->Slider("Music", percent(settings.music_volume), next_row(),
+						   settings.music_volume, 0.0, 1.0, 0.05);
+	changed |= ui_->Slider("Effects", percent(settings.effects_volume),
+						   next_row(), settings.effects_volume, 0.0, 1.0, 0.05);
+	changed |= ui_->Toggle("Show FPS", next_row(), settings.show_fps);
+	MenuAction action;
+	if (changed) {
 		action.type = MenuAction::Type::SettingsChanged;
 	}
 

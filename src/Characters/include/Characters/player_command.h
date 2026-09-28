@@ -38,6 +38,30 @@ struct PlayerCommand
 						   const PlayerCommand&) = default;
 };
 
+// The input of a frame drawn after `earlier` frames and before the next
+// tick, gathered with theirs for that tick: frames come faster than ticks
+// (a 320 Hz screen draws five a tick), and a tick that took only the last
+// frame's input lost the mouse's motion in the others, turning slower the
+// faster the screen. Mouse motion adds up; a button pressed in any of the
+// frames counts, so a click shorter than a tick still fires; movement is
+// as it last was; a weapon chosen or stepped to waits for the tick.
+inline PlayerCommand Gather(const PlayerCommand& earlier,
+							const PlayerCommand& later) {
+	PlayerCommand gathered = later;
+	gathered.look += earlier.look;
+	gathered.look_up += earlier.look_up;
+	gathered.fire = earlier.fire || later.fire;
+	gathered.reload = earlier.reload || later.reload;
+	gathered.use = earlier.use || later.use;
+	if (later.weapon < 0) {
+		gathered.weapon = earlier.weapon;
+	}
+	if (later.cycle == 0) {
+		gathered.cycle = earlier.cycle;
+	}
+	return gathered;
+}
+
 }  // namespace wolfenstein
 
 #endif	// CHARACTERS_INCLUDE_CHARACTERS_PLAYER_COMMAND_H_

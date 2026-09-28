@@ -167,24 +167,6 @@ TEST_F(CollisionTest, EnemiesPassEachOtherButNotLamps) {
 				1e-9);
 }
 
-// The route to the player goes round a lamp in the way
-TEST_F(CollisionTest, EnemiesRouteAroundLamps) {
-	ASSERT_TRUE(scene_.AddEnemy(testing::Enemy("soldier"),
-								Position2D({3.5, 5.5}, -kFacingDown)));
-	AddLamp({3.5, 3.5});
-	scene_.FinishLoading();
-	const Enemy& enemy = *scene_.GetEnemies().front();
-	(void)scene_.GetNavigation().FindPathToPlayer(enemy.GetPosition(),
-												  enemy.GetId());
-	const auto path = scene_.GetNavigation().GetPath(enemy.GetId());
-	ASSERT_FALSE(path.empty());
-	const auto lamp_cell = static_cast<int>(3.5 / NavigationManager::kCellSize);
-	const GridCell lamp{lamp_cell, lamp_cell};
-	EXPECT_TRUE(std::ranges::none_of(path, [&](const GridCell& cell) {
-		return cell.x == lamp.x && cell.y == lamp.y;
-	}));
-}
-
 // Coming at a wall's corner at an angle, the body stops at the corner as it
 // would at the wall's face: no part of it enters the wall
 TEST(WallCollision, CornersAreSolidToo) {

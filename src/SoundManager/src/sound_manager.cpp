@@ -35,7 +35,14 @@ std::expected<std::unique_ptr<SoundManager>, std::string> SoundManager::Open(
 		  std::tuple{SoundEffect::PistolShot, "pistol.wav", 64},
 		  std::tuple{SoundEffect::SmgShot, "mp5.wav", 64},
 		  std::tuple{SoundEffect::DryFire, "dry_fire.wav", 64},
-		  std::tuple{SoundEffect::PlayerFall, "player_fall.wav", 64}}) {
+		  std::tuple{SoundEffect::PlayerFall, "player_fall.wav", 64},
+		  std::tuple{SoundEffect::DoorMove, "door.wav", 64},
+		  std::tuple{SoundEffect::EnemyAlert, "enemy_alert.wav", 64},
+		  std::tuple{SoundEffect::StepLeft, "step_left.wav", 64},
+		  std::tuple{SoundEffect::StepRight, "step_right.wav", 64},
+		  std::tuple{SoundEffect::AmmoPickup, "ammo_pickup.wav", 64},
+		  std::tuple{SoundEffect::KeyPickup, "key_pickup.wav", 64},
+		  std::tuple{SoundEffect::WeaponPickup, "weapon_pickup.wav", 64}}) {
 		if (auto loaded = sound->LoadSound(effect, sound_dir + file, volume);
 			!loaded) {
 			return std::unexpected(loaded.error());
@@ -68,20 +75,29 @@ SoundManager::~SoundManager() {
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
+MixerLevels ToMixerLevels(double master, double music, double effects) {
+	constexpr int kMusicLevel = 64;	 // the theme's level at full volume
+	const double share = std::clamp(master, 0.0, 1.0);
+	return {.music = static_cast<int>(kMusicLevel * share *
+									  std::clamp(music, 0.0, 1.0)),
+			.effects = static_cast<int>(MIX_MAX_VOLUME * share *
+										std::clamp(effects, 0.0, 1.0))};
+}
+
 // Changes the audio device, not the manager's members, but is not const:
 // it changes what the manager plays
 // NOLINTNEXTLINE(readability-make-member-function-const)
-void SoundManager::SetMasterVolume(double volume) {
+void SoundManager::SetVolume(double master, double music, double effects) {
 	if (!open_) {
 		return;
 	}
-	constexpr int kMusicVolume = 64;  // the theme's level at full volume
-	const double clamped = std::clamp(volume, 0.0, 1.0);
-	Mix_VolumeMusic(static_cast<int>(kMusicVolume * clamped));
+	const MixerLevels levels = ToMixerLevels(master, music, effects);
+	Mix_VolumeMusic(levels.music);
+	// The master volume scales the effects' channels, not the music
 #if SDL_MIXER_VERSION_ATLEAST(2, 6, 0)
-	Mix_MasterVolume(static_cast<int>(MIX_MAX_VOLUME * clamped));
+	Mix_MasterVolume(levels.effects);
 #else
-	Mix_Volume(-1, static_cast<int>(MIX_MAX_VOLUME * clamped));
+	Mix_Volume(-1, levels.effects);
 #endif
 }
 
@@ -92,6 +108,7 @@ SoundChannel SoundManager::AllocateChannel() {
 }
 
 void SoundManager::PlayEffect(SoundChannel channel, SoundEffect effect) {
+	++play_counts_[std::to_underlying(effect)];
 	if (!open_) {
 		return;
 	}

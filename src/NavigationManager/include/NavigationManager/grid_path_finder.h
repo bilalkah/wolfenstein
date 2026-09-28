@@ -28,9 +28,10 @@ struct GridCell
 	friend bool operator==(const GridCell&, const GridCell&) = default;
 };
 
-// Weighted A* on a 4-connected grid with unit step cost and a Euclidean
-// heuristic; f = (1 - w) * g + w * h, so a weight above 0.5 favours the
-// heuristic (fewer expansions, not always the shortest path).
+// Weighted A* on a 4-connected grid with a Euclidean heuristic. A step costs
+// 1, plus whatever extra the cell it enters is given; f = (1 - w) * g + w * h,
+// so a weight above 0.5 favours the heuristic (fewer expansions, not always
+// the shortest path).
 //
 // Queries do not allocate once the grid is set: every per-cell array is sized
 // by SetGrid and reused, and a generation counter marks which entries belong
@@ -62,6 +63,9 @@ class GridPathFinder
 			}
 		}
 	}
+	// Makes a step into `cell` cost 1 + `extra`: a way to take only when
+	// the others are much longer. SetGrid resets every cell to no extra.
+	void SetExtraCost(GridCell cell, std::uint8_t extra);
 	// Cells that are not walls: no path is longer than this
 	std::size_t FreeCells() const;
 
@@ -95,6 +99,7 @@ class GridPathFinder
 	int height_ = 0;
 	int width_ = 0;
 	std::pmr::vector<std::uint8_t> walls_;
+	std::pmr::vector<std::uint8_t> extra_cost_;
 	// A cell's entry is valid for the current query only when its stamp
 	// equals generation_
 	std::pmr::vector<std::uint32_t> blocked_stamp_;

@@ -6,6 +6,7 @@
 #include "ShootingManager/shooting_manager.h"
 #include "test_map.h"
 #include "test_services.h"
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <gtest/gtest.h>
@@ -145,6 +146,34 @@ TEST_F(ShapedTargetTest, TheHeadHurtsMostAndTheLegsLeast) {
 	EXPECT_NEAR(DamageAt(0.45, 0.15), body * zones.head_damage, 1e-6);
 	EXPECT_NEAR(DamageAt(0.3, 0.85), body * zones.leg_damage, 1e-6);
 	EXPECT_DOUBLE_EQ(DamageAt(0.5, 0.75), 0.0) << "between the legs";
+}
+
+// A shot says what it hit, and the head bleeds a bigger burst
+TEST_F(ShapedTargetTest, AShotSaysWhereItHit) {
+	const auto shoot = [&](double across, double down) {
+		const auto [eye, pitch] = ShotAt(across, down);
+		return ResolvePlayerShot(scene_, player_.GetWeapon(), eye, pitch);
+	};
+	const auto biggest_puff = [&] {
+		double size = 0.0;
+		for (const IGameObject* object : scene_.GetObjects()) {
+			if (object->GetObjectType() == ObjectType::EFFECT &&
+				object->IsVisible()) {
+				size = std::max(size, object->GetHeight());
+			}
+		}
+		return size;
+	};
+	const ShotResult body = shoot(0.3, 0.45);
+	EXPECT_TRUE(body.hit);
+	EXPECT_FALSE(body.head);
+	const double body_puff = biggest_puff();
+	const ShotResult head = shoot(0.45, 0.15);
+	EXPECT_TRUE(head.hit);
+	EXPECT_TRUE(head.head);
+	EXPECT_GT(biggest_puff(), body_puff) << "a bigger burst";
+	const ShotResult miss = shoot(0.5, 0.75);
+	EXPECT_FALSE(miss.hit) << "between the legs";
 }
 
 TEST_F(AimTest, MissesWhenAimingAside) {

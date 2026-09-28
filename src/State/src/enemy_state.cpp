@@ -26,6 +26,7 @@ void IdleState::Update(const double& delta_time) {
 		(context_->IsPlayerInShootingRange() &&
 		 context_->GetScene().GetNavigation().EuclideanDistanceToPlayer(
 			 context_->GetPosition()) <= range_ + 2.0)) {
+		context_->PlaySound(SoundEffect::EnemyAlert);
 		context_->TransitionTo(EnemyStateType::Walk);
 		return;
 	}

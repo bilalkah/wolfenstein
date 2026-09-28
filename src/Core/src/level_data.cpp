@@ -75,6 +75,7 @@ WeaponConfig ToWeapon(const json& weapon) {
 			.pellets = weapon.value("pellets", std::size_t{1}),
 			.spread = weapon.value("spread", 0.0) * std::numbers::pi / 180.0,
 			.raise_seconds = weapon.value("raise_seconds", 0.4),
+			.lower_seconds = weapon.value("lower_seconds", 0.25),
 			.shot_sound = weapon.contains("sound")
 							  ? ToShotSound(weapon.at("sound"))
 							  : SoundEffect::Shotgun,
@@ -161,7 +162,8 @@ EnemyConfig ToEnemy(const std::string& type, const json& enemy,
 					   .attack_damage = ToDamage(weapon.at("damage")),
 					   .attack_range = weapon.at("range").get<double>(),
 					   .attack_speed = weapon.at("attack_speed").get<double>(),
-					   .attack_rate = weapon.at("attack_rate").get<double>()}};
+					   .attack_rate = weapon.at("attack_rate").get<double>(),
+					   .noise_range = weapon.value("noise_range", 0)}};
 }
 
 // Parses input and converts it with convert, turning every JSON error

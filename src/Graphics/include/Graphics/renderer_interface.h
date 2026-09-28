@@ -25,14 +25,14 @@ namespace wolfenstein {
 struct RenderConfig
 {
 	RenderConfig(int width, int height, int padding, int scale, int fps,
-				 double view_distance, double fov, bool fullscreen)
+				 double view_distance, double base_fov, bool fullscreen)
 		: width(width),
 		  height(height),
 		  padding(padding),
 		  scale(scale),
 		  fps(fps),
 		  view_distance(view_distance),
-		  fov(fov),
+		  base_fov(base_fov),
 		  fullscreen(fullscreen) {}
 	int width;
 	int height;
@@ -40,9 +40,19 @@ struct RenderConfig
 	int scale;
 	int fps;
 	double view_distance;
-	double fov;
+	// The view the picture is scaled for, in radians: seen across it, a wall
+	// one unit away fills the screen's height. The player can widen the
+	// view (the camera's), which shows everything smaller.
+	double base_fov;
 	bool fullscreen;
 };
+
+// Screen pixels something one unit tall spans one unit away, in a view
+// `fov` radians across: a wider view shrinks it up and down as it does
+// across
+inline double PixelsPerUnit(const RenderConfig& config, double fov) {
+	return config.height * config.base_fov / fov;
+}
 
 class RendererContext
 {

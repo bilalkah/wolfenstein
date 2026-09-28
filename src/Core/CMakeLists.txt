@@ -75,6 +75,7 @@ target_link_libraries(
     collision_manager
     texture_manager
     navigation_manager
+    shooting_manager
     sound_manager
     wolfenstein::sdl2
     wolfenstein::sdl2_image

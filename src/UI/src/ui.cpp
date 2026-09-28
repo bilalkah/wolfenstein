@@ -12,6 +12,7 @@ namespace {
 constexpr int kFirstPrintable = 32;
 constexpr int kLastPrintable = 126;
 constexpr std::uint8_t kMiddleDot = 0xB7;  // "·"
+constexpr std::uint8_t kDegree = 0xB0;	   // "°"
 constexpr std::uint8_t kUnknown = '?';
 
 // The next character of UTF-8 text as a Latin-1 code; characters outside
@@ -169,6 +170,7 @@ void Ui::RasteriseGlyphs() {
 			rasterise(static_cast<std::uint8_t>(code));
 		}
 		rasterise(kMiddleDot);
+		rasterise(kDegree);
 	}
 	// Draw each glyph once, tinted, so any work a driver defers to a
 	// texture's first draw is done now rather than on a menu's first frame

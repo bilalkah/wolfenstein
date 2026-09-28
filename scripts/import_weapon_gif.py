@@ -7,7 +7,7 @@ listing which of them each clip plays.
 Needs Pillow (pip install pillow).
 
     ./scripts/import_weapon_gif.py art/pistol.gif pistol \\
-        --loaded 0-4 --outofammo 0 --reload 6-18
+        --loaded 0-4 --outofammo 0 --reload 6-18 --lower 18-22
 
 A clip's frames are given as ranges and single frames: 6-18 or 0,2,4.
 """
@@ -36,6 +36,8 @@ def main():
     parser.add_argument("weapon", help="its name in config.json")
     for clip in ("loaded", "outofammo", "reload"):
         parser.add_argument(f"--{clip}", required=True, metavar="FRAMES")
+    # The gun going down, when another is taken in hand
+    parser.add_argument("--lower", metavar="FRAMES")
     args = parser.parse_args()
 
     source = Image.open(args.gif)
@@ -50,7 +52,10 @@ def main():
         old.unlink()
     (folder / "frames").mkdir(parents=True, exist_ok=True)
     stored = {}  # a frame's pixels -> its file: frames alike are one file
-    for clip in ("loaded", "outofammo", "reload"):
+    for clip in ("loaded", "outofammo", "reload", "lower"):
+        if getattr(args, clip) is None:
+            manifest["clips"].pop(f"{args.weapon}_{clip}", None)
+            continue
         paths = []
         for frame in frames_of(getattr(args, clip)):
             image = images[frame].copy()

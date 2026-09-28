@@ -94,7 +94,7 @@ std::expected<void, std::string> World::ContinueGame(const SavedGame& saved) {
 		 i < player.WeaponCount() && i < SavedGame::kMaxWeapons; ++i) {
 		player.GetWeapon(i).SetRounds(saved.ammo[i], saved.reserve[i]);
 	}
-	player.SelectWeapon(saved.weapon);
+	player.TakeInHand(saved.weapon);
 	player.Restore(saved.health, player.GetWeapon().GetAmmo(),
 				   player.GetWeapon().GetReserve());
 	if (!saved.has_position) {

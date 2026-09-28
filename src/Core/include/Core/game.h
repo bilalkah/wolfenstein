@@ -25,6 +25,7 @@
 #include "Graphics/renderer_result.h"
 #include "Math/vector.h"
 #include "Settings/saved_game.h"
+#include "Settings/settings.h"
 #include "TextureManager/texture_manager.h"
 #include "TimeManager/time_manager.h"
 #include <array>
@@ -44,14 +45,15 @@ enum class GameState : std::uint8_t { Menu, Playing, Paused, Result };
 struct GeneralConfig
 {
 	GeneralConfig(int screen_width, int screen_height, int padding, int scale,
-				  int fps, double view_distance, double fov, bool fullscreen)
+				  int fps, double view_distance, double base_fov,
+				  bool fullscreen)
 		: screen_width(screen_width),
 		  screen_height(screen_height),
 		  padding(padding),
 		  scale(scale),
 		  fps(fps),
 		  view_distance(view_distance),
-		  fov(fov),
+		  base_fov(base_fov),
 		  fullscreen(fullscreen) {}
 
 	int screen_width;
@@ -60,19 +62,19 @@ struct GeneralConfig
 	int scale;
 	int fps;
 	double view_distance;
-	double fov;
+	double base_fov;  // see RenderConfig::base_fov
 	bool fullscreen;
 };
 
 // Mouse motion as the player's view moves: a turn, in radians, and a look
-// up (+) or down, as a share of the screen's height. A mouse pixel moves
-// the picture as far either way.
+// up (+) or down, as a slope. A mouse pixel moves the picture as far either
+// way, however wide the view.
 struct MouseLook
 {
 	double turn = 0.0;
 	double up = 0.0;
 };
-MouseLook ToMouseLook(int dx, int dy, double sensitivity,
+MouseLook ToMouseLook(int dx, int dy, const Settings& settings,
 					  const GeneralConfig& view);
 
 class Game
@@ -184,6 +186,8 @@ class Game
 	FrameClock clock_;
 	// The simulation runs at 60 ticks per second whatever the frame rate
 	FixedStep step_{1.0 / 60.0, 0.25};
+	// The input of the frames since the last tick, for the next
+	PlayerCommand pending_;
 	GeneralConfig config_;
 	GameState state_ = GameState::Menu;
 	bool running_ = true;

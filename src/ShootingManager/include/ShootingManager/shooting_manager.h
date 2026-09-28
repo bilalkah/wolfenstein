@@ -51,10 +51,23 @@ struct Crossing
 std::optional<Crossing> Cross(const Scene& scene, const Position2D& eye,
 							  double pitch, const Enemy& enemy);
 
+// A shot that met no enemy strikes the wall `aim` hit, if within reach: a
+// puff of dust there and a mark on it. The shot climbs `pitch` a unit
+// flown, as Aim's does.
+void MarkWall(Scene& scene, const Ray& aim, double pitch);
+
+// What a trigger pull did: whether any of it hit an enemy, and whether any
+// of it hit one in the head
+struct ShotResult
+{
+	bool hit = false;
+	bool head = false;
+};
+
 // The player fired from `eye`: damages the enemy it hits, if any, and counts
 // it in the scene if the shot kills it
-void ResolvePlayerShot(Scene& scene, const Weapon& weapon,
-					   const Position2D& eye, double pitch = 0.0);
+ShotResult ResolvePlayerShot(Scene& scene, const Weapon& weapon,
+							 const Position2D& eye, double pitch = 0.0);
 
 // An enemy fired at the player; the difficulty scales the damage by
 // `damage_scale`

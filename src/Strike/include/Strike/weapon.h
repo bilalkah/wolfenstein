@@ -50,8 +50,10 @@ struct WeaponConfig
 	// `spread` radians; each does the damage above
 	std::size_t pellets = 1;
 	double spread{};
-	// How long taking it in hand takes, the gun coming up
+	// How long taking it in hand takes, the gun coming up, and putting it
+	// away for another
 	double raise_seconds = 0.4;
+	double lower_seconds = 0.25;
 	// What a shot sounds like, and how far (in cells, round walls) enemies
 	// hear it; 0 is silent
 	SoundEffect shot_sound = SoundEffect::Shotgun;
@@ -74,6 +76,13 @@ class Weapon
 	std::size_t GetPellets() const { return config_.pellets; }
 	double GetSpread() const { return config_.spread; }
 	double GetRaiseSeconds() const { return config_.raise_seconds; }
+	double GetLowerSeconds() const { return config_.lower_seconds; }
+	// Put away, out of sight (lowered for another weapon)
+	bool IsDown() const {
+		return state_machine_.Current().GetType() ==
+				   WeaponStateType::Lowering &&
+			   lowering_state_.IsDown();
+	}
 	SoundEffect GetShotSound() const { return config_.shot_sound; }
 	int GetNoiseRange() const { return config_.noise_range; }
 	// Pulls the trigger; true if a shot was fired (the caller resolves it)
@@ -125,6 +134,7 @@ class Weapon
 	OutOfAmmoState out_of_ammo_state_;
 	ReloadingState reloading_state_;
 	RaisingState raising_state_;
+	LoweringState lowering_state_;
 	StateMachine<WeaponState> state_machine_;
 };
 

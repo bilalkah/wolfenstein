@@ -44,10 +44,23 @@ class ArsenalTest : public ::testing::Test
 		player_.SetCommand(command);
 		scene_.Update(kTick);
 	}
-	// Until a weapon just taken in hand is up
-	void WaitForTheWeapon() {
+	// Until the gun in hand is down and the one asked for is in hand
+	// (coming up)
+	void WaitUntilInHand() {
 		player_.SetCommand({});
-		for (int tick = 0; tick < 30; ++tick) {
+		for (int tick = 0; tick < 120 && player_.ComingWeapon(); ++tick) {
+			scene_.Update(kTick);
+		}
+	}
+	// Asks for a weapon and waits until it is in hand
+	void Switch(PlayerCommand command) {
+		Command(command);
+		WaitUntilInHand();
+	}
+	// Until a weapon asked for is in hand and up
+	void WaitForTheWeapon() {
+		WaitUntilInHand();
+		for (int tick = 0; tick < 60; ++tick) {
 			scene_.Update(kTick);
 		}
 	}
@@ -71,7 +84,7 @@ TEST_F(ArsenalTest, AGameStartsWithThePistol) {
 
 TEST_F(ArsenalTest, OnlyWeaponsCarriedCanBeTakenInHand) {
 	player_.SetOwnedWeapons(0b101);	 // pistol, shotgun
-	Command({.weapon = kShotgun});
+	Switch({.weapon = kShotgun});
 	EXPECT_EQ(player_.HeldWeapon(), kShotgun);
 	Command({.weapon = kMp5});	// not carried
 	EXPECT_EQ(player_.HeldWeapon(), kShotgun);
@@ -80,11 +93,11 @@ TEST_F(ArsenalTest, OnlyWeaponsCarriedCanBeTakenInHand) {
 // The wheel steps through the weapons carried, skipping the rest, round
 TEST_F(ArsenalTest, TheWheelStepsThroughWeaponsCarried) {
 	player_.SetOwnedWeapons(0b101);	 // pistol, shotgun
-	Command({.cycle = 1});
+	Switch({.cycle = 1});
 	EXPECT_EQ(player_.HeldWeapon(), kShotgun) << "past the MP5 not carried";
-	Command({.cycle = 1});
+	Switch({.cycle = 1});
 	EXPECT_EQ(player_.HeldWeapon(), kPistol) << "round to the first";
-	Command({.cycle = -1});
+	Switch({.cycle = -1});
 	EXPECT_EQ(player_.HeldWeapon(), kShotgun);
 }
 
@@ -92,7 +105,7 @@ TEST_F(ArsenalTest, TheWheelStepsThroughWeaponsCarried) {
 // only then does it fire
 TEST_F(ArsenalTest, ASwitchedWeaponComesUpBeforeItFires) {
 	player_.SetOwnedWeapons(0b011);	 // pistol, MP5
-	Command({.weapon = kMp5});
+	Switch({.weapon = kMp5});
 	Weapon& mp5 = player_.GetWeapon(kMp5);
 	const auto reload =
 		LoopedAnimation::Clip(testing::TestTextures(), "mp5", "reload");
@@ -107,7 +120,7 @@ TEST_F(ArsenalTest, ASwitchedWeaponComesUpBeforeItFires) {
 // A weapon whose art has its own raise clip comes up with it
 TEST_F(ArsenalTest, ARaiseClipIsPreferred) {
 	player_.SetOwnedWeapons(0b101);	 // pistol, shotgun
-	Command({.weapon = kShotgun});
+	Switch({.weapon = kShotgun});
 	EXPECT_EQ(
 		player_.GetWeapon().GetTextureId(),
 		testing::TestTextures().FindTextureCollection("shotgun_raise").front());
@@ -118,7 +131,7 @@ TEST_F(ArsenalTest, EachWeaponComesUpInItsOwnTime) {
 	const double shotgun = testing::Weapon("shotgun").raise_seconds;
 	ASSERT_GT(shotgun, testing::Weapon("pistol").raise_seconds);
 	player_.SetOwnedWeapons(0b101);	 // pistol, shotgun
-	Command({.weapon = kShotgun});
+	Switch({.weapon = kShotgun});
 	Weapon& weapon = player_.GetWeapon(kShotgun);
 	player_.SetCommand({});
 	const int almost = static_cast<int>(shotgun / kTick) - 2;
@@ -130,6 +143,32 @@ TEST_F(ArsenalTest, EachWeaponComesUpInItsOwnTime) {
 		scene_.Update(kTick);
 	}
 	EXPECT_TRUE(weapon.Attack());
+}
+
+// Another weapon asked for, the one in hand goes down first (its lower
+// clip), neither firing nor reloading, and only then does the other come up
+TEST_F(ArsenalTest, TheGunInHandGoesDownFirst) {
+	player_.SetOwnedWeapons(0b011);	 // pistol, MP5
+	Command({.weapon = kMp5});
+	EXPECT_EQ(player_.HeldWeapon(), kPistol);
+	EXPECT_EQ(player_.ComingWeapon(), kMp5);
+	Weapon& pistol = player_.GetWeapon(kPistol);
+	EXPECT_FALSE(pistol.Attack()) << "going down";
+	WaitUntilInHand();
+	EXPECT_EQ(player_.HeldWeapon(), kMp5);
+	EXPECT_FALSE(player_.ComingWeapon());
+}
+
+// Asked for again while it goes down, the gun in hand comes back up
+TEST_F(ArsenalTest, ChangingYourMindBringsItBack) {
+	player_.SetOwnedWeapons(0b011);
+	Command({.weapon = kMp5});
+	ASSERT_EQ(player_.ComingWeapon(), kMp5);
+	Command({.weapon = kPistol});
+	EXPECT_FALSE(player_.ComingWeapon());
+	WaitForTheWeapon();
+	EXPECT_EQ(player_.HeldWeapon(), kPistol);
+	EXPECT_TRUE(player_.GetWeapon(kPistol).Attack());
 }
 
 // Coming up is not a reload: no rounds move, and a reload asked for meanwhile
@@ -148,7 +187,7 @@ TEST_F(ArsenalTest, AnEmptyWeaponComesUpEmpty) {
 	player_.SetOwnedWeapons(0b011);
 	Weapon& mp5 = player_.GetWeapon(kMp5);
 	mp5.SetRounds(0, 0);
-	Command({.weapon = kMp5});
+	Switch({.weapon = kMp5});
 	WaitForTheWeapon();
 	EXPECT_FALSE(mp5.Attack());
 	EXPECT_EQ(mp5.GetTextureId(),
@@ -160,6 +199,8 @@ TEST_F(ArsenalTest, AWeaponFoundIsTakenInHand) {
 	const PickupEffect mp5{.weapons = 1U << kMp5};
 	ASSERT_TRUE(player_.TryPickUp(mp5));
 	EXPECT_TRUE(player_.Owns(kMp5));
+	EXPECT_EQ(player_.ComingWeapon(), kMp5) << "the pistol goes down first";
+	WaitUntilInHand();
 	EXPECT_EQ(player_.HeldWeapon(), kMp5);
 	const WeaponConfig& config = testing::Weapon("mp5");
 	EXPECT_EQ(player_.GetWeapon().GetAmmo(), config.ammo_capacity);
@@ -262,6 +303,9 @@ TEST(Arsenal, ASavedGameKeepsTheArsenal) {
 	ASSERT_TRUE(world.NewGame({}));
 	Player& player = world.GetPlayer();
 	ASSERT_TRUE(player.TryPickUp({.weapons = 1U << kShotgun}));
+	for (int tick = 0; tick < 60 && player.ComingWeapon(); ++tick) {
+		world.CurrentLevel().Update(kTick);
+	}
 	player.GetWeapon(kPistol).SetRounds(3, 11);
 	player.GetWeapon(kShotgun).SetRounds(1, 7);
 	const auto saved = world.Capture();

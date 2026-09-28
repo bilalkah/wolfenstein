@@ -33,9 +33,9 @@ double CalculateDamage(const Weapon& weapon, double distance) {
 	std::unreachable();
 }
 
-// A shot that met no enemy strikes the wall it hit (if within reach): a
-// puff of dust there and a mark on it. Doors and secret walls move, so keep
-// no marks.
+}  // namespace
+
+// Doors and secret walls move, so keep no marks
 void MarkWall(Scene& scene, const Ray& aim, double pitch) {
 	// Where on the wall's height the shot meets it: past the top or below
 	// the bottom, it struck the ceiling or the floor first, and shows nothing
@@ -45,7 +45,7 @@ void MarkWall(Scene& scene, const Ray& aim, double pitch) {
 	}
 	const vector2d toward_eye = aim.direction * -1.0;
 	scene.ShowImpact(Scene::Impact::Dust, aim.hit_point + toward_eye * 0.05,
-					 height - kEyeHeight);
+					 height);
 	if (Map::IsDoorCell(static_cast<std::uint16_t>(aim.wall_id))) {
 		return;
 	}
@@ -70,48 +70,54 @@ void MarkWall(Scene& scene, const Ray& aim, double pitch) {
 							0.02F, 0.98F)});
 }
 
-void ResolveOneShot(Scene& scene, const Weapon& weapon, const Position2D& eye,
-					double pitch) {
+namespace {
+
+ShotResult ResolveOneShot(Scene& scene, const Weapon& weapon,
+						  const Position2D& eye, double pitch) {
 	const Ray aim = Aim(scene, eye, pitch);
 	if (!aim.is_hit) {
 		if (!weapon.IsMelee()) {
 			MarkWall(scene, aim, pitch);
 		}
-		return;
+		return {};
 	}
 	// A blade reaches only the enemy in front of it
 	if (weapon.IsMelee() && aim.distance > weapon.GetAttackRange()) {
-		return;
+		return {};
 	}
 	const auto enemies = scene.GetEnemies();
 	const auto enemy =
 		std::ranges::find_if(enemies, [&aim](const Enemy* candidate) {
 			return candidate->GetId() == aim.object_id;
 		});
-	// Blood, in front of the enemy as the shooter sees it, where it was hit
-	const vector2d back = eye.pose - aim.hit_point;
-	const double height = kEyeHeight + pitch * aim.distance;
-	scene.ShowImpact(Scene::Impact::Blood,
-					 aim.hit_point + back * ((*enemy)->GetWidth() / 2 + 0.05) /
-										 std::max(aim.distance, 0.01),
-					 height - kEyeHeight);
 	// Where on the figure it struck: its head, body or legs, as shares of
 	// the frame's visible part
-	double scale = 1.0;
+	HitZones::Zone zone = HitZones::Zone::Body;
+	const HitZones& zones = (*enemy)->GetHitZones();
 	if (const auto crossing = Cross(scene, eye, pitch, **enemy)) {
 		const auto [top, bottom] =
 			scene.Textures().SolidRows((*enemy)->GetTextureId());
-		const double down = std::clamp(
-			(crossing->down - top) / std::max(bottom - top, 1e-6), 0.0, 1.0);
-		scale = (*enemy)->GetHitZones().Scale(down);
+		zone = zones.ZoneAt(std::clamp(
+			(crossing->down - top) / std::max(bottom - top, 1e-6), 0.0, 1.0));
 	}
-	(*enemy)->DecreaseHealth(scale * CalculateDamage(weapon, aim.distance));
+	// Blood, in front of the enemy as the shooter sees it, where it was hit:
+	// a bigger burst from the head
+	constexpr double kHeadBurst = 1.6;
+	const vector2d back = eye.pose - aim.hit_point;
+	scene.ShowImpact(Scene::Impact::Blood,
+					 aim.hit_point + back * ((*enemy)->GetWidth() / 2 + 0.05) /
+										 std::max(aim.distance, 0.01),
+					 kEyeHeight + pitch * aim.distance,
+					 zone == HitZones::Zone::Head ? kHeadBurst : 1.0);
+	(*enemy)->DecreaseHealth(zones.Scale(zone) *
+							 CalculateDamage(weapon, aim.distance));
 	(*enemy)->SetAttacked(true);
 	// Aim only offers enemies with health left, so this is the killing shot,
 	// counted once
 	if ((*enemy)->GetHealth() <= 0) {
 		scene.DecreaseAliveEnemies();
 	}
+	return {.hit = true, .head = zone == HitZones::Zone::Head};
 }
 
 }  // namespace
@@ -170,10 +176,11 @@ Ray Aim(const Scene& scene, const Position2D& eye, double pitch) {
 	return aim;
 }
 
-void ResolvePlayerShot(Scene& scene, const Weapon& weapon,
-					   const Position2D& eye, double pitch) {
+ShotResult ResolvePlayerShot(Scene& scene, const Weapon& weapon,
+							 const Position2D& eye, double pitch) {
 	// Each pellet flies on its own line, fanned evenly across the spread
 	const std::size_t pellets = std::max<std::size_t>(weapon.GetPellets(), 1);
+	ShotResult result;
 	for (std::size_t pellet = 0; pellet < pellets; ++pellet) {
 		const double offset =
 			pellets == 1
@@ -181,10 +188,13 @@ void ResolvePlayerShot(Scene& scene, const Weapon& weapon,
 				: weapon.GetSpread() * (static_cast<double>(pellet) /
 											static_cast<double>(pellets - 1) -
 										0.5);
-		ResolveOneShot(scene, weapon,
-					   Position2D(eye.pose, SumRadian(eye.theta, offset)),
-					   pitch);
+		const ShotResult one = ResolveOneShot(
+			scene, weapon, Position2D(eye.pose, SumRadian(eye.theta, offset)),
+			pitch);
+		result.hit = result.hit || one.hit;
+		result.head = result.head || one.head;
 	}
+	return result;
 }
 
 void ResolveEnemyShot(Player& player, const SimpleWeapon& weapon,

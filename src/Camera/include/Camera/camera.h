@@ -62,6 +62,9 @@ class Camera2D
 	const RayPair* FindObjectRays(ObjectId id) const;
 	const Position2D& GetPosition() const { return eye_; }
 	double GetFov() const;
+	// Widens or narrows the view to `fov` radians: as many rays, spread
+	// further apart
+	void SetFov(double fov);
 	double GetDeltaAngle() const;
 
   private:

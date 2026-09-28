@@ -25,7 +25,13 @@ class Weapon;
 template <>
 struct StateType<Weapon>
 {
-	enum class Type : std::uint8_t { Loaded, OutOfAmmo, Reloading, Raising };
+	enum class Type : std::uint8_t {
+		Loaded,
+		OutOfAmmo,
+		Reloading,
+		Raising,
+		Lowering
+	};
 };
 using WeaponStateType = StateType<Weapon>::Type;
 
@@ -119,6 +125,25 @@ class RaisingState : public WeaponState
   private:
 	double time_{0.0};
 	double seconds_{0.0};  // its weapon's raise_seconds
+};
+
+// ########################################### LoweringState ###########################################
+// Put away for another: the gun goes down (its lower clip, if its art has
+// one), then stays down; meanwhile it neither fires nor reloads
+class LoweringState : public WeaponState
+{
+  public:
+	void Update(const double&) override;
+	void OnContextSet() override;
+	void OnEnter() override;
+	WeaponStateType GetType() const override;
+	// Down, out of sight: the other weapon can come up
+	bool IsDown() const { return time_ >= seconds_; }
+
+  private:
+	double time_{0.0};
+	double seconds_{0.0};  // its weapon's lower_seconds
+	bool animated_ = false;
 };
 
 }  // namespace wolfenstein

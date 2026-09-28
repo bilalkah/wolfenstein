@@ -104,8 +104,13 @@ class Player : public ICharacter, public IGameObject
 		return index < weapon_count_ && (owned_ >> index & 1U) != 0;
 	}
 	void SetOwnedWeapons(std::uint8_t owned);
-	// Takes the weapon `index` in hand, if carried
+	// Takes the weapon `index` in hand, if carried: the one in hand goes
+	// down first, then it comes up
 	void SelectWeapon(std::size_t index);
+	// Has the weapon `index` in hand at once, ready (a saved game's)
+	void TakeInHand(std::size_t index);
+	// The weapon coming into hand once the one in hand is down, if any
+	std::optional<std::size_t> ComingWeapon() const { return coming_; }
 	// Where to draw the view `alpha` of the way from the previous tick
 	Position2D GetRenderPosition(double alpha) const;
 	// How far the last shot's kick still jolts the view, a share of the
@@ -117,6 +122,10 @@ class Player : public ICharacter, public IGameObject
 	double GetPitch() const { return pitch_; }
 	// The furthest the player looks up or down
 	static constexpr double kMaxPitch = 0.4;
+	// The hit marker round the crosshair after a shot hit: how strongly it
+	// shows (1 as it hits, fading to 0), and whether it was a headshot
+	double GetHitMarker() const;
+	bool IsHeadshotMarker() const { return headshot_; }
 	// How far through its fall a dead player is: 0 as it dies, 1 on the
 	// floor (after kFallSeconds, sooner at first, as things fall)
 	double GetDeathFall() const;
@@ -149,15 +158,21 @@ class Player : public ICharacter, public IGameObject
 	double kick_{};
 	double pitch_{};
 	double since_death_{};
+	double since_hit_{1e9};	 // since a shot of theirs last hit
+	bool headshot_ = false;
 	std::uint8_t keys_{};
 	SoundManager& sound_;
 	SoundChannel sound_channel_;
+	SoundChannel step_channel_;	 // footsteps, apart from the rest
+	double walked_{};			 // since the last footstep
+	bool left_foot_ = false;
 	Position2D position_;
 	Position2D previous_position_;
 	std::array<std::optional<Weapon>, kMaxWeapons> weapons_;
 	std::size_t weapon_count_ = 0;
 	std::uint8_t owned_ = 0;
 	std::size_t held_ = 0;
+	std::optional<std::size_t> coming_;
 	TriggeredSingleAnimation damage_animation_;
 	bool picked_up_{false};
 	TriggeredSingleAnimation pickup_animation_;

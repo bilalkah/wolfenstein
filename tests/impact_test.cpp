@@ -125,7 +125,9 @@ TEST_F(ImpactTest, AShotAimedUpStrikesHigher) {
 	EXPECT_NEAR(scene_.GetWallMarks()[0].down, 0.2, 0.06) << "0.2 from the top";
 	const auto puffs = Puffs();
 	ASSERT_EQ(puffs.size(), 1u);
-	EXPECT_NEAR(puffs[0]->GetElevation(), 0.3, 1e-6);
+	// Its middle where the shot struck, 0.8 up
+	EXPECT_NEAR(puffs[0]->GetElevation() + puffs[0]->GetHeight() / 2, 0.8,
+				1e-6);
 }
 
 // Aimed at the floor well short of the wall, a shot marks nothing
@@ -190,6 +192,24 @@ TEST_F(ImpactTest, AShotKicksTheViewAndItSettles) {
 		scene_.Update(kTick);
 	}
 	EXPECT_LT(player_.GetKick(), kick / 20) << "settled in a fifth of a second";
+}
+
+// A hit shows round the crosshair for a moment
+TEST_F(ImpactTest, AHitShowsAMarker) {
+	ASSERT_TRUE(scene_.AddEnemy(testing::Enemy("soldier"),
+								Position2D({1.5, 3.5}, -kSouth)));
+	scene_.FinishLoading();
+	player_.SetPosition(Position2D({1.5, 1.5}, kSouth));
+	EXPECT_EQ(player_.GetHitMarker(), 0.0);
+	player_.SetCommand({.fire = true});
+	scene_.Update(kTick);
+	EXPECT_GT(player_.GetHitMarker(), 0.9);
+	EXPECT_FALSE(player_.IsHeadshotMarker()) << "level: the body";
+	player_.SetCommand({});
+	for (int tick = 0; tick < 30; ++tick) {
+		scene_.Update(kTick);
+	}
+	EXPECT_EQ(player_.GetHitMarker(), 0.0) << "gone";
 }
 
 // Killed, the player falls: the eye drops from half a wall to the floor in

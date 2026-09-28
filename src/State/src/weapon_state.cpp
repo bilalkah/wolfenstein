@@ -167,4 +167,38 @@ void RaisingState::OnContextSet() {
 		LoopedAnimation(frames, seconds_ / static_cast<double>(frames.size()));
 }
 
+// ########################################### LoweringState ###########################################
+
+void LoweringState::Update(const double& delta_time) {
+	// To its last frame, and there it stays
+	if (animated_ && !IsDown()) {
+		animation_.Update(delta_time);
+	}
+	time_ += delta_time;
+}
+
+void LoweringState::OnEnter() {
+	WeaponState::OnEnter();
+	time_ = 0.0;
+}
+
+WeaponStateType LoweringState::GetType() const {
+	return WeaponStateType::Lowering;
+}
+
+void LoweringState::OnContextSet() {
+	seconds_ = context_->GetLowerSeconds();
+	const auto frames = LoopedAnimation::FindClip(
+		context_->GetTextures(), context_->GetWeaponName(), "lower");
+	animated_ = !frames.empty();
+	// Without a clip of its own it just goes, on the frame it had
+	animation_ =
+		animated_ ? LoopedAnimation(
+						frames, seconds_ / static_cast<double>(frames.size()))
+				  : LoopedAnimation(LoopedAnimation::Clip(
+										context_->GetTextures(),
+										context_->GetWeaponName(), "loaded"),
+									seconds_);
+}
+
 }  // namespace wolfenstein

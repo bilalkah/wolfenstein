@@ -40,7 +40,10 @@ add_executable(unit_tests
     mouse_look_test.cpp
     hearing_test.cpp
     drop_test.cpp
+    sound_test.cpp
+    navigation_test.cpp
     saved_game_test.cpp
+    settings_test.cpp
     texture_manifest_test.cpp
 )
 target_link_libraries(unit_tests PRIVATE

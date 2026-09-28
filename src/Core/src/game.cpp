@@ -1,5 +1,6 @@
 #include "Core/game.h"
 #include "Animation/looped_animation.h"
+#include "Camera/raycaster.h"
 #include "Characters/enemy.h"
 #include "GameObjects/dynamic_object.h"
 #include "GameObjects/static_object.h"
@@ -7,6 +8,7 @@
 #include "Profiler/profiler.h"
 #include "Settings/saved_game.h"
 #include "Settings/settings.h"
+#include "ShootingManager/shooting_manager.h"
 #include "SoundManager/sound_manager.h"
 #include "State/enemy_state.h"
 #include "TextureManager/texture_manager.h"
@@ -21,6 +23,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <numbers>
 #include <vector>
 
 #ifdef __EMSCRIPTEN__
@@ -48,6 +51,27 @@ constexpr double kBannerSeconds = 2.4;
 constexpr double kBannerFadeSeconds = 0.6;
 // Frames the soak session spends at the main menu before starting a game
 constexpr int kSoakMenuFrames = 60;
+// Wall-free route through level1's map as (row, column) waypoints: the
+// benchmark's player walks it at normal speed facing forward, then walks
+// it back
+constexpr std::array<std::pair<double, double>, 7> kBenchmarkRoute = {{
+	{3.0, 1.5},
+	{9.5, 1.5},
+	{9.5, 13.5},
+	{16.5, 13.5},
+	{16.5, 8.5},
+	{23.5, 8.5},
+	{23.5, 1.5},
+}};
+
+// Scripted runs strike walls as a player's shots do, so their frames draw
+// bullet marks too: a level shot from `from` at `theta`
+void StrikeWall(Scene& scene, const vector2d& from, double theta) {
+	constexpr double kReach = 10.0;	 // as far as a shot carries
+	MarkWall(scene,
+			 CastRay(scene.GetMap(), Position2D(from, theta), theta, kReach),
+			 0.0);
+}
 
 }  // namespace
 
@@ -60,14 +84,15 @@ Game::Game(GeneralConfig& config) : config_(config) {
 }
 
 void Game::Init() {
-	Camera2DConfig camera_config = {config_.screen_width, config_.fov,
+	// The player's view is set with the other settings, below
+	Camera2DConfig camera_config = {config_.screen_width, config_.base_fov,
 									config_.view_distance};
 	camera_ = std::make_unique<Camera2D>(camera_config);
 
 	RenderConfig render_config = {config_.screen_width, config_.screen_height,
 								  config_.padding,		config_.scale,
 								  config_.fps,			config_.view_distance,
-								  config_.fov,			config_.fullscreen};
+								  config_.base_fov,		config_.fullscreen};
 
 	renderer_context_ = std::make_unique<RendererContext>(
 		"Wolfenstein", render_config, *camera_);
@@ -112,6 +137,7 @@ void Game::ShowLevel() {
 	// Loading is not a frame: the next frame starts timing from here
 	clock_.Restart();
 	step_.Reset();
+	pending_ = {};
 }
 
 void Game::NewGame(std::string_view weapon_name, std::string_view level,
@@ -253,7 +279,11 @@ void Game::HandleMenuAction(const MenuAction& action) {
 }
 
 void Game::ApplySettings() {
-	world_->Sound().SetMasterVolume(Settings::Get().volume);
+	const Settings& settings = Settings::Get();
+	world_->Sound().SetVolume(settings.volume, settings.music_volume,
+							  settings.effects_volume);
+	// Scripted runs keep the base view, so their results stay comparable
+	camera_->SetFov(IsScripted() ? config_.base_fov : settings.FovRadians());
 }
 
 void Game::Present() {
@@ -263,6 +293,7 @@ void Game::Present() {
 void Game::StartBenchmark(int frames) {
 	constexpr double kFrameTime = 1.0 / 60.0;
 	benchmark_frames_ = frames;
+	ApplySettings();  // scripted now: the base view
 	clock_.SetFixedDeltaTime(kFrameTime);
 	Profiler::GetInstance().Enable(static_cast<std::size_t>(frames));
 	// Loading the level counts towards startup, as it did before the menu
@@ -277,6 +308,19 @@ void Game::StartBenchmark(int frames) {
 	Profiler::GetInstance().SetLevelLoad(
 		load_time.count(), AllocationStats::count - load_allocations,
 		AllocationStats::bytes - load_bytes);
+	// The walls beside the route shot at, left and right, three times a
+	// stretch: as many marks as a level keeps, passed close and far
+	Scene& level = world_->CurrentLevel();
+	for (std::size_t i = 1; i < kBenchmarkRoute.size(); ++i) {
+		const auto [x0, y0] = kBenchmarkRoute[i - 1];
+		const auto [x1, y1] = kBenchmarkRoute[i];
+		const double along = std::atan2(y1 - y0, x1 - x0);
+		for (const double t : {0.25, 0.5, 0.75}) {
+			const vector2d from{x0 + (x1 - x0) * t, y0 + (y1 - y0) * t};
+			StrikeWall(level, from, along + std::numbers::pi / 2);
+			StrikeWall(level, from, along - std::numbers::pi / 2);
+		}
+	}
 	state_ = GameState::Playing;
 }
 
@@ -287,6 +331,7 @@ void Game::StartBenchmark(int frames) {
 // callbacks) are not counted.
 void Game::StartSoak(int frames) {
 	soak_frames_ = frames + kSoakMenuFrames;
+	ApplySettings();  // scripted now: the base view
 	clock_.SetFixedDeltaTime(1.0 / 60.0);
 	state_ = GameState::Menu;
 	menu_->Open(MenuScreen::Main);
@@ -324,6 +369,14 @@ void Game::SoakStep() {
 		soak_bytes_ = AllocationStats::bytes;
 		HandleMenuAction(
 			{.type = MenuAction::Type::StartGame, .difficulty = 0});
+		// The walls round the player shot at, all the marks a level keeps:
+		// drawn from the first frame of play
+		const vector2d from = world_->GetPlayer().GetPose();
+		constexpr int kShots = static_cast<int>(Scene::kWallMarks);
+		for (int shot = 0; shot < kShots; ++shot) {
+			StrikeWall(world_->CurrentLevel(), from,
+					   2.0 * std::numbers::pi * shot / kShots);
+		}
 	}
 	const int frame = soak_frame_++ - kSoakMenuFrames;
 	if (soak_first_allocation_ < 0 &&
@@ -580,17 +633,18 @@ void Game::GameTick() {
 #endif
 }
 
-MouseLook ToMouseLook(int dx, int dy, double sensitivity,
+MouseLook ToMouseLook(int dx, int dy, const Settings& settings,
 					  const GeneralConfig& view) {
 	constexpr double kRadiansPerPixel = 0.005;
-	const double turn = dx * kRadiansPerPixel * sensitivity;
+	const double turn = dx * kRadiansPerPixel * settings.mouse_sensitivity;
 	// Looking up slides the view by as many screen pixels as turning the
-	// same mouse distance does (the screen shows width / fov pixels a
-	// radian), as a share of the screen's height; the mouse pushed away
-	// looks up
-	const double pixels_per_radian = view.screen_width / view.fov;
-	const double up = -dy * kRadiansPerPixel * sensitivity * pixels_per_radian /
-					  view.screen_height;
+	// same mouse distance does. A view fov across shows width / fov pixels
+	// a radian, and a slope of 1 is height * base_fov / fov pixels up: the
+	// fov cancels, so the slope does not depend on it. The mouse pushed
+	// away looks up, unless inverted.
+	const double up = (settings.invert_mouse_y ? dy : -dy) * kRadiansPerPixel *
+					  settings.mouse_sensitivity * view.screen_width /
+					  (view.screen_height * view.base_fov);
 	return {.turn = turn, .up = up};
 }
 
@@ -611,8 +665,7 @@ PlayerCommand Game::SampleCommand() const {
 	int dy = 0;
 	SDL_GetRelativeMouseState(&dx, &dy);
 	if (SDL_GetRelativeMouseMode()) {
-		const MouseLook look =
-			ToMouseLook(dx, dy, Settings::Get().mouse_sensitivity, config_);
+		const MouseLook look = ToMouseLook(dx, dy, Settings::Get(), config_);
 		command.look = look.turn;
 		command.look_up = look.up;
 	}
@@ -640,13 +693,18 @@ void Game::UpdateAndRender() {
 	// A number key pressed since: that weapon in hand
 	command.weapon = static_cast<std::int8_t>(weapon_key_);
 	weapon_key_ = -1;
-	world_->GetPlayer().SetCommand(command);
 
 	// The simulation advances in fixed ticks, whatever the frame rate, so
 	// the same commands always play out the same way. A long stall (a
 	// breakpoint, a hidden browser tab) is dropped rather than caught up in
-	// a burst of ticks.
-	for (int ticks = step_.Advance(clock_.DeltaTime()); ticks > 0; --ticks) {
+	// a burst of ticks. A frame with no tick keeps its input for the next.
+	pending_ = Gather(pending_, command);
+	int ticks = step_.Advance(clock_.DeltaTime());
+	if (ticks > 0) {
+		world_->GetPlayer().SetCommand(pending_);
+		pending_ = {};
+	}
+	for (; ticks > 0; --ticks) {
 		// The level waits behind its results screen and the next briefing
 		if (fade_ != Fade::Stats && fade_ != Fade::Briefing) {
 			world_->CurrentLevel().Update(step_.TickSeconds());
@@ -691,8 +749,10 @@ void Game::RenderView(double alpha) {
 		const LevelStats stats = world_->CurrentLevel().GetStats();
 		menu_->DrawEnemyCounter(stats.kills, stats.enemies);
 		const Player& player = world_->GetPlayer();
-		menu_->DrawWeaponSlots(player.WeaponCount(), player.GetOwnedWeapons(),
-							   player.HeldWeapon());
+		// The weapon chosen shows at once, while the last one goes down
+		menu_->DrawWeaponSlots(
+			player.WeaponCount(), player.GetOwnedWeapons(),
+			player.ComingWeapon().value_or(player.HeldWeapon()));
 		switch (world_->CurrentLevel().GetNotice()) {
 			case Scene::Notice::NeedGoldKey:
 				menu_->DrawNotice("You need the gold key");
@@ -884,6 +944,7 @@ void Game::StartFromBriefing() {
 	// The briefing was not play: the level's clock and ticks start now
 	clock_.Restart();
 	step_.Reset();
+	pending_ = {};
 }
 
 void Game::DrawTransition() {
@@ -941,17 +1002,6 @@ void Game::DrawTransition() {
 // a fixed route through level 1 so enemies wake up, chase and attack, and never
 // dies (which would stop player and camera updates)
 void Game::BenchmarkStep() {
-	// Wall-free route through level1's map as (row, column) waypoints; the
-	// player walks it at normal speed facing forward, then walks it back
-	constexpr std::array<std::pair<double, double>, 7> kRoute = {{
-		{3.0, 1.5},
-		{9.5, 1.5},
-		{9.5, 13.5},
-		{16.5, 13.5},
-		{16.5, 8.5},
-		{23.5, 8.5},
-		{23.5, 1.5},
-	}};
 	constexpr double kWalkSpeed = 2.0;	// map units per second
 	constexpr std::size_t kWarmupFrames = 60;
 
@@ -962,20 +1012,21 @@ void Game::BenchmarkStep() {
 	double distance =
 		kWalkSpeed * frame_time * static_cast<double>(profiler.GetFrameCount());
 	double route_length = 0.0;
-	for (std::size_t i = 1; i < kRoute.size(); ++i) {
-		route_length += std::hypot(kRoute[i].first - kRoute[i - 1].first,
-								   kRoute[i].second - kRoute[i - 1].second);
+	for (std::size_t i = 1; i < kBenchmarkRoute.size(); ++i) {
+		route_length += std::hypot(
+			kBenchmarkRoute[i].first - kBenchmarkRoute[i - 1].first,
+			kBenchmarkRoute[i].second - kBenchmarkRoute[i - 1].second);
 	}
 	// Walk the route forwards, then backwards, and repeat
 	const double lap = std::fmod(distance, 2.0 * route_length);
 	const bool backwards = lap > route_length;
 	distance = backwards ? 2.0 * route_length - lap : lap;
 
-	for (std::size_t i = 1; i < kRoute.size(); ++i) {
-		const auto [x0, y0] = kRoute[i - 1];
-		const auto [x1, y1] = kRoute[i];
+	for (std::size_t i = 1; i < kBenchmarkRoute.size(); ++i) {
+		const auto [x0, y0] = kBenchmarkRoute[i - 1];
+		const auto [x1, y1] = kBenchmarkRoute[i];
 		const double length = std::hypot(x1 - x0, y1 - y0);
-		if (distance <= length || i == kRoute.size() - 1) {
+		if (distance <= length || i == kBenchmarkRoute.size() - 1) {
 			const double t = std::min(distance / length, 1.0);
 			const double direction = backwards ? -1.0 : 1.0;
 			world_->GetPlayer().SetPosition(Position2D(

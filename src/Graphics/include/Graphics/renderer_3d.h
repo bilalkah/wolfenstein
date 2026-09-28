@@ -32,16 +32,49 @@ class Renderer3D : public IRenderer
 	void RenderScene(double delta_time) override;
 
   private:
-	// One textured rectangle to draw. The queue is drawn back to front;
-	// `order` keeps equal distances in submission order, deterministically
+	// One textured rectangle to draw, or, if `quad` is set, a textured
+	// quad (four corners: top left, bottom left, top right, bottom right).
+	// The queue is drawn back to front; `order` keeps equal distances in
+	// submission order, deterministically.
 	struct RenderCommand
 	{
-		int texture_id;
-		SDL_Rect src_rect;
-		SDL_Rect dest_rect;
-		double distance;
-		std::uint32_t order;
+		int texture_id = 0;
+		SDL_Rect src_rect{};
+		SDL_Rect dest_rect{};
+		double distance = 0.0;
+		std::uint32_t order = 0;
+		const std::array<SDL_Vertex, 4>* quad = nullptr;
 	};
+	// A picture on a wall's face (a bullet mark, a secret wall's crack),
+	// gathered over the wall columns it shows on and drawn as one quad:
+	// drawn a strip a column, it took a draw call and two texture switches
+	// a column, a dozen or more a mark, and a frame full of marks took a
+	// quarter longer. A planar face's edges are straight on screen, so the
+	// quad through its first and last columns' ends is where they were.
+	struct Decal
+	{
+		int texture_id = 0;
+		std::uint32_t key = 0;	// which picture, while the frame is drawn
+		int columns = 0;
+		int first_x = 0;
+		int last_x = 0;
+		// Across the picture's texture (0 to 1) at the first and last
+		// columns, and the column before the last
+		double first_u = 0.0;
+		double last_u = 0.0;
+		double before_last_u = 0.0;
+		int first_top = 0;
+		int first_height = 0;
+		int last_top = 0;
+		int last_height = 0;
+		double distance = 0.0;	// its nearest column's
+	};
+	// Pictures on walls one frame shows, at most: every bullet mark
+	// (Scene::kWallMarks), and a few secret walls' faces
+	static constexpr std::size_t kDecals = 40;
+	// Keys: a bullet mark's is its index; a secret wall's face's is past
+	// every mark's
+	static constexpr std::uint32_t kCrackKeys = 1U << 16;
 
 	struct TextureDeleter
 	{
@@ -60,9 +93,17 @@ class Renderer3D : public IRenderer
 	// The bullet marks on the wall a column shows, `across` its face
 	void RenderWallMarks(int horizontal_slice, const Ray& ray, double across,
 						 int draw_start, int line_height, double distance);
+	// Adds a wall column to the decal `key` (made on its first column):
+	// at `u` across its texture, from `top` down `height` pixels
+	void AddDecalColumn(int texture_id, std::uint32_t key, int x, double u,
+						int top, int height, double distance);
+	// Queues one quad a decal, once the walls are done
+	void EnqueueDecals();
 	void RenderWeapon();
 	// The damage overlay, over the whole screen, fading after a hit
 	void RenderDamage();
+	// Four ticks round the crosshair as a shot hits, red for a headshot
+	void RenderHitMarker();
 	// A dead player's view, drawn into fallen_view_, rolled onto its side
 	// as far as `fall` (0 to 1) and scaled to cover the screen
 	void RenderFallen(double fall);
@@ -73,6 +114,22 @@ class Renderer3D : public IRenderer
 	// Reused every frame: clear() keeps the capacity, so after the first
 	// frame queueing never allocates
 	std::vector<RenderCommand> render_queue_;
+	// The bullet marks on the wall face the last column showed: the next
+	// column most often shows the same face, and needs look at no others
+	struct FaceMarks
+	{
+		int x = 0;
+		int y = 0;
+		std::uint8_t face = 0;
+		bool valid = false;	 // not yet gathered this frame
+		std::array<std::uint8_t, kDecals> marks{};
+		std::size_t count = 0;
+	};
+	FaceMarks face_marks_;
+	// This frame's decals, and their quads (which the queue points at)
+	std::array<Decal, kDecals> decals_{};
+	std::size_t decal_count_ = 0;
+	std::array<std::array<SDL_Vertex, 4>, kDecals> decal_quads_{};
 
 	// The FPS counter is drawn from the digits 0-9, rasterised once here:
 	// a changing value costs no text rendering, texture or allocation
@@ -97,6 +154,8 @@ class Renderer3D : public IRenderer
 	// How far the world is slid down the screen this frame, in pixels: the
 	// player looking up, and a shot's kick
 	int horizon_shift_ = 0;
+	// Screen pixels a unit is tall a unit away, in this frame's view
+	double pixels_per_unit_ = 0.0;
 	// Where the eye is, in walls above the floor (half way, standing)
 	double eye_height_ = 0.5;
 	// The world as a dead player sees it, drawn here to be rolled onto its

@@ -331,6 +331,30 @@
       "sprites/weapon/shotgun/frames/64.png",
       "sprites/weapon/shotgun/frames/65.png",
       "sprites/weapon/shotgun/frames/0.png"
+    ],
+    "pistol_lower": [
+      "sprites/weapon/pistol/frames/0.png",
+      "sprites/weapon/pistol/frames/17.png",
+      "sprites/weapon/pistol/frames/18.png",
+      "sprites/weapon/pistol/frames/19.png",
+      "sprites/weapon/pistol/frames/20.png"
+    ],
+    "mp5_lower": [
+      "sprites/weapon/mp5/frames/18.png",
+      "sprites/weapon/mp5/frames/19.png",
+      "sprites/weapon/mp5/frames/20.png"
+    ],
+    "shotgun_lower": [
+      "sprites/weapon/shotgun/frames/0.png",
+      "sprites/weapon/shotgun/frames/65.png",
+      "sprites/weapon/shotgun/frames/64.png",
+      "sprites/weapon/shotgun/frames/63.png",
+      "sprites/weapon/shotgun/frames/62.png",
+      "sprites/weapon/shotgun/frames/61.png",
+      "sprites/weapon/shotgun/frames/60.png",
+      "sprites/weapon/shotgun/frames/59.png",
+      "sprites/weapon/shotgun/frames/58.png",
+      "sprites/weapon/shotgun/frames/57.png"
     ]
   }
 }

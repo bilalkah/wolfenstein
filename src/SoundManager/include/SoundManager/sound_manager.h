@@ -35,10 +35,27 @@ enum class SoundEffect : std::uint8_t {
 	SmgShot,
 	DryFire,	 // the trigger pulled on an empty gun
 	PlayerFall,	 // the player's body landing, dead
+	DoorMove,	 // a door sliding open or shut
+	EnemyAlert,	 // an enemy that has seen or heard the player
+	StepLeft,	 // the player's footsteps, one foot and the other
+	StepRight,
+	AmmoPickup,
+	KeyPickup,
+	WeaponPickup,
 };
-inline constexpr std::size_t kSoundEffectCount = 10;
-static_assert(std::to_underlying(SoundEffect::PlayerFall) + 1 ==
+inline constexpr std::size_t kSoundEffectCount = 17;
+static_assert(std::to_underlying(SoundEffect::WeaponPickup) + 1 ==
 			  kSoundEffectCount);
+
+// What the mixer plays at, 0 to MIX_MAX_VOLUME: the music, and every effect
+// (each keeps its own level under that). `master`, `music` and `effects`
+// run 0 (silent) to 1 (full); music and effects are shares of the master.
+struct MixerLevels
+{
+	int music = 0;
+	int effects = 0;
+};
+MixerLevels ToMixerLevels(double master, double music, double effects);
 
 // The mixer channel a sound source plays on: a new sound from the source
 // cuts off its previous one, never another source's
@@ -64,8 +81,9 @@ class SoundManager
 	SoundManager(SoundManager&&) = delete;
 	SoundManager& operator=(SoundManager&&) = delete;
 
-	// 0 (silent) to 1 (full); scales music and effects together
-	void SetMasterVolume(double volume);
+	// 0 (silent) to 1 (full) each; music and effects are shares of the
+	// master volume
+	void SetVolume(double master, double music, double effects);
 	// A channel for a new sound source (an enemy, the player, a weapon), kept
 	// for its life. Sources share the mixer channels round-robin.
 	SoundChannel AllocateChannel();
@@ -73,6 +91,11 @@ class SoundManager
 	// string or lookup (a string name allocated on wasm32, whose short-string
 	// buffer holds only 10 characters)
 	void PlayEffect(SoundChannel channel, SoundEffect effect);
+	// How many times an effect was asked for, heard or not (tests listen
+	// through this)
+	std::uint32_t PlayCount(SoundEffect effect) const {
+		return play_counts_[std::to_underlying(effect)];
+	}
 
   private:
 	std::expected<void, std::string> LoadSound(SoundEffect effect,
@@ -84,6 +107,7 @@ class SoundManager
 	static constexpr int kChannels = 16;
 	int next_channel_{};
 	std::array<Mix_Chunk*, kSoundEffectCount> chunks_{};
+	std::array<std::uint32_t, kSoundEffectCount> play_counts_{};
 	Mix_Music* main_theme{};
 };
 

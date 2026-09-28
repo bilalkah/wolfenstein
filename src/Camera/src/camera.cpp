@@ -91,6 +91,10 @@ const RayPair* Camera2D::FindObjectRays(ObjectId id) const {
 double Camera2D::GetFov() const {
 	return config_.fov;
 }
+void Camera2D::SetFov(double fov) {
+	config_.fov = fov;
+	ray_cast_ = RayCaster(config_.width / 2, fov, config_.depth);
+}
 double Camera2D::GetDeltaAngle() const {
 	return ray_cast_.GetDeltaTheta();
 }

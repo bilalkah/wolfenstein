@@ -160,8 +160,10 @@ class Scene
 	// corners but not through walls or closed doors, as far as `range`
 	// cells, and alerts every living enemy it reaches. Allocates nothing.
 	void MakeNoise(const vector2d& pose, int range);
-	void ShowImpact(Impact impact, const vector2d& pose,
-					double elevation = 0.0);
+	// A puff at `pose`, centred `height` above the floor (where the shot
+	// struck), `scale` times its usual size (a headshot's is bigger)
+	void ShowImpact(Impact impact, const vector2d& pose, double height,
+					double scale = 1.0);
 	void AddWallMark(const WallMark& mark);
 	std::span<const WallMark> GetWallMarks() const {
 		return std::span(wall_marks_).first(wall_mark_count_);
@@ -252,6 +254,7 @@ class Scene
 	bool kill_targets_ = false;
 	bool completed_ = false;
 	Player* player_ = nullptr;
+	SoundChannel door_channel_;	 // doors sliding
 	// Kept for the level's life, joining the objects when it is loaded
 	std::array<Effect, kEffects> effects_{};
 	std::size_t next_effect_ = 0;

@@ -4,7 +4,6 @@
 #include <array>
 #include <charconv>
 #include <cstddef>
-#include <sstream>
 #include <string>
 #include <string_view>
 
@@ -34,28 +33,37 @@ Settings& Settings::Get() {
 	return settings;
 }
 
-// Stored as "key=value" lines; unknown keys and malformed values are ignored
-void Settings::Load() {
-	std::istringstream lines(ReadRecord(Record::Settings));
-	std::string line;
-	while (std::getline(lines, line)) {
+void Settings::Parse(std::string_view text) {
+	while (!text.empty()) {
+		const auto end = text.find('\n');
+		const std::string_view line = text.substr(0, end);
+		text = end == std::string_view::npos ? std::string_view{}
+											 : text.substr(end + 1);
 		const auto separator = line.find('=');
-		if (separator == std::string::npos) {
-			continue;
-		}
-		const std::string_view key(line.data(), separator);
-		const std::string_view value(line.data() + separator + 1,
-									 line.size() - separator - 1);
 		double number = 0.0;
-		if (!ParseDouble(value, number)) {
+		if (separator == std::string_view::npos ||
+			!ParseDouble(line.substr(separator + 1), number)) {
 			continue;
 		}
+		const std::string_view key = line.substr(0, separator);
 		if (key == "mouse_sensitivity") {
 			mouse_sensitivity =
 				std::clamp(number, kMinMouseSensitivity, kMaxMouseSensitivity);
 		}
+		else if (key == "invert_mouse_y") {
+			invert_mouse_y = number != 0.0;
+		}
+		else if (key == "fov") {
+			fov = std::clamp(number, kMinFov, kMaxFov);
+		}
 		else if (key == "volume") {
 			volume = std::clamp(number, 0.0, 1.0);
+		}
+		else if (key == "music_volume") {
+			music_volume = std::clamp(number, 0.0, 1.0);
+		}
+		else if (key == "effects_volume") {
+			effects_volume = std::clamp(number, 0.0, 1.0);
 		}
 		else if (key == "show_fps") {
 			show_fps = number != 0.0;
@@ -63,15 +71,28 @@ void Settings::Load() {
 	}
 }
 
+std::size_t Settings::Format(std::span<char> out) const {
+	RecordWriter writer(out);
+	writer.Line("mouse_sensitivity", mouse_sensitivity)
+		.Line("invert_mouse_y", invert_mouse_y ? 1 : 0)
+		.Line("fov", fov)
+		.Line("volume", volume)
+		.Line("music_volume", music_volume)
+		.Line("effects_volume", effects_volume)
+		.Line("show_fps", show_fps ? 1 : 0);
+	return writer.Text().size();
+}
+
+void Settings::Load() {
+	Parse(ReadRecord(Record::Settings));
+}
+
 // Formats into a buffer on the stack: no allocation while the game runs
 void Settings::Save() const {
-	std::array<char, 128> buffer{};
-	RecordWriter writer(buffer);
-	writer.Line("mouse_sensitivity", mouse_sensitivity)
-		.Line("volume", volume)
-		.Line("show_fps", show_fps ? 1 : 0);
-	if (!writer.Text().empty()) {
-		WriteRecord(Record::Settings, writer.Text());
+	std::array<char, 256> buffer{};
+	const std::size_t size = Format(buffer);
+	if (size > 0) {
+		WriteRecord(Record::Settings, std::string_view(buffer.data(), size));
 	}
 }
 

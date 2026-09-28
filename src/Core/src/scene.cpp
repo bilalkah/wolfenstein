@@ -59,7 +59,8 @@ Scene::Scene(const TextureManager& textures, SoundManager& sound,
 	  noise_distance_(std::size_t{map.GetSizeX()} * map.GetSizeY(), kUnheard,
 					  &arena_),
 	  noise_queue_(std::size_t{map.GetSizeX()} * map.GetSizeY(), 0, &arena_),
-	  doors_(map.GetDoors().size(), DoorMotion{}, &arena_) {
+	  doors_(map.GetDoors().size(), DoorMotion{}, &arena_),
+	  door_channel_(sound.AllocateChannel()) {
 	map_.ReservePushWalls(capacity.secrets);
 	objects_.reserve(capacity.enemies + capacity.dynamic_objects +
 					 capacity.pickups + kEffects);
@@ -180,15 +181,16 @@ void Scene::MakeNoise(const vector2d& pose, int range) {
 	}
 }
 
-void Scene::ShowImpact(Impact impact, const vector2d& pose, double elevation) {
-	// Drawn 0.4 of a wall wide and 0.8 high: the puff is where shots fly in
-	// the art, half a wall up
+void Scene::ShowImpact(Impact impact, const vector2d& pose, double height,
+					   double scale) {
+	// Drawn a square 0.3 of a wall across, the puff at its middle, raised
+	// to where the shot struck (never into the floor)
 	constexpr double kFrameSeconds = 0.06;
-	constexpr double kWidth = 0.4;
-	constexpr double kHeight = 0.8;
+	constexpr double kSize = 0.3;
+	const double size = kSize * scale;
 	effects_[next_effect_].Start(
 		pose, impact == Impact::Blood ? blood_frames_ : dust_frames_,
-		kFrameSeconds, kWidth, kHeight, elevation);
+		kFrameSeconds, size, size, std::max(height - size / 2, 0.0));
 	next_effect_ = (next_effect_ + 1) % kEffects;
 }
 
@@ -312,6 +314,9 @@ void Scene::HandleUse() {
 
 void Scene::OpenDoor(std::size_t door) {
 	DoorMotion& motion = doors_[door];
+	if (motion.phase == DoorMotion::Phase::Closed) {
+		sound_.PlayEffect(door_channel_, SoundEffect::DoorMove);
+	}
 	if (motion.phase == DoorMotion::Phase::Closed ||
 		motion.phase == DoorMotion::Phase::Closing) {
 		motion.phase = DoorMotion::Phase::Opening;
@@ -373,6 +378,7 @@ void Scene::UpdateDoors(double delta_time) {
 				if (motion.open_time >= kDoorOpenSeconds &&
 					!IsDoorwayOccupied(doors[i])) {
 					motion.phase = DoorMotion::Phase::Closing;
+					sound_.PlayEffect(door_channel_, SoundEffect::DoorMove);
 				}
 				break;
 			case DoorMotion::Phase::Closing:

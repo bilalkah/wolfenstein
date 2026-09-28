@@ -23,6 +23,7 @@ Player::Player(CharacterConfig& config, std::span<const WeaponConfig> arsenal,
 	  health_(100),
 	  sound_(sound),
 	  sound_channel_(sound.AllocateChannel()),
+	  step_channel_(sound.AllocateChannel()),
 	  position_(config.initial_position),
 	  previous_position_(config.initial_position),
 	  weapon_count_(std::min(arsenal.size(), kMaxWeapons)),
@@ -71,13 +72,35 @@ void Player::SetOwnedWeapons(std::uint8_t owned) {
 }
 
 void Player::SelectWeapon(std::size_t index) {
-	if (index == held_ || !Owns(index)) {
+	if (!Owns(index)) {
 		return;
 	}
+	if (coming_) {
+		// Changed its mind while the gun goes down: another comes up, or
+		// the one going down comes back
+		if (index == held_) {
+			coming_.reset();
+			GetWeapon(held_).TransitionTo(WeaponStateType::Raising);
+		}
+		else {
+			coming_ = index;
+		}
+		return;
+	}
+	if (index == held_) {
+		return;
+	}
+	coming_ = index;
+	GetWeapon(held_).TransitionTo(WeaponStateType::Lowering);
+}
+
+void Player::TakeInHand(std::size_t index) {
+	if (!Owns(index)) {
+		return;
+	}
+	coming_.reset();
 	held_ = index;
-	// Brought up afresh, not mid-shot or mid-reload from the last time it
-	// was held
-	GetWeapon(held_).TransitionTo(WeaponStateType::Raising);
+	GetWeapon(held_).TransitionTo(WeaponStateType::Loaded);
 }
 
 void Player::Update(double delta_time) {
@@ -87,6 +110,7 @@ void Player::Update(double delta_time) {
 	kick_ *= std::exp(-kKickSettling * delta_time);
 	pickup_animation_.Update(delta_time);
 	since_hurt_ += delta_time;
+	since_hit_ += delta_time;
 	if (!is_alive_) {
 		// Falling, and a thud as the body lands
 		const bool falling = since_death_ < kFallSeconds;
@@ -99,6 +123,13 @@ void Player::Update(double delta_time) {
 	SwitchWeapons();
 	ShootOrReload();
 	GetWeapon(held_).Update(delta_time);
+	// The gun in hand is down: the next comes up, afresh, not mid-shot or
+	// mid-reload from the last time it was held
+	if (const auto next = coming_; next && GetWeapon(held_).IsDown()) {
+		held_ = *next;
+		coming_.reset();
+		GetWeapon(held_).TransitionTo(WeaponStateType::Raising);
+	}
 	Move(delta_time);
 	Rotate(delta_time);
 	damage_animation_.Update(delta_time);
@@ -194,7 +225,15 @@ bool Player::TryPickUp(const PickupEffect& effect, double supplies) {
 		taken = true;
 	}
 	if (taken) {
-		sound_.PlayEffect(sound_channel_, SoundEffect::Pickup);
+		// What it sounds like, by the most it gave: a gun, a key, rounds,
+		// else health
+		const SoundEffect sound =
+			effect.weapons != 0 ? SoundEffect::WeaponPickup
+			: effect.keys != 0	? SoundEffect::KeyPickup
+			: effect.ammo_boxes > 0 && effect.health <= 0.0
+				? SoundEffect::AmmoPickup
+				: SoundEffect::Pickup;
+		sound_.PlayEffect(sound_channel_, sound);
 		picked_up_ = true;
 		pickup_animation_.Reset();
 	}
@@ -204,6 +243,11 @@ bool Player::TryPickUp(const PickupEffect& effect, double supplies) {
 void Player::Restore(double health, std::size_t ammo, std::size_t reserve) {
 	health_ = std::clamp(health, 1.0, 100.0);
 	GetWeapon(held_).SetRounds(ammo, reserve);
+}
+
+double Player::GetHitMarker() const {
+	constexpr double kShowSeconds = 0.2;
+	return std::max(1.0 - since_hit_ / kShowSeconds, 0.0);
 }
 
 double Player::GetDeathFall() const {
@@ -251,11 +295,21 @@ void Player::Move(double delta_time) {
 		ResolveObjectCollisions(scene_->GetObjects(), this, position_.pose,
 								position_.pose + delta_movement, width_ / 2);
 	const vector2d step = reached - position_.pose;
+	const vector2d before = position_.pose;
 	if (!CheckWallCollision(map, position_.pose, {step.x, 0})) {
 		position_.pose.x += step.x;
 	}
 	if (!CheckWallCollision(map, position_.pose, {0, step.y})) {
 		position_.pose.y += step.y;
+	}
+	// A footstep every stride walked, one foot then the other
+	constexpr double kStride = 0.9;
+	walked_ += position_.pose.Distance(before);
+	if (walked_ >= kStride) {
+		walked_ -= kStride;
+		left_foot_ = !left_foot_;
+		sound_.PlayEffect(step_channel_, left_foot_ ? SoundEffect::StepLeft
+													: SoundEffect::StepRight);
 	}
 }
 
@@ -281,7 +335,8 @@ void Player::SwitchWeapons() {
 	}
 	if (command_.cycle != 0) {
 		const auto count = static_cast<int>(weapon_count_);
-		int index = static_cast<int>(held_);
+		// On from the weapon coming into hand, if one is
+		int index = static_cast<int>(coming_.value_or(held_));
 		for (int step = 0; step < count; ++step) {
 			index = (index + command_.cycle + count) % count;
 			if (Owns(static_cast<std::size_t>(index))) {
@@ -303,7 +358,12 @@ void Player::ShootOrReload() {
 	if (command_.fire && weapon.Attack()) {
 		kick_ = std::max(kick_, weapon.GetKick());
 		scene_->MakeNoise(position_.pose, weapon.GetNoiseRange());
-		ResolvePlayerShot(*scene_, weapon, position_, pitch_);
+		const ShotResult result =
+			ResolvePlayerShot(*scene_, weapon, position_, pitch_);
+		if (result.hit) {
+			since_hit_ = 0.0;
+			headshot_ = result.head;
+		}
 	}
 }
 

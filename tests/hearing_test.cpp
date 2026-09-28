@@ -1,5 +1,6 @@
-// Gunfire carries: it spreads through open floor, round corners but not
-// through walls or closed doors, and enemies it reaches come hunting
+// Gunfire carries, the player's and the enemies': it spreads through open
+// floor, round corners but not through walls or closed doors, and enemies it
+// reaches come hunting
 
 #include "Core/scene.h"
 #include "Profiler/profiler.h"
@@ -110,6 +111,40 @@ TEST_F(HearingTest, TheAlertWearsOff) {
 		scene_->Update(kTick);
 	}
 	EXPECT_FALSE(enemy_->IsAlerted());
+}
+
+// An enemy's shot carries too: a soldier in the player's corridor opens
+// fire, and one round the bend at (3, 7), 7 cells away by the corridors and
+// out of the player's sight, comes to the fight
+TEST(EnemyGunfire, BringsTheOthersHunting) {
+	ASSERT_GE(testing::Enemy("soldier").weapon.noise_range, 7);
+	constexpr SceneCapacity kCapacity{.enemies = 2};
+	const Map map(
+		testing::WriteMapFile("wolfenstein_gunfire_test.txt", kBend).string());
+	memory::MonotonicArena arena(Scene::MemoryFor(map, kCapacity));
+	Scene scene(testing::TestTextures(), testing::TestSound(), map, kCapacity,
+				arena);
+	CharacterConfig config{Position2D({1.5, 1.5}, std::numbers::pi / 2), 2.0,
+						   0.4, 0.4, 1.0};
+	Player player(config, testing::GameData().weapons, 0,
+				  testing::TestTextures(), testing::TestSound());
+	scene.SetPlayer(player);
+	ASSERT_TRUE(scene.AddEnemy(testing::Enemy("soldier"),
+							   Position2D({1.5, 4.5}, -std::numbers::pi / 2)));
+	ASSERT_TRUE(
+		scene.AddEnemy(testing::Enemy("soldier"), Position2D({3.5, 7.5}, 0.0)));
+	scene.FinishLoading();
+	const Enemy& listener = *scene.GetEnemies()[1];
+
+	// Until the first shot lands, the other stands idle, hearing nothing
+	for (int tick = 0; tick < 300 && player.GetHealth() == 100.0; ++tick) {
+		EXPECT_FALSE(listener.IsAlerted()) << tick;
+		scene.Update(kTick);
+	}
+	ASSERT_LT(player.GetHealth(), 100.0) << "the soldier never fired";
+	EXPECT_TRUE(listener.IsAlerted());
+	scene.Update(kTick);
+	EXPECT_EQ(listener.GetStateType(), EnemyStateType::Walk);
 }
 
 #ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS

@@ -107,7 +107,8 @@
             "spread": 8,
             "raise_seconds": 0.7,
             "sound": "shotgun",
-            "noise_range": 12
+            "noise_range": 12,
+            "lower_seconds": 0.35
         }
     ],
     "hit_zones": {
@@ -119,8 +120,8 @@
     "config_enemy": {
         "soldier": {
             "t_speed": 0.8,
-            "width": 0.3,
-            "height": 0.6,
+            "width": 0.33,
+            "height": 0.66,
             "health": 60,
             "weapon": {
                 "name": "rifle",
@@ -130,7 +131,8 @@
                 ],
                 "range": 6.0,
                 "attack_speed": 0.7,
-                "attack_rate": 1.0
+                "attack_rate": 1.0,
+                "noise_range": 10
             },
             "ai": {
                 "idle_frame_seconds": 0.8,
@@ -171,7 +173,8 @@
                 ],
                 "range": 7.0,
                 "attack_speed": 1.0,
-                "attack_rate": 1.0
+                "attack_rate": 1.0,
+                "noise_range": 12
             },
             "ai": {
                 "idle_frame_seconds": 0.8,

@@ -47,13 +47,25 @@ struct HitZones
 	double leg_share = 0.45;
 	double leg_damage = 0.6;
 
-	// What a hit `down` the figure (0 at its top, 1 at its feet) does, as a
-	// share of the weapon's damage
-	double Scale(double down) const {
+	enum class Zone : std::uint8_t { Head, Body, Legs };
+	// The zone `down` the figure (0 at its top, 1 at its feet)
+	Zone ZoneAt(double down) const {
 		if (down < head_share) {
-			return head_damage;
+			return Zone::Head;
 		}
-		return down > 1.0 - leg_share ? leg_damage : 1.0;
+		return down > 1.0 - leg_share ? Zone::Legs : Zone::Body;
+	}
+	// What a hit there does, as a share of the weapon's damage
+	double Scale(Zone zone) const {
+		switch (zone) {
+			case Zone::Head:
+				return head_damage;
+			case Zone::Legs:
+				return leg_damage;
+			case Zone::Body:
+				return 1.0;
+		}
+		return 1.0;
 	}
 };
 

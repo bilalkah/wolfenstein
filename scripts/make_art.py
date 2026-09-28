@@ -5,8 +5,9 @@ pickup sound.
 
 Pixel art in the chunky style of the other sprites, written as PNGs (the
 pickups on a transparent background), and as WAVs a short rising chime,
-the pistol's and the MP5's shots, a dry click for an empty gun and the
-thud of the player falling dead;
+the pistol's and the MP5's shots, a dry click for an empty gun, the thud
+of the player falling dead, doors, an enemy's alert shout, footsteps and
+the ammunition, key and weapon pickups;
 standard library only, so rerunning gives the same files.
 
     ./scripts/make_art.py   # writes assets/sprites/pickups/*.png,
@@ -385,6 +386,128 @@ def body_fall():
     return samples
 
 
+def resonate(samples, frequency, bandwidth):
+    """A two-pole resonator: rings at `frequency`, `bandwidth` Hz wide."""
+    r = math.exp(-math.pi * bandwidth / SOUND_RATE)
+    c = 2 * r * math.cos(2 * math.pi * frequency / SOUND_RATE)
+    out, y1, y2 = [], 0.0, 0.0
+    for sample in samples:
+        y = (1 - r) * sample + c * y1 - r * r * y2
+        out.append(y)
+        y1, y2 = y, y1
+    return out
+
+
+def door_slide():
+    """A heavy door sliding in its frame: a low rumble that swells and
+    fades, and a clunk as it stops."""
+    rng = random.Random(505)
+    count = int(0.7 * SOUND_RATE)
+    noise = [rng.uniform(-1.0, 1.0) for _ in range(count)]
+    rumble = lowpass(lowpass(noise, 220.0), 220.0)
+    grind = resonate(noise, 520.0, 90.0)
+    samples, phase = [], 0.0
+    for i in range(count):
+        t = i / SOUND_RATE
+        swell = math.sin(math.pi * min(t / 0.5, 1.0)) if t < 0.5 else 0.0
+        sample = 5.0 * rumble[i] * swell + 0.6 * grind[i] * swell
+        if t >= 0.48:  # the stop
+            since = t - 0.48
+            phase += 2 * math.pi * 70.0 / SOUND_RATE
+            sample += 0.8 * math.sin(phase) * math.exp(-since / 0.05)
+            sample += 2.0 * rumble[i] * math.exp(-since / 0.03)
+        samples.append(math.tanh(sample))
+    return samples
+
+
+def alert_shout(seed, pitch):
+    """A short gruff shout ("Hah!"): a buzzing voice through the resonances
+    of an open vowel, its pitch falling, with breath in it."""
+    rng = random.Random(seed)
+    count = int(0.32 * SOUND_RATE)
+    source, phase = [], 0.0
+    for i in range(count):
+        t = i / SOUND_RATE
+        frequency = pitch * (1.15 - 0.35 * min(t / 0.3, 1.0))
+        phase = (phase + frequency / SOUND_RATE) % 1.0
+        buzz = 2 * phase - 1  # a sawtooth: the vocal folds
+        breath = rng.uniform(-1.0, 1.0) * 0.35
+        source.append(buzz + breath)
+    voice = [a + 0.7 * b + 0.3 * c for a, b, c in zip(
+        resonate(source, 700.0, 110.0), resonate(source, 1150.0, 130.0),
+        resonate(source, 2500.0, 200.0))]
+    peak = max(abs(sample) for sample in voice) or 1.0
+    samples = []
+    for i, sample in enumerate(lowpass(voice, 3200.0)):
+        t = i / SOUND_RATE
+        envelope = min(1.0, t / 0.02) * math.exp(-max(t - 0.12, 0.0) / 0.07)
+        samples.append(math.tanh(1.3 * sample / peak * envelope))
+    return samples
+
+
+def footstep(seed):
+    """A boot on stone: a soft low thud and a scuff."""
+    rng = random.Random(seed)
+    count = int(0.16 * SOUND_RATE)
+    noise = [rng.uniform(-1.0, 1.0) for _ in range(count)]
+    thud = lowpass(lowpass(noise, 350.0), 350.0)
+    scuff = resonate(noise, 1800.0 + 300.0 * (seed % 3), 900.0)
+    samples = []
+    for i in range(count):
+        t = i / SOUND_RATE
+        sample = 6.0 * thud[i] * math.exp(-t / 0.025)
+        sample += 0.25 * scuff[i] * math.exp(-t / 0.018)
+        samples.append(math.tanh(sample * min(1.0, t / 0.002)))
+    return samples
+
+
+def metal_clicks(seed, clicks):
+    """Metal parts meeting: each (start, pitch, level) a short bright ring."""
+    rng = random.Random(seed)
+    count = int((max(start for start, _, _ in clicks) + 0.08) * SOUND_RATE)
+    samples = [0.0] * count
+    for start, pitch, level in clicks:
+        offset = int(start * SOUND_RATE)
+        for i in range(int(0.06 * SOUND_RATE)):
+            t = i / SOUND_RATE
+            ring = (math.sin(2 * math.pi * pitch * t) +
+                    0.5 * math.sin(2 * math.pi * pitch * 2.76 * t))
+            tick = rng.uniform(-1.0, 1.0) * math.exp(-t / 0.0015)
+            if offset + i < count:
+                samples[offset + i] += level * (
+                    0.6 * ring * math.exp(-t / 0.012) + 0.6 * tick)
+    return samples
+
+
+def ammo_pickup():
+    """A box of rounds taken: a magazine's two clicks."""
+    return metal_clicks(606, ((0.0, 2400.0, 1.0), (0.07, 1900.0, 0.8)))
+
+
+def key_pickup():
+    """A key taken: keys on a ring, jingling."""
+    return metal_clicks(707, ((0.0, 3300.0, 0.8), (0.05, 4100.0, 0.6),
+                              (0.09, 2900.0, 0.7), (0.15, 3700.0, 0.4)))
+
+
+def gun_cock():
+    """A gun taken: its action worked, back and forth, and a clack."""
+    rng = random.Random(808)
+    slide = [s * 0.35 for s in resonate([rng.uniform(-1.0, 1.0)
+                                          for _ in range(int(0.3 * SOUND_RATE))],
+                                         1500.0, 700.0)]
+    clicks = metal_clicks(809, ((0.0, 1700.0, 1.0), (0.2, 1300.0, 1.2)))
+    samples = [0.0] * max(len(slide), len(clicks))
+    for i, sample in enumerate(clicks):
+        samples[i] += sample
+    for i, sample in enumerate(slide):
+        t = i / SOUND_RATE
+        # The slide sounds between the two clicks
+        if 0.02 <= t <= 0.19:
+            samples[i] += sample * math.sin(math.pi * (t - 0.02) / 0.17)
+    return samples
+
+
 def dry_click():
     """The trigger pulled on an empty gun: two small metal clicks."""
     rng = random.Random(303)
@@ -401,12 +524,6 @@ def dry_click():
 
 
 # --------------------------------------------------------------- impacts
-
-# A shot lands half a wall up; the puffs are drawn on a canvas the effect's
-# size (0.4 of a wall by 0.8 of one), the puff where that height is
-PUFF_CANVAS = (32, 64)
-PUFF_CENTRE = (16, 24)
-
 
 def splatter(canvas, cx, cy, radius, colour, seed, count, spread, fall=0.0):
     """A blob of `radius` and `count` droplets flung up to `spread` from it,
@@ -430,39 +547,110 @@ def splatter(canvas, cx, cy, radius, colour, seed, count, spread, fall=0.0):
         canvas.rect(x, y, x + size - 1, y + size - 1, colour)
 
 
+# The puffs where shots land: square, the puff at the middle, which the game
+# puts where the shot struck. Drawn smooth (each pixel covered as much as a
+# shape covers it), so they stay soft up close.
+PUFF_SIZE = 96
+
+
+class SoftCanvas:
+    """Colour laid on in layers, each pixel as much as a shape covers it."""
+
+    def __init__(self, size):
+        self.size = size
+        self.rgba = [[0.0, 0.0, 0.0, 0.0] for _ in range(size * size)]
+
+    def disc(self, cx, cy, radius, colour, alpha, mist=False):
+        """A disc; a mist fades from its middle to nothing at its edge."""
+        r, g, b = colour
+        for y in range(max(0, int(cy - radius - 1)),
+                       min(self.size, int(cy + radius + 2))):
+            for x in range(max(0, int(cx - radius - 1)),
+                           min(self.size, int(cx + radius + 2))):
+                distance = math.hypot(x + 0.5 - cx, y + 0.5 - cy)
+                if mist:
+                    cover = max(0.0, 1.0 - (distance / radius) ** 2)
+                else:
+                    cover = min(1.0, max(0.0, radius + 0.5 - distance))
+                a = alpha * cover
+                if a <= 0.0:
+                    continue
+                pixel = self.rgba[y * self.size + x]
+                keep = 1.0 - a
+                pixel[0] = r * a + pixel[0] * keep
+                pixel[1] = g * a + pixel[1] * keep
+                pixel[2] = b * a + pixel[2] * keep
+                pixel[3] = a + pixel[3] * keep
+
+    def droplets(self, cx, cy, seed, count, reach, size, colour, alpha,
+                 fall=0.0, near=0.0):
+        """`count` drops flung between `near` and `reach` from the middle,
+        dropping `fall` px per px out; the same seed gives the same drops."""
+        rng = random.Random(seed)
+        for _ in range(count):
+            angle = rng.uniform(0.0, math.tau)
+            out = rng.uniform(near, reach)
+            radius = size * rng.uniform(0.5, 1.0)
+            self.disc(cx + math.cos(angle) * out,
+                      cy + math.sin(angle) * out + fall * out, radius, colour,
+                      alpha)
+
+    def canvas(self):
+        out = Canvas(self.size, self.size)
+        for y in range(self.size):
+            for x in range(self.size):
+                r, g, b, a = self.rgba[y * self.size + x]
+                if a > 0.0:
+                    out.pixels[y][x] = (round(r / a), round(g / a), round(b / a),
+                                        round(a * 255))
+        return out
+
+
+BLOOD_DARK, BLOOD, BLOOD_BRIGHT = (100, 8, 8), (160, 18, 16), (210, 38, 30)
+
+
 def blood_puff(frame):
-    canvas = Canvas(*PUFF_CANVAS)
-    cx, cy = PUFF_CENTRE
-    dark, red, bright = (96, 8, 8, 255), (168, 18, 16, 255), (224, 46, 36, 255)
+    """A spray of blood: a burst, spreading into a fine mist and drops that
+    fall and fade."""
+    soft = SoftCanvas(PUFF_SIZE)
+    c = PUFF_SIZE / 2
     if frame == 0:
-        splatter(canvas, cx, cy, 3, red, 7, 6, 3)
-        splatter(canvas, cx, cy, 1, bright, 3, 0, 0)
+        soft.disc(c, c, 7, BLOOD_DARK, 0.5, mist=True)
+        soft.droplets(c, c, 1, 18, 9, 1.6, BLOOD, 1.0)
+        soft.disc(c, c, 3.5, BLOOD_BRIGHT, 1.0)
     elif frame == 1:
-        splatter(canvas, cx, cy, 5, dark, 11, 10, 6, 0.1)
-        splatter(canvas, cx, cy, 3, red, 5, 6, 4)
-        splatter(canvas, cx - 1, cy - 1, 1, bright, 3, 0, 0)
+        soft.disc(c, c, 14, BLOOD_DARK, 0.45, mist=True)
+        soft.droplets(c, c, 2, 26, 18, 1.8, BLOOD, 1.0, fall=0.1, near=4)
+        soft.disc(c, c, 5, BLOOD, 0.9, mist=True)
     elif frame == 2:
-        splatter(canvas, cx, cy + 1, 5, (96, 8, 8, 200), 13, 12, 8, 0.3)
-        splatter(canvas, cx, cy + 1, 3, (150, 16, 14, 220), 9, 4, 3, 0.3)
+        soft.disc(c, c + 3, 20, BLOOD_DARK, 0.28, mist=True)
+        soft.droplets(c, c, 3, 26, 28, 1.6, BLOOD_DARK, 0.9, fall=0.3, near=8)
     else:
-        splatter(canvas, cx, cy + 3, 3, (80, 6, 6, 140), 17, 10, 9, 0.6)
-    return canvas
+        soft.disc(c, c + 6, 24, BLOOD_DARK, 0.12, mist=True)
+        soft.droplets(c, c, 4, 18, 34, 1.3, BLOOD_DARK, 0.55, fall=0.55,
+                      near=14)
+    return soft.canvas()
+
+
+DUST, DUST_LIGHT, SPARK = (128, 122, 112), (170, 162, 148), (255, 226, 140)
 
 
 def dust_puff(frame):
-    canvas = Canvas(*PUFF_CANVAS)
-    cx, cy = PUFF_CENTRE
+    """Stone struck: a spark and chips, then a cloud of dust that thins."""
+    soft = SoftCanvas(PUFF_SIZE)
+    c = PUFF_SIZE / 2
     if frame == 0:
-        splatter(canvas, cx, cy, 2, (150, 142, 128, 255), 19, 5, 3)
-        cross(canvas, cx, cy, 3, 1, (255, 236, 150, 255), (255, 196, 64, 255))
+        soft.disc(c, c, 6, DUST_LIGHT, 0.6, mist=True)
+        soft.droplets(c, c, 5, 10, 12, 1.4, DUST, 1.0)
+        soft.disc(c, c, 3, SPARK, 1.0, mist=True)
     elif frame == 1:
-        splatter(canvas, cx, cy, 4, (132, 126, 114, 230), 23, 8, 5)
-        splatter(canvas, cx - 1, cy - 1, 2, (170, 162, 148, 240), 29, 0, 0)
+        soft.disc(c, c, 11, DUST_LIGHT, 0.6, mist=True)
+        soft.droplets(c, c, 6, 12, 18, 1.4, DUST, 0.9, fall=0.2, near=4)
     elif frame == 2:
-        splatter(canvas, cx, cy - 1, 6, (128, 122, 112, 150), 31, 8, 5, -0.1)
+        soft.disc(c, c - 2, 16, DUST, 0.4, mist=True)
     else:
-        splatter(canvas, cx, cy - 2, 7, (128, 122, 112, 70), 37, 6, 4, -0.2)
-    return canvas
+        soft.disc(c, c - 4, 20, DUST, 0.18, mist=True)
+    return soft.canvas()
 
 
 def bullet_mark():
@@ -501,6 +689,16 @@ def main():
     write_wave(ASSETS / "sounds" / "mp5.wav", smg_shot(), loudness=0.24)
     write_wave(ASSETS / "sounds" / "dry_fire.wav", dry_click(), loudness=0.1)
     write_wave(ASSETS / "sounds" / "player_fall.wav", body_fall(), loudness=0.5)
+    write_wave(ASSETS / "sounds" / "door.wav", door_slide(), loudness=0.18)
+    write_wave(ASSETS / "sounds" / "enemy_alert.wav", alert_shout(901, 115.0),
+               loudness=0.22)
+    write_wave(ASSETS / "sounds" / "step_left.wav", footstep(11), loudness=0.12)
+    write_wave(ASSETS / "sounds" / "step_right.wav", footstep(12), loudness=0.12)
+    write_wave(ASSETS / "sounds" / "ammo_pickup.wav", ammo_pickup(),
+               loudness=0.3)
+    write_wave(ASSETS / "sounds" / "key_pickup.wav", key_pickup(), loudness=0.3)
+    write_wave(ASSETS / "sounds" / "weapon_pickup.wav", gun_cock(),
+               loudness=0.35)
 
 
 if __name__ == "__main__":

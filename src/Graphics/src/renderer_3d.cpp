@@ -39,15 +39,15 @@ void Renderer3D::TextureDeleter::operator()(
 }
 
 Renderer3D::Renderer3D(RendererContext& context) : IRenderer(context) {
-	// Up to two commands per wall column (2 px wide): the wall and, on a
-	// secret wall, its mark; the weapon, crosshair and overlays. The level's
-	// objects are added by ReserveObjects.
+	static_assert(kDecals >= Scene::kWallMarks + 4,
+				  "room for every bullet mark and a few secret walls");
+	// A command per wall column (2 px wide), one a decal, and the weapon,
+	// crosshair and overlays. The level's objects are added by
+	// ReserveObjects.
 	constexpr std::size_t kOverlays = 8;
-	// Bullet marks: a few columns each, as far as the room allows
-	constexpr std::size_t kMarkColumns = Scene::kWallMarks * 16;
 	render_queue_.reserve(
-		static_cast<std::size_t>(context_->GetConfig().width) + kOverlays +
-		kMarkColumns);
+		static_cast<std::size_t>(context_->GetConfig().width / 2) + kDecals +
+		kOverlays);
 	hud_digits_ = context_->Textures().GetTextureCollection("digits");
 	sky_texture_ = context_->Textures().GetTextureId("sky");
 	far_texture_ = context_->Textures().GetTextureId("solid_black");
@@ -99,7 +99,8 @@ void Renderer3D::ReserveObjects(std::size_t objects) {
 void Renderer3D::Enqueue(int texture_id, const SDL_Rect& src_rect,
 						 const SDL_Rect& dest_rect, double distance) {
 	render_queue_.push_back({texture_id, src_rect, dest_rect, distance,
-							 static_cast<std::uint32_t>(render_queue_.size())});
+							 static_cast<std::uint32_t>(render_queue_.size()),
+							 nullptr});
 }
 
 void Renderer3D::RenderScene(double delta_time) {
@@ -107,8 +108,10 @@ void Renderer3D::RenderScene(double delta_time) {
 	render_queue_.clear();
 	// Looking up, or a shot's kick, drops the world down the screen
 	const Player& player = scene_->GetPlayer();
+	pixels_per_unit_ =
+		PixelsPerUnit(context_->GetConfig(), context_->GetCamera().GetFov());
 	horizon_shift_ = static_cast<int>((player.GetPitch() + player.GetKick()) *
-									  context_->GetConfig().height);
+									  pixels_per_unit_);
 	eye_height_ = player.GetEyeHeight();
 	// Falling dead, the world is drawn aside to be rolled over
 	const double fall = player.GetDeathFall();
@@ -130,6 +133,7 @@ void Renderer3D::RenderScene(double delta_time) {
 	{
 		ScopedTimer timer(ProfileSection::RenderDraw);
 		RenderTextures();
+		RenderHitMarker();
 	}
 	if (falling_) {
 		SDL_SetRenderTarget(context_->GetRenderer(), nullptr);
@@ -152,7 +156,8 @@ void Renderer3D::RenderBackground() {
 	// width
 	const int sky_height = config.height / 2;
 	const int sky_width = sky.width * sky_height / sky.height;
-	const double pixels_per_radian = config.width / config.fov;
+	const double pixels_per_radian =
+		config.width / context_->GetCamera().GetFov();
 	const double turned =
 		context_->GetCamera().GetPosition().theta * pixels_per_radian;
 	const int offset =
@@ -199,6 +204,8 @@ void Renderer3D::RenderWalls() {
 	const auto& camera_ptr = context_->GetCamera();
 	const auto& rays = camera_ptr.GetRays();
 
+	decal_count_ = 0;
+	face_marks_.valid = false;	// the marks may have changed since
 	int horizontal_slice = 0;
 	for (const auto& ray : rays) {
 		if (!ray.is_hit) {
@@ -209,6 +216,7 @@ void Renderer3D::RenderWalls() {
 		}
 		horizontal_slice += 2;
 	};
+	EnqueueDecals();
 }
 
 void Renderer3D::RenderIfRayHit(const int& horizontal_slice, const Ray& ray) {
@@ -245,23 +253,22 @@ void Renderer3D::RenderIfRayHit(const int& horizontal_slice, const Ray& ray) {
 	// A secret wall not yet pushed gives itself away to a careful eye: a
 	// faint crack over the lower middle of its face
 	const vector2d inside = ray.hit_point + ray.direction * 1e-4;
-	if (scene_->GetMap().FindPushWall(static_cast<int>(std::floor(inside.x)),
-									  static_cast<int>(std::floor(inside.y))) !=
-		nullptr) {
+	const Map& map = scene_->GetMap();
+	if (const PushWall* secret =
+			map.FindPushWall(static_cast<int>(std::floor(inside.x)),
+							 static_cast<int>(std::floor(inside.y)))) {
 		constexpr double kLeft = 0.3;
 		constexpr double kWidth = 0.4;
 		constexpr double kTop = 0.55;
 		constexpr double kHeight = 0.28;
 		const double across = (hit_point - kLeft) / kWidth;
 		if (across >= 0.0 && across < 1.0) {
-			const auto& mark = context_->Textures().GetTexture(mark_texture_);
-			const SDL_Rect mark_src{static_cast<int>(across * mark.width), 0, 1,
-									mark.height};
-			const SDL_Rect mark_dest{
-				horizontal_slice,
-				draw_start + static_cast<int>(kTop * line_height), 2,
-				static_cast<int>(kHeight * line_height)};
-			Enqueue(mark_texture_, mark_src, mark_dest, distance);
+			const auto index =
+				static_cast<std::uint32_t>(secret - map.GetPushWalls().data());
+			AddDecalColumn(mark_texture_, kCrackKeys + index * 4 + HitFace(ray),
+						   horizontal_slice, across,
+						   draw_start + static_cast<int>(kTop * line_height),
+						   static_cast<int>(kHeight * line_height), distance);
 		}
 	}
 }
@@ -277,27 +284,103 @@ void Renderer3D::RenderWallMarks(int horizontal_slice, const Ray& ray,
 	constexpr double kSize = 0.075;
 	const auto [x, y] = HitCell(ray);
 	const std::uint8_t face = HitFace(ray);
-	const auto& texture = context_->Textures().GetTexture(bullet_mark_texture_);
-	for (const Scene::WallMark& mark : marks) {
+	FaceMarks& on_face = face_marks_;
+	if (!on_face.valid || on_face.x != x || on_face.y != y ||
+		on_face.face != face) {
+		on_face = {.x = x,
+				   .y = y,
+				   .face = face,
+				   .valid = true,
+				   .marks = {},
+				   .count = 0};
+		for (std::size_t i = 0; i < marks.size(); ++i) {
+			if (marks[i].x == x && marks[i].y == y && marks[i].face == face) {
+				on_face.marks[on_face.count++] = static_cast<std::uint8_t>(i);
+			}
+		}
+	}
+	for (std::size_t k = 0; k < on_face.count; ++k) {
+		const std::size_t i = on_face.marks[k];
+		const Scene::WallMark& mark = marks[i];
 		const double left = mark.across - kSize / 2;
 		const double part = (across - left) / kSize;
-		if (mark.x != x || mark.y != y || mark.face != face || part < 0.0 ||
-			part >= 1.0) {
+		if (part < 0.0 || part >= 1.0) {
 			continue;
 		}
-		// Room was set aside for marks; past it they go undrawn rather
-		// than grow the queue in play
-		if (render_queue_.size() == render_queue_.capacity()) {
-			return;
-		}
-		const SDL_Rect src{static_cast<int>(part * texture.width), 0, 1,
-						   texture.height};
-		const SDL_Rect dest{
-			horizontal_slice,
+		AddDecalColumn(
+			bullet_mark_texture_, static_cast<std::uint32_t>(i),
+			horizontal_slice, part,
 			draw_start +
 				static_cast<int>((mark.down - kSize / 2) * line_height),
-			2, std::max(1, static_cast<int>(kSize * line_height))};
-		Enqueue(bullet_mark_texture_, src, dest, distance);
+			std::max(1, static_cast<int>(kSize * line_height)), distance);
+	}
+}
+
+void Renderer3D::AddDecalColumn(int texture_id, std::uint32_t key, int x,
+								double u, int top, int height,
+								double distance) {
+	// A frame shows few: the search is short
+	const auto end =
+		decals_.begin() + static_cast<std::ptrdiff_t>(decal_count_);
+	const auto decal =
+		std::ranges::find(decals_.begin(), end, key, &Decal::key);
+	if (decal == end) {
+		if (decal_count_ == decals_.size()) {
+			return;	 // room was set aside; past it they go undrawn
+		}
+		++decal_count_;
+		*decal = {.texture_id = texture_id,
+				  .key = key,
+				  .columns = 0,
+				  .first_x = x,
+				  .last_x = x,
+				  .first_u = u,
+				  .last_u = u,
+				  .before_last_u = u,
+				  .first_top = top,
+				  .first_height = height,
+				  .last_top = top,
+				  .last_height = height,
+				  .distance = distance};
+	}
+	++decal->columns;
+	decal->before_last_u = decal->last_u;
+	decal->last_x = x;
+	decal->last_u = u;
+	decal->last_top = top;
+	decal->last_height = height;
+	decal->distance = std::min(decal->distance, distance);
+}
+
+void Renderer3D::EnqueueDecals() {
+	for (std::size_t i = 0; i < decal_count_; ++i) {
+		const Decal& decal = decals_[i];
+		// The last column reaches as far across the texture again as the
+		// one before it did; a single column shows a sliver
+		const double step =
+			decal.columns > 1 ? decal.last_u - decal.before_last_u : 0.0;
+		const auto first_u = static_cast<float>(decal.first_u);
+		const auto end_u =
+			static_cast<float>(std::clamp(decal.last_u + step, 0.0, 1.0));
+		const auto left = static_cast<float>(decal.first_x);
+		const auto right = static_cast<float>(decal.last_x + 2);
+		const auto corner = [](float x, int y, float u, float v) {
+			return SDL_Vertex{.position = {x, static_cast<float>(y)},
+							  .color = {255, 255, 255, 255},
+							  .tex_coord = {u, v}};
+		};
+		decal_quads_[i] = {
+			corner(left, decal.first_top, first_u, 0.0F),
+			corner(left, decal.first_top + decal.first_height, first_u, 1.0F),
+			corner(right, decal.last_top, end_u, 0.0F),
+			corner(right, decal.last_top + decal.last_height, end_u, 1.0F)};
+		render_queue_.push_back(
+			{.texture_id = decal.texture_id,
+			 .src_rect = {},
+			 .dest_rect = {},
+			 .distance = decal.distance,
+			 .order = static_cast<std::uint32_t>(render_queue_.size()),
+			 .quad = &decal_quads_[i]});
 	}
 }
 
@@ -376,7 +459,7 @@ std::tuple<int, int, int> Renderer3D::CalculateVerticalSlice(
 	constexpr double kNearest = 0.01;
 	constexpr double kTallest = 32.0;  // screen heights
 	const double height =
-		std::min(config_.height / std::max(distance, kNearest),
+		std::min(pixels_per_unit_ / std::max(distance, kNearest),
 				 config_.height * kTallest);
 	auto line_height = static_cast<int>(height);
 	// A wall spans the floor to a wall's height; the eye is eye_height_ up
@@ -385,6 +468,42 @@ std::tuple<int, int, int> Renderer3D::CalculateVerticalSlice(
 	int draw_start = horizon - static_cast<int>((1.0 - eye_height_) * height);
 	int draw_end = horizon + static_cast<int>(eye_height_ * height);
 	return std::make_tuple(line_height, draw_start, draw_end);
+}
+
+void Renderer3D::RenderHitMarker() {
+	const Player& player = scene_->GetPlayer();
+	const double shown = player.GetHitMarker();
+	if (shown <= 0.0 || !player.IsAlive()) {
+		return;
+	}
+	auto* renderer = context_->GetRenderer();
+	const auto& config = context_->GetConfig();
+	const int cx = config.width / 2;
+	const int cy = config.height / 2;
+	// Ticks from a little off the crosshair, outward on its diagonals
+	const int from = config.width / 90;
+	const int to = config.width / 45;
+	const auto alpha = static_cast<std::uint8_t>(255.0 * shown);
+	if (player.IsHeadshotMarker()) {
+		SDL_SetRenderDrawColor(renderer, 230, 40, 30, alpha);
+	}
+	else {
+		SDL_SetRenderDrawColor(renderer, 255, 255, 255, alpha);
+	}
+	SDL_BlendMode mode = SDL_BLENDMODE_NONE;
+	SDL_GetRenderDrawBlendMode(renderer, &mode);
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+	for (const int dx : {-1, 1}) {
+		for (const int dy : {-1, 1}) {
+			// Two pixels thick
+			for (const int thick : {0, 1}) {
+				SDL_RenderDrawLine(renderer, cx + dx * from + thick,
+								   cy + dy * from, cx + dx * to + thick,
+								   cy + dy * to);
+			}
+		}
+	}
+	SDL_SetRenderDrawBlendMode(renderer, mode);
 }
 
 void Renderer3D::RenderDamage() {
@@ -488,11 +607,22 @@ void Renderer3D::RenderTextures() {
 		return lhs.order < rhs.order;
 	});
 	auto* renderer = context_->GetRenderer();
+	// Two triangles a quad: top left, bottom left, top right; and bottom
+	// left, bottom right, top right
+	static constexpr std::array<int, 6> kQuadTriangles{0, 1, 2, 1, 3, 2};
 	for (const RenderCommand& command : render_queue_) {
 		const auto& texture =
 			context_->Textures().GetTexture(command.texture_id);
-		SDL_RenderCopy(renderer, texture.texture, &command.src_rect,
-					   &command.dest_rect);
+		if (command.quad != nullptr) {
+			SDL_RenderGeometry(renderer, texture.texture, command.quad->data(),
+							   static_cast<int>(command.quad->size()),
+							   kQuadTriangles.data(),
+							   static_cast<int>(kQuadTriangles.size()));
+		}
+		else {
+			SDL_RenderCopy(renderer, texture.texture, &command.src_rect,
+						   &command.dest_rect);
+		}
 	}
 }
 

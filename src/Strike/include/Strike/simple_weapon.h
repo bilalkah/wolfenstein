@@ -27,6 +27,9 @@ struct SimpleWeaponConfig
 	double attack_range{};
 	double attack_speed{};
 	double attack_rate{};
+	// Cells its report carries round corners (Scene::MakeNoise): the
+	// enemies it reaches come hunting too. 0 for a silent attack (a bite).
+	int noise_range{};
 };
 
 // An enemy's weapon: its stats (borrowed from the config) and what its
@@ -44,6 +47,7 @@ class SimpleWeapon
 	double GetAttackRange() const { return config_->attack_range; }
 	double GetAttackSpeed() const { return config_->attack_speed; }
 	double GetAttackRate() const { return config_->attack_rate; }
+	int GetNoiseRange() const { return config_->noise_range; }
 	const Ray& GetCrosshair() const { return crosshair_ray_; }
 	const std::string& GetWeaponName() const { return config_->weapon_name; }
 

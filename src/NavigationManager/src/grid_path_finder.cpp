@@ -26,6 +26,7 @@ GridPathFinder::GridPathFinder(double heuristic_weight,
 							   std::pmr::memory_resource* memory)
 	: heuristic_weight_(heuristic_weight),
 	  walls_(memory),
+	  extra_cost_(memory),
 	  blocked_stamp_(memory),
 	  seen_stamp_(memory),
 	  closed_stamp_(memory),
@@ -36,9 +37,9 @@ GridPathFinder::GridPathFinder(double heuristic_weight,
 std::size_t GridPathFinder::MemoryFor(int height, int width) {
 	const auto cells =
 		static_cast<std::size_t>(height) * static_cast<std::size_t>(width);
-	constexpr std::size_t kArrays = 7;
+	constexpr std::size_t kArrays = 8;
 	constexpr std::size_t kPadding = alignof(std::max_align_t);
-	return cells * (sizeof(std::uint8_t) + 3 * sizeof(std::uint32_t) +
+	return cells * (2 * sizeof(std::uint8_t) + 3 * sizeof(std::uint32_t) +
 					sizeof(float) + sizeof(std::int32_t)) +
 		   (cells * kSteps.size() + 1) * sizeof(OpenEntry) + kArrays * kPadding;
 }
@@ -54,6 +55,12 @@ void GridPathFinder::SetGrid(int height, int width,
 	});
 }
 
+void GridPathFinder::SetExtraCost(GridCell cell, std::uint8_t extra) {
+	if (Contains(cell)) {
+		extra_cost_[static_cast<std::size_t>(Index(cell))] = extra;
+	}
+}
+
 std::size_t GridPathFinder::FreeCells() const {
 	return static_cast<std::size_t>(std::ranges::count(walls_, 0));
 }
@@ -64,6 +71,7 @@ void GridPathFinder::Resize(int height, int width) {
 	const auto cells =
 		static_cast<std::size_t>(height) * static_cast<std::size_t>(width);
 	walls_.assign(cells, 0);
+	extra_cost_.assign(cells, 0);
 	blocked_stamp_.assign(cells, 0);
 	seen_stamp_.assign(cells, 0);
 	closed_stamp_.assign(cells, 0);
@@ -141,7 +149,6 @@ bool GridPathFinder::FindPath(GridCell start, GridCell goal,
 		}
 
 		const GridCell cell = Cell(current);
-		const float next_g = g_[current_i] + 1.0f;
 		for (const GridCell step : kSteps) {
 			const GridCell neighbour{cell.x + step.x, cell.y + step.y};
 			if (!Contains(neighbour)) {
@@ -152,6 +159,8 @@ bool GridPathFinder::FindPath(GridCell start, GridCell goal,
 			if (!passable(index) || closed_stamp_[i] == generation_) {
 				continue;
 			}
+			const float next_g =
+				g_[current_i] + 1.0f + static_cast<float>(extra_cost_[i]);
 			if (seen_stamp_[i] == generation_ && g_[i] <= next_g) {
 				continue;  // already reached at least as cheaply
 			}

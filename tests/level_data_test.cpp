@@ -29,7 +29,7 @@ TEST(LevelData, ParsesTheGameConfig) {
 	ASSERT_TRUE(config) << config.error();
 	ASSERT_TRUE(config->enemies.contains("soldier"));
 	const EnemyConfig& soldier = config->enemies.at("soldier");
-	EXPECT_DOUBLE_EQ(soldier.width, 0.3);
+	EXPECT_DOUBLE_EQ(soldier.width, 0.33);
 	EXPECT_EQ(soldier.weapon.weapon_name, "rifle");
 	EXPECT_DOUBLE_EQ(soldier.behaviour.follow_range, 5.0);
 

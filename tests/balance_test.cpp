@@ -61,6 +61,14 @@ TEST(Balance, WeaponsFoundKillFasterThanThePistol) {
 	EXPECT_LT(seconds_to_kill(testing::Weapon("shotgun"), 1), pistol);
 }
 
+// A level shot (from the eye, half a wall up) meets a soldier below its
+// head: a headshot takes aiming up
+TEST(Balance, ALevelShotIsNotAHeadshot) {
+	const EnemyConfig& soldier = testing::GameData().enemies.at("soldier");
+	const double down = 1.0 - 0.5 / soldier.height;
+	EXPECT_EQ(soldier.hit_zones.ZoneAt(down), HitZones::Zone::Body);
+}
+
 // A soldier across the room must hit a healthy player several times, even
 // on the hardest difficulty
 TEST(Balance, ThePlayerTakesSeveralHits) {
