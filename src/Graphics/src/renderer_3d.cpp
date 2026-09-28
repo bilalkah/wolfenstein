@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <numbers>
 namespace wolfenstein {
 
 namespace {
@@ -82,6 +83,13 @@ Renderer3D::Renderer3D(RendererContext& context) : IRenderer(context) {
 					   &pixel);
 	}
 	SDL_RenderFlush(context_->GetRenderer());
+
+	// Where a dead player's view is drawn to be rolled over; without render
+	// targets they fall without rolling
+	fallen_view_.reset(
+		SDL_CreateTexture(context_->GetRenderer(), SDL_PIXELFORMAT_RGBA8888,
+						  SDL_TEXTUREACCESS_TARGET, context_->GetConfig().width,
+						  context_->GetConfig().height));
 }
 
 void Renderer3D::ReserveObjects(std::size_t objects) {
@@ -99,12 +107,15 @@ void Renderer3D::RenderScene(double delta_time) {
 	render_queue_.clear();
 	// Looking up, or a shot's kick, drops the world down the screen
 	const Player& player = scene_->GetPlayer();
-	// Falling dead, the view tips back a little as the eye drops
-	constexpr double kFallTilt = 0.12;
-	horizon_shift_ = static_cast<int>((player.GetPitch() + player.GetKick() +
-									   kFallTilt * player.GetDeathFall()) *
+	horizon_shift_ = static_cast<int>((player.GetPitch() + player.GetKick()) *
 									  context_->GetConfig().height);
 	eye_height_ = player.GetEyeHeight();
+	// Falling dead, the world is drawn aside to be rolled over
+	const double fall = player.GetDeathFall();
+	falling_ = fall > 0.0 && fallen_view_ != nullptr;
+	if (falling_) {
+		SDL_SetRenderTarget(context_->GetRenderer(), fallen_view_.get());
+	}
 	ClearScreen();
 	RenderBackground();
 	{
@@ -119,6 +130,11 @@ void Renderer3D::RenderScene(double delta_time) {
 	{
 		ScopedTimer timer(ProfileSection::RenderDraw);
 		RenderTextures();
+	}
+	if (falling_) {
+		SDL_SetRenderTarget(context_->GetRenderer(), nullptr);
+		RenderFallen(fall);
+		RenderDamage();
 	}
 	ScopedTimer timer(ProfileSection::RenderHud);
 	RenderHUD(delta_time);
@@ -371,6 +387,48 @@ std::tuple<int, int, int> Renderer3D::CalculateVerticalSlice(
 	return std::make_tuple(line_height, draw_start, draw_end);
 }
 
+void Renderer3D::RenderDamage() {
+	const Player& player = scene_->GetPlayer();
+	if (!player.IsDamaged()) {
+		return;
+	}
+	const auto& config = context_->GetConfig();
+	auto& damage = context_->Textures().GetTexture(damage_texture_);
+	SDL_SetTextureAlphaMod(damage.texture, player.GetDamageAlpha());
+	const SDL_Rect source{0, 0, damage.width, damage.height};
+	const SDL_Rect screen{0, 0, config.width, config.height};
+	if (falling_) {
+		SDL_RenderCopy(context_->GetRenderer(), damage.texture, &source,
+					   &screen);
+	}
+	else {
+		Enqueue(damage_texture_, source, screen, -1.0);
+	}
+}
+
+void Renderer3D::RenderFallen(double fall) {
+	// Down onto the left side: the view rolls clockwise, the floor coming in
+	// from the left
+	constexpr double kRollDegrees = 80.0;
+	const auto& config = context_->GetConfig();
+	const double angle = kRollDegrees * fall;
+	const double radians = angle * std::numbers::pi / 180.0;
+	const double width = config.width;
+	const double height = config.height;
+	// Large enough that no corner of the screen is left uncovered
+	const double scale = std::max(
+		(width * std::cos(radians) + height * std::sin(radians)) / width,
+		(width * std::sin(radians) + height * std::cos(radians)) / height);
+	const int scaled_width = static_cast<int>(std::ceil(width * scale));
+	const int scaled_height = static_cast<int>(std::ceil(height * scale));
+	const SDL_Rect cover{(config.width - scaled_width) / 2,
+						 (config.height - scaled_height) / 2, scaled_width,
+						 scaled_height};
+	ClearScreen();
+	SDL_RenderCopyEx(context_->GetRenderer(), fallen_view_.get(), nullptr,
+					 &cover, angle, nullptr, SDL_FLIP_NONE);
+}
+
 void Renderer3D::RenderWeapon() {
 	const auto& player_ptr = scene_->GetPlayer();
 	const auto& config_ = context_->GetConfig();
@@ -390,7 +448,10 @@ void Renderer3D::RenderWeapon() {
 		config_.width / 2 - crosshair_width_slice / 2,
 		config_.height / 2 - crosshair_height_slice / 2, crosshair_width_slice,
 		crosshair_height_slice};
-	Enqueue(crosshair_texture_, crosshair_src_rect, crosshair_dest_rect, 0.0);
+	if (player_ptr.IsAlive()) {
+		Enqueue(crosshair_texture_, crosshair_src_rect, crosshair_dest_rect,
+				0.0);
+	}
 
 	auto texture_id = player_ptr.GetTextureId();
 	const auto texture_height =
@@ -410,14 +471,9 @@ void Renderer3D::RenderWeapon() {
 	Enqueue(texture_id, src_rect, dest_rect, 0.0);
 
 	// Check if player is damaged
-	if (player_ptr.IsDamaged()) {
-		auto& damage_texture = context_->Textures().GetTexture(damage_texture_);
-		SDL_Rect damage_src_rect{0, 0, damage_texture.width,
-								 damage_texture.height};
-		SDL_Rect damage_dest_rect{0, 0, config_.width, config_.height};
-		SDL_SetTextureAlphaMod(damage_texture.texture,
-							   player_ptr.GetDamageAlpha());
-		Enqueue(damage_texture_, damage_src_rect, damage_dest_rect, -1.0);
+	// Falling, it goes over the rolled view instead, upright
+	if (!falling_) {
+		RenderDamage();
 	}
 }
 

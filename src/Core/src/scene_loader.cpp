@@ -62,9 +62,20 @@ std::expected<void, std::string> SceneLoader::Prepare(const std::string& file) {
 	if (!map) {
 		return std::unexpected(map.error());
 	}
+	// What the enemies drop comes in as hidden pickups, after the level's
+	std::uint32_t drops = 0;
 	for (const EnemySpawn& spawn : data->enemies) {
-		if (!config_.enemies.contains(spawn.type)) {
+		const auto enemy = config_.enemies.find(spawn.type);
+		if (enemy == config_.enemies.end()) {
 			return std::unexpected(file + ": unknown enemy type " + spawn.type);
+		}
+		if (!enemy->second.drop.empty()) {
+			if (!config_.pickups.contains(enemy->second.drop)) {
+				return std::unexpected(spawn.type +
+									   " drops an unknown pickup " +
+									   enemy->second.drop);
+			}
+			++drops;
 		}
 	}
 	for (const ObjectSpawn& spawn : data->pickups) {
@@ -77,7 +88,7 @@ std::expected<void, std::string> SceneLoader::Prepare(const std::string& file) {
 		.enemies = static_cast<std::uint32_t>(data->enemies.size()),
 		.dynamic_objects =
 			static_cast<std::uint32_t>(data->dynamic_objects.size()),
-		.pickups = static_cast<std::uint32_t>(data->pickups.size()),
+		.pickups = static_cast<std::uint32_t>(data->pickups.size()) + drops,
 		.secrets = static_cast<std::uint32_t>(data->secrets.size())};
 	for (const SecretSpawn& secret : data->secrets) {
 		const auto open = [&](int step) {
@@ -95,7 +106,7 @@ std::expected<void, std::string> SceneLoader::Prepare(const std::string& file) {
 		std::max(largest_memory_, Scene::MemoryFor(*map, capacity));
 	largest_objects_ = std::max(
 		largest_objects_, data->enemies.size() + data->dynamic_objects.size() +
-							  data->pickups.size() + Scene::kEffects);
+							  data->pickups.size() + drops + Scene::kEffects);
 	levels_.emplace(file, PreparedLevel{.data = std::move(*data),
 										.map = std::move(*map),
 										.capacity = capacity});
@@ -140,6 +151,24 @@ std::expected<void, std::string> SceneLoader::Populate(
 							 pickup.width, pickup.height, pickup.effect)) {
 			return std::unexpected("more pickups than the scene can hold");
 		}
+	}
+	// What each enemy carries, after the level's own pickups (a saved game
+	// counts them in this order), hidden until it drops them
+	for (Enemy* enemy : scene.GetEnemies()) {
+		const std::string& drop =
+			config_.enemies.find(enemy->GetBotName())->second.drop;
+		if (drop.empty()) {
+			continue;
+		}
+		const PickupConfig& pickup = config_.pickups.find(drop)->second;
+		if (!scene.AddPickup(enemy->GetPose(),
+							 scene.Textures().GetTextureId(pickup.texture),
+							 pickup.width, pickup.height, pickup.effect)) {
+			return std::unexpected("more pickups than the scene can hold");
+		}
+		Pickup* carried = scene.GetPickups().back();
+		carried->MakeDrop();
+		enemy->SetDrop(*carried);
 	}
 	for (const SecretSpawn& secret : level.data.secrets) {
 		if (!scene.GetMap().AddPushWall(secret.x, secret.y, secret.dx,

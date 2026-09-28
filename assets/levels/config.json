@@ -61,7 +61,8 @@
             "reload_speed": 1.2,
             "falloff": "linear",
             "kick": 0.012,
-            "sound": "pistol"
+            "sound": "pistol",
+            "noise_range": 10
         },
         {
             "name": "mp5",
@@ -81,7 +82,8 @@
             "reload_speed": 1.6,
             "falloff": "linear",
             "kick": 0.006,
-            "sound": "mp5"
+            "sound": "mp5",
+            "noise_range": 10
         },
         {
             "name": "shotgun",
@@ -104,7 +106,8 @@
             "pellets": 7,
             "spread": 8,
             "raise_seconds": 0.7,
-            "sound": "shotgun"
+            "sound": "shotgun",
+            "noise_range": 12
         }
     ],
     "hit_zones": {
@@ -132,7 +135,8 @@
             "ai": {
                 "idle_frame_seconds": 0.8,
                 "follow_range": 5.0
-            }
+            },
+            "drop": "clip"
         },
         "caco_demon": {
             "t_speed": 0.8,
@@ -172,7 +176,8 @@
             "ai": {
                 "idle_frame_seconds": 0.8,
                 "follow_range": 5.0
-            }
+            },
+            "drop": "large_medkit"
         }
     },
     "pickups": {
@@ -217,6 +222,13 @@
             "width": 0.6,
             "height": 0.25,
             "weapon": "shotgun"
+        },
+        "clip": {
+            "texture": "ammo_box",
+            "width": 0.28,
+            "height": 0.21,
+            "ammo_boxes": 1,
+            "box_share": 0.5
         }
     },
     "config_dynamic": {

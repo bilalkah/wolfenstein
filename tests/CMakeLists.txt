@@ -38,6 +38,8 @@ add_executable(unit_tests
     impact_test.cpp
     balance_test.cpp
     mouse_look_test.cpp
+    hearing_test.cpp
+    drop_test.cpp
     saved_game_test.cpp
     texture_manifest_test.cpp
 )

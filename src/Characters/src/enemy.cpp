@@ -88,6 +88,7 @@ void Enemy::Update(double delta_time) {
 		return;
 	}
 	since_flinch_ += delta_time;
+	alerted_for_ = std::max(alerted_for_ - delta_time, 0.0);
 	{
 		ScopedTimer timer(ProfileSection::LineOfSight);
 		crosshair_ray = CastLineOfSight(scene_.GetMap(), position_.pose,
@@ -183,6 +184,10 @@ bool Enemy::TakeHit() {
 	return true;
 }
 
+void Enemy::Alert() {
+	alerted_for_ = config_.behaviour.alert_seconds;
+}
+
 bool Enemy::TakeRetaliation() {
 	return std::exchange(retaliating_, false);
 }
@@ -209,6 +214,10 @@ bool Enemy::IsCalm() const {
 void Enemy::SetDeath() {
 	crosshair_ray = Ray{};
 	is_alive_ = false;
+	if (drop_ != nullptr) {
+		drop_->DropAt(position_.pose);
+		drop_ = nullptr;
+	}
 }
 
 int Enemy::GetTextureId() const {

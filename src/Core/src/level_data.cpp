@@ -77,7 +77,8 @@ WeaponConfig ToWeapon(const json& weapon) {
 			.raise_seconds = weapon.value("raise_seconds", 0.4),
 			.shot_sound = weapon.contains("sound")
 							  ? ToShotSound(weapon.at("sound"))
-							  : SoundEffect::Shotgun};
+							  : SoundEffect::Shotgun,
+			.noise_range = weapon.value("noise_range", 0)};
 }
 
 // The key a pickup is ("key": "gold"), as a KeyBit, or 0
@@ -106,7 +107,9 @@ PickupConfig ToPickup(const json& pickup,
 		.height = pickup.at("height").get<double>(),
 		.effect = {.health = pickup.value("health", 0.0),
 				   .ammo_boxes = pickup.value("ammo_boxes", std::size_t{0}),
-				   .keys = ToKeys(pickup)}};
+				   .keys = ToKeys(pickup),
+				   .weapons = 0,
+				   .box_share = pickup.value("box_share", 1.0)}};
 	if (pickup.contains("weapon")) {
 		const auto& weapon = pickup.at("weapon");
 		const auto name = weapon.get<std::string>();
@@ -148,10 +151,12 @@ EnemyConfig ToEnemy(const std::string& type, const json& enemy,
 							  ai.at("idle_frame_seconds").get<double>(),
 						  .follow_range = ai.at("follow_range").get<double>(),
 						  .pain_cooldown_seconds =
-							  ai.value("pain_cooldown_seconds", 1.2)},
+							  ai.value("pain_cooldown_seconds", 1.2),
+						  .alert_seconds = ai.value("alert_seconds", 10.0)},
 			.hit_zones = enemy.contains("hit_zones")
 							 ? ToHitZones(enemy.at("hit_zones"), zones)
 							 : zones,
+			.drop = enemy.value("drop", std::string{}),
 			.weapon = {.weapon_name = weapon.at("name").get<std::string>(),
 					   .attack_damage = ToDamage(weapon.at("damage")),
 					   .attack_range = weapon.at("range").get<double>(),

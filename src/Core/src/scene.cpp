@@ -26,7 +26,9 @@ std::size_t LevelArenaBytes(const Map& map, SceneCapacity capacity) {
 		   pickups * (sizeof(Pickup) + alignof(Pickup) + kBookkeeping) +
 		   objects * sizeof(IGameObject*) + enemies * sizeof(Enemy*) +
 		   pickups * sizeof(Pickup*) +
-		   std::size_t{map.GetSizeX()} * map.GetSizeY() +  // explored flags
+		   std::size_t{map.GetSizeX()} * map.GetSizeY() *
+			   (1 + sizeof(std::uint16_t) +
+				sizeof(std::uint32_t)) +  // explored flags, noise buffers
 		   NavigationManager::MemoryFor(map.GetSizeX(), map.GetSizeY(), objects,
 										enemies) +
 		   map.MemoryBytes() + 8 * kSlack;
@@ -54,6 +56,9 @@ Scene::Scene(const TextureManager& textures, SoundManager& sound,
 	  enemy_list_(&arena_),
 	  pickup_list_(&arena_),
 	  explored_(std::size_t{map.GetSizeX()} * map.GetSizeY(), 0, &arena_),
+	  noise_distance_(std::size_t{map.GetSizeX()} * map.GetSizeY(), kUnheard,
+					  &arena_),
+	  noise_queue_(std::size_t{map.GetSizeX()} * map.GetSizeY(), 0, &arena_),
 	  doors_(map.GetDoors().size(), DoorMotion{}, &arena_) {
 	map_.ReservePushWalls(capacity.secrets);
 	objects_.reserve(capacity.enemies + capacity.dynamic_objects +
@@ -121,6 +126,58 @@ void Scene::FinishLoading() {
 		objects_.push_back(&effect);
 	}
 	navigation_.Build();
+}
+
+void Scene::MakeNoise(const vector2d& pose, int range) {
+	if (range <= 0) {
+		return;
+	}
+	const int size_x = map_.GetSizeX();
+	const int size_y = map_.GetSizeY();
+	const auto index = [size_y](int x, int y) {
+		return static_cast<std::uint32_t>(x * size_y + y);
+	};
+	const int start_x = static_cast<int>(std::floor(pose.x));
+	const int start_y = static_cast<int>(std::floor(pose.y));
+	if (!map_.Contains(start_x, start_y)) {
+		return;
+	}
+	std::ranges::fill(noise_distance_, kUnheard);
+	// Breadth first, a cell a step: the steps a sound takes round walls
+	std::size_t head = 0;
+	std::size_t tail = 0;
+	noise_distance_[index(start_x, start_y)] = 0;
+	noise_queue_[tail++] = index(start_x, start_y);
+	while (head < tail) {
+		const std::uint32_t cell = noise_queue_[head++];
+		const int x = static_cast<int>(cell) / size_y;
+		const int y = static_cast<int>(cell) % size_y;
+		const std::uint16_t distance = noise_distance_[cell];
+		if (std::cmp_greater_equal(distance, range)) {
+			continue;
+		}
+		for (const auto [nx, ny] : {std::pair{x + 1, y}, std::pair{x - 1, y},
+									std::pair{x, y + 1}, std::pair{x, y - 1}}) {
+			if (nx < 0 || nx >= size_x || ny < 0 || ny >= size_y ||
+				map_.IsBlocked(nx, ny)) {
+				continue;
+			}
+			std::uint16_t& heard = noise_distance_[index(nx, ny)];
+			if (heard == kUnheard) {
+				heard = static_cast<std::uint16_t>(distance + 1);
+				noise_queue_[tail++] = index(nx, ny);
+			}
+		}
+	}
+	for (Enemy* enemy : enemy_list_) {
+		const vector2d at = enemy->GetPose();
+		const int x = static_cast<int>(std::floor(at.x));
+		const int y = static_cast<int>(std::floor(at.y));
+		if (enemy->IsAlive() && map_.Contains(x, y) &&
+			noise_distance_[index(x, y)] != kUnheard) {
+			enemy->Alert();
+		}
+	}
 }
 
 void Scene::ShowImpact(Impact impact, const vector2d& pose, double elevation) {
@@ -408,13 +465,18 @@ void Scene::RestoreKilled(std::size_t index) {
 }
 
 LevelStats Scene::GetStats() const {
+	// The level's own supplies, not what enemies drop
+	const auto supplies = static_cast<std::size_t>(std::ranges::count_if(
+		pickup_list_, [](const Pickup* pickup) { return !pickup->IsDrop(); }));
 	const auto taken = static_cast<std::size_t>(
-		std::ranges::count_if(pickup_list_, &Pickup::IsTaken));
+		std::ranges::count_if(pickup_list_, [](const Pickup* pickup) {
+			return !pickup->IsDrop() && pickup->IsTaken();
+		}));
 	const auto secrets = map_.GetPushWalls();
 	return {.kills = enemy_list_.size() - number_of_alive_enemies,
 			.enemies = enemy_list_.size(),
 			.pickups_taken = taken,
-			.pickups = pickup_list_.size(),
+			.pickups = supplies,
 			.secrets_found = static_cast<std::size_t>(
 				std::ranges::count_if(secrets, &PushWall::pushed)),
 			.secrets = secrets.size(),

@@ -156,6 +156,10 @@ class Scene
 	};
 	// A puff at `pose`, `elevation` above where shots fly level (half a wall
 	// up)
+	// A noise at `pose` (a gunshot): it spreads through open floor, round
+	// corners but not through walls or closed doors, as far as `range`
+	// cells, and alerts every living enemy it reaches. Allocates nothing.
+	void MakeNoise(const vector2d& pose, int range);
 	void ShowImpact(Impact impact, const vector2d& pose,
 					double elevation = 0.0);
 	void AddWallMark(const WallMark& mark);
@@ -229,6 +233,11 @@ class Scene
 	std::pmr::vector<Pickup*> pickup_list_;
 	// One flag per map cell, row by row
 	std::pmr::vector<std::uint8_t> explored_;
+	// For spreading a noise: how far it has come to each cell (kUnheard
+	// where it has not), and the cells still to spread from
+	static constexpr std::uint16_t kUnheard = 0xFFFF;
+	std::pmr::vector<std::uint16_t> noise_distance_;
+	std::pmr::vector<std::uint32_t> noise_queue_;
 	// Cells a character can stand in (not walls), and how many are explored
 	std::size_t open_cells_ = 0;
 	std::size_t explored_open_cells_ = 0;

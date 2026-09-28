@@ -52,8 +52,10 @@ struct WeaponConfig
 	double spread{};
 	// How long taking it in hand takes, the gun coming up
 	double raise_seconds = 0.4;
-	// What a shot sounds like
+	// What a shot sounds like, and how far (in cells, round walls) enemies
+	// hear it; 0 is silent
 	SoundEffect shot_sound = SoundEffect::Shotgun;
+	int noise_range = 0;
 };
 
 // Pinned (not copyable or movable): its states point back to it
@@ -73,6 +75,7 @@ class Weapon
 	double GetSpread() const { return config_.spread; }
 	double GetRaiseSeconds() const { return config_.raise_seconds; }
 	SoundEffect GetShotSound() const { return config_.shot_sound; }
+	int GetNoiseRange() const { return config_.noise_range; }
 	// Pulls the trigger; true if a shot was fired (the caller resolves it)
 	bool Attack();
 	void Update(double delta_time);

@@ -21,9 +21,11 @@ int EnemyState::GetCurrentFrame() const {
 void IdleState::Update(const double& delta_time) {
 	animation_.Update(delta_time);
 
-	if (context_->IsPlayerInShootingRange() &&
-		context_->GetScene().GetNavigation().EuclideanDistanceToPlayer(
-			context_->GetPosition()) <= range_ + 2.0) {
+	// It sees the player near, or heard them
+	if (context_->IsAlerted() ||
+		(context_->IsPlayerInShootingRange() &&
+		 context_->GetScene().GetNavigation().EuclideanDistanceToPlayer(
+			 context_->GetPosition()) <= range_ + 2.0)) {
 		context_->TransitionTo(EnemyStateType::Walk);
 		return;
 	}
@@ -62,7 +64,9 @@ void WalkState::Update(const double& delta_time) {
 		context_->TransitionTo(EnemyStateType::Pain);
 		return;
 	}
-	if (!context_->IsPlayerInShootingRange()) {
+	// Out of sight and far, it gives up, unless it is still hunting what
+	// it heard
+	if (!context_->IsPlayerInShootingRange() && !context_->IsAlerted()) {
 		if (distance > range_max_) {
 			context_->GetScene().GetNavigation().ResetPath(context_->GetId());
 			context_->TransitionTo(EnemyStateType::Idle);

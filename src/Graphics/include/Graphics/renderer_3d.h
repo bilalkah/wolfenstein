@@ -61,6 +61,11 @@ class Renderer3D : public IRenderer
 	void RenderWallMarks(int horizontal_slice, const Ray& ray, double across,
 						 int draw_start, int line_height, double distance);
 	void RenderWeapon();
+	// The damage overlay, over the whole screen, fading after a hit
+	void RenderDamage();
+	// A dead player's view, drawn into fallen_view_, rolled onto its side
+	// as far as `fall` (0 to 1) and scaled to cover the screen
+	void RenderFallen(double fall);
 	void RenderTextures();
 	void RenderHUD(double delta_time);
 	void RenderFps(double delta_time);
@@ -94,6 +99,10 @@ class Renderer3D : public IRenderer
 	int horizon_shift_ = 0;
 	// Where the eye is, in walls above the floor (half way, standing)
 	double eye_height_ = 0.5;
+	// The world as a dead player sees it, drawn here to be rolled onto its
+	// side; made once, with the renderer (null where targets are missing)
+	std::unique_ptr<SDL_Texture, TextureDeleter> fallen_view_;
+	bool falling_ = false;	// drawing into fallen_view_ this frame
 	int shown_fps_ = 0;
 	double fps_elapsed_ = 0.0;
 	int fps_frames_ = 0;

@@ -15,6 +15,7 @@
 #include "Camera/ray.h"
 #include "Characters/character.h"
 #include "GameObjects/game_object.h"
+#include "GameObjects/pickup.h"
 #include "Math/vector.h"
 #include "SoundManager/sound_manager.h"
 #include "State/enemy_state.h"
@@ -32,6 +33,8 @@ struct StateConfig
 	// A hit makes it flinch (its pain) at most once in this long; hits in
 	// between only hurt it, so steady fire cannot keep it from shooting back
 	double pain_cooldown_seconds{1.2};
+	// Heard gunfire keeps it hunting the player this long, seen or not
+	double alert_seconds{10.0};
 };
 
 // Where a shot strikes a figure changes what it does: the head is the top
@@ -64,6 +67,8 @@ struct EnemyConfig
 	double health = 100.0;	// before the difficulty scales it
 	StateConfig behaviour;
 	HitZones hit_zones;
+	// The pickup it drops where it dies ("clip"), if any
+	std::string drop;
 	SimpleWeaponConfig weapon;
 };
 
@@ -93,6 +98,13 @@ class Enemy : public ICharacter, public IGameObject
 	// Out of its pain, it shoots back as soon as it can: true once after a
 	// flinch
 	bool TakeRetaliation();
+	// Heard the player (a shot): it hunts them for alert_seconds, whether
+	// or not it sees them
+	void Alert();
+	// The pickup it drops where it dies, if it carries one: hidden until
+	// then (Pickup::MakeDrop)
+	void SetDrop(Pickup& drop) { drop_ = &drop; }
+	bool IsAlerted() const { return alerted_for_ > 0.0; }
 	void SetDeath();
 	// Lying dead as a saved game left it: straight to the end of its death,
 	// in silence
@@ -134,6 +146,8 @@ class Enemy : public ICharacter, public IGameObject
 	bool is_attacked_{};
 	bool retaliating_{};
 	double since_flinch_{1e9};	// seconds since it last flinched
+	double alerted_for_{};		// seconds still to hunt what it heard
+	Pickup* drop_ = nullptr;
 	bool is_alive_{};
 	bool silent_{};	 // while being restored
 	bool target_{};

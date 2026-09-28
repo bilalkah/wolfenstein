@@ -24,6 +24,8 @@ struct PickupEffect
 	std::uint8_t keys = 0;
 	// Weapons, a bit per index in the configuration's list
 	std::uint8_t weapons = 0;
+	// How much of a box each ammunition box is (a dropped clip, half)
+	double box_share = 1.0;
 };
 
 // Lies still until taken, then leaves the level: it stays in the scene's
@@ -47,6 +49,17 @@ class Pickup : public IGameObject
 	const PickupEffect& GetEffect() const { return effect_; }
 	bool IsTaken() const { return taken_; }
 	void Take() { taken_ = true; }
+	// What an enemy carries, and drops where it dies: out of the level
+	// (taken, as it were) until then
+	void MakeDrop() {
+		drop_ = true;
+		taken_ = true;
+	}
+	bool IsDrop() const { return drop_; }
+	void DropAt(const vector2d& pose) {
+		pose_ = pose;
+		taken_ = false;
+	}
 
   private:
 	vector2d pose_;
@@ -55,6 +68,7 @@ class Pickup : public IGameObject
 	double height_;
 	PickupEffect effect_;
 	bool taken_ = false;
+	bool drop_ = false;
 };
 
 }  // namespace wolfenstein

@@ -168,7 +168,8 @@ bool Player::TryPickUp(const PickupEffect& effect, double supplies) {
 	if (effect.ammo_boxes > 0) {
 		for (std::size_t i = 0; i < weapon_count_; ++i) {
 			if (Owns(i) &&
-				GetWeapon(i).AddAmmoBoxes(effect.ammo_boxes, supplies)) {
+				GetWeapon(i).AddAmmoBoxes(effect.ammo_boxes,
+										  supplies * effect.box_share)) {
 				taken = true;
 			}
 		}
@@ -301,6 +302,7 @@ void Player::ShootOrReload() {
 	}
 	if (command_.fire && weapon.Attack()) {
 		kick_ = std::max(kick_, weapon.GetKick());
+		scene_->MakeNoise(position_.pose, weapon.GetNoiseRange());
 		ResolvePlayerShot(*scene_, weapon, position_, pitch_);
 	}
 }
