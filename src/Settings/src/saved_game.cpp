@@ -56,8 +56,8 @@ std::optional<SavedGame> SavedGame::Parse(std::string_view text) {
 	SavedGame game;
 	// Each field, as it is found; weapons and their rounds are optional
 	constexpr unsigned kLevel = 1, kWeapon = 2, kDifficulty = 4, kHealth = 8,
-					   kAll = 15, kX = 64, kY = 128, kTheta = 256,
-					   kPosition = kX | kY | kTheta;
+					   kFormatSeen = 16, kAll = 31, kX = 64, kY = 128,
+					   kTheta = 256, kPosition = kX | kY | kTheta;
 	unsigned seen = 0;
 	while (!text.empty()) {
 		const auto end = text.find('\n');
@@ -72,7 +72,12 @@ std::optional<SavedGame> SavedGame::Parse(std::string_view text) {
 		const std::string_view value = line.substr(separator + 1);
 		bool read = false;
 		unsigned field = 0;
-		if (key == "level") {
+		if (key == "format") {
+			unsigned format = 0;
+			read = ParseNumber(value, format) && format == kFormat;
+			field = kFormatSeen;
+		}
+		else if (key == "level") {
 			read = ParseNumber(value, game.level);
 			field = kLevel;
 		}
@@ -151,7 +156,8 @@ std::optional<SavedGame> SavedGame::Parse(std::string_view text) {
 
 std::size_t SavedGame::Format(std::span<char> out) const {
 	RecordWriter writer(out);
-	writer.Line("level", level)
+	writer.Line("format", kFormat)
+		.Line("level", level)
 		.Line("weapon", weapon)
 		.Line("difficulty", difficulty)
 		.Line("health", health)

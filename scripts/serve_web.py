@@ -44,6 +44,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Content-Type", self.guess_type(path))
         self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
         self.send_header("Content-Length", str(self.remaining))
+        # Which build the bytes are from: the page checks every chunk of a
+        # file comes from the same one
+        self.send_header("Last-Modified",
+                         self.date_time_string(int(os.path.getmtime(path))))
         self.end_headers()
         return file
 
@@ -60,6 +64,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def end_headers(self):
         self.send_header("Accept-Ranges", "bytes")
+        # Asked again every time, never taken from the browser's cache
+        # unchecked: a new build must not meet a page or script of the last
+        self.send_header("Cache-Control", "no-cache")
         super().end_headers()
 
 

@@ -40,25 +40,6 @@
     ],
     "weapons": [
         {
-            "name": "knife",
-            "label": "KNIFE",
-            "start": true,
-            "ammo": 0,
-            "reserve": {
-                "start": 0,
-                "max": 0,
-                "box": 0
-            },
-            "damage": [
-                40,
-                40
-            ],
-            "range": 1.2,
-            "attack_speed": 0.4,
-            "reload_speed": 0.5,
-            "falloff": "linear"
-        },
-        {
             "name": "pistol",
             "label": "PISTOL",
             "start": true,
@@ -69,8 +50,8 @@
                 "box": 16
             },
             "damage": [
-                24,
-                8
+                18,
+                6
             ],
             "range": 10,
             "attack_speed": 0.35,

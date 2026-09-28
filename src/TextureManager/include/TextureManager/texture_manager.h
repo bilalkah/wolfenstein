@@ -98,6 +98,9 @@ class TextureManager
 	// shares them instead of holding a copy. Exits for an unknown name.
 	std::span<const std::uint16_t> GetTextureCollection(
 		std::string_view collection_name) const;
+	// The frames of a clip art may leave out ("mp5_raise"); empty if absent
+	std::span<const std::uint16_t> FindTextureCollection(
+		std::string_view collection_name) const;
 	// Names the textures [begin, end) as a clip: tests without a renderer
 	// define placeholders
 	void DefineCollection(std::string key, uint16_t begin, uint16_t end);

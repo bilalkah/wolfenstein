@@ -21,6 +21,10 @@ namespace wolfenstein {
 // go on from there
 struct SavedGame
 {
+	// Written into every save and required back: weapons are saved by their
+	// index in the configuration, so a save from before the arsenal changed
+	// (format 1 had a knife in the first slot) would give the wrong ones
+	static constexpr unsigned kFormat = 2;
 	// The most weapons a save keeps (as many as a player carries)
 	static constexpr std::size_t kMaxWeapons = 8;
 	// The most map cells whose exploration a save keeps (bits of `explored`)

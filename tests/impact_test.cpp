@@ -17,7 +17,7 @@ constexpr double kTick = 1.0 / 60.0;
 constexpr double kEast = 0.0;
 constexpr double kSouth = std::numbers::pi / 2;	 // towards +y
 constexpr double kWest = std::numbers::pi;
-constexpr std::size_t kKnife = 0, kPistol = 1, kShotgun = 3;
+constexpr std::size_t kPistol = 0, kShotgun = 2;
 
 // A corridor along y (a map file's rows run along x), the player at
 // (1.5, 1.5); a door at (1, 4) across it
@@ -114,13 +114,6 @@ TEST_F(ImpactTest, AShotgunBlastFansItsPellets) {
 	EXPECT_GT(high->across, 0.5F) << "either side of where it was aimed";
 }
 
-TEST_F(ImpactTest, TheKnifeMarksNoWall) {
-	scene_.FinishLoading();
-	Shoot(kKnife, kEast);
-	EXPECT_TRUE(scene_.GetWallMarks().empty());
-	EXPECT_TRUE(Puffs().empty());
-}
-
 // Doors slide away, so they keep no marks
 TEST_F(ImpactTest, ADoorKeepsNoMark) {
 	scene_.FinishLoading();
@@ -161,14 +154,6 @@ TEST_F(ImpactTest, AShotKicksTheViewAndItSettles) {
 		scene_.Update(kTick);
 	}
 	EXPECT_LT(player_.GetKick(), kick / 20) << "settled in a fifth of a second";
-}
-
-TEST_F(ImpactTest, TheKnifeKicksNothing) {
-	scene_.FinishLoading();
-	player_.SelectWeapon(kKnife);
-	player_.SetCommand({.fire = true});
-	scene_.Update(kTick);
-	EXPECT_EQ(player_.GetKick(), 0.0);
 }
 
 #ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS

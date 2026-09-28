@@ -33,16 +33,15 @@ TEST(LevelData, ParsesTheGameConfig) {
 	EXPECT_EQ(soldier.weapon.weapon_name, "rifle");
 	EXPECT_DOUBLE_EQ(soldier.behaviour.follow_range, 5.0);
 
-	// The arsenal, in slot order: a knife and a pistol to start with
-	ASSERT_EQ(config->weapons.size(), 4u);
-	EXPECT_EQ(config->weapons[0].weapon_name, "knife");
-	EXPECT_EQ(config->weapons[0].ammo_capacity, 0u) << "melee";
+	// The arsenal, in slot order: a pistol to start with
+	ASSERT_EQ(config->weapons.size(), 3u);
+	EXPECT_EQ(config->weapons[0].weapon_name, "pistol");
 	EXPECT_TRUE(config->weapons[0].start);
-	EXPECT_TRUE(config->weapons[1].start);
+	EXPECT_FALSE(config->weapons[1].start);
 	EXPECT_FALSE(config->weapons[2].start);
 	// A weapon pickup gives its weapon, as the bit of its slot
 	ASSERT_TRUE(config->pickups.contains("mp5"));
-	EXPECT_EQ(config->pickups.at("mp5").effect.weapons, 1U << 2);
+	EXPECT_EQ(config->pickups.at("mp5").effect.weapons, 1U << 1);
 	const WeaponConfig* shotgun = config->FindWeapon("shotgun");
 	ASSERT_NE(shotgun, nullptr);
 	EXPECT_EQ(shotgun->ammo_capacity, 2u);

@@ -14,6 +14,7 @@
 
 #include "Animation/looped_animation.h"
 #include "State/state.h"
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 
@@ -24,7 +25,7 @@ class Weapon;
 template <>
 struct StateType<Weapon>
 {
-	enum class Type : std::uint8_t { Loaded, OutOfAmmo, Reloading };
+	enum class Type : std::uint8_t { Loaded, OutOfAmmo, Reloading, Raising };
 };
 using WeaponStateType = StateType<Weapon>::Type;
 
@@ -98,6 +99,27 @@ class ReloadingState : public WeaponState
   private:
 	double reload_time_{0.0};
 	double reload_speed_{0.0};
+};
+
+// ########################################### RaisingState ###########################################
+// Taken in hand: the gun comes up (its raise clip, or else the end of its
+// reload), then it is ready, or empty; meanwhile it neither fires nor
+// reloads
+class RaisingState : public WeaponState
+{
+  public:
+	// How long taking a weapon in hand takes
+	static constexpr double kSeconds = 0.4;
+	// The share of the reload clip, from its end, that shows it
+	static constexpr std::size_t kShareOfReload = 3;  // a third
+
+	void Update(const double&) override;
+	void OnContextSet() override;
+	void OnEnter() override;
+	WeaponStateType GetType() const override;
+
+  private:
+	double time_{0.0};
 };
 
 }  // namespace wolfenstein

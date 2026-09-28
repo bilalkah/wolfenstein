@@ -2,6 +2,9 @@
 #include "SoundManager/sound_manager.h"
 #include "State/state.h"
 #include "Strike/weapon.h"
+#include "TextureManager/texture_manager.h"
+#include <algorithm>
+#include <cstddef>
 #include <memory>
 
 namespace wolfenstein {
@@ -124,6 +127,42 @@ void ReloadingState::OnContextSet() {
 	animation_ =
 		LoopedAnimation(context_->GetTextures(), context_->GetWeaponName(),
 						"reload", reload_speed_);
+}
+
+// ########################################### RaisingState ###########################################
+
+void RaisingState::Update(const double& delta_time) {
+	animation_.Update(delta_time);
+	time_ += delta_time;
+	if (time_ >= kSeconds) {
+		context_->TransitionTo(context_->GetAmmo() == 0 && !context_->IsMelee()
+								   ? WeaponStateType::OutOfAmmo
+								   : WeaponStateType::Loaded);
+	}
+}
+
+void RaisingState::OnEnter() {
+	WeaponState::OnEnter();
+	time_ = 0.0;
+}
+
+WeaponStateType RaisingState::GetType() const {
+	return WeaponStateType::Raising;
+}
+
+void RaisingState::OnContextSet() {
+	// Its own clip, if its art has one ("<weapon>_raise"), else the end of
+	// its reload
+	auto frames = LoopedAnimation::FindClip(context_->GetTextures(),
+											context_->GetWeaponName(), "raise");
+	if (frames.empty()) {
+		const auto reload = LoopedAnimation::Clip(
+			context_->GetTextures(), context_->GetWeaponName(), "reload");
+		frames = reload.last(
+			std::max<std::size_t>(reload.size() / kShareOfReload, 1));
+	}
+	animation_ =
+		LoopedAnimation(frames, kSeconds / static_cast<double>(frames.size()));
 }
 
 }  // namespace wolfenstein

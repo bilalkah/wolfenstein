@@ -37,11 +37,6 @@ double SoldierHealth() {
 	return testing::GameData().enemies.find("soldier")->second.health;
 }
 
-TEST(Balance, TheKnifeTakesTwoStabs) {
-	EXPECT_EQ(HitsToKill(SoldierHealth(), Damage(testing::Weapon("knife"), 1)),
-			  2);
-}
-
 TEST(Balance, ThePistolTakesAFewShotsAcrossARoom) {
 	const int shots =
 		HitsToKill(SoldierHealth(), Damage(testing::Weapon("pistol"), kRoom));

@@ -30,11 +30,13 @@ inline const TextureManager& TestTextures() {
 				define(enemy, clip);
 			}
 		}
-		for (const char* weapon : {"knife", "pistol", "mp5", "shotgun"}) {
+		for (const char* weapon : {"blade", "pistol", "mp5", "shotgun"}) {
 			for (const char* clip : {"loaded", "outofammo", "reload"}) {
 				define(weapon, clip);
 			}
 		}
+		// A raise clip for the shotgun (a weapon may have one)
+		define("shotgun", "raise");
 		// The levels' animated lights, and the puffs where shots land
 		for (const char* light :
 			 {"green_light", "red_light", "blood_puff", "dust_puff"}) {
@@ -54,6 +56,18 @@ inline const TextureManager& TestTextures() {
 	}();
 	(void)defined;
 	return textures;
+}
+
+// A melee weapon: none ships, but the engine takes one
+inline const WeaponConfig& Blade() {
+	static const WeaponConfig blade{.weapon_name = "blade",
+									.label = "BLADE",
+									.start = true,
+									.attack_damage = {40.0, 40.0},
+									.attack_range = 1.2,
+									.attack_speed = 0.4,
+									.reload_speed = 0.5};
+	return blade;
 }
 
 // The game's real content (assets/levels/config.json): tests play the

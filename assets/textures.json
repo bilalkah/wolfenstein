@@ -279,27 +279,15 @@
       "sprites/weapon/shotgun/reload/56.png",
       "sprites/weapon/shotgun/reload/57.png"
     ],
-    "knife_loaded": [
-      "sprites/weapon/knife/loaded/0.png",
-      "sprites/weapon/knife/loaded/1.png",
-      "sprites/weapon/knife/loaded/2.png",
-      "sprites/weapon/knife/loaded/3.png"
-    ],
-    "knife_outofammo": [
-      "sprites/weapon/knife/outofammo/0.png"
-    ],
-    "knife_reload": [
-      "sprites/weapon/knife/reload/0.png"
-    ],
     "pistol_loaded": [
       "sprites/weapon/pistol/loaded/0.png",
       "sprites/weapon/pistol/loaded/1.png",
       "sprites/weapon/pistol/loaded/2.png",
-      "sprites/weapon/pistol/loaded/3.png"
+      "sprites/weapon/pistol/loaded/3.png",
+      "sprites/weapon/pistol/loaded/4.png"
     ],
     "pistol_outofammo": [
-      "sprites/weapon/pistol/outofammo/0.png",
-      "sprites/weapon/pistol/outofammo/1.png"
+      "sprites/weapon/pistol/outofammo/0.png"
     ],
     "pistol_reload": [
       "sprites/weapon/pistol/reload/0.png",
@@ -307,7 +295,14 @@
       "sprites/weapon/pistol/reload/2.png",
       "sprites/weapon/pistol/reload/3.png",
       "sprites/weapon/pistol/reload/4.png",
-      "sprites/weapon/pistol/reload/5.png"
+      "sprites/weapon/pistol/reload/5.png",
+      "sprites/weapon/pistol/reload/6.png",
+      "sprites/weapon/pistol/reload/7.png",
+      "sprites/weapon/pistol/reload/8.png",
+      "sprites/weapon/pistol/reload/9.png",
+      "sprites/weapon/pistol/reload/10.png",
+      "sprites/weapon/pistol/reload/11.png",
+      "sprites/weapon/pistol/reload/12.png"
     ],
     "blood_puff": [
       "sprites/effects/blood/0.png",
@@ -320,6 +315,11 @@
       "sprites/effects/dust/1.png",
       "sprites/effects/dust/2.png",
       "sprites/effects/dust/3.png"
+    ],
+    "mp5_raise": [
+      "sprites/weapon/mp5/reload/15.png",
+      "sprites/weapon/mp5/reload/14.png",
+      "sprites/weapon/mp5/reload/13.png"
     ]
   }
 }

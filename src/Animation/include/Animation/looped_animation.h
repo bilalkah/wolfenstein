@@ -44,6 +44,10 @@ class LoopedAnimation : public IAnimation
 	static std::span<const std::uint16_t> Clip(const TextureManager& textures,
 											   std::string_view owner,
 											   std::string_view clip);
+	// Likewise, for a clip the art may leave out: empty if it does
+	static std::span<const std::uint16_t> FindClip(
+		const TextureManager& textures, std::string_view owner,
+		std::string_view clip);
 
 	void Update(const double& delta_time) override;
 	void Reset() override;

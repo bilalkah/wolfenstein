@@ -52,7 +52,7 @@ TEST(SavedGame, CarriesASnapshotOfTheLevel) {
 
 TEST(SavedGame, APositionIsAllThreeOrNone) {
 	const std::string_view base =
-		"level=1\nweapon=0\ndifficulty=1\nhealth=100\nammo=18\nreserve=54\n";
+		"format=2\nlevel=1\nweapon=0\ndifficulty=1\nhealth=100\n";
 	EXPECT_FALSE(SavedGame::Parse(std::string(base) + "x=1.5\ny=2.5\n"));
 	const auto whole =
 		SavedGame::Parse(std::string(base) + "x=1.5\ny=2.5\ntheta=0\n");
@@ -65,20 +65,28 @@ TEST(SavedGame, APositionIsAllThreeOrNone) {
 TEST(SavedGame, AnIncompleteOrBrokenRecordIsNoSave) {
 	EXPECT_FALSE(SavedGame::Parse(""));
 	EXPECT_FALSE(SavedGame::Parse("level=2\nweapon=1\n"));
-	EXPECT_FALSE(
-		SavedGame::Parse("level=two\nweapon=1\ndifficulty=1\n"
-						 "health=100\nammo=18\nreserve=54\n"));
+	EXPECT_FALSE(SavedGame::Parse(
+		"format=2\nlevel=two\nweapon=1\ndifficulty=1\nhealth=100\n"));
 	// A dead player is not a game to go on with
-	EXPECT_FALSE(
-		SavedGame::Parse("level=2\nweapon=1\ndifficulty=1\n"
-						 "health=0\nammo=18\nreserve=54\n"));
+	EXPECT_FALSE(SavedGame::Parse(
+		"format=2\nlevel=2\nweapon=1\ndifficulty=1\nhealth=0\n"));
+}
+
+// Weapons are saved by slot: a save from before the arsenal changed (no
+// format, or another one) would hand back the wrong weapons, so it is none
+TEST(SavedGame, ASaveOfAnotherFormatIsNoSave) {
+	const std::string_view fields =
+		"level=2\nweapon=1\ndifficulty=1\nhealth=100\n";
+	EXPECT_TRUE(SavedGame::Parse(std::string("format=2\n") + fields.data()));
+	EXPECT_FALSE(SavedGame::Parse(fields));
+	EXPECT_FALSE(SavedGame::Parse(std::string("format=1\n") + fields.data()));
 }
 
 // A newer version's extra keys do not stop an older one reading the rest
 TEST(SavedGame, UnknownKeysAreSkipped) {
 	const auto parsed = SavedGame::Parse(
-		"level=1\nweapon=0\nsecrets=3\ndifficulty=1\nhealth=100\n"
-		"ammo=18\nreserve=54\n");
+		"format=2\nlevel=1\nweapon=0\nsecrets=3\ndifficulty=1\nhealth=100\n"
+		"armour=50\nlaser=on\n");
 	ASSERT_TRUE(parsed);
 	EXPECT_EQ(parsed.value_or(SavedGame{}).level, 1u);
 }

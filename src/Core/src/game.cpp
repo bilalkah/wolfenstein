@@ -370,11 +370,14 @@ void Game::SoakStep() {
 		HandleMenuAction({.type = MenuAction::Type::Resume, .difficulty = 0});
 	}
 	else if (frame == 310) {
-		// Draws the knife, then back to the pistol
-		world_->GetPlayer().SelectWeapon(0);
+		// Handed every weapon, the player draws the shotgun, then goes back
+		// to the pistol
+		Player& player = world_->GetPlayer();
+		player.SetOwnedWeapons(0xFF);
+		player.SelectWeapon(player.WeaponCount() - 1);
 	}
 	else if (frame == 320) {
-		world_->GetPlayer().SelectWeapon(1);
+		world_->GetPlayer().SelectWeapon(0);
 	}
 	else if (frame == 330) {
 		// Hurt, the player steps onto the level's first pickup: taken next
@@ -466,6 +469,9 @@ bool Game::IsBenchmark() const {
 
 void Game::Run() {
 #ifdef __EMSCRIPTEN__
+	// Loaded: the page stops watching for a start that failed (see
+	// web/shell.html)
+	EM_ASM(if (Module.onGameReady) Module.onGameReady(););
 	// The browser drives the loop: one Tick per animation frame
 	emscripten_set_main_loop_arg(
 		[](void* game) {

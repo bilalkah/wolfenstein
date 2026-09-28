@@ -17,8 +17,9 @@ Weapon::Weapon(const WeaponConfig& config, const TextureManager& textures,
 	  sound_channel_(sound.AllocateChannel()) {
 	ammo_ = config_.ammo_capacity;
 	reserve_ = config_.reserve_start;
-	for (const auto type : {WeaponStateType::Loaded, WeaponStateType::OutOfAmmo,
-							WeaponStateType::Reloading}) {
+	for (const auto type :
+		 {WeaponStateType::Loaded, WeaponStateType::OutOfAmmo,
+		  WeaponStateType::Reloading, WeaponStateType::Raising}) {
 		StateFor(type).SetContext(*this);
 	}
 	state_machine_.TransitionTo(loaded_state_);
@@ -32,6 +33,8 @@ WeaponState& Weapon::StateFor(WeaponStateType type) {
 			return out_of_ammo_state_;
 		case WeaponStateType::Reloading:
 			return reloading_state_;
+		case WeaponStateType::Raising:
+			return raising_state_;
 	}
 	std::unreachable();
 }
@@ -45,8 +48,10 @@ void Weapon::Update(double delta_time) {
 }
 
 void Weapon::Reload() {
-	if (state_machine_.Current().GetType() != WeaponStateType::Reloading &&
-		ammo_ < config_.ammo_capacity && reserve_ > 0) {
+	const WeaponStateType state = state_machine_.Current().GetType();
+	if (state != WeaponStateType::Reloading &&
+		state != WeaponStateType::Raising && ammo_ < config_.ammo_capacity &&
+		reserve_ > 0) {
 		TransitionTo(WeaponStateType::Reloading);
 	}
 }

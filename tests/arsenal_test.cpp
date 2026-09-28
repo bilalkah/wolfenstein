@@ -1,6 +1,7 @@
 // The player carries every weapon found, each with its own rounds, and
-// switches between them; the knife needs no ammunition but reaches only the
-// enemy in front of it
+// switches between them; a melee weapon (none ships, but the engine takes
+// one: a test blade here) needs no ammunition but reaches only the enemy in
+// front of it
 
 #include "Core/scene.h"
 #include "Core/world.h"
@@ -8,6 +9,7 @@
 #include "ShootingManager/shooting_manager.h"
 #include "test_map.h"
 #include "test_services.h"
+#include <array>
 #include <gtest/gtest.h>
 #include <memory>
 #include <numbers>
@@ -17,7 +19,7 @@ namespace {
 
 constexpr double kTick = 1.0 / 60.0;
 constexpr double kFacingDown = std::numbers::pi / 2;  // towards +y
-constexpr std::size_t kKnife = 0, kPistol = 1, kMp5 = 2, kShotgun = 3;
+constexpr std::size_t kPistol = 0, kMp5 = 1, kShotgun = 2;
 
 // A corridor with the player at (1.5, 1.5) facing down it, carrying the
 // game's arsenal
@@ -42,6 +44,13 @@ class ArsenalTest : public ::testing::Test
 		player_.SetCommand(command);
 		scene_.Update(kTick);
 	}
+	// Until a weapon just taken in hand is up
+	void WaitForTheWeapon() {
+		player_.SetCommand({});
+		for (int tick = 0; tick < 30; ++tick) {
+			scene_.Update(kTick);
+		}
+	}
 
 	CharacterConfig config_{Position2D({1.5, 1.5}, kFacingDown), 2.0, 0.4, 0.4,
 							1.0};
@@ -51,9 +60,8 @@ class ArsenalTest : public ::testing::Test
 	Player player_;
 };
 
-TEST_F(ArsenalTest, AGameStartsWithTheKnifeAndThePistol) {
-	EXPECT_EQ(player_.WeaponCount(), 4u);
-	EXPECT_TRUE(player_.Owns(kKnife));
+TEST_F(ArsenalTest, AGameStartsWithThePistol) {
+	EXPECT_EQ(player_.WeaponCount(), 3u);
 	EXPECT_TRUE(player_.Owns(kPistol));
 	EXPECT_FALSE(player_.Owns(kMp5));
 	EXPECT_FALSE(player_.Owns(kShotgun));
@@ -62,21 +70,71 @@ TEST_F(ArsenalTest, AGameStartsWithTheKnifeAndThePistol) {
 }
 
 TEST_F(ArsenalTest, OnlyWeaponsCarriedCanBeTakenInHand) {
-	Command({.weapon = kKnife});
-	EXPECT_EQ(player_.HeldWeapon(), kKnife);
-	Command({.weapon = kShotgun});	// not carried
-	EXPECT_EQ(player_.HeldWeapon(), kKnife);
+	player_.SetOwnedWeapons(0b101);	 // pistol, shotgun
+	Command({.weapon = kShotgun});
+	EXPECT_EQ(player_.HeldWeapon(), kShotgun);
+	Command({.weapon = kMp5});	// not carried
+	EXPECT_EQ(player_.HeldWeapon(), kShotgun);
 }
 
 // The wheel steps through the weapons carried, skipping the rest, round
 TEST_F(ArsenalTest, TheWheelStepsThroughWeaponsCarried) {
-	player_.SetOwnedWeapons(0b1011);  // knife, pistol, shotgun
+	player_.SetOwnedWeapons(0b101);	 // pistol, shotgun
 	Command({.cycle = 1});
 	EXPECT_EQ(player_.HeldWeapon(), kShotgun) << "past the MP5 not carried";
 	Command({.cycle = 1});
-	EXPECT_EQ(player_.HeldWeapon(), kKnife) << "round to the first";
+	EXPECT_EQ(player_.HeldWeapon(), kPistol) << "round to the first";
 	Command({.cycle = -1});
 	EXPECT_EQ(player_.HeldWeapon(), kShotgun);
+}
+
+// A weapon taken in hand comes up first: the end of its reload plays, and
+// only then does it fire
+TEST_F(ArsenalTest, ASwitchedWeaponComesUpBeforeItFires) {
+	player_.SetOwnedWeapons(0b011);	 // pistol, MP5
+	Command({.weapon = kMp5});
+	Weapon& mp5 = player_.GetWeapon(kMp5);
+	const auto reload =
+		LoopedAnimation::Clip(testing::TestTextures(), "mp5", "reload");
+	EXPECT_EQ(mp5.GetTextureId(), reload.back()) << "the end of the reload";
+	const std::size_t rounds = mp5.GetAmmo();
+	EXPECT_FALSE(mp5.Attack()) << "still coming up";
+	EXPECT_EQ(mp5.GetAmmo(), rounds);
+	WaitForTheWeapon();
+	EXPECT_TRUE(mp5.Attack());
+}
+
+// A weapon whose art has its own raise clip comes up with it
+TEST_F(ArsenalTest, ARaiseClipIsPreferred) {
+	player_.SetOwnedWeapons(0b101);	 // pistol, shotgun
+	Command({.weapon = kShotgun});
+	EXPECT_EQ(
+		player_.GetWeapon().GetTextureId(),
+		testing::TestTextures().FindTextureCollection("shotgun_raise").front());
+}
+
+// Coming up is not a reload: no rounds move, and a reload asked for meanwhile
+// is not taken
+TEST_F(ArsenalTest, ComingUpIsNotAReload) {
+	player_.SetOwnedWeapons(0b011);
+	Weapon& mp5 = player_.GetWeapon(kMp5);
+	mp5.SetRounds(5, 20);
+	Command({.reload = true, .weapon = kMp5});
+	WaitForTheWeapon();
+	EXPECT_EQ(mp5.GetAmmo(), 5u);
+	EXPECT_EQ(mp5.GetReserve(), 20u);
+}
+
+TEST_F(ArsenalTest, AnEmptyWeaponComesUpEmpty) {
+	player_.SetOwnedWeapons(0b011);
+	Weapon& mp5 = player_.GetWeapon(kMp5);
+	mp5.SetRounds(0, 0);
+	Command({.weapon = kMp5});
+	WaitForTheWeapon();
+	EXPECT_FALSE(mp5.Attack());
+	EXPECT_EQ(mp5.GetTextureId(),
+			  LoopedAnimation::Clip(testing::TestTextures(), "mp5", "outofammo")
+				  .front());
 }
 
 TEST_F(ArsenalTest, AWeaponFoundIsTakenInHand) {
@@ -95,7 +153,7 @@ TEST_F(ArsenalTest, AWeaponFoundIsTakenInHand) {
 }
 
 TEST_F(ArsenalTest, AnAmmoBoxTopsUpEveryFirearmCarried) {
-	player_.SetOwnedWeapons(0b0111);  // knife, pistol, MP5
+	player_.SetOwnedWeapons(0b011);	 // pistol, MP5
 	const std::size_t pistol = player_.GetWeapon(kPistol).GetReserve();
 	const std::size_t mp5 = player_.GetWeapon(kMp5).GetReserve();
 	ASSERT_TRUE(player_.TryPickUp({.ammo_boxes = 1}));
@@ -106,48 +164,69 @@ TEST_F(ArsenalTest, AnAmmoBoxTopsUpEveryFirearmCarried) {
 	EXPECT_EQ(player_.GetWeapon(kShotgun).GetReserve(),
 			  testing::Weapon("shotgun").reserve_start)
 		<< "not carried";
-	EXPECT_EQ(player_.GetWeapon(kKnife).GetReserve(), 0u);
 }
 
-// The knife never runs out and never reloads
-TEST_F(ArsenalTest, TheKnifeNeedsNoAmmunition) {
-	Command({.weapon = kKnife});
-	const Weapon& knife = player_.GetWeapon();
-	ASSERT_TRUE(knife.IsMelee());
+// A player carrying a blade (slot 0) and the pistol (slot 1)
+class MeleeTest : public ArsenalTest
+{
+  protected:
+	static constexpr std::size_t kBlade = 0;
+
+	MeleeTest() { scene_.SetPlayer(swordsman_); }
+
+	std::array<WeaponConfig, 2> arsenal_{testing::Blade(),
+										 testing::Weapon("pistol")};
+	Player swordsman_{config_, arsenal_, kBlade, testing::TestTextures(),
+					  testing::TestSound()};
+};
+
+// A blade never runs out and never reloads
+TEST_F(MeleeTest, ABladeNeedsNoAmmunition) {
+	const Weapon& blade = swordsman_.GetWeapon();
+	ASSERT_TRUE(blade.IsMelee());
 	// Stabbing and trying to reload for ten seconds
 	for (int tick = 0; tick < 600; ++tick) {
-		player_.SetCommand({.fire = true, .reload = tick % 50 == 0});
+		swordsman_.SetCommand({.fire = true, .reload = tick % 50 == 0});
 		scene_.Update(kTick);
 	}
-	EXPECT_EQ(knife.GetAmmo(), 0u);
-	EXPECT_EQ(knife.GetReserve(), 0u);
+	EXPECT_EQ(blade.GetAmmo(), 0u);
+	EXPECT_EQ(blade.GetReserve(), 0u);
 	// Once the last stab is over it stabs again: never out of ammunition,
 	// never reloading
-	Command({});
+	swordsman_.SetCommand({});
 	scene_.Update(1.0);
-	EXPECT_TRUE(player_.GetWeapon(kKnife).Attack());
+	EXPECT_TRUE(swordsman_.GetWeapon(kBlade).Attack());
 }
 
 // A blade reaches the enemy in front of it and no further
-TEST_F(ArsenalTest, TheKnifeReachesOnlyTheEnemyInFront) {
+TEST_F(MeleeTest, ABladeReachesOnlyTheEnemyInFront) {
 	ASSERT_TRUE(scene_.AddEnemy(testing::Enemy("soldier"),
 								Position2D({1.5, 4.5}, -kFacingDown)));
 	scene_.FinishLoading();
 	Enemy& enemy = *scene_.GetEnemies().front();
-	const Weapon& knife = player_.GetWeapon(kKnife);
+	const Weapon& blade = swordsman_.GetWeapon(kBlade);
 	const double health = enemy.GetHealth();
-	ResolvePlayerShot(scene_, knife, Position2D({1.5, 1.5}, kFacingDown));
+	ResolvePlayerShot(scene_, blade, Position2D({1.5, 1.5}, kFacingDown));
 	EXPECT_DOUBLE_EQ(enemy.GetHealth(), health) << "three cells away";
-	ResolvePlayerShot(scene_, knife, Position2D({1.5, 3.6}, kFacingDown));
+	ResolvePlayerShot(scene_, blade, Position2D({1.5, 3.6}, kFacingDown));
 	EXPECT_LT(enemy.GetHealth(), health) << "within reach";
+}
+
+// A blade marks no wall and kicks nothing
+TEST_F(MeleeTest, ABladeLeavesNoMarkAndNoKick) {
+	scene_.FinishLoading();
+	swordsman_.SetCommand({.fire = true});
+	scene_.Update(kTick);
+	EXPECT_TRUE(scene_.GetWallMarks().empty());
+	EXPECT_EQ(swordsman_.GetKick(), 0.0);
 }
 
 #ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
 TEST_F(ArsenalTest, SwitchingWeaponsAllocatesNothing) {
-	player_.SetOwnedWeapons(0b1111);
+	player_.SetOwnedWeapons(0b111);
 	const auto before = AllocationStats::count;
 	for (int step = 0; step < 40; ++step) {
-		Command({.weapon = static_cast<std::int8_t>(step % 4),
+		Command({.weapon = static_cast<std::int8_t>(step % 3),
 				 .cycle = static_cast<std::int8_t>(step % 3 - 1)});
 	}
 	EXPECT_EQ(AllocationStats::count - before, 0u);

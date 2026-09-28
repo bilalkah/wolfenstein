@@ -75,8 +75,9 @@ void Player::SelectWeapon(std::size_t index) {
 		return;
 	}
 	held_ = index;
-	// Up and ready, not mid-shot or mid-reload from the last time it was held
-	GetWeapon(held_).TransitionTo(WeaponStateType::Loaded);
+	// Brought up afresh, not mid-shot or mid-reload from the last time it
+	// was held
+	GetWeapon(held_).TransitionTo(WeaponStateType::Raising);
 }
 
 void Player::Update(double delta_time) {

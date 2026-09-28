@@ -62,7 +62,7 @@ class Weapon
 		   SoundManager& sound);
 	const TextureManager& GetTextures() const { return textures_; }
 
-	// Needs no ammunition and reaches only as far as its range (the knife)
+	// Needs no ammunition and reaches only as far as its range (a blade)
 	bool IsMelee() const { return config_.ammo_capacity == 0; }
 	double GetKick() const { return config_.kick; }
 	std::size_t GetPellets() const { return config_.pellets; }
@@ -115,6 +115,7 @@ class Weapon
 	LoadedState loaded_state_;
 	OutOfAmmoState out_of_ammo_state_;
 	ReloadingState reloading_state_;
+	RaisingState raising_state_;
 	StateMachine<WeaponState> state_machine_;
 };
 

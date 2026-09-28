@@ -174,7 +174,14 @@
     }
   }
 
-  // `url` as a Response whose body streams in order as the chunks arrive
+  // Which build a response's bytes are from: its date (or tag)
+  const stampOf = (response) =>
+    response.headers.get('Last-Modified') ?? response.headers.get('ETag');
+
+  // `url` as a Response whose body streams in order as the chunks arrive,
+  // and the version of the file they are all from ("<size> <stamp>", null
+  // if the server tells neither). A chunk from another build (the file was
+  // rebuilt mid-download) fails the stream rather than mix the two.
   async function chunkedFetch(url, type, onProgress) {
     let total = 0;
     const received = [];
@@ -187,13 +194,19 @@
     // The first chunk tells the file's size, or brings the whole file
     const first = await fetchRangeRetrying(url, 0, kChunkBytes - 1, counter(0));
     const size = /\/(\d+)$/.exec(first.response.headers.get('Content-Range') ?? '');
+    const stamp = stampOf(first.response);
     const chunks = [Promise.resolve(first.bytes)];
     if (first.response.status === 206 && size) {
       total = Number(size[1]);
       for (let start = kChunkBytes; start < total; start += kChunkBytes) {
         const end = Math.min(start + kChunkBytes, total) - 1;
         const chunk = fetchRangeRetrying(url, start, end, counter(chunks.length))
-          .then(({ bytes }) => bytes);
+          .then(({ response, bytes }) => {
+            if (stampOf(response) !== stamp) {
+              throw new Error(`${url} changed while it was downloading`);
+            }
+            return bytes;
+          });
         chunk.catch(() => {});  // reported when the stream reaches it
         chunks.push(chunk);
       }
@@ -217,19 +230,25 @@
         }
       },
     });
-    return new Response(body, {
+    const response = new Response(body, {
       headers: { 'Content-Type': type, 'Content-Length': String(total) },
     });
+    return { response, version: stamp ? `${total} ${stamp}` : null };
   }
 
   // The downloaded files are kept in the browser and used again while the
   // server's copy is unchanged, so only the first visit after a build
   // downloads anything. IndexedDB, not the Cache API: that one needs https,
   // and the game is also played from plain http:// LAN addresses.
+  // Version 2 forgets the copies version 1 kept: those could mix two builds
   const store = new Promise((resolve) => {
     try {
-      const request = indexedDB.open('wolfenstein', 1);
-      request.onupgradeneeded = () => request.result.createObjectStore('files');
+      const request = indexedDB.open('wolfenstein', 2);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (db.objectStoreNames.contains('files')) db.deleteObjectStore('files');
+        db.createObjectStore('files');
+      };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => resolve(null);
     } catch {
@@ -258,7 +277,7 @@
             const response = await nativeFetch(url, {
               method: 'HEAD', cache: 'no-store', signal: controller.signal,
             });
-            const tag = response.headers.get('ETag') ?? response.headers.get('Last-Modified');
+            const tag = stampOf(response);
             const size = response.headers.get('Content-Length');
             return response.ok && tag && size ? `${size} ${tag}` : null;
           } finally {
@@ -283,14 +302,40 @@
         });
       }
     }
-    const response = await chunkedFetch(url, type, onProgress);
-    if (!version) return response;
-    // One copy of the stream for the game, one for the store
-    const [forGame, forStore] = response.body.tee();
+    const download = await chunkedFetch(url, type, onProgress);
+    // Kept under the version its bytes came from, and only if they all
+    // arrived: a failed or mixed download is fetched afresh next time
+    if (!download.version) return download.response;
+    const [forGame, forStore] = download.response.body.tee();
     new Response(forStore).blob()
-      .then((blob) => inStore('readwrite', (files) => files.put({ version, blob }, url)))
+      .then((blob) => inStore('readwrite', (files) =>
+        files.put({ version: download.version, blob }, url)))
       .catch((error) => console.warn(`${url}: not kept for the next visit:`, error));
-    return new Response(forGame, { headers: response.headers });
+    return new Response(forGame, { headers: download.response.headers });
+  }
+
+  // A game that fails to start may have met a stale or broken copy of its
+  // files: the page forgets its copies and loads afresh, once. Only a
+  // second failure is shown.
+  const kRecoveredKey = 'wolfenstein-recovered';
+  const session = (() => {
+    try { return window.sessionStorage; } catch { return null; }
+  })();
+  let recovering = false;
+  let running = false;  // started: failures from now on are the game's
+  let gameReady = false;  // the game loaded and began its loop
+  async function recover(text) {
+    if (recovering) return;
+    if (running || session?.getItem(kRecoveredKey)) {
+      fail(text);
+      return;
+    }
+    recovering = true;
+    session?.setItem(kRecoveredKey, '1');
+    loaderEl.hidden = false;
+    statusEl.textContent = 'Updating the game…';
+    await inStore('readwrite', (files) => files.clear()).catch(() => {});
+    location.reload();
   }
 
   // The data package is fetched by Emscripten's loader: give it the same
@@ -335,16 +380,39 @@
         .then(({ instance, module }) => done(instance, module))
         .catch((error) => {
           console.error(error);
-          fail('Could not load the game, see the browser console.');
+          recover('Could not load the game, see the browser console.');
         });
       return {};
     },
     onRuntimeInitialized() {
       // Read by the benchmark runner as the page's load time
       window.runtimeReadyMs = performance.now();
+      // The game loads everything as it starts, straight after this, and
+      // says so once loaded; one that exits instead (a broken file) stops
+      // silently, so its silence is the failure
+      setTimeout(() => {
+        if (!gameReady) recover('The game could not start, see the browser console.');
+      }, 1000);
+      // Running: a later failure is the game's, not its files'
+      setTimeout(() => {
+        running = true;
+        session?.removeItem(kRecoveredKey);
+      }, 10000);
+    },
+    onGameReady() {
+      gameReady = true;
+    },
+    onAbort() {
+      recover('The game stopped, see the browser console.');
+    },
+    onExit(status) {
+      if (status !== 0) recover('The game stopped, see the browser console.');
     },
   };
-  window.onerror = () => fail('Something went wrong, see the browser console.');
+  window.onerror = () => recover('Something went wrong, see the browser console.');
+  window.onunhandledrejection = () => {
+    if (!running) recover('Something went wrong, see the browser console.');
+  };
 
   // Browsers start audio suspended until the page gets a user gesture
   function resumeAudio() {
