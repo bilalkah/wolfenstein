@@ -76,6 +76,8 @@ struct GameConfig
 	std::vector<std::string> levels;
 	// The level the benchmark plays; not part of the campaign
 	std::string benchmark_level;
+	// The track the menu plays (assets/music/<name>.mp3); optional
+	std::string menu_music;
 	// From easiest to hardest, as a new game offers them
 	std::vector<DifficultyConfig> difficulties;
 	CharacterStats player;
@@ -93,6 +95,9 @@ struct EnemySpawn
 	Position2D position;
 	// One the level's kill_targets objective asks for
 	bool target = false;
+	// How far from its position it wanders while it knows of no player, to
+	// spots in sight of it; 0 stands guard there
+	double patrol_radius = 0.0;
 };
 
 // A secret: a wall that slides back along (dx, dy) when the player uses it,
@@ -130,6 +135,9 @@ struct LevelData
 	std::string name;  // shown when the level starts; optional
 	// A few lines of story shown before the level starts; optional
 	std::string briefing;
+	// The track played through it (assets/music/<music>.mp3); optional,
+	// silence without
+	std::string music;
 	std::string map;
 	Position2D player;
 	std::vector<EnemySpawn> enemies;

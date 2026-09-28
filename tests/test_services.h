@@ -41,7 +41,7 @@ inline void DefineTestTextures(TextureManager& textures) {
 		next += kFramesPerClip;
 	}
 	// The pickups' sprites
-	for (const char* pickup : {"medkit", "large_medkit", "ammo_box",
+	for (const char* pickup : {"medkit", "large_medkit", "ammo_box", "clip",
 							   "mp5_pickup", "shotgun_pickup"}) {
 		textures.DefineTexture(pickup, next++);
 	}

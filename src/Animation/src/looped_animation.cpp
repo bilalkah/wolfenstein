@@ -57,6 +57,31 @@ LoopedAnimation::LoopedAnimation(const TextureManager& textures,
 								 double cycle_seconds)
 	: LoopedAnimation(Clip(textures, owner, clip), 0.0) {
 	frame_seconds_ = cycle_seconds / static_cast<double>(frames_.size());
+	// The other sides, if the art turns: all of them, each as long, or none.
+	// "<clip>@<view>" is built on the stack: a level loads without
+	// allocating, enemies and their animations included.
+	std::array<char, 64> name{};
+	if (clip.size() + 2 > name.size()) {
+		std::cerr << "Animation clip name too long: " << clip << '\n';
+		std::exit(EXIT_FAILURE);
+	}
+	auto* const at = std::ranges::copy(clip, name.data()).out;
+	*at = '@';
+	const std::string_view side(name.data(), clip.size() + 2);
+	for (std::size_t view = 1; view < kViews; ++view) {
+		at[1] = static_cast<char>('1' + view);
+		const auto frames = FindClip(textures, owner, side);
+		if (frames.empty() && view == 1) {
+			return;	 // seen the same from every side
+		}
+		if (frames.size() != frames_.size()) {
+			std::cerr << "Animation clip " << owner << '_' << side
+					  << " is missing or not as long as the front's\n";
+			std::exit(EXIT_FAILURE);
+		}
+		views_[view] = frames.data();
+	}
+	views_[0] = frames_.data();
 }
 
 void LoopedAnimation::Update(const double& delta_time) {
@@ -74,6 +99,11 @@ void LoopedAnimation::Reset() {
 	current_frame_ = 0;
 	counter_ = 0;
 	finished_once_ = false;
+}
+
+int LoopedAnimation::GetFrame(std::size_t view) const {
+	const std::uint16_t* side = views_[view % kViews];
+	return side == nullptr ? frames_[current_frame_] : side[current_frame_];
 }
 
 int LoopedAnimation::GetCurrentFrame() const {

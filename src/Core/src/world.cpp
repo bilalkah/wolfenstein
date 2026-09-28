@@ -13,7 +13,8 @@ std::expected<std::unique_ptr<World>, std::string> World::Create(
 	}
 	// The game is playable without sound, so a missing audio device is a
 	// warning, not an error
-	auto sound = SoundManager::Open(asset_dir + "sounds/");
+	auto sound = SoundManager::Open(asset_dir + "sounds/", asset_dir + "music/",
+									loader->MusicTracks());
 	if (!sound) {
 		std::cerr << "Sound disabled: " << sound.error() << '\n';
 		sound = std::make_unique<SoundManager>();
@@ -240,6 +241,7 @@ std::expected<void, std::string> World::StartLevel(
 	scene_->SetDifficulty({.enemy_damage = difficulty_->enemy_damage,
 						   .enemy_health = difficulty_->enemy_health,
 						   .supplies = difficulty_->supplies});
+	sound_->PlayMusic(level->data.music);
 	return loader_.Populate(*scene_, *level, *player_);
 }
 

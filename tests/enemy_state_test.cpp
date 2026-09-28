@@ -83,14 +83,16 @@ TEST_F(EnemyStateTest, ItFlinchesOnlyOnceInACooldown) {
 	enemy_->Update(0.3);
 	ASSERT_EQ(enemy_->GetStateType(), EnemyStateType::Walk);
 
+	// (Hunting a player it can neither see nor reach, it gives the hunt up;
+	// what matters here is only that it does not flinch)
 	const double health = enemy_->GetHealth();
 	Hit(10.0);
 	enemy_->Update(0.016);
-	EXPECT_EQ(enemy_->GetStateType(), EnemyStateType::Walk) << "no flinch";
+	EXPECT_NE(enemy_->GetStateType(), EnemyStateType::Pain) << "no flinch";
 	EXPECT_DOUBLE_EQ(enemy_->GetHealth(), health - 10.0) << "but hurt";
 	// A hit it did not flinch at is spent: it does not flinch later for it
 	enemy_->Update(kCooldown);
-	EXPECT_EQ(enemy_->GetStateType(), EnemyStateType::Walk);
+	EXPECT_NE(enemy_->GetStateType(), EnemyStateType::Pain);
 }
 
 // The killing hit always drops it, cooldown or not

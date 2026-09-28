@@ -15,6 +15,7 @@
         "level7.json"
     ],
     "benchmark_level": "benchmark.json",
+    "menu_music": "menu",
     "difficulties": [
         {
             "name": "easy",
@@ -66,7 +67,7 @@
         },
         {
             "name": "mp5",
-            "label": "MP5",
+            "label": "MINIGUN",
             "ammo": 30,
             "reserve": {
                 "start": 60,
@@ -120,8 +121,8 @@
     "config_enemy": {
         "soldier": {
             "t_speed": 0.8,
-            "width": 0.33,
-            "height": 0.66,
+            "width": 1.117,
+            "height": 0.673,
             "health": 60,
             "weapon": {
                 "name": "rifle",
@@ -138,12 +139,13 @@
                 "idle_frame_seconds": 0.8,
                 "follow_range": 5.0
             },
-            "drop": "clip"
+            "drop": "clip",
+            "radius": 0.165
         },
         "caco_demon": {
             "t_speed": 0.8,
-            "width": 0.4,
-            "height": 0.8,
+            "width": 1.016,
+            "height": 0.833,
             "health": 120,
             "weapon": {
                 "name": "melee",
@@ -158,12 +160,13 @@
             "ai": {
                 "idle_frame_seconds": 0.8,
                 "follow_range": 5.0
-            }
+            },
+            "radius": 0.2
         },
         "cyber_demon": {
             "t_speed": 0.8,
-            "width": 0.5,
-            "height": 1.0,
+            "width": 1.168,
+            "height": 1.04,
             "health": 300,
             "weapon": {
                 "name": "laser gun",
@@ -180,56 +183,57 @@
                 "idle_frame_seconds": 0.8,
                 "follow_range": 5.0
             },
-            "drop": "large_medkit"
+            "drop": "large_medkit",
+            "radius": 0.25
         }
     },
     "pickups": {
         "medkit": {
             "texture": "medkit",
-            "width": 0.4,
-            "height": 0.3,
+            "width": 0.254,
+            "height": 0.127,
             "health": 25
         },
         "large_medkit": {
             "texture": "large_medkit",
-            "width": 0.5,
-            "height": 0.38,
+            "width": 0.381,
+            "height": 0.254,
             "health": 50
         },
         "ammo_box": {
             "texture": "ammo_box",
-            "width": 0.4,
-            "height": 0.3,
+            "width": 0.228,
+            "height": 0.203,
             "ammo_boxes": 1
         },
         "gold_key": {
             "texture": "gold_key",
-            "width": 0.3,
-            "height": 0.3,
+            "width": 0.203,
+            "height": 0.241,
             "key": "gold"
         },
         "silver_key": {
             "texture": "silver_key",
-            "width": 0.3,
-            "height": 0.3,
+            "width": 0.178,
+            "height": 0.241,
             "key": "silver"
         },
         "mp5": {
             "texture": "mp5_pickup",
-            "width": 0.55,
-            "height": 0.25,
+            "width": 0.635,
+            "height": 0.317,
             "weapon": "mp5"
         },
         "shotgun": {
             "texture": "shotgun_pickup",
-            "width": 0.6,
-            "height": 0.25,
+            "width": 0.533,
+            "height": 0.165,
             "weapon": "shotgun"
         },
         "clip": {
-            "texture": "ammo_box",
-            "width": 0.28,
-            "height": 0.21,
+            "texture": "clip",
+            "width": 0.102,
+            "height": 0.152,
             "ammo_boxes": 1,
             "box_share": 0.5
         }

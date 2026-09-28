@@ -97,10 +97,11 @@ void Renderer3D::ReserveObjects(std::size_t objects) {
 }
 
 void Renderer3D::Enqueue(int texture_id, const SDL_Rect& src_rect,
-						 const SDL_Rect& dest_rect, double distance) {
+						 const SDL_Rect& dest_rect, double distance,
+						 bool mirrored) {
 	render_queue_.push_back({texture_id, src_rect, dest_rect, distance,
 							 static_cast<std::uint32_t>(render_queue_.size()),
-							 nullptr});
+							 nullptr, mirrored});
 }
 
 void Renderer3D::RenderScene(double delta_time) {
@@ -150,11 +151,14 @@ void Renderer3D::RenderBackground() {
 	const auto& sky = context_->Textures().GetTexture(sky_texture_);
 	const int horizon = config.height / 2 + horizon_shift_;
 
-	// The sky keeps the size it has looking straight ahead (half the screen
-	// tall, its proportions kept) whichever way the player looks: it sits on
-	// the horizon, and turns with the view, a panorama repeating every sky
-	// width
-	const int sky_height = config.height / 2;
+	// The sky reaches from the horizon to the top of the view looking as
+	// far up as the player can: looking up shows more of it, never past it.
+	// Its size stays the same whichever way the player looks (its
+	// proportions kept); it turns with the view, a panorama repeating every
+	// sky width.
+	const int sky_height =
+		config.height / 2 +
+		static_cast<int>(Player::kMaxPitch * pixels_per_unit_);
 	const int sky_width = sky.width * sky_height / sky.height;
 	const double pixels_per_radian =
 		config.width / context_->GetCamera().GetFov();
@@ -167,8 +171,8 @@ void Renderer3D::RenderBackground() {
 		const SDL_Rect band{x, sky_top, sky_width, sky_height};
 		SDL_RenderCopy(renderer, sky.texture, nullptr, &band);
 	}
-	// Looking higher than the image reaches: above it, the colour of its top
-	// edge, into which the edge fades more the further up the player looks
+	// Higher still (a shot's kick on top of looking fully up): the colour
+	// of its top edge, into which the edge fades
 	if (sky_top > 0) {
 		const SDL_Color top = sky.top_colour;
 		SDL_SetRenderDrawColor(renderer, top.r, top.g, top.b, 255);
@@ -400,13 +404,13 @@ void Renderer3D::RenderObjects() {
 	const auto& camera_ptr = context_->GetCamera();
 	for (const auto& object : objects) {
 
-		const RayPair* rays = camera_ptr.FindObjectRays(object->GetId());
-		if (rays == nullptr) {
+		const Camera2D::Sight* sight = camera_ptr.FindObject(object->GetId());
+		if (sight == nullptr) {
 			continue;
 		}
 
-		const Ray& first = rays->first;
-		const Ray& last = rays->second;
+		const Ray& first = sight->rays.first;
+		const Ray& last = sight->rays.second;
 		// A sprite the viewer stands in (lights do not block movement) would
 		// cover the screen: it is not drawn
 		constexpr double kNearestSprite = 0.25;
@@ -437,7 +441,7 @@ void Renderer3D::RenderObjects() {
 							  line_height};
 
 		Enqueue(first.wall_id, src_rect, dest_rect,
-				first.perpendicular_distance);
+				first.perpendicular_distance, sight->mirrored);
 	}
 }
 
@@ -577,15 +581,16 @@ void Renderer3D::RenderWeapon() {
 		context_->Textures().GetTexture(texture_id).height;
 	const auto texture_width =
 		context_->Textures().GetTexture(texture_id).width;
+	// A weapon's frames are as wide as the screen, the gun where it is held
+	// on it, and stand on its bottom edge
 	const double ratio = static_cast<double>(texture_height) / texture_width;
-	const int width_slice = static_cast<int>(config_.width / 1.3);
+	const int width_slice = config_.width;
 	const int height_slice = static_cast<int>(width_slice * ratio);
 	SDL_Rect src_rect{0, 0, texture_width, texture_height};
 	// A dead player's gun drops out of view as they fall
 	const int dropped =
 		static_cast<int>(1.2 * height_slice * player_ptr.GetDeathFall());
-	SDL_Rect dest_rect{config_.width / 2 - width_slice / 2 + 100,
-					   config_.height - height_slice + dropped, width_slice,
+	SDL_Rect dest_rect{0, config_.height - height_slice + dropped, width_slice,
 					   height_slice};
 	Enqueue(texture_id, src_rect, dest_rect, 0.0);
 
@@ -618,6 +623,11 @@ void Renderer3D::RenderTextures() {
 							   static_cast<int>(command.quad->size()),
 							   kQuadTriangles.data(),
 							   static_cast<int>(kQuadTriangles.size()));
+		}
+		else if (command.mirrored) {
+			SDL_RenderCopyEx(renderer, texture.texture, &command.src_rect,
+							 &command.dest_rect, 0.0, nullptr,
+							 SDL_FLIP_HORIZONTAL);
 		}
 		else {
 			SDL_RenderCopy(renderer, texture.texture, &command.src_rect,

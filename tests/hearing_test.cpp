@@ -147,6 +147,91 @@ TEST(EnemyGunfire, BringsTheOthersHunting) {
 	EXPECT_EQ(listener.GetStateType(), EnemyStateType::Walk);
 }
 
+// A soldier hit cries out, and those near it come, however far away the
+// shot was fired from. Down a long corridor the player shoots one 8 cells
+// off; one 5 cells past it, beyond the pistol's report, hears its cry; one
+// 10 past it hears nothing.
+TEST(EnemyCry, BringsThoseNearTheOneHit) {
+	const int report = testing::Weapon("pistol").noise_range;
+	const int cry = testing::Enemy("soldier").behaviour.cry_range;
+	ASSERT_LT(report, 13) << "the second is out of the shot's earshot";
+	ASSERT_GE(cry, 5);
+	ASSERT_LT(cry, 10);
+	constexpr SceneCapacity kCapacity{.enemies = 3};
+	const Map map(testing::WriteMapFile(
+					  "wolfenstein_cry_test.txt",
+					  {"333333333333333333333333", "300000000000000000000003",
+					   "333333333333333333333333"})
+					  .string());
+	memory::MonotonicArena arena(Scene::MemoryFor(map, kCapacity));
+	Scene scene(testing::TestTextures(), testing::TestSound(), map, kCapacity,
+				arena);
+	CharacterConfig config{Position2D({1.5, 1.5}, std::numbers::pi / 2), 2.0,
+						   0.4, 0.4, 1.0};
+	Player player(config, testing::GameData().weapons, 0,
+				  testing::TestTextures(), testing::TestSound());
+	scene.SetPlayer(player);
+	for (const double y : {9.5, 14.5, 19.5}) {
+		ASSERT_TRUE(scene.AddEnemy(testing::Enemy("soldier"),
+								   Position2D({1.5, y}, 0.0)));
+	}
+	scene.FinishLoading();
+	const auto enemies = scene.GetEnemies();
+	scene.Update(kTick);
+	for (const Enemy* enemy : enemies) {
+		ASSERT_FALSE(enemy->IsAlerted()) << "all unaware, before the shot";
+	}
+
+	player.SetCommand({.fire = true});
+	scene.Update(kTick);
+	player.SetCommand({});
+	EXPECT_TRUE(enemies[0]->IsAlerted()) << "the one hit";
+	EXPECT_TRUE(enemies[1]->IsAlerted()) << "near it, it heard the cry";
+	EXPECT_FALSE(enemies[2]->IsAlerted()) << "too far from either";
+}
+
+// A patroller that hears a shot hunts; the player out of its sight and
+// far, once what it heard is forgotten it gives up, and walks about again
+// straight from the hunt, never standing in between
+TEST(PatrolHunt, GivenUpItWalksAboutAgain) {
+	constexpr SceneCapacity kCapacity{.enemies = 1};
+	const Map map(
+		testing::WriteMapFile("wolfenstein_patrol_hunt_test.txt", kBend)
+			.string());
+	memory::MonotonicArena arena(Scene::MemoryFor(map, kCapacity));
+	Scene scene(testing::TestTextures(), testing::TestSound(), map, kCapacity,
+				arena);
+	// The player at the far end of their corridor, the patroller at the
+	// far end of the other: 12 cells round the bend, out of sight
+	CharacterConfig config{Position2D({1.5, 1.5}, 0.0), 2.0, 0.4, 0.4, 1.0};
+	Player player(config, testing::GameData().weapons, 0,
+				  testing::TestTextures(), testing::TestSound());
+	scene.SetPlayer(player);
+	ASSERT_TRUE(
+		scene.AddEnemy(testing::Enemy("soldier"), Position2D({3.5, 2.5}, 0.0)));
+	scene.FinishLoading();
+	Enemy& enemy = *scene.GetEnemies().front();
+	enemy.SetPatrolRadius(1.5);
+	ASSERT_EQ(enemy.GetStateType(), EnemyStateType::Patrol);
+	enemy.Alert();
+	scene.Update(kTick);
+	ASSERT_EQ(enemy.GetStateType(), EnemyStateType::Walk);
+	// It follows the way round, hunting; the player steps back out of
+	// reach of its sight as it comes, and it gives up in time
+	bool patrolled = false;
+	for (double t = 0.0; t < 30.0 && !patrolled; t += kTick) {
+		player.SetPosition(Position2D({1.5, 1.5}, 0.0));
+		scene.Update(kTick);
+		patrolled = enemy.GetStateType() == EnemyStateType::Patrol;
+		if (patrolled) {
+			EXPECT_TRUE(enemy.IsMoving()) << "straight on from the hunt";
+		}
+		ASSERT_NE(enemy.GetStateType(), EnemyStateType::Idle)
+			<< "a patroller never stands between the two";
+	}
+	EXPECT_TRUE(patrolled) << "it gave up the hunt";
+}
+
 #ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
 TEST_F(HearingTest, MakingANoiseAllocatesNothing) {
 	Load(kBend, {3.5, 1.5});

@@ -143,17 +143,21 @@ EnemyConfig ToEnemy(const std::string& type, const json& enemy,
 					const HitZones& zones) {
 	const auto& weapon = enemy.at("weapon");
 	const auto& ai = enemy.at("ai");
+	const auto width = enemy.at("width").get<double>();
 	return {.type = type,
 			.translation_speed = enemy.at("t_speed").get<double>(),
-			.width = enemy.at("width").get<double>(),
+			.width = width,
 			.height = enemy.at("height").get<double>(),
+			.radius = enemy.value("radius", width / 2),
 			.health = enemy.value("health", 100.0),
 			.behaviour = {.idle_frame_seconds =
 							  ai.at("idle_frame_seconds").get<double>(),
 						  .follow_range = ai.at("follow_range").get<double>(),
 						  .pain_cooldown_seconds =
 							  ai.value("pain_cooldown_seconds", 1.2),
-						  .alert_seconds = ai.value("alert_seconds", 10.0)},
+						  .alert_seconds = ai.value("alert_seconds", 10.0),
+						  .patrol_pace = ai.value("patrol_pace", 0.5),
+						  .cry_range = ai.value("cry_range", 6)},
 			.hit_zones = enemy.contains("hit_zones")
 							 ? ToHitZones(enemy.at("hit_zones"), zones)
 							 : zones,
@@ -218,6 +222,7 @@ std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 			throw json::other_error::create(502, "no levels listed", &root);
 		}
 		config.benchmark_level = root.at("benchmark_level").get<std::string>();
+		config.menu_music = root.value("menu_music", std::string{});
 		for (const auto& difficulty : root.at("difficulties")) {
 			config.difficulties.push_back(
 				{.name = difficulty.at("name").get<std::string>(),
@@ -301,6 +306,9 @@ class LevelReader final : public nlohmann::json_sax<json>
 				}
 				if (frame.key == Key::Briefing) {
 					return take(level_.briefing, 0);
+				}
+				if (frame.key == Key::Music) {
+					return take(level_.music, 0);
 				}
 				break;
 			case Kind::Enemy:
@@ -495,6 +503,7 @@ class LevelReader final : public nlohmann::json_sax<json>
 		Map,
 		Name,
 		Briefing,
+		Music,
 		Player,
 		Enemies,
 		DynamicObjects,
@@ -504,6 +513,7 @@ class LevelReader final : public nlohmann::json_sax<json>
 		Type,
 		Text,
 		Target,
+		PatrolRadius,
 		Dx,
 		Dy,
 		Position,
@@ -537,6 +547,8 @@ class LevelReader final : public nlohmann::json_sax<json>
 					return Key::Name;
 				if (name == "briefing")
 					return Key::Briefing;
+				if (name == "music")
+					return Key::Music;
 				if (name == "player")
 					return Key::Player;
 				if (name == "enemies")
@@ -573,6 +585,8 @@ class LevelReader final : public nlohmann::json_sax<json>
 			case Kind::Enemy:
 				if (name == "target")
 					return Key::Target;
+				if (name == "patrol_radius")
+					return Key::PatrolRadius;
 				[[fallthrough]];
 			case Kind::Object:
 			case Kind::Pickup:
@@ -622,6 +636,13 @@ class LevelReader final : public nlohmann::json_sax<json>
 	bool Number(double value) {
 		Frame& frame = Top();
 		if (frame.kind == Kind::Skip || frame.key == Key::Other) {
+			return true;
+		}
+		if (frame.kind == Kind::Enemy && frame.key == Key::PatrolRadius) {
+			if (value < 0.0) {
+				return Fail("a patrol radius cannot be negative");
+			}
+			level_.enemies.back().patrol_radius = value;
 			return true;
 		}
 		if (frame.kind == Kind::Secret) {

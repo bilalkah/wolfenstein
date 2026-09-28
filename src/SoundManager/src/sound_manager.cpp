@@ -9,7 +9,8 @@
 namespace wolfenstein {
 
 std::expected<std::unique_ptr<SoundManager>, std::string> SoundManager::Open(
-	const std::string& sound_dir) {
+	const std::string& sound_dir, const std::string& music_dir,
+	std::span<const std::string> tracks) {
 	const auto error = [](std::string_view what, const char* detail) {
 		return std::unexpected(std::string(what) + ": " + detail);
 	};
@@ -49,16 +50,39 @@ std::expected<std::unique_ptr<SoundManager>, std::string> SoundManager::Open(
 		}
 	}
 
-	const std::string theme = sound_dir + "theme.mp3";
-	sound->main_theme = Mix_LoadMUS(theme.c_str());
-	if (sound->main_theme == nullptr) {
-		return error("cannot load " + theme, Mix_GetError());
+	// Every track, loaded now: switching tracks as levels start allocates
+	// nothing
+	sound->tracks_.reserve(tracks.size());
+	for (const std::string& name : tracks) {
+		const std::string file = music_dir + name + ".mp3";
+		Mix_Music* music = Mix_LoadMUS(file.c_str());
+		if (music == nullptr) {
+			return error("cannot load " + file, Mix_GetError());
+		}
+		sound->tracks_.push_back({name, music});
 	}
 	Mix_VolumeMusic(64);
-	if (Mix_PlayMusic(sound->main_theme, -1) == -1) {
-		return error("cannot play " + theme, Mix_GetError());
-	}
 	return sound;
+}
+
+void SoundManager::PlayMusic(std::string_view name) {
+	if (name == playing_) {
+		return;	 // already playing: it goes on
+	}
+	playing_ = name;
+	if (!open_) {
+		return;
+	}
+	const auto track = std::ranges::find(tracks_, name, &Track::name);
+	if (track == tracks_.end()) {
+		Mix_HaltMusic();  // no such track: silence
+		return;
+	}
+	constexpr int kFadeInMs = 400;
+	if (Mix_FadeInMusic(track->music, -1, kFadeInMs) == -1) {
+		std::cerr << "Failed to play " << name << ": " << Mix_GetError()
+				  << '\n';
+	}
 }
 
 SoundManager::~SoundManager() {
@@ -70,7 +94,9 @@ SoundManager::~SoundManager() {
 	for (Mix_Chunk* chunk : chunks_) {
 		Mix_FreeChunk(chunk);
 	}
-	Mix_FreeMusic(main_theme);
+	for (const Track& track : tracks_) {
+		Mix_FreeMusic(track.music);
+	}
 	Mix_CloseAudio();
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }

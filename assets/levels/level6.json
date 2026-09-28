@@ -1,6 +1,7 @@
 {
   "name": "THE KEEP",
   "briefing": "The keep stands between you and the sanctum. Its great hall is shut with gold locks, and the gold key is in the armory behind a silver one; the guards at the gate carry that. Take the keep and go through the great hall.",
+  "music": "level6",
   "map": "level6.txt",
   "player": {
     "position": {
@@ -16,7 +17,8 @@
         "x": 14.5,
         "y": 14.5,
         "theta": 0.4
-      }
+      },
+      "patrol_radius": 5.0
     },
     {
       "type": "soldier",
@@ -24,7 +26,8 @@
         "x": 20.5,
         "y": 15.5,
         "theta": 2.94
-      }
+      },
+      "patrol_radius": 3.0
     },
     {
       "type": "soldier",
@@ -32,7 +35,8 @@
         "x": 15.5,
         "y": 18.5,
         "theta": -0.79
-      }
+      },
+      "patrol_radius": 5.0
     },
     {
       "type": "caco_demon",
@@ -40,7 +44,8 @@
         "x": 17.5,
         "y": 17.5,
         "theta": -1.25
-      }
+      },
+      "patrol_radius": 5.0
     },
     {
       "type": "soldier",
@@ -48,7 +53,8 @@
         "x": 18.5,
         "y": 2.5,
         "theta": 2.03
-      }
+      },
+      "patrol_radius": 4.0
     },
     {
       "type": "soldier",
@@ -56,7 +62,8 @@
         "x": 21.5,
         "y": 2.5,
         "theta": 2.86
-      }
+      },
+      "patrol_radius": 4.0
     },
     {
       "type": "soldier",
@@ -64,7 +71,8 @@
         "x": 21.5,
         "y": 27.5,
         "theta": 2.86
-      }
+      },
+      "patrol_radius": 4.0
     },
     {
       "type": "soldier",
@@ -72,7 +80,8 @@
         "x": 18.5,
         "y": 29.5,
         "theta": -2.03
-      }
+      },
+      "patrol_radius": 4.0
     },
     {
       "type": "soldier",
@@ -80,7 +89,8 @@
         "x": 27.5,
         "y": 2.5,
         "theta": 1.74
-      }
+      },
+      "patrol_radius": 3.5
     },
     {
       "type": "soldier",
@@ -88,7 +98,8 @@
         "x": 26.5,
         "y": 7.5,
         "theta": -1.33
-      }
+      },
+      "patrol_radius": 3.5
     },
     {
       "type": "caco_demon",
@@ -96,7 +107,8 @@
         "x": 2.5,
         "y": 2.5,
         "theta": 0.32
-      }
+      },
+      "patrol_radius": 3.5
     },
     {
       "type": "soldier",
@@ -104,7 +116,8 @@
         "x": 2.5,
         "y": 28.5,
         "theta": 0.0
-      }
+      },
+      "patrol_radius": 3.5
     },
     {
       "type": "caco_demon",
@@ -112,7 +125,8 @@
         "x": 7.5,
         "y": 29.5,
         "theta": -2.68
-      }
+      },
+      "patrol_radius": 3.5
     },
     {
       "type": "cyber_demon",
@@ -128,7 +142,8 @@
         "x": 4.5,
         "y": 22.5,
         "theta": -1.42
-      }
+      },
+      "patrol_radius": 5.0
     },
     {
       "type": "soldier",
@@ -136,7 +151,8 @@
         "x": 6.5,
         "y": 16.5,
         "theta": -2.68
-      }
+      },
+      "patrol_radius": 5.0
     },
     {
       "type": "caco_demon",
@@ -144,7 +160,8 @@
         "x": 3.5,
         "y": 17.5,
         "theta": -0.64
-      }
+      },
+      "patrol_radius": 5.0
     }
   ],
   "dynamicObjects": [

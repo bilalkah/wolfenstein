@@ -30,7 +30,7 @@ Menu::Menu(RendererContext& context,
 	: context_(&context),
 	  ui_(std::make_unique<ui::Ui>(
 		  context_->GetRenderer(),
-		  std::string(RESOURCE_DIR) + "font/EternalAncient.ttf",
+		  std::string(RESOURCE_DIR) + "font/BlackOpsOne-Regular.ttf",
 		  std::string(RESOURCE_DIR) + "font/Roboto-Light.ttf")),
 	  difficulties_(difficulties),
 	  chosen_difficulty_(difficulties.size() > 1 ? 1 : 0) {

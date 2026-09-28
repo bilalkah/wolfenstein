@@ -73,7 +73,7 @@ TEST_F(CollisionTest, ThePlayerNeverEntersALivingEnemy) {
 								Position2D({3.5, 4.5}, -kFacingDown)));
 	scene_.FinishLoading();
 	const Enemy& enemy = *scene_.GetEnemies().front();
-	const double reach = player_.GetWidth() / 2 + enemy.GetWidth() / 2;
+	const double reach = player_.GetWidth() / 2 + enemy.GetRadius();
 	player_.SetCommand(PlayerCommand{.forward = 1});
 	double closest = 1e9;
 	for (double t = 0.0; t < 3.0; t += kTick) {
@@ -155,16 +155,15 @@ TEST_F(CollisionTest, EnemiesPassEachOtherButNotLamps) {
 	const auto objects = scene_.GetObjects();
 	// Into the other enemy: allowed, enemies do not block each other
 	const vector2d past = ResolveObjectCollisions(
-		objects, first, first->GetPose(), {3.5, 5.3}, first->GetWidth() / 2,
+		objects, first, first->GetPose(), {3.5, 5.3}, first->GetRadius(),
 		/*ignore_enemies=*/true);
 	EXPECT_DOUBLE_EQ(past.y, 5.3);
 	// Into the lamp: stopped at its edge
 	const vector2d stopped = ResolveObjectCollisions(
-		objects, second, {5.0, 4.5}, {5.2, 4.5}, second->GetWidth() / 2,
+		objects, second, {5.0, 4.5}, {5.2, 4.5}, second->GetRadius(),
 		/*ignore_enemies=*/true);
 	EXPECT_NEAR(stopped.Distance({5.5, 4.5}),
-				second->GetWidth() / 2 + testing::GameData().light.radius,
-				1e-9);
+				second->GetRadius() + testing::GameData().light.radius, 1e-9);
 }
 
 // Coming at a wall's corner at an angle, the body stops at the corner as it

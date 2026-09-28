@@ -126,6 +126,8 @@ void Game::Init() {
 	renderer_2d_ = std::make_unique<Renderer2D>(*renderer_context_);
 	minimap_ = std::make_unique<Minimap>(*renderer_context_);
 	ApplySettings();
+	// The game opens on the main menu, to its theme
+	world_->Sound().PlayMusic(world_->Config().menu_music);
 }
 
 // The world has just replaced its level, destroying the previous one: every
@@ -264,6 +266,7 @@ void Game::HandleMenuAction(const MenuAction& action) {
 			state_ = GameState::Menu;
 			SDL_SetRelativeMouseMode(SDL_FALSE);
 			menu_->Open(MenuScreen::Main);
+			world_->Sound().PlayMusic(world_->Config().menu_music);
 			break;
 		case MenuAction::Type::Quit:
 			running_ = false;

@@ -119,8 +119,7 @@ TEST_F(NavigationTest, TheRouteKeepsClearOfALamp) {
 												  enemy.GetId());
 	const auto path = scene_.GetNavigation().GetPath(enemy.GetId());
 	ASSERT_FALSE(path.empty());
-	const double reach =
-		enemy.GetWidth() / 2 + testing::GameData().light.radius;
+	const double reach = enemy.GetRadius() + testing::GameData().light.radius;
 	for (const GridCell cell : path) {
 		EXPECT_GT(NavigationManager::CellCentre(cell).Distance({4.5, 3.5}),
 				  reach)

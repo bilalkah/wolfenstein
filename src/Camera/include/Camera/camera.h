@@ -57,9 +57,16 @@ class Camera2D
 	// The centre ray and what it points at, for drawing only: shots are
 	// resolved by the simulation (Aim), not from the view
 	const Ray& GetCrosshairRay() const { return crosshair_ray_; }
-	// The rays bounding an object in the current frame, or nullptr if the
-	// object is not visible
-	const RayPair* FindObjectRays(ObjectId id) const;
+	// An object as the eye sees it this frame: the rays bounding it, and
+	// whether its picture is mirrored (a body lying dead, seen from behind)
+	struct Sight
+	{
+		RayPair rays;
+		bool mirrored = false;
+	};
+	// How the eye sees an object in the current frame, or nullptr if it is
+	// not in view
+	const Sight* FindObject(ObjectId id) const;
 	const Position2D& GetPosition() const { return eye_; }
 	double GetFov() const;
 	// Widens or narrows the view to `fov` radians: as many rays, spread
@@ -82,7 +89,7 @@ class Camera2D
 	// SetScene); an entry is current only if it was written in this frame
 	struct ObjectView
 	{
-		RayPair rays;
+		Sight sight;
 		std::uint64_t frame = std::numeric_limits<std::uint64_t>::max();
 	};
 	std::vector<ObjectView> views_;

@@ -20,6 +20,8 @@
 #include "SoundManager/sound_manager.h"
 #include "State/enemy_state.h"
 #include "Strike/simple_weapon.h"
+#include <cstddef>
+#include <cstdint>
 #include <string>
 namespace wolfenstein {
 
@@ -35,6 +37,11 @@ struct StateConfig
 	double pain_cooldown_seconds{1.2};
 	// Heard gunfire keeps it hunting the player this long, seen or not
 	double alert_seconds{10.0};
+	// Walking its patrol, it goes at this share of its hunting speed
+	double patrol_pace{0.5};
+	// Cells its cry carries when it is shot (Scene::MakeNoise): those near
+	// it come hunting, however far away the shot was fired from
+	int cry_range{6};
 };
 
 // Where a shot strikes a figure changes what it does: the head is the top
@@ -74,8 +81,12 @@ struct EnemyConfig
 {
 	std::string type;  // names its animation clips: "<type>_walk"
 	double translation_speed{};
+	// Its picture's size, wide enough for every frame (lying dead, aiming
+	// to the side)
 	double width{};
 	double height{};
+	// Its body's, what bumps into things
+	double radius{};
 	double health = 100.0;	// before the difficulty scales it
 	StateConfig behaviour;
 	HitZones hit_zones;
@@ -117,16 +128,55 @@ class Enemy : public ICharacter, public IGameObject
 	// then (Pickup::MakeDrop)
 	void SetDrop(Pickup& drop) { drop_ = &drop; }
 	bool IsAlerted() const { return alerted_for_ > 0.0; }
+	// Forgets what it heard: it found no way to it
+	void LoseTrail() { alerted_for_ = 0.0; }
+	// Whether, not yet hunting, it becomes aware of the player: it heard
+	// gunfire, or it sees them near, on any side
+	bool NoticesPlayer() const;
+	// While it knows of no player it wanders within `radius` of where it
+	// stands now (its post), to spots it sees from there: never through a
+	// wall into the next room. 0 stands guard.
+	void SetPatrolRadius(double radius);
+	bool Patrols() const { return patrol_radius_ > 0.0; }
+	double GetPatrolRadius() const { return patrol_radius_; }
+	const vector2d& GetPost() const { return post_; }
+	// Chooses the next spot to wander to: open floor within its radius, in
+	// sight of its post, a little way from where it is; its post if no
+	// spot will do. The choice is the same every run, from a generator of
+	// its own.
+	void PickWaypoint();
+	const vector2d& Waypoint() const { return waypoint_; }
+	// Its speed, as a share of its hunting speed: slower on patrol
+	void SetPace(double pace) { pace_ = pace; }
+	// Whether it is on its way somewhere this tick
+	bool IsMoving() const { return !(next_pose == position_.pose); }
+	// Standing guard: it looks one way, then another, about the way it
+	// keeps watch (as it was placed)
+	void LookAround();
 	void SetDeath();
 	// Lying dead as a saved game left it: straight to the end of its death,
 	// in silence
 	void RestoreDead();
-	// Not engaged with the player: standing idle, or dead and down
+	// Not engaged with the player: standing guard, walking its patrol, or
+	// dead and down
 	bool IsCalm() const;
 	// Solid while it stands: once shot down it can be walked over
 	double GetCollisionRadius() const override {
-		return is_alive_ && health_ > 0.0 ? width / 2 : 0.0;
+		return is_alive_ && health_ > 0.0 ? radius_ : 0.0;
 	}
+	// Its body's radius, dead or alive
+	double GetRadius() const { return radius_; }
+	// Which of its 8 views someone at `viewer` sees: 0 its front, going
+	// round from its front-left to 7, its front-right (4 its back)
+	std::size_t ViewFrom(const vector2d& viewer) const;
+	// Alive, the frame for the side the viewer sees. Falling and dead there
+	// is one frame, drawn from its front: it lies across the way it faced
+	// (the player who killed it), so from behind it is the mirror image,
+	// and from its head or its feet it is narrow. It stays put, then, as the
+	// viewer walks round it.
+	Appearance SeenFrom(const vector2d& viewer) const override;
+	// Turns it towards the player (to shoot)
+	void FacePlayer();
 	// One of the enemies a level's objective asks the player to kill
 	bool IsTarget() const { return target_; }
 	void SetTarget(bool target) { target_ = target; }
@@ -166,6 +216,14 @@ class Enemy : public ICharacter, public IGameObject
 	double translation_speed_{};
 	double width{};
 	double height{};
+	double radius_{};
+	double pace_{1.0};
+	vector2d post_;
+	double patrol_radius_{};
+	vector2d waypoint_;
+	std::uint32_t random_{1};  // xorshift state, never 0
+	double watch_theta_{};	   // the way it keeps watch
+	std::size_t look_{};	   // which way it looks, of its turns
 	double health_{};
 	Position2D position_;
 	vector2d next_pose;
@@ -175,10 +233,14 @@ class Enemy : public ICharacter, public IGameObject
 	SoundChannel sound_channel_;
 	Ray crosshair_ray;
 	EnemyState& StateFor(EnemyStateType type);
+	// The direction to `viewer`, turned from the way it faces: 0 straight
+	// ahead, -pi to pi
+	double TurnedFrom(const vector2d& viewer) const;
 
 	// Every state the enemy can be in, set up once: transitions allocate
 	// nothing
 	IdleState idle_state_;
+	PatrolState patrol_state_;
 	WalkState walk_state_;
 	AttackState attack_state_;
 	PainState pain_state_;

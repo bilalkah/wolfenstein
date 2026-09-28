@@ -44,6 +44,7 @@ class Renderer3D : public IRenderer
 		double distance = 0.0;
 		std::uint32_t order = 0;
 		const std::array<SDL_Vertex, 4>* quad = nullptr;
+		bool mirrored = false;	// drawn flipped left to right
 	};
 	// A picture on a wall's face (a bullet mark, a secret wall's crack),
 	// gathered over the wall columns it shows on and drawn as one quad:
@@ -82,7 +83,8 @@ class Renderer3D : public IRenderer
 	};
 
 	void Enqueue(int texture_id, const SDL_Rect& src_rect,
-				 const SDL_Rect& dest_rect, double distance);
+				 const SDL_Rect& dest_rect, double distance,
+				 bool mirrored = false);
 	void RenderBackground();
 	void RenderWalls();
 	void RenderIfRayHit(const int& horizontal_slice, const Ray& ray);

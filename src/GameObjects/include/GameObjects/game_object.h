@@ -58,6 +58,21 @@ class IGameObject
 	// be walked through (a pickup, a dead enemy)
 	virtual double GetCollisionRadius() const { return 0.0; }
 	virtual int GetTextureId() const = 0;
+	// How it looks from somewhere: its picture, how wide it is drawn, and
+	// whether mirrored
+	struct Appearance
+	{
+		int texture_id = 0;
+		double width = 0.0;
+		bool mirrored = false;
+	};
+	// Seen from `viewer`: the same from everywhere, but for what turns (an
+	// enemy, seen from its side or its back)
+	virtual Appearance SeenFrom(const vector2d& /*viewer*/) const {
+		return {.texture_id = GetTextureId(),
+				.width = GetWidth(),
+				.mirrored = false};
+	}
 	virtual double GetWidth() const = 0;
 	virtual double GetHeight() const = 0;
 	// How far above the floor it is drawn (a puff where a shot struck high)

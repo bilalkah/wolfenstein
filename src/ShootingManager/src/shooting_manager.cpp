@@ -96,7 +96,7 @@ ShotResult ResolveOneShot(Scene& scene, const Weapon& weapon,
 	const HitZones& zones = (*enemy)->GetHitZones();
 	if (const auto crossing = Cross(scene, eye, pitch, **enemy)) {
 		const auto [top, bottom] =
-			scene.Textures().SolidRows((*enemy)->GetTextureId());
+			scene.Textures().SolidRows((*enemy)->SeenFrom(eye.pose).texture_id);
 		zone = zones.ZoneAt(std::clamp(
 			(crossing->down - top) / std::max(bottom - top, 1e-6), 0.0, 1.0));
 	}
@@ -105,13 +105,17 @@ ShotResult ResolveOneShot(Scene& scene, const Weapon& weapon,
 	constexpr double kHeadBurst = 1.6;
 	const vector2d back = eye.pose - aim.hit_point;
 	scene.ShowImpact(Scene::Impact::Blood,
-					 aim.hit_point + back * ((*enemy)->GetWidth() / 2 + 0.05) /
+					 aim.hit_point + back * ((*enemy)->GetRadius() + 0.05) /
 										 std::max(aim.distance, 0.01),
 					 kEyeHeight + pitch * aim.distance,
 					 zone == HitZones::Zone::Head ? kHeadBurst : 1.0);
 	(*enemy)->DecreaseHealth(zones.Scale(zone) *
 							 CalculateDamage(weapon, aim.distance));
 	(*enemy)->SetAttacked(true);
+	// Hit, it cries out, killed or not: the others near it hear, however far
+	// away the shot was fired from, and a shot from afar takes no one
+	// unawares twice
+	scene.MakeNoise((*enemy)->GetPose(), (*enemy)->GetStateConfig().cry_range);
 	// Aim only offers enemies with health left, so this is the killing shot,
 	// counted once
 	if ((*enemy)->GetHealth() <= 0) {
@@ -143,7 +147,8 @@ std::optional<Crossing> Cross(const Scene& scene, const Position2D& eye,
 	const double across = 0.5 + off_centre.Dot(right) / enemy.GetWidth();
 	const double down = 1.0 - (kEyeHeight + pitch * along) / enemy.GetHeight();
 	if (across < 0.0 || across >= 1.0 || down < 0.0 || down >= 1.0 ||
-		!scene.Textures().IsSolidAt(enemy.GetTextureId(), across, down)) {
+		!scene.Textures().IsSolidAt(enemy.SeenFrom(eye.pose).texture_id, across,
+									down)) {
 		return std::nullopt;
 	}
 	return Crossing{.across = across, .down = down, .distance = along};

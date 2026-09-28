@@ -19,8 +19,11 @@
 #include <cstdint>
 #include <expected>
 #include <memory>
+#include <span>
 #include <string>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 namespace wolfenstein {
 
@@ -70,10 +73,12 @@ class SoundManager
 	// Silent: no audio device, so effects and volume changes do nothing
 	// (tests and headless tools)
 	SoundManager() = default;
-	// Opens the audio device, loads every sound from sound_dir and starts the
-	// music; the error says what failed
+	// Opens the audio device and loads every sound from sound_dir and every
+	// track named (music_dir/<name>.mp3), playing none yet; the error says
+	// what failed
 	static std::expected<std::unique_ptr<SoundManager>, std::string> Open(
-		const std::string& sound_dir);
+		const std::string& sound_dir, const std::string& music_dir,
+		std::span<const std::string> tracks);
 	~SoundManager();
 	// Owns the device and the loaded sounds
 	SoundManager(const SoundManager&) = delete;
@@ -91,6 +96,12 @@ class SoundManager
 	// string or lookup (a string name allocated on wasm32, whose short-string
 	// buffer holds only 10 characters)
 	void PlayEffect(SoundChannel channel, SoundEffect effect);
+	// Plays the named track, over and over, fading in; the one playing
+	// already goes on, and an unknown name is silence. The name must outlive
+	// the manager (a level's, from its data).
+	void PlayMusic(std::string_view name);
+	// The track last asked for, playing or not (tests listen through this)
+	std::string_view Playing() const { return playing_; }
 	// How many times an effect was asked for, heard or not (tests listen
 	// through this)
 	std::uint32_t PlayCount(SoundEffect effect) const {
@@ -108,7 +119,13 @@ class SoundManager
 	int next_channel_{};
 	std::array<Mix_Chunk*, kSoundEffectCount> chunks_{};
 	std::array<std::uint32_t, kSoundEffectCount> play_counts_{};
-	Mix_Music* main_theme{};
+	struct Track
+	{
+		std::string name;
+		Mix_Music* music;
+	};
+	std::vector<Track> tracks_;
+	std::string_view playing_;
 };
 
 }  // namespace wolfenstein

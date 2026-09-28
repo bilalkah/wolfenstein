@@ -36,6 +36,12 @@ SPACING = 1.5
 LIGHT_CLEARANCE = 1.5
 # How far a pickup lies from the start, enemies, lights and other pickups
 PICKUP_CLEARANCE = 1.0
+# Who walks about their room (the others stand guard, and so do the ones a
+# level's objective asks for), how far at most, and how near the start
+# their walk may bring them
+PATROLLERS = {"soldier", "caco_demon"}
+PATROL_RADIUS = 5.0
+PATROL_CLEARANCE = 4.0
 
 
 @dataclass
@@ -46,8 +52,8 @@ class Room:
     x1: int
     y1: int
     wall: int = CONCRETE
-    # (count, type) of enemies guarding it, or (count, type, "target") for
-    # ones a kill_targets objective asks for; and how many lights
+    # (count, type) of enemies in it, or (count, type, "target") for ones
+    # a kill_targets objective asks for; and how many lights
     enemies: list = field(default_factory=list)
     lights: int = 0
     light: str = "green_light"
@@ -212,6 +218,16 @@ def check(level, cells):
     return seen
 
 
+def patrol_radius(room, post, start):
+    """How far an enemy posted at `post` walks about: over most of its room
+    (it only goes where it sees from its post, so never out of it), but not
+    near the start. 0, too little to walk: it stands guard."""
+    longest = max(room.x1 - room.x0, room.y1 - room.y0) + 1
+    radius = min(PATROL_RADIUS, longest / 2 - 1,
+                 math.dist(post, start) - PATROL_CLEARANCE)
+    return round(radius, 1) if radius >= 1.5 else 0.0
+
+
 def place(level, cells, reachable):
     """Enemies away from walls, lights and pickups along them."""
     rng = random.Random(level.seed)
@@ -244,6 +260,10 @@ def place(level, cells, reachable):
                                           "theta": theta}}
                     if mark == ["target"]:
                         enemy["target"] = True
+                    elif kind in PATROLLERS:
+                        radius = patrol_radius(room, point, start)
+                        if radius > 0:
+                            enemy["patrol_radius"] = radius
                     enemies.append(enemy)
                     break
                 else:
@@ -334,6 +354,8 @@ def write(level):
     data = {
         "name": level.name,
         "briefing": level.briefing,
+        # Its own track, assets/music/<level>.mp3 (scripts/import_freedoom.py)
+        "music": level.file.removesuffix(".json"),
         "map": map_file,
         "player": {"position": {"x": level.start[0], "y": level.start[1],
                                 "theta": level.start[2]}},

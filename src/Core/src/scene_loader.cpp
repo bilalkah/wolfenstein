@@ -113,6 +113,20 @@ std::expected<void, std::string> SceneLoader::Prepare(const std::string& file) {
 	return {};
 }
 
+std::vector<std::string> SceneLoader::MusicTracks() const {
+	std::vector<std::string> tracks;
+	const auto add = [&](const std::string& name) {
+		if (!name.empty() && std::ranges::find(tracks, name) == tracks.end()) {
+			tracks.push_back(name);
+		}
+	};
+	add(config_.menu_music);
+	for (const auto& [name, level] : levels_) {
+		add(level.data.music);
+	}
+	return tracks;
+}
+
 const PreparedLevel* SceneLoader::FindLevel(std::string_view name) const {
 	const auto found = levels_.find(name);
 	return found == levels_.end() ? nullptr : &found->second;
@@ -131,6 +145,7 @@ std::expected<void, std::string> SceneLoader::Populate(
 			return std::unexpected("more enemies than the scene can hold");
 		}
 		scene.GetEnemies().back()->SetTarget(spawn.target);
+		scene.GetEnemies().back()->SetPatrolRadius(spawn.patrol_radius);
 	}
 	const auto& light = config_.light;
 	for (const ObjectSpawn& spawn : level.data.dynamic_objects) {

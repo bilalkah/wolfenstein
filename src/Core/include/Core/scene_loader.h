@@ -21,6 +21,7 @@
 #include <map>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace wolfenstein {
 
@@ -46,6 +47,8 @@ class SceneLoader
 	const GameConfig& Config() const { return config_; }
 	// The level with this file name, or nullptr
 	const PreparedLevel* FindLevel(std::string_view name) const;
+	// Every track the game plays, the menu's and the levels', once each
+	std::vector<std::string> MusicTracks() const;
 	// The arena bytes and object count of the largest level: what the level
 	// arena and the per-object views are sized for, once
 	std::size_t LargestLevelMemory() const { return largest_memory_; }

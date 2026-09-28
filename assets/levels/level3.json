@@ -1,6 +1,7 @@
 {
   "name": "THE CATACOMBS",
   "briefing": "Under the barracks the old catacombs open into a burial hall where a cyber demon keeps watch over an altar. The way down is sealed with two locks. Find the keys, destroy the demon and throw the switch behind the altar.",
+  "music": "level3",
   "map": "level3.txt",
   "player": {
     "position": {
@@ -16,7 +17,8 @@
         "x": 3.5,
         "y": 14.5,
         "theta": -1.11
-      }
+      },
+      "patrol_radius": 3.5
     },
     {
       "type": "soldier",
@@ -24,7 +26,8 @@
         "x": 3.5,
         "y": 10.5,
         "theta": 1.41
-      }
+      },
+      "patrol_radius": 3.5
     },
     {
       "type": "soldier",
@@ -32,7 +35,8 @@
         "x": 13.5,
         "y": 5.5,
         "theta": -2.36
-      }
+      },
+      "patrol_radius": 2.5
     },
     {
       "type": "caco_demon",
@@ -40,7 +44,8 @@
         "x": 14.5,
         "y": 2.5,
         "theta": 2.36
-      }
+      },
+      "patrol_radius": 2.5
     },
     {
       "type": "soldier",
@@ -48,7 +53,8 @@
         "x": 15.5,
         "y": 18.5,
         "theta": -2.36
-      }
+      },
+      "patrol_radius": 4.0
     },
     {
       "type": "caco_demon",
@@ -56,7 +62,8 @@
         "x": 10.5,
         "y": 18.5,
         "theta": -0.79
-      }
+      },
+      "patrol_radius": 4.0
     },
     {
       "type": "caco_demon",
@@ -64,7 +71,8 @@
         "x": 15.5,
         "y": 16.5,
         "theta": -2.94
-      }
+      },
+      "patrol_radius": 4.0
     },
     {
       "type": "caco_demon",
@@ -72,7 +80,8 @@
         "x": 5.5,
         "y": 26.5,
         "theta": -1.57
-      }
+      },
+      "patrol_radius": 3.5
     },
     {
       "type": "soldier",
@@ -80,7 +89,8 @@
         "x": 20.5,
         "y": 4.5,
         "theta": 0.95
-      }
+      },
+      "patrol_radius": 4.0
     },
     {
       "type": "caco_demon",
@@ -88,7 +98,8 @@
         "x": 25.5,
         "y": 5.5,
         "theta": 2.36
-      }
+      },
+      "patrol_radius": 4.0
     },
     {
       "type": "cyber_demon",

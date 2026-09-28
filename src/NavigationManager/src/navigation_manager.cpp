@@ -58,7 +58,7 @@ void NavigationManager::Build() {
 	// of them would aim the enemy at a point it cannot reach.
 	double clearance = 0.0;
 	for (const Enemy* enemy : scene_.GetEnemies()) {
-		clearance = std::max(clearance, enemy->GetWidth() / 2);
+		clearance = std::max(clearance, enemy->GetRadius());
 	}
 	solids_.clear();
 	solids_.reserve(scene_.GetObjects().size());

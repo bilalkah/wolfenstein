@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstdint>
 #include <deque>
+#include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
 #include <set>
@@ -130,6 +131,12 @@ TEST_P(LevelDesign, IsPlayable) {
 	}
 
 	EXPECT_FALSE(level->enemies.empty()) << file;
+	// Its track is there to play
+	EXPECT_FALSE(level->music.empty()) << file << " plays no music";
+	EXPECT_TRUE(std::filesystem::exists(std::string(RESOURCE_DIR) + "music/" +
+										level->music + ".mp3"))
+		<< file << ": no track " << level->music;
+
 	for (const EnemySpawn& enemy : level->enemies) {
 		const Cell cell = CellOf(enemy.position.pose.x, enemy.position.pose.y);
 		EXPECT_TRUE(reachable.contains(cell))
@@ -140,6 +147,9 @@ TEST_P(LevelDesign, IsPlayable) {
 				  kSafeRadius)
 			<< file << ": a " << enemy.type << " stands at the start";
 		EXPECT_TRUE(testing::GameData().enemies.contains(enemy.type)) << file;
+		// A patroller walks about near its post, not across the level
+		EXPECT_LE(enemy.patrol_radius, 6.0)
+			<< file << ": a " << enemy.type << " wanders too far";
 	}
 	for (const ObjectSpawn& object : level->dynamic_objects) {
 		EXPECT_GE(std::hypot(object.position.x - level->player.pose.x,
@@ -209,6 +219,14 @@ TEST_P(LevelDesign, IsPlayable) {
 
 	EXPECT_TRUE(health) << file << " has no health to pick up";
 	EXPECT_TRUE(ammo) << file << " has no ammunition to pick up";
+}
+
+// The menu's track is there to play
+TEST(Music, TheMenuHasItsTrack) {
+	const std::string& menu = testing::GameData().menu_music;
+	ASSERT_FALSE(menu.empty());
+	EXPECT_TRUE(std::filesystem::exists(std::string(RESOURCE_DIR) + "music/" +
+										menu + ".mp3"));
 }
 
 INSTANTIATE_TEST_SUITE_P(Campaign, LevelDesign,

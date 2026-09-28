@@ -29,8 +29,12 @@ TEST(LevelData, ParsesTheGameConfig) {
 	ASSERT_TRUE(config) << config.error();
 	ASSERT_TRUE(config->enemies.contains("soldier"));
 	const EnemyConfig& soldier = config->enemies.at("soldier");
-	EXPECT_DOUBLE_EQ(soldier.width, 0.33);
+	// Its body is as it was; its picture as wide as its widest frame (lying
+	// dead)
+	EXPECT_DOUBLE_EQ(soldier.radius, 0.165);
+	EXPECT_GE(soldier.width, 2 * soldier.radius);
 	EXPECT_EQ(soldier.weapon.weapon_name, "rifle");
+	EXPECT_EQ(config->menu_music, "menu");
 	EXPECT_DOUBLE_EQ(soldier.behaviour.follow_range, 5.0);
 
 	// The arsenal, in slot order: a pistol to start with
@@ -154,6 +158,32 @@ TEST(LevelData, ParsesPickups) {
 	ASSERT_FALSE(missing);
 	EXPECT_NE(missing.error().find("pickup position"), std::string::npos)
 		<< missing.error();
+}
+
+// An enemy's patrol: how far from its post it walks about; one without
+// stands guard
+TEST(LevelData, ParsesPatrolRadii) {
+	std::istringstream input(R"({
+		"map": "m.txt", "player": {"position": {"x": 1, "y": 2, "theta": 0}},
+		"enemies": [
+			{"type": "soldier", "position": {"x": 3.5, "y": 4.5, "theta": 0},
+			 "patrol_radius": 3.5},
+			{"type": "soldier", "position": {"x": 9.5, "y": 9.5, "theta": 1}}],
+		"dynamicObjects": []})");
+	const auto level = ParseLevel(input);
+	ASSERT_TRUE(level) << level.error();
+	ASSERT_EQ(level->enemies.size(), 2u);
+	EXPECT_DOUBLE_EQ(level->enemies[0].patrol_radius, 3.5);
+	EXPECT_DOUBLE_EQ(level->enemies[0].position.pose.y, 4.5) << "untouched";
+	EXPECT_DOUBLE_EQ(level->enemies[1].patrol_radius, 0.0);
+
+	std::istringstream negative(R"({
+		"map": "m.txt", "player": {"position": {"x": 1, "y": 2, "theta": 0}},
+		"enemies": [{"type": "soldier",
+					 "position": {"x": 3.5, "y": 4.5, "theta": 0},
+					 "patrol_radius": -1}],
+		"dynamicObjects": []})");
+	EXPECT_FALSE(ParseLevel(negative));
 }
 
 TEST(LevelData, AnEnemyNeedsAFullPosition) {

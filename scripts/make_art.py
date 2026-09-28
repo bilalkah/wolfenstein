@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
-"""Draws the pickup sprites (health, ammunition, keys, weapons), the door
-textures, the exit switch and the mark on secret walls, and synthesises the
-pickup sound.
+"""Draws what Freedoom (scripts/import_freedoom.py) does not give the game:
+the crosshair, the red of a hit closing in, the mark on secret walls, the
+puffs where shots land and the marks they leave; and synthesises the dry
+click of an empty gun, the thud of the player falling dead and footsteps.
 
-Pixel art in the chunky style of the other sprites, written as PNGs (the
-pickups on a transparent background), and as WAVs a short rising chime,
-the pistol's and the MP5's shots, a dry click for an empty gun, the thud
-of the player falling dead, doors, an enemy's alert shout, footsteps and
-the ammunition, key and weapon pickups;
+Pixel art written as PNGs (on a transparent background) and sounds as WAVs;
 standard library only, so rerunning gives the same files.
 
-    ./scripts/make_art.py   # writes assets/sprites/pickups/*.png,
-                            # assets/textures/door*.png, exit.png,
-                            # secret_mark.png, the puffs where shots land
-                            # (assets/sprites/effects/*), bullet_mark.png
-                            # and assets/sounds/*.wav (all but the Doom ones)
+    ./scripts/make_art.py   # writes assets/textures/crosshair.png,
+                            # damage_taken.png, secret_mark.png,
+                            # bullet_mark.png, the puffs
+                            # (assets/sprites/effects/*) and
+                            # assets/sounds/{dry_fire,player_fall,step_*}.wav
 """
 
 import math
@@ -27,7 +24,6 @@ from pathlib import Path
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 
 CLEAR = (0, 0, 0, 0)
-OUTLINE = (24, 20, 18, 255)
 
 
 class Canvas:
@@ -40,15 +36,6 @@ class Canvas:
         for y in range(max(y0, 0), min(y1, self.height - 1) + 1):
             for x in range(max(x0, 0), min(x1, self.width - 1) + 1):
                 self.pixels[y][x] = colour
-
-    def box(self, x0, y0, x1, y1, face, light, dark):
-        """A box with an outline, a lit top-left edge and a shaded one."""
-        self.rect(x0, y0, x1, y1, OUTLINE)
-        self.rect(x0 + 1, y0 + 1, x1 - 1, y1 - 1, face)
-        self.rect(x0 + 1, y0 + 1, x1 - 1, y0 + 1, light)
-        self.rect(x0 + 1, y0 + 1, x0 + 1, y1 - 1, light)
-        self.rect(x0 + 1, y1 - 1, x1 - 1, y1 - 1, dark)
-        self.rect(x1 - 1, y0 + 1, x1 - 1, y1 - 1, dark)
 
     def save(self, path):
         raw = b"".join(
@@ -66,153 +53,31 @@ class Canvas:
                          chunk(b"IEND", b""))
 
 
-def cross(canvas, cx, cy, arm, thickness, colour, shade):
-    half = thickness // 2
-    canvas.rect(cx - arm, cy - half, cx + arm, cy - half + thickness - 1, colour)
-    canvas.rect(cx - half, cy - arm, cx - half + thickness - 1, cy + arm, colour)
-    canvas.rect(cx - arm, cy - half + thickness - 1, cx + arm,
-                cy - half + thickness - 1, shade)
-
-
-def medkit():
-    """A white first-aid box with a red cross."""
-    canvas = Canvas(48, 36)
-    canvas.rect(19, 6, 28, 8, OUTLINE)  # handle
-    canvas.rect(21, 7, 26, 8, CLEAR)
-    canvas.box(4, 9, 43, 35, (222, 222, 214, 255), (250, 250, 244, 255),
-               (160, 160, 150, 255))
-    cross(canvas, 24, 22, 8, 6, (200, 24, 24, 255), (140, 12, 12, 255))
+def crosshair():
+    """A thin cross with a gap at its middle, outlined dark so it shows
+    against bright walls as well as dark ones."""
+    canvas = Canvas(32, 32)
+    shade = (16, 16, 16, 200)
+    white = (236, 236, 236, 235)
+    for x0, y0, x1, y1 in ((3, 14, 12, 17), (19, 14, 28, 17),
+                           (14, 3, 17, 12), (14, 19, 17, 28)):
+        canvas.rect(x0, y0, x1, y1, shade)
+        canvas.rect(x0 + 1, y0 + 1, x1 - 1, y1 - 1, white)
     return canvas
 
 
-def large_medkit():
-    """A red field case with a white cross and straps: more health."""
-    canvas = Canvas(48, 36)
-    canvas.rect(17, 3, 30, 5, OUTLINE)
-    canvas.rect(19, 4, 28, 5, CLEAR)
-    canvas.box(1, 6, 46, 35, (176, 30, 26, 255), (214, 64, 56, 255),
-               (112, 16, 14, 255))
-    for x in (9, 38):  # straps
-        canvas.rect(x, 7, x + 1, 34, (96, 70, 44, 255))
-    cross(canvas, 24, 20, 9, 6, (240, 240, 232, 255), (180, 180, 170, 255))
-    return canvas
-
-
-def ammo_box():
-    """An olive ammunition crate, open, with brass rounds showing."""
-    canvas = Canvas(48, 36)
-    for i in range(7):  # rounds standing in the crate
-        x = 8 + i * 5
-        canvas.rect(x, 4, x + 3, 13, OUTLINE)
-        canvas.rect(x + 1, 5, x + 2, 12, (212, 168, 60, 255))
-        canvas.rect(x + 1, 5, x + 2, 7, (150, 110, 60, 255))  # bullet tip
-    canvas.box(4, 12, 43, 35, (92, 104, 58, 255), (126, 140, 80, 255),
-               (60, 68, 36, 255))
-    canvas.rect(15, 20, 32, 26, (212, 196, 120, 255))  # stencilled label
-    canvas.rect(16, 21, 31, 25, (92, 104, 58, 255))
-    canvas.rect(18, 22, 29, 24, (212, 196, 120, 255))
-    return canvas
-
-
-# Metal colours for keys and locks: face, highlight, shadow
-GOLD = ((214, 170, 56, 255), (250, 222, 120, 255), (140, 100, 24, 255))
-SILVER = ((176, 184, 196, 255), (232, 236, 244, 255), (104, 110, 124, 255))
-
-
-def key(metal):
-    """A large old key lying flat: a ring bow, a shaft and a toothed bit."""
-    face, light, dark = metal
-    canvas = Canvas(40, 40)
-    # Bow: a square ring
-    canvas.rect(4, 12, 17, 27, OUTLINE)
-    canvas.rect(5, 13, 16, 26, face)
-    canvas.rect(5, 13, 16, 14, light)
-    canvas.rect(9, 17, 12, 22, OUTLINE)
-    # Shaft
-    canvas.rect(17, 17, 36, 22, OUTLINE)
-    canvas.rect(17, 18, 36, 21, face)
-    canvas.rect(17, 18, 36, 18, light)
-    canvas.rect(17, 21, 36, 21, dark)
-    # Bit: two teeth below the shaft's end
-    for x in (27, 32):
-        canvas.rect(x, 22, x + 3, 29, OUTLINE)
-        canvas.rect(x + 1, 22, x + 2, 28, dark)
-    return canvas
-
-
-def door(lock=None):
-    """A steel door: riveted plates, a bracing band, a viewing slit. A locked
-    door's band and handle are its key's metal, with a keyhole."""
-    canvas = Canvas(64, 64)
-    steel, light, dark = (86, 100, 122, 255), (122, 138, 160, 255), \
-        (52, 62, 78, 255)
-    canvas.rect(0, 0, 63, 63, OUTLINE)
-    canvas.box(1, 1, 62, 62, steel, light, dark)
-    for y0, y1 in ((4, 28), (35, 59)):  # two plates
-        canvas.box(4, y0, 59, y1, steel, light, dark)
-    canvas.rect(2, 30, 61, 33, (70, 82, 100, 255))  # band between them
-    canvas.rect(2, 30, 61, 30, light)
-    canvas.rect(2, 33, 61, 33, dark)
-    for x in (7, 18, 29, 40, 51, 56):  # rivets along the band
-        canvas.rect(x, 31, x + 1, 32, (180, 190, 205, 255))
-    for x, y in ((7, 7), (55, 7), (7, 55), (55, 55), (7, 25), (55, 25),
-                 (7, 38), (55, 38)):  # plate corners
-        canvas.rect(x, y, x + 1, y + 1, (180, 190, 205, 255))
-        canvas.rect(x + 1, y + 1, x + 1, y + 1, dark)
-    canvas.rect(22, 12, 41, 16, OUTLINE)  # viewing slit
-    canvas.rect(23, 13, 40, 15, (16, 16, 20, 255))
-    canvas.rect(50, 44, 53, 51, OUTLINE)  # handle
-    canvas.rect(51, 45, 52, 50, (200, 170, 90, 255))
-    if lock is not None:
-        face, light, dark = lock
-        canvas.rect(2, 30, 61, 33, face)  # the band in the key's metal
-        canvas.rect(2, 30, 61, 30, light)
-        canvas.rect(2, 33, 61, 33, dark)
-        canvas.rect(46, 40, 57, 55, OUTLINE)  # lock plate with a keyhole
-        canvas.rect(47, 41, 56, 54, face)
-        canvas.rect(47, 41, 56, 41, light)
-        canvas.rect(50, 44, 53, 47, OUTLINE)
-        canvas.rect(51, 48, 52, 51, OUTLINE)
-    return canvas
-
-
-# 3x5 pixel letters for the exit sign
-LETTERS = {
-    "E": ["###", "#..", "##.", "#..", "###"],
-    "X": ["#.#", "#.#", ".#.", "#.#", "#.#"],
-    "I": ["###", ".#.", ".#.", ".#.", "###"],
-    "T": ["###", ".#.", ".#.", ".#.", ".#."],
-}
-
-
-def exit_switch():
-    """The level's way out: a riveted panel under a lit EXIT sign, with a
-    big lever to throw."""
-    canvas = Canvas(64, 64)
-    steel, light, dark = (74, 80, 88, 255), (110, 118, 128, 255), \
-        (44, 48, 54, 255)
-    canvas.rect(0, 0, 63, 63, OUTLINE)
-    canvas.box(1, 1, 62, 62, steel, light, dark)
-    # The sign: green letters on a dark strip
-    canvas.rect(12, 5, 51, 17, OUTLINE)
-    canvas.rect(13, 6, 50, 16, (18, 40, 24, 255))
-    x = 16
-    for letter in "EXIT":
-        for row, line in enumerate(LETTERS[letter]):
-            for column, pixel in enumerate(line):
-                if pixel == "#":
-                    canvas.rect(x + column * 2, 7 + row * 2,
-                                x + column * 2 + 1, 8 + row * 2,
-                                (96, 240, 120, 255))
-        x += 8
-    # The lever in its slot
-    canvas.rect(26, 24, 37, 57, OUTLINE)
-    canvas.rect(27, 25, 36, 56, (30, 32, 36, 255))
-    canvas.rect(30, 30, 33, 48, (150, 156, 164, 255))  # the arm
-    canvas.rect(27, 26, 36, 31, (200, 40, 32, 255))	 # its red handle
-    canvas.rect(27, 26, 36, 26, (240, 110, 96, 255))
-    for rx, ry in ((6, 24), (55, 24), (6, 56), (55, 56)):
-        canvas.rect(rx, ry, rx + 1, ry + 1, (170, 176, 184, 255))
+def damage_overlay():
+    """Red closing in from the screen's edges, over the view after a hit:
+    clear in the middle, deepening towards the rim."""
+    width, height = 160, 120
+    canvas = Canvas(width, height)
+    for y in range(height):
+        for x in range(width):
+            dx = (x + 0.5) / width * 2 - 1
+            dy = (y + 0.5) / height * 2 - 1
+            edge = max(0.0, (math.hypot(dx, dy) - 0.55) / 0.85)
+            alpha = min(1.0, edge) ** 1.4
+            canvas.pixels[y][x] = (150, 8, 6, round(230 * alpha))
     return canvas
 
 
@@ -245,58 +110,6 @@ def secret_mark():
     return canvas
 
 
-def floor_weapon(kind):
-    """A weapon lying on the floor, seen from the side."""
-    canvas = Canvas(48, 20)
-    dark, light = (34, 34, 38, 255), (78, 80, 90, 255)
-    if kind == "mp5":
-        canvas.rect(8, 6, 38, 12, OUTLINE)  # receiver
-        canvas.rect(9, 7, 37, 11, dark)
-        canvas.rect(9, 7, 37, 7, light)
-        canvas.rect(38, 8, 46, 10, OUTLINE)  # barrel
-        canvas.rect(2, 7, 8, 10, OUTLINE)  # stock
-        canvas.rect(22, 12, 26, 19, OUTLINE)  # magazine
-        canvas.rect(23, 12, 25, 18, dark)
-        canvas.rect(14, 12, 17, 17, OUTLINE)  # grip
-    else:
-        wood, wood_light = (110, 70, 40, 255), (150, 100, 60, 255)
-        canvas.rect(1, 9, 18, 15, OUTLINE)  # stock
-        canvas.rect(2, 10, 17, 14, wood)
-        canvas.rect(2, 10, 17, 10, wood_light)
-        canvas.rect(18, 8, 30, 13, OUTLINE)  # receiver
-        canvas.rect(19, 9, 29, 12, dark)
-        canvas.rect(30, 7, 47, 9, OUTLINE)  # barrels
-        canvas.rect(30, 10, 46, 12, OUTLINE)
-        canvas.rect(31, 8, 46, 8, light)
-        canvas.rect(31, 11, 45, 11, light)
-    return canvas
-
-
-def chime(path):
-    """Two quick rising notes with a soft attack and decay."""
-    rate = 22050
-    frames = []
-    for start, frequency, length in ((0.0, 880.0, 0.09), (0.07, 1318.5, 0.16)):
-        offset = int(start * rate)
-        for i in range(int(length * rate)):
-            t = i / rate
-            envelope = min(1.0, t / 0.005) * math.exp(-t * 18.0)
-            sample = envelope * (math.sin(2 * math.pi * frequency * t) +
-                                 0.3 * math.sin(4 * math.pi * frequency * t))
-            index = offset + i
-            while len(frames) <= index:
-                frames.append(0.0)
-            frames[index] += sample
-    peak = max(abs(sample) for sample in frames)
-    with wave.open(str(path), "wb") as out:
-        out.setnchannels(1)
-        out.setsampwidth(2)
-        out.setframerate(rate)
-        out.writeframes(b"".join(
-            struct.pack("<h", int(sample / peak * 0.6 * 32767))
-            for sample in frames))
-
-
 # --------------------------------------------------------------- sounds
 
 SOUND_RATE = 44100
@@ -322,47 +135,6 @@ def lowpass(samples, cutoff):
         level += alpha * (sample - level)
         out.append(level)
     return out
-
-
-def gunshot(seed, seconds, crack, body, body_cutoff, thump_from, thump_to,
-            thump_decay, tail, tail_level):
-    """A shot: a sharp crack of noise, a duller body of it, a falling low
-    thump and a room's tail. Decays in seconds; the same seed gives the same
-    shot."""
-    rng = random.Random(seed)
-    count = int(seconds * SOUND_RATE)
-    noise = [rng.uniform(-1.0, 1.0) for _ in range(count)]
-    dull = lowpass(noise, body_cutoff)
-    room = lowpass(noise, 500.0)
-    samples = []
-    phase = 0.0
-    for i in range(count):
-        t = i / SOUND_RATE
-        # The crack: bright noise, the low part taken out
-        bright = noise[i] - dull[i]
-        sample = 2.2 * bright * math.exp(-t / crack)
-        sample += 1.2 * dull[i] * math.exp(-t / body)
-        frequency = thump_to + (thump_from - thump_to) * math.exp(-t / 0.015)
-        phase += 2 * math.pi * frequency / SOUND_RATE
-        sample += 0.35 * math.sin(phase) * math.exp(-t / thump_decay)
-        sample += tail_level * room[i] * math.exp(-t / tail)
-        # A fast attack, so it does not click in
-        sample *= min(1.0, t / 0.0005)
-        samples.append(math.tanh(1.2 * sample))
-    return samples
-
-
-def pistol_shot():
-    return gunshot(seed=101, seconds=0.45, crack=0.012, body=0.04,
-                   body_cutoff=1800.0, thump_from=220.0, thump_to=95.0,
-                   thump_decay=0.035, tail=0.15, tail_level=0.9)
-
-
-def smg_shot():
-    """Lighter and shorter than the pistol's, so bursts do not smear."""
-    return gunshot(seed=202, seconds=0.26, crack=0.008, body=0.022,
-                   body_cutoff=2600.0, thump_from=260.0, thump_to=120.0,
-                   thump_decay=0.02, tail=0.07, tail_level=0.6)
 
 
 def body_fall():
@@ -398,53 +170,6 @@ def resonate(samples, frequency, bandwidth):
     return out
 
 
-def door_slide():
-    """A heavy door sliding in its frame: a low rumble that swells and
-    fades, and a clunk as it stops."""
-    rng = random.Random(505)
-    count = int(0.7 * SOUND_RATE)
-    noise = [rng.uniform(-1.0, 1.0) for _ in range(count)]
-    rumble = lowpass(lowpass(noise, 220.0), 220.0)
-    grind = resonate(noise, 520.0, 90.0)
-    samples, phase = [], 0.0
-    for i in range(count):
-        t = i / SOUND_RATE
-        swell = math.sin(math.pi * min(t / 0.5, 1.0)) if t < 0.5 else 0.0
-        sample = 5.0 * rumble[i] * swell + 0.6 * grind[i] * swell
-        if t >= 0.48:  # the stop
-            since = t - 0.48
-            phase += 2 * math.pi * 70.0 / SOUND_RATE
-            sample += 0.8 * math.sin(phase) * math.exp(-since / 0.05)
-            sample += 2.0 * rumble[i] * math.exp(-since / 0.03)
-        samples.append(math.tanh(sample))
-    return samples
-
-
-def alert_shout(seed, pitch):
-    """A short gruff shout ("Hah!"): a buzzing voice through the resonances
-    of an open vowel, its pitch falling, with breath in it."""
-    rng = random.Random(seed)
-    count = int(0.32 * SOUND_RATE)
-    source, phase = [], 0.0
-    for i in range(count):
-        t = i / SOUND_RATE
-        frequency = pitch * (1.15 - 0.35 * min(t / 0.3, 1.0))
-        phase = (phase + frequency / SOUND_RATE) % 1.0
-        buzz = 2 * phase - 1  # a sawtooth: the vocal folds
-        breath = rng.uniform(-1.0, 1.0) * 0.35
-        source.append(buzz + breath)
-    voice = [a + 0.7 * b + 0.3 * c for a, b, c in zip(
-        resonate(source, 700.0, 110.0), resonate(source, 1150.0, 130.0),
-        resonate(source, 2500.0, 200.0))]
-    peak = max(abs(sample) for sample in voice) or 1.0
-    samples = []
-    for i, sample in enumerate(lowpass(voice, 3200.0)):
-        t = i / SOUND_RATE
-        envelope = min(1.0, t / 0.02) * math.exp(-max(t - 0.12, 0.0) / 0.07)
-        samples.append(math.tanh(1.3 * sample / peak * envelope))
-    return samples
-
-
 def footstep(seed):
     """A boot on stone: a soft low thud and a scuff."""
     rng = random.Random(seed)
@@ -458,53 +183,6 @@ def footstep(seed):
         sample = 6.0 * thud[i] * math.exp(-t / 0.025)
         sample += 0.25 * scuff[i] * math.exp(-t / 0.018)
         samples.append(math.tanh(sample * min(1.0, t / 0.002)))
-    return samples
-
-
-def metal_clicks(seed, clicks):
-    """Metal parts meeting: each (start, pitch, level) a short bright ring."""
-    rng = random.Random(seed)
-    count = int((max(start for start, _, _ in clicks) + 0.08) * SOUND_RATE)
-    samples = [0.0] * count
-    for start, pitch, level in clicks:
-        offset = int(start * SOUND_RATE)
-        for i in range(int(0.06 * SOUND_RATE)):
-            t = i / SOUND_RATE
-            ring = (math.sin(2 * math.pi * pitch * t) +
-                    0.5 * math.sin(2 * math.pi * pitch * 2.76 * t))
-            tick = rng.uniform(-1.0, 1.0) * math.exp(-t / 0.0015)
-            if offset + i < count:
-                samples[offset + i] += level * (
-                    0.6 * ring * math.exp(-t / 0.012) + 0.6 * tick)
-    return samples
-
-
-def ammo_pickup():
-    """A box of rounds taken: a magazine's two clicks."""
-    return metal_clicks(606, ((0.0, 2400.0, 1.0), (0.07, 1900.0, 0.8)))
-
-
-def key_pickup():
-    """A key taken: keys on a ring, jingling."""
-    return metal_clicks(707, ((0.0, 3300.0, 0.8), (0.05, 4100.0, 0.6),
-                              (0.09, 2900.0, 0.7), (0.15, 3700.0, 0.4)))
-
-
-def gun_cock():
-    """A gun taken: its action worked, back and forth, and a clack."""
-    rng = random.Random(808)
-    slide = [s * 0.35 for s in resonate([rng.uniform(-1.0, 1.0)
-                                          for _ in range(int(0.3 * SOUND_RATE))],
-                                         1500.0, 700.0)]
-    clicks = metal_clicks(809, ((0.0, 1700.0, 1.0), (0.2, 1300.0, 1.2)))
-    samples = [0.0] * max(len(slide), len(clicks))
-    for i, sample in enumerate(clicks):
-        samples[i] += sample
-    for i, sample in enumerate(slide):
-        t = i / SOUND_RATE
-        # The slide sounds between the two clicks
-        if 0.02 <= t <= 0.19:
-            samples[i] += sample * math.sin(math.pi * (t - 0.02) / 0.17)
     return samples
 
 
@@ -664,18 +342,8 @@ def bullet_mark():
 
 
 def main():
-    for name, draw in (("medkit", medkit), ("large_medkit", large_medkit),
-                       ("ammo_box", ammo_box)):
-        draw().save(ASSETS / "sprites" / "pickups" / f"{name}.png")
-    key(GOLD).save(ASSETS / "sprites" / "pickups" / "gold_key.png")
-    key(SILVER).save(ASSETS / "sprites" / "pickups" / "silver_key.png")
-    door().save(ASSETS / "textures" / "door.png")
-    door(GOLD).save(ASSETS / "textures" / "door_gold.png")
-    door(SILVER).save(ASSETS / "textures" / "door_silver.png")
-    exit_switch().save(ASSETS / "textures" / "exit.png")
-    for kind in ("mp5", "shotgun"):
-        floor_weapon(kind).save(ASSETS / "sprites" / "pickups" /
-                                f"{kind}_pickup.png")
+    crosshair().save(ASSETS / "textures" / "crosshair.png")
+    damage_overlay().save(ASSETS / "textures" / "damage_taken.png")
     secret_mark().save(ASSETS / "textures" / "secret_mark.png")
     for frame in range(4):
         blood_puff(frame).save(ASSETS / "sprites" / "effects" / "blood" /
@@ -683,22 +351,10 @@ def main():
         dust_puff(frame).save(ASSETS / "sprites" / "effects" / "dust" /
                               "frames" / f"{frame}.png")
     bullet_mark().save(ASSETS / "textures" / "bullet_mark.png")
-    chime(ASSETS / "sounds" / "pickup.wav")
-    # A little under the shotgun, whose shot is compressed loud
-    write_wave(ASSETS / "sounds" / "pistol.wav", pistol_shot(), loudness=0.3)
-    write_wave(ASSETS / "sounds" / "mp5.wav", smg_shot(), loudness=0.24)
     write_wave(ASSETS / "sounds" / "dry_fire.wav", dry_click(), loudness=0.1)
     write_wave(ASSETS / "sounds" / "player_fall.wav", body_fall(), loudness=0.5)
-    write_wave(ASSETS / "sounds" / "door.wav", door_slide(), loudness=0.18)
-    write_wave(ASSETS / "sounds" / "enemy_alert.wav", alert_shout(901, 115.0),
-               loudness=0.22)
     write_wave(ASSETS / "sounds" / "step_left.wav", footstep(11), loudness=0.12)
     write_wave(ASSETS / "sounds" / "step_right.wav", footstep(12), loudness=0.12)
-    write_wave(ASSETS / "sounds" / "ammo_pickup.wav", ammo_pickup(),
-               loudness=0.3)
-    write_wave(ASSETS / "sounds" / "key_pickup.wav", key_pickup(), loudness=0.3)
-    write_wave(ASSETS / "sounds" / "weapon_pickup.wav", gun_cock(),
-               loudness=0.35)
 
 
 if __name__ == "__main__":

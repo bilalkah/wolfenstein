@@ -23,7 +23,7 @@ RendererContext::RendererContext(const std::string& window_name,
 	}
 
 	const auto font_path =
-		std::string(RESOURCE_DIR) + "font/EternalAncient.ttf";
+		std::string(RESOURCE_DIR) + "font/BlackOpsOne-Regular.ttf";
 	font_ = TTF_OpenFont(font_path.c_str(), 30);  // Font size: 24
 	if (!font_) {
 		std::cerr << "Failed to load font: " << TTF_GetError() << '\n';

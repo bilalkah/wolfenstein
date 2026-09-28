@@ -147,11 +147,11 @@ TEST_F(PickupTest, ATakenPickupIsNotDrawn) {
 	camera.SetScene(scene_);
 	const Position2D eye({1.5, 1.5}, kFacingDown);
 	camera.Update(eye, 1.0);
-	EXPECT_NE(camera.FindObjectRays(medkit.GetId()), nullptr);
+	EXPECT_NE(camera.FindObject(medkit.GetId()), nullptr);
 
 	medkit.Take();
 	camera.Update(eye, 1.0);
-	EXPECT_EQ(camera.FindObjectRays(medkit.GetId()), nullptr);
+	EXPECT_EQ(camera.FindObject(medkit.GetId()), nullptr);
 }
 
 #ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS

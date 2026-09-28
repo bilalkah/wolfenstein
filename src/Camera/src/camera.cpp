@@ -80,12 +80,12 @@ const RayVector& Camera2D::GetRays() const {
 	return rays_;
 }
 
-const RayPair* Camera2D::FindObjectRays(ObjectId id) const {
+const Camera2D::Sight* Camera2D::FindObject(ObjectId id) const {
 	const auto index = ToIndex(id);
 	if (index >= views_.size() || views_[index].frame != frame_) {
 		return nullptr;
 	}
-	return &views_[index].rays;
+	return &views_[index].sight;
 }
 
 double Camera2D::GetFov() const {
@@ -105,8 +105,10 @@ void Camera2D::Calculate(const IGameObject& object, double alpha) {
 	}
 
 	const auto object_pose = object.GetRenderPose(alpha);
-	const auto width = object.GetWidth();
 	const auto& position = eye_;
+	// As the eye sees it: an enemy from its side, its back
+	const IGameObject::Appearance seen = object.SeenFrom(position.pose);
+	const auto width = seen.width;
 	// check if object is in the camera view
 	auto object_distance = object_pose.Distance(position.pose);
 	if (object_distance > config_.depth) {
@@ -144,7 +146,7 @@ void Camera2D::Calculate(const IGameObject& object, double alpha) {
 		camera_angle_left > config_.fov / 2) {
 		return;
 	}
-	const auto texture_id = object.GetTextureId();
+	const auto texture_id = seen.texture_id;
 
 	// Calculate object raypair
 	RayPair object_ray_pair;
@@ -161,7 +163,7 @@ void Camera2D::Calculate(const IGameObject& object, double alpha) {
 	object_ray_pair.second.wall_id = texture_id;
 
 	auto& view = views_[ToIndex(object.GetId())];
-	view.rays = object_ray_pair;
+	view.sight = {.rays = object_ray_pair, .mirrored = seen.mirrored};
 	view.frame = frame_;
 
 	// Calculate if the object is in the crosshair

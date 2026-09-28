@@ -161,7 +161,7 @@ We welcome contributions! Here are a few ways you can help:
 
 Thank you for checking out the first version of my Wolfenstein game! This release represents my learning journey, including experimenting with game design, state management, and spatial data handling. I hope you enjoy playing it as much as I enjoyed creating it.
 
-Additionally, I would also like to share the source of motivation and inspiration for me to do this project. 95% of the assets were obtained from the relevant source.
+Additionally, I would also like to share the source of motivation and inspiration for me to do this project:
 
 https://github.com/StanislavPetrovV/DOOM-style-Game  
 https://www.youtube.com/watch?v=ECqUrT7IdqQ
@@ -170,7 +170,16 @@ https://www.youtube.com/watch?v=ECqUrT7IdqQ
 
 ## License
 
-This project is open-source and available under the MIT License. See the `LICENSE` file for details.
+The code is open-source and available under the MIT License. See the `LICENSE` file for details.
+
+The art and sounds are not all ours, and keep their own licences, in `assets/licenses/`:
+
+- **[Freedoom](https://freedoom.github.io/)**: the enemies, weapons, pickups, torches, walls, doors, sky, HUD digits, menu and result screens, most sounds and the music, imported by `scripts/import_freedoom.py`. Copyright © 2001-2024 Contributors to the Freedoom project, under the BSD licence in `assets/licenses/freedoom/COPYING.txt`; its contributors are in `CREDITS.txt` beside it.
+- **Music**: Freedoom's (its credits in `assets/licenses/freedoom/CREDITS-MUSIC.txt`), under the same BSD licence, rendered to MP3 by `scripts/render_music.sh` with the FluidR3 General MIDI soundfont, under the MIT licence in `assets/licenses/music/`.
+- **Black Ops One** (the display font): SIL Open Font License 1.1.
+- **Roboto** (the text font): Apache License 2.0.
+
+The crosshair, the red of a hit, the blood and dust where shots land, bullet holes, the secret walls' crack, footsteps, the dry click and the thud of a fall are made by `scripts/make_art.py`, and are the project's own.
 
 ---
 

@@ -1,6 +1,7 @@
 {
   "name": "CHECKPOINT",
   "briefing": "A checkpoint guards the only road into the valley. Its garrison is small but alert. The way on is through the officer's office, and the gold key to it is kept in the armory. Clear the checkpoint and get out through the office.",
+  "music": "level1",
   "map": "level1.txt",
   "player": {
     "position": {
@@ -16,7 +17,8 @@
         "x": 3.5,
         "y": 14.5,
         "theta": -1.25
-      }
+      },
+      "patrol_radius": 3.0
     },
     {
       "type": "soldier",
@@ -24,7 +26,8 @@
         "x": 3.5,
         "y": 10.5,
         "theta": 1.37
-      }
+      },
+      "patrol_radius": 3.0
     },
     {
       "type": "soldier",
@@ -32,7 +35,8 @@
         "x": 3.5,
         "y": 23.5,
         "theta": -0.79
-      }
+      },
+      "patrol_radius": 3.0
     },
     {
       "type": "soldier",
@@ -40,7 +44,8 @@
         "x": 4.5,
         "y": 20.5,
         "theta": 1.25
-      }
+      },
+      "patrol_radius": 3.0
     },
     {
       "type": "soldier",
@@ -48,7 +53,8 @@
         "x": 10.5,
         "y": 4.5,
         "theta": 1.4
-      }
+      },
+      "patrol_radius": 4.1
     },
     {
       "type": "soldier",
@@ -56,7 +62,8 @@
         "x": 18.5,
         "y": 3.5,
         "theta": 1.25
-      }
+      },
+      "patrol_radius": 3.0
     },
     {
       "type": "soldier",
@@ -64,7 +71,8 @@
         "x": 19.5,
         "y": 22.5,
         "theta": -1.7
-      }
+      },
+      "patrol_radius": 5.0
     }
   ],
   "dynamicObjects": [

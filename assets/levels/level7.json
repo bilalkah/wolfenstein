@@ -1,6 +1,7 @@
 {
   "name": "THE SANCTUM",
   "briefing": "The sanctum is where it began. Two cyber demons guard the arena at its heart, behind gold-locked gates. Take the silver key from the west wing, the gold one from the reliquary, and end this.",
+  "music": "level7",
   "map": "level7.txt",
   "player": {
     "position": {
@@ -16,7 +17,8 @@
         "x": 20.5,
         "y": 5.5,
         "theta": 3.14
-      }
+      },
+      "patrol_radius": 3.5
     },
     {
       "type": "soldier",
@@ -24,7 +26,8 @@
         "x": 21.5,
         "y": 7.5,
         "theta": -2.21
-      }
+      },
+      "patrol_radius": 3.5
     },
     {
       "type": "caco_demon",
@@ -32,7 +35,8 @@
         "x": 17.5,
         "y": 2.5,
         "theta": 0.88
-      }
+      },
+      "patrol_radius": 3.5
     },
     {
       "type": "soldier",
@@ -40,7 +44,8 @@
         "x": 17.5,
         "y": 26.5,
         "theta": 0.0
-      }
+      },
+      "patrol_radius": 3.5
     },
     {
       "type": "soldier",
@@ -48,7 +53,8 @@
         "x": 22.5,
         "y": 26.5,
         "theta": 3.14
-      }
+      },
+      "patrol_radius": 3.5
     },
     {
       "type": "caco_demon",
@@ -56,7 +62,8 @@
         "x": 20.5,
         "y": 27.5,
         "theta": -2.03
-      }
+      },
+      "patrol_radius": 3.5
     },
     {
       "type": "soldier",
@@ -64,7 +71,8 @@
         "x": 17.5,
         "y": 19.5,
         "theta": -1.43
-      }
+      },
+      "patrol_radius": 4.0
     },
     {
       "type": "caco_demon",
@@ -72,7 +80,8 @@
         "x": 18.5,
         "y": 15.5,
         "theta": 2.36
-      }
+      },
+      "patrol_radius": 4.0
     },
     {
       "type": "cyber_demon",
@@ -88,7 +97,8 @@
         "x": 8.5,
         "y": 3.5,
         "theta": 1.25
-      }
+      },
+      "patrol_radius": 3.0
     },
     {
       "type": "caco_demon",
@@ -96,7 +106,8 @@
         "x": 7.5,
         "y": 24.5,
         "theta": 1.03
-      }
+      },
+      "patrol_radius": 3.0
     },
     {
       "type": "cyber_demon",

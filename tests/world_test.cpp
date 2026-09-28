@@ -65,6 +65,17 @@ TEST(World, NextLevelPlaysTheCampaignInOrder) {
 	EXPECT_FALSE(world->HasNextLevel());  // the last level ends the campaign
 }
 
+// Each level plays its own track as it starts; the next level, the next
+TEST(World, EachLevelPlaysItsTrack) {
+	auto world = MakeWorld();
+	ASSERT_TRUE(world->NewGame("shotgun"));
+	EXPECT_EQ(world->Sound().Playing(), CampaignLevel(0).music);
+	EXPECT_FALSE(world->Sound().Playing().empty());
+	ASSERT_TRUE(world->NextLevel());
+	EXPECT_EQ(world->Sound().Playing(), CampaignLevel(1).music);
+	EXPECT_NE(CampaignLevel(0).music, CampaignLevel(1).music);
+}
+
 // The difficulty sets how much health enemies start with, in every level
 TEST(World, DifficultyScalesEnemyHealth) {
 	auto world = MakeWorld();
