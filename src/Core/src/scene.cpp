@@ -217,6 +217,15 @@ bool Scene::Wound(Enemy& enemy, double damage) {
 	return true;
 }
 
+bool Scene::MayAttack(const Enemy& enemy) const {
+	const auto attacking =
+		std::ranges::count_if(enemy_list_, [&](const Enemy* other) {
+			return other != &enemy &&
+				   other->GetStateType() == EnemyStateType::Attack;
+		});
+	return attacking < difficulty_.attackers;
+}
+
 void Scene::Launch(const ProjectileConfig& config, const vector2d& from,
 				   double theta, double damage) {
 	constexpr double kFlightCycleSeconds = 0.2;

@@ -23,6 +23,7 @@ NavigationManager::NavigationManager(const Scene& scene,
 	  solids_(memory),
 	  routes_(memory),
 	  obstacles_(memory),
+	  crowded_(memory),
 	  cells_(memory) {}
 
 std::size_t NavigationManager::MemoryFor(int map_rows, int map_cols,
@@ -35,8 +36,8 @@ std::size_t NavigationManager::MemoryFor(int map_rows, int map_cols,
 	constexpr std::size_t kPadding = alignof(std::max_align_t);
 	return GridPathFinder::MemoryFor(height, width) +
 		   objects * (sizeof(Route) + sizeof(Solid)) +
-		   2 * enemies * sizeof(GridCell) + cells * sizeof(GridCell) +
-		   4 * kPadding;
+		   (2 + kCrowdedPerRoute) * enemies * sizeof(GridCell) +
+		   cells * sizeof(GridCell) + 5 * kPadding;
 }
 
 void NavigationManager::Build() {
@@ -86,6 +87,7 @@ void NavigationManager::Build() {
 	// grows during play
 	cells_.reserve(path_finder_.FreeCells());
 	obstacles_.reserve(2 * scene_.GetEnemies().size());
+	crowded_.reserve(kCrowdedPerRoute * scene_.GetEnemies().size());
 	routes_.assign(scene_.GetObjects().size(), Route{});
 }
 
@@ -100,6 +102,7 @@ vector2d NavigationManager::CellCentre(GridCell cell) {
 
 void NavigationManager::CollectDynamicObstacles(ObjectId self) {
 	obstacles_.clear();
+	crowded_.clear();
 	for (const auto& enemy : scene_.GetEnemies()) {
 		// Its own next cell would stand in its way, turning it aside
 		// from its own route every other query
@@ -111,6 +114,10 @@ void NavigationManager::CollectDynamicObstacles(ObjectId self) {
 		if (route.size > 0) {
 			obstacles_.push_back(route.cells[0]);
 		}
+		const auto ahead = std::min<std::size_t>(route.size, kCrowdedPerRoute);
+		crowded_.insert(
+			crowded_.end(), route.cells.begin(),
+			route.cells.begin() + static_cast<std::ptrdiff_t>(ahead));
 	}
 }
 
@@ -135,8 +142,10 @@ vector2d NavigationManager::FindPath(Position2D start, Position2D end,
 	const GridCell from = ToCell(start.pose);
 	const GridCell to = ToCell(end.pose);
 	const bool found =
-		path_finder_.FindPath(from, to, obstacles_, cells_) ||
-		(!obstacles_.empty() && path_finder_.FindPath(from, to, {}, cells_));
+		path_finder_.FindPath(from, to, obstacles_, cells_, crowded_,
+							  kCrowdCost) ||
+		(!obstacles_.empty() &&
+		 path_finder_.FindPath(from, to, {}, cells_, crowded_, kCrowdCost));
 	if (!found || cells_.size() < 2) {
 		return stay();
 	}

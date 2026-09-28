@@ -138,6 +138,12 @@ void WalkState::Update(const double& delta_time) {
 		context_->TransitionTo(EnemyStateType::Pain);
 		return;
 	}
+	// Badly hurt, it breaks off for cover, if it finds any
+	if (context_->WantsToRetreat() && context_->FindCover()) {
+		context_->EndSidestep();
+		context_->TransitionTo(EnemyStateType::Retreat);
+		return;
+	}
 	// Out of sight and far, it gives up, unless it is still hunting what
 	// it heard: back to walking about, straight on, or to standing guard
 	if (!context_->IsPlayerInShootingRange() && !context_->IsAlerted()) {
@@ -148,20 +154,41 @@ void WalkState::Update(const double& delta_time) {
 			return;
 		}
 	}
+	// Ready, it shoots when its turn comes: with too many at it already it
+	// holds its fire, and moves on meanwhile
 	if (distance <= attack_range_ && context_->IsPlayerInShootingRange()) {
 		attack_counter_ += delta_time;
-		if (attack_counter_ > attack_rate_) {
+		if (attack_counter_ > attack_rate_ &&
+			context_->GetScene().MayAttack(*context_)) {
 			context_->SetNextPose(bot_position.pose);
 			context_->TransitionTo(EnemyStateType::Attack);
 			return;
 		}
 	}
-	if ((!context_->IsPlayerInShootingRange()) ||
-		((distance > range_min_) && context_->IsPlayerInShootingRange())) {
+	const auto& tactics = context_->GetStateConfig();
+	const bool seen = context_->IsPlayerInShootingRange();
+	auto& navigation = context_->GetScene().GetNavigation();
+	// Out of sight, or further off than it likes to fight, or in a doorway
+	// where it would block the others: it closes in, facing the way it goes.
+	// On a player it sees it comes round to its own side of them.
+	if (!seen || distance > tactics.far_range ||
+		(context_->InDoorway() && distance >= tactics.near_range)) {
+		context_->EndSidestep();
+		context_->SetFacePlayer(false);
+		context_->SetPace(1.0);
 		ScopedTimer timer(ProfileSection::Pathfinding);
-		auto next_position =
-			context_->GetScene().GetNavigation().FindPathToPlayer(
-				bot_position, context_->GetId());
+		auto next_position = bot_position.pose;
+		if (seen) {
+			next_position = navigation.FindPath(
+				bot_position, Position2D(context_->ApproachSpot(), 0.0),
+				context_->GetId());
+		}
+		// Straight for the player: out of sight, or with no way round to
+		// its side of them
+		if (next_position == bot_position.pose) {
+			next_position =
+				navigation.FindPathToPlayer(bot_position, context_->GetId());
+		}
 		// No way to the player, and no sight of them (behind a locked door):
 		// it has lost the trail, and goes back to its round at once rather
 		// than stand there hunting until what it heard is forgotten. Its
@@ -176,9 +203,47 @@ void WalkState::Update(const double& delta_time) {
 		}
 		context_->SetNextPose(next_position);
 	}
-	else {
+	// Nearer than it likes: it backs away, its gun still on the player
+	else if (distance < tactics.near_range) {
+		constexpr double kBackingPace = 0.75;
+		context_->EndSidestep();
 		context_->GetScene().GetNavigation().ResetPath(context_->GetId());
-		context_->SetNextPose(bot_position.pose);
+		context_->SetFacePlayer(true);
+		context_->SetPace(kBackingPace);
+		context_->SetNextPose(context_->BackOffSpot());
+	}
+	// At its range: between shots it steps aside, the player in its
+	// sights; bunched up with another, it moves round to a side of its
+	// own; else it stands, and turns as the player moves
+	else {
+		constexpr double kArrived = 0.05;
+		vector2d next = bot_position.pose;
+		if (context_->IsSidestepping() &&
+			bot_position.pose.Distance(context_->SidestepSpot()) > kArrived) {
+			navigation.ResetPath(context_->GetId());
+			next = context_->SidestepSpot();
+		}
+		else {
+			context_->EndSidestep();
+			if (context_->IsBunched()) {
+				const vector2d spot = context_->ApproachSpot();
+				if (!(spot == context_->GetScene().GetPlayer().GetPose())) {
+					ScopedTimer timer(ProfileSection::Pathfinding);
+					next = navigation.FindPath(
+						bot_position, Position2D(spot, 0.0), context_->GetId());
+				}
+			}
+		}
+		if (next == bot_position.pose) {
+			navigation.ResetPath(context_->GetId());
+			context_->SetNextPose(bot_position.pose);
+			context_->FacePlayer();
+		}
+		else {
+			context_->SetFacePlayer(true);
+			context_->SetPace(1.0);
+			context_->SetNextPose(next);
+		}
 	}
 
 	// Its legs move as it does: standing to shoot, it does not step
@@ -218,6 +283,8 @@ void AttackState::Update(const double& delta_time) {
 		return;
 	}
 	if (attack_counter_ > animation_speed_) {
+		// Its shot fired, it steps aside before the next
+		context_->PlanSidestep();
 		context_->TransitionTo(EnemyStateType::Walk);
 		return;
 	}
@@ -269,6 +336,7 @@ void PainState::OnContextSet() {
 void PainState::OnEnter() {
 	EnemyState::OnEnter();
 	counter = 0.0;
+	context_->EndSidestep();
 	context_->PlaySound(context_->GetSounds().pain);
 }
 
@@ -305,6 +373,75 @@ void DeathState::OnEnter() {
 
 EnemyStateType DeathState::GetType() const {
 	return EnemyStateType::Death;
+}
+
+// ########################################### RetreatState ###########################################
+
+void RetreatState::Update(const double& delta_time) {
+	const auto& position = context_->GetPosition();
+	auto& navigation = context_->GetScene().GetNavigation();
+	if (context_->TakeHit()) {
+		navigation.ResetPath(context_->GetId());
+		context_->SetNextPose(position.pose);
+		context_->TransitionTo(EnemyStateType::Pain);
+		return;
+	}
+	const bool seen = context_->IsPlayerInShootingRange();
+	const double distance = navigation.EuclideanDistanceToPlayer(position);
+	// It comes out hunting: it knows where the player is, seen or not
+	const auto fight = [&] {
+		context_->EndRetreat();
+		context_->Alert();
+		navigation.ResetPath(context_->GetId());
+		context_->TransitionTo(EnemyStateType::Walk);
+	};
+	// In its cover it waits, facing the way the player would come; found
+	// there, or rested, it fights
+	if (position.pose.Distance(context_->Cover()) <
+		NavigationManager::kCellSize) {
+		navigation.ResetPath(context_->GetId());
+		context_->SetNextPose(position.pose);
+		context_->FacePlayer();
+		hidden_for_ += delta_time;
+		if (seen || hidden_for_ >= kHideSeconds) {
+			fight();
+		}
+		return;
+	}
+	// On its way, caught close, it turns to fight; with no way on, too
+	constexpr double kCornered = 1.5;
+	vector2d next = position.pose;
+	{
+		ScopedTimer timer(ProfileSection::Pathfinding);
+		next = navigation.FindPath(position, Position2D(context_->Cover(), 0.0),
+								   context_->GetId());
+	}
+	if ((seen && distance < kCornered) || next == position.pose) {
+		fight();
+		return;
+	}
+	context_->SetNextPose(next);
+	if (context_->IsMoving()) {
+		animation_.Update(delta_time);
+	}
+}
+
+void RetreatState::OnContextSet() {
+	animation_ =
+		LoopedAnimation(context_->GetScene().Textures(), context_->GetBotName(),
+						"walk", animation_speed_);
+}
+
+void RetreatState::OnEnter() {
+	EnemyState::OnEnter();
+	hidden_for_ = 0.0;
+	// Running: quicker than it walks
+	constexpr double kRunPace = 1.25;
+	context_->SetPace(kRunPace);
+}
+
+EnemyStateType RetreatState::GetType() const {
+	return EnemyStateType::Retreat;
 }
 
 }  // namespace wolfenstein

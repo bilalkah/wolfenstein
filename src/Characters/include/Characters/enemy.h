@@ -42,6 +42,17 @@ struct StateConfig
 	// Cells its cry carries when it is shot (Scene::MakeNoise): those near
 	// it come hunting, however far away the shot was fired from
 	int cry_range{6};
+	// How far from the player it likes to fight, in sight of them: from
+	// further than far_range it closes in, and from nearer than near_range
+	// it backs away, facing them
+	double near_range{0.0};
+	double far_range{1.5};
+	// How far it steps aside between shots, the player in its sights: hard
+	// to hit, and hard to tell which way it goes next. 0 stands its ground.
+	double sidestep{0.0};
+	// Below this share of its health it breaks off, once, and runs for
+	// cover out of the player's sight; 0 fights to the end
+	double retreat_below{0.0};
 };
 
 // Where a shot strikes a figure changes what it does: the head is the top
@@ -164,6 +175,44 @@ class Enemy : public ICharacter, public IGameObject
 	// Standing guard: it looks one way, then another, about the way it
 	// keeps watch (as it was placed)
 	void LookAround();
+	// Fighting, it keeps facing the player as it moves (backing away);
+	// else it faces the way it walks. Cleared by every change of state.
+	void SetFacePlayer(bool face) { face_player_ = face; }
+	// Where to close in to on a player it sees: at its range, on its own
+	// side of them, turned as far round from the others engaged as it can
+	// be, so that a group spreads round the player rather than files up to
+	// them. On open floor, in the player's sight and never in a doorway;
+	// the player, if no such spot will do.
+	vector2d ApproachSpot() const;
+	// Standing in a doorway: it never stops there to fight, blocking the
+	// way for the others
+	bool InDoorway() const;
+	// Another enemy engaged with the player stands at its elbow: at its
+	// range it moves round to a side of its own
+	bool IsBunched() const;
+	// Where to back away to from a player too near: a step straight away,
+	// or turned aside if a wall is behind, onto open floor in sight of the
+	// player. Where it stands if there is none (its back to the wall).
+	vector2d BackOffSpot() const;
+	// After a shot: a spot its sidestep away, across the line to the
+	// player, onto open floor still in sight of them. Mostly the other side
+	// from last time; the nearer side or a half step where a wall is in
+	// the way; none if it cannot step aside at all (or does not).
+	void PlanSidestep();
+	// Stepping aside, for a moment at most (a step it cannot finish)
+	bool IsSidestepping() const { return sidestep_left_ > 0.0; }
+	const vector2d& SidestepSpot() const { return sidestep_to_; }
+	void EndSidestep() { sidestep_left_ = 0.0; }
+	// Badly hurt and not yet done hiding (Retreat): it runs for cover, or
+	// back to it after a flinch on the way
+	bool WantsToRetreat() const;
+	// Chooses where to hide: the nearest spot it can reach, on open floor
+	// out of the player's sight and not towards them. False if there is
+	// none, and then it is done with retreating: it fights on.
+	bool FindCover();
+	const vector2d& Cover() const { return cover_; }
+	// Done hiding, or found, or cornered: it fights to the end now
+	void EndRetreat() { retreat_ = Retreat::Done; }
 	void SetDeath();
 	// Lying dead as a saved game left it: straight to the end of its death,
 	// in silence
@@ -215,6 +264,10 @@ class Enemy : public ICharacter, public IGameObject
 
   private:
 	void Move(double delta_time);
+	// Open floor, off the walls by more than a body's width
+	bool IsOpenFloor(const vector2d& at) const;
+	// Its own generator's next number, in [0, 1): the same run after run
+	double NextRandom();
 
 	Scene& scene_;
 	bool is_attacked_{};
@@ -230,6 +283,15 @@ class Enemy : public ICharacter, public IGameObject
 	double height{};
 	double radius_{};
 	double pace_{1.0};
+	bool face_player_{};
+	vector2d sidestep_to_;
+	double sidestep_left_{};  // seconds it may still take to get there
+	double sidestep_side_{1.0};
+	// Running for cover, once in its life
+	enum class Retreat : std::uint8_t { None, Running, Done };
+	Retreat retreat_{Retreat::None};
+	vector2d cover_;
+	double max_health_{};
 	vector2d post_;
 	double patrol_radius_{};
 	vector2d waypoint_;
@@ -257,6 +319,7 @@ class Enemy : public ICharacter, public IGameObject
 	AttackState attack_state_;
 	PainState pain_state_;
 	DeathState death_state_;
+	RetreatState retreat_state_;
 	StateMachine<EnemyState> state_machine_;
 	SimpleWeapon weapon_;
 };

@@ -240,7 +240,8 @@ std::expected<void, std::string> World::StartLevel(
 	level_ = level;
 	scene_->SetDifficulty({.enemy_damage = difficulty_->enemy_damage,
 						   .enemy_health = difficulty_->enemy_health,
-						   .supplies = difficulty_->supplies});
+						   .supplies = difficulty_->supplies,
+						   .attackers = difficulty_->attackers});
 	sound_->PlayMusic(level->data.music);
 	return loader_.Populate(*scene_, *level, *player_);
 }

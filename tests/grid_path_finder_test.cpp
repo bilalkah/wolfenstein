@@ -85,6 +85,29 @@ TEST(GridPathFinder, ExtraBlockedCellsLastOneQuery) {
 	EXPECT_EQ(path.size(), 3u);	 // the centre is free again
 }
 
+// A crowded way (one others are taking) costs more for one query: taken
+// only when the way round is much longer
+TEST(GridPathFinder, CrowdedCellsCostMoreForOneQuery) {
+	// Two ways from the top left to the bottom left: down the left side (4
+	// steps), or round by the right (8 steps)
+	const std::initializer_list<std::string_view> rows = {"...", ".#.", ".#.",
+														  ".#.", "..."};
+	auto finder = MakeFinder(rows);
+	std::pmr::vector<GridCell> path;
+	const std::vector<GridCell> crowded = {{1, 0}, {2, 0}, {3, 0}};
+
+	ASSERT_TRUE(finder.FindPath({0, 0}, {4, 0}, {}, path, crowded, 3.0f));
+	ExpectValidPath(path, {0, 0}, {4, 0}, rows);
+	EXPECT_EQ(path.size(), 9u)
+		<< "round by the right: 4 steps longer beats 9 dearer";
+
+	ASSERT_TRUE(finder.FindPath({0, 0}, {4, 0}, {}, path, crowded, 1.0f));
+	EXPECT_EQ(path.size(), 5u) << "3 more is cheaper than 4 more";
+
+	ASSERT_TRUE(finder.FindPath({0, 0}, {4, 0}, {}, path));
+	EXPECT_EQ(path.size(), 5u) << "not crowded any more";
+}
+
 TEST(GridPathFinder, StartAndGoalAreAlwaysPassable) {
 	auto finder = MakeFinder({"#.#"});
 	std::pmr::vector<GridCell> path;

@@ -60,6 +60,7 @@ struct DifficultyConfig
 	double enemy_damage = 1.0;
 	double enemy_health = 1.0;
 	double supplies = 1.0;
+	int attackers = 3;	// enemies shooting at once, at most
 };
 
 // config.json: the game's content shared by every level. A new enemy type

@@ -28,6 +28,7 @@ GridPathFinder::GridPathFinder(double heuristic_weight,
 	  walls_(memory),
 	  extra_cost_(memory),
 	  blocked_stamp_(memory),
+	  crowded_stamp_(memory),
 	  seen_stamp_(memory),
 	  closed_stamp_(memory),
 	  g_(memory),
@@ -37,9 +38,9 @@ GridPathFinder::GridPathFinder(double heuristic_weight,
 std::size_t GridPathFinder::MemoryFor(int height, int width) {
 	const auto cells =
 		static_cast<std::size_t>(height) * static_cast<std::size_t>(width);
-	constexpr std::size_t kArrays = 8;
+	constexpr std::size_t kArrays = 9;
 	constexpr std::size_t kPadding = alignof(std::max_align_t);
-	return cells * (2 * sizeof(std::uint8_t) + 3 * sizeof(std::uint32_t) +
+	return cells * (2 * sizeof(std::uint8_t) + 4 * sizeof(std::uint32_t) +
 					sizeof(float) + sizeof(std::int32_t)) +
 		   (cells * kSteps.size() + 1) * sizeof(OpenEntry) + kArrays * kPadding;
 }
@@ -73,6 +74,7 @@ void GridPathFinder::Resize(int height, int width) {
 	walls_.assign(cells, 0);
 	extra_cost_.assign(cells, 0);
 	blocked_stamp_.assign(cells, 0);
+	crowded_stamp_.assign(cells, 0);
 	seen_stamp_.assign(cells, 0);
 	closed_stamp_.assign(cells, 0);
 	g_.assign(cells, 0.0f);
@@ -92,6 +94,7 @@ void GridPathFinder::NextGeneration() {
 	if (++generation_ == 0) {
 		// Wrapped around after 2^32 queries: stale stamps could now collide
 		std::ranges::fill(blocked_stamp_, 0);
+		std::ranges::fill(crowded_stamp_, 0);
 		std::ranges::fill(seen_stamp_, 0);
 		std::ranges::fill(closed_stamp_, 0);
 		generation_ = 1;
@@ -100,7 +103,9 @@ void GridPathFinder::NextGeneration() {
 
 bool GridPathFinder::FindPath(GridCell start, GridCell goal,
 							  std::span<const GridCell> extra_blocked,
-							  std::pmr::vector<GridCell>& path) {
+							  std::pmr::vector<GridCell>& path,
+							  std::span<const GridCell> crowded,
+							  float crowd_cost) {
 	path.clear();
 	if (!Contains(start) || !Contains(goal)) {
 		return false;
@@ -109,6 +114,11 @@ bool GridPathFinder::FindPath(GridCell start, GridCell goal,
 	for (const GridCell cell : extra_blocked) {
 		if (Contains(cell)) {
 			blocked_stamp_[static_cast<std::size_t>(Index(cell))] = generation_;
+		}
+	}
+	for (const GridCell cell : crowded) {
+		if (Contains(cell)) {
+			crowded_stamp_[static_cast<std::size_t>(Index(cell))] = generation_;
 		}
 	}
 
@@ -160,7 +170,8 @@ bool GridPathFinder::FindPath(GridCell start, GridCell goal,
 				continue;
 			}
 			const float next_g =
-				g_[current_i] + 1.0f + static_cast<float>(extra_cost_[i]);
+				g_[current_i] + 1.0f + static_cast<float>(extra_cost_[i]) +
+				(crowded_stamp_[i] == generation_ ? crowd_cost : 0.0f);
 			if (seen_stamp_[i] == generation_ && g_[i] <= next_g) {
 				continue;  // already reached at least as cheaply
 			}

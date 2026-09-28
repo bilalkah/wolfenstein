@@ -36,6 +36,26 @@ TEST(LevelData, ParsesTheGameConfig) {
 	EXPECT_EQ(soldier.weapon.weapon_name, "rifle");
 	EXPECT_EQ(config->menu_music, "menu");
 	EXPECT_DOUBLE_EQ(soldier.behaviour.follow_range, 5.0);
+	// Each fights at its own range: a soldier across a room, a demon up
+	// close; every one from where its weapon reaches
+	EXPECT_GT(soldier.behaviour.near_range, 0.0);
+	EXPECT_LT(soldier.behaviour.near_range, soldier.behaviour.far_range);
+	EXPECT_DOUBLE_EQ(config->enemies.at("demon").behaviour.near_range, 0.0);
+	// Soldiers step aside between shots; the minigun zombie stands planted
+	EXPECT_GT(soldier.behaviour.sidestep, 0.0);
+	EXPECT_DOUBLE_EQ(config->enemies.at("minigun_zombie").behaviour.sidestep,
+					 0.0);
+	// Badly hurt, a soldier breaks off for cover; the demons and the bosses
+	// fight to the end
+	EXPECT_GT(soldier.behaviour.retreat_below, 0.0);
+	for (const char* type :
+		 {"demon", "caco_demon", "cyber_demon", "minigun_zombie"}) {
+		EXPECT_DOUBLE_EQ(config->enemies.at(type).behaviour.retreat_below, 0.0)
+			<< type;
+	}
+	for (const auto& [type, enemy] : config->enemies) {
+		EXPECT_LE(enemy.behaviour.far_range, enemy.weapon.attack_range) << type;
+	}
 
 	// The arsenal, in slot order: a pistol to start with, the rest found
 	ASSERT_EQ(config->weapons.size(), 7u);
@@ -137,6 +157,11 @@ TEST(LevelData, ParsesTheGameConfig) {
 	EXPECT_EQ(config->difficulties.front().name, "easy");
 	ASSERT_NE(config->FindDifficulty("hard"), nullptr);
 	EXPECT_GT(config->FindDifficulty("hard")->enemy_damage, 1.0);
+	// The harder, the more enemies shoot at once
+	EXPECT_LT(config->FindDifficulty("easy")->attackers,
+			  config->FindDifficulty("normal")->attackers);
+	EXPECT_LT(config->FindDifficulty("normal")->attackers,
+			  config->FindDifficulty("hard")->attackers);
 	EXPECT_EQ(config->FindDifficulty("impossible"), nullptr);
 	ASSERT_TRUE(config->pickups.contains("ammo_box"));
 	EXPECT_EQ(config->pickups.at("ammo_box").effect.ammo_boxes, 1u);
@@ -172,6 +197,25 @@ TEST(LevelData, RejectsAnUnknownEnemySound) {
 	const auto parsed = ParseGameConfig(config);
 	ASSERT_FALSE(parsed);
 	EXPECT_NE(parsed.error().find("moo"), std::string::npos) << parsed.error();
+}
+
+// An enemy's range is [near, far]: nearer than far
+TEST(LevelData, RejectsABackwardsRange) {
+	std::istringstream config(R"({
+		"player_config": {"t_speed": 2, "r_speed": 0.4, "width": 0.4, "height": 1},
+		"weapons": [],
+		"config_enemy": {"x": {"t_speed": 1, "r_speed": 1, "width": 1,
+							   "height": 1, "health": 1,
+							   "ai": {"idle_frame_seconds": 1, "follow_range": 1,
+									  "range": [3, 1]},
+							   "weapon": {"name": "x", "damage": [1, 1],
+										  "range": 1, "attack_speed": 1,
+										  "attack_rate": 1}}},
+		"config_dynamic": {"light": {"animation_speed": 1, "width": 1, "height": 1}}})");
+	const auto parsed = ParseGameConfig(config);
+	ASSERT_FALSE(parsed);
+	EXPECT_NE(parsed.error().find("range"), std::string::npos)
+		<< parsed.error();
 }
 
 TEST(LevelData, ReportsMalformedFilesAsErrors) {

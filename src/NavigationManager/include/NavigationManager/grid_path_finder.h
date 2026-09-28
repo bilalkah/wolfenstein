@@ -72,10 +72,13 @@ class GridPathFinder
 	// Writes the path from start to goal, both included, into `path` (reusing
 	// its capacity) and returns true, or returns false with `path` empty if
 	// the goal cannot be reached. Cells in `extra_blocked` are walls for this
-	// query only. Start and goal are always passable.
+	// query only, and a step into a cell in `crowded` costs `crowd_cost`
+	// more (a way others are taking). Start and goal are always passable.
 	bool FindPath(GridCell start, GridCell goal,
 				  std::span<const GridCell> extra_blocked,
-				  std::pmr::vector<GridCell>& path);
+				  std::pmr::vector<GridCell>& path,
+				  std::span<const GridCell> crowded = {},
+				  float crowd_cost = 0.0f);
 
 	int Height() const { return height_; }
 	int Width() const { return width_; }
@@ -103,6 +106,7 @@ class GridPathFinder
 	// A cell's entry is valid for the current query only when its stamp
 	// equals generation_
 	std::pmr::vector<std::uint32_t> blocked_stamp_;
+	std::pmr::vector<std::uint32_t> crowded_stamp_;
 	std::pmr::vector<std::uint32_t> seen_stamp_;
 	std::pmr::vector<std::uint32_t> closed_stamp_;
 	std::pmr::vector<float> g_;

@@ -182,13 +182,13 @@ TEST_F(PatrolTest, ItWalksFromTheStart) {
 	EXPECT_TRUE(enemy.IsMoving());
 }
 
-// Hunting, it stands to shoot a player close by: it does not step on the
-// spot
+// Hunting, it stands to shoot a player at its range: it does not step on
+// the spot
 TEST_F(PatrolTest, StandingItDoesNotStep) {
-	Enemy& enemy = Start({4.5, 8.5}, 0.0);
+	Enemy& enemy = Start({4.5, 11.0}, 0.0);
 	Run(0.5);
 	ASSERT_EQ(enemy.GetStateType(), EnemyStateType::Walk);
-	ASSERT_FALSE(enemy.IsMoving()) << "close enough to stand";
+	ASSERT_FALSE(enemy.IsMoving()) << "at its range, it stands";
 	const int frame = enemy.GetTextureId();
 	for (int tick = 0; tick < 20; ++tick) {
 		scene_.Update(kTick);

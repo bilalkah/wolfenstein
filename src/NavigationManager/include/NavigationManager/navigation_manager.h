@@ -77,10 +77,14 @@ class NavigationManager
 	// enemy's reach of it) cost this much more: routes keep clear of lamps
 	// where there is room, and squeeze past them only where there is not
 	static constexpr std::uint8_t kSqueezeCost = 4;
+	// Steps into a cell on the first stretch of another enemy's route cost
+	// this much more: where there is another way, a group splits up
+	static constexpr float kCrowdCost = 3.0f;
+	static constexpr std::size_t kCrowdedPerRoute = 16;
 
 	static GridCell ToCell(const vector2d& position);
 	// Other enemies than `self` and the cells they are about to enter block
-	// the path
+	// the path; the cells their routes go on through crowd it
 	void CollectDynamicObstacles(ObjectId self);
 	// Where a body of `radius` at `from` should head for `target`: straight
 	// there, or, if a solid is in the way, round it on the target's side (a
@@ -106,6 +110,7 @@ class NavigationManager
 	std::pmr::vector<Route> routes_;
 	// Scratch buffers reused by every query
 	std::pmr::vector<GridCell> obstacles_;
+	std::pmr::vector<GridCell> crowded_;
 	std::pmr::vector<GridCell> cells_;
 };
 

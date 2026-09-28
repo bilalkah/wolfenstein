@@ -25,7 +25,15 @@ class Enemy;
 template <>
 struct StateType<Enemy>
 {
-	enum class Type : std::uint8_t { Idle, Walk, Attack, Pain, Death, Patrol };
+	enum class Type : std::uint8_t {
+		Idle,
+		Walk,
+		Attack,
+		Pain,
+		Death,
+		Patrol,
+		Retreat
+	};
 };
 using EnemyStateType = StateType<Enemy>::Type;
 
@@ -97,7 +105,6 @@ class WalkState : public EnemyState
   private:
 	double animation_speed_{1.2};
 	double range_max_{5.0};
-	double range_min_{1.5};
 	double attack_range_{5.0};
 	double attack_rate_{1.0};
 	double attack_counter_{0.0};
@@ -144,6 +151,26 @@ class DeathState : public EnemyState
   private:
 	double animation_speed_{1.0};
 	double counter{0.0};
+};
+
+// ########################################### RetreatState ###########################################
+// Badly hurt, it runs for the cover it chose, out of the player's sight,
+// and waits there a while; then it comes back to fight to the end. Found
+// there, or caught close on the way, it fights at once.
+class RetreatState : public EnemyState
+{
+  public:
+	// How long it hides
+	static constexpr double kHideSeconds = 4.0;
+
+	void Update(const double& delta_time) override;
+	void OnContextSet() override;
+	void OnEnter() override;
+	EnemyStateType GetType() const override;
+
+  private:
+	double animation_speed_{1.0};  // running: its walk, quicker
+	double hidden_for_{0.0};
 };
 
 }  // namespace wolfenstein

@@ -24,7 +24,8 @@ Enemy::Enemy(Scene& scene, const EnemyConfig& config,
 	  width(config.width),
 	  height(config.height),
 	  radius_(config.radius),
-	  health_(config.health * scene.GetDifficulty().enemy_health),
+	  max_health_(config.health * scene.GetDifficulty().enemy_health),
+	  health_(max_health_),
 	  position_(position),
 	  next_pose(position_.pose),
 	  previous_pose_(position_.pose),
@@ -32,9 +33,10 @@ Enemy::Enemy(Scene& scene, const EnemyConfig& config,
 	  sound_channel_(scene.Sound().AllocateChannel()),
 	  crosshair_ray(Ray{}),
 	  weapon_(config.weapon) {
-	for (const auto type : {EnemyStateType::Idle, EnemyStateType::Patrol,
-							EnemyStateType::Walk, EnemyStateType::Attack,
-							EnemyStateType::Pain, EnemyStateType::Death}) {
+	for (const auto type :
+		 {EnemyStateType::Idle, EnemyStateType::Patrol, EnemyStateType::Walk,
+		  EnemyStateType::Attack, EnemyStateType::Pain, EnemyStateType::Death,
+		  EnemyStateType::Retreat}) {
 		StateFor(type).SetContext(*this);
 	}
 	watch_theta_ = position.theta;
@@ -55,6 +57,8 @@ EnemyState& Enemy::StateFor(EnemyStateType type) {
 			return pain_state_;
 		case EnemyStateType::Death:
 			return death_state_;
+		case EnemyStateType::Retreat:
+			return retreat_state_;
 	}
 	std::unreachable();
 }
@@ -64,6 +68,7 @@ EnemyStateType Enemy::GetStateType() const {
 }
 
 void Enemy::TransitionTo(EnemyStateType type) {
+	face_player_ = false;
 	state_machine_.TransitionTo(StateFor(type));
 }
 
@@ -99,6 +104,7 @@ void Enemy::Update(double delta_time) {
 	}
 	since_flinch_ += delta_time;
 	alerted_for_ = std::max(alerted_for_ - delta_time, 0.0);
+	sidestep_left_ = std::max(sidestep_left_ - delta_time, 0.0);
 	{
 		ScopedTimer timer(ProfileSection::LineOfSight);
 		crosshair_ray = CastLineOfSight(scene_.GetMap(), position_.pose,
@@ -151,8 +157,13 @@ const std::string& Enemy::GetBotName() const {
 void Enemy::Move(double delta_time) {
 	vector2d direction = next_pose - position_.pose;
 	direction.Norm();
-	// It faces the way it walks
-	position_.theta = std::atan2(direction.y, direction.x);
+	// It faces the way it walks, or, fighting, the player
+	if (face_player_) {
+		FacePlayer();
+	}
+	else {
+		position_.theta = std::atan2(direction.y, direction.x);
+	}
 	vector2d delta_movement =
 		direction * translation_speed_ * pace_ * delta_time;
 	// As far as it can go: round lamps and the player (other enemies do not
@@ -235,42 +246,220 @@ void Enemy::SetPatrolRadius(double radius) {
 	}
 }
 
+double Enemy::NextRandom() {
+	random_ ^= random_ << 13;
+	random_ ^= random_ >> 17;
+	random_ ^= random_ << 5;
+	return static_cast<double>(random_) / 4294967296.0;
+}
+
 void Enemy::PickWaypoint() {
-	const auto next = [this] {
-		random_ ^= random_ << 13;
-		random_ ^= random_ >> 17;
-		random_ ^= random_ << 5;
-		return static_cast<double>(random_) / 4294967296.0;	 // [0, 1)
-	};
 	// A few tries at a spot that will do; its post if none does
 	constexpr int kTries = 12;
-	constexpr double kStep = 1.0;		 // not a shuffle on the spot
-	constexpr double kClearance = 0.35;	 // off the walls
+	constexpr double kStep = 1.0;  // not a shuffle on the spot
 	const Map& map = scene_.GetMap();
-	const auto open = [&](const vector2d& at) {
-		for (const vector2d off :
-			 {vector2d{0.0, 0.0}, vector2d{kClearance, 0.0},
-			  vector2d{-kClearance, 0.0}, vector2d{0.0, kClearance},
-			  vector2d{0.0, -kClearance}}) {
-			if (map.IsBlocked(at + off)) {
-				return false;
-			}
-		}
-		return true;
-	};
 	for (int attempt = 0; attempt < kTries; ++attempt) {
-		const double angle = 2.0 * std::numbers::pi * next();
+		const double angle = 2.0 * std::numbers::pi * NextRandom();
 		// Uniform over the disc
-		const double reach = patrol_radius_ * std::sqrt(next());
+		const double reach = patrol_radius_ * std::sqrt(NextRandom());
 		const vector2d spot =
 			post_ + vector2d{std::cos(angle), std::sin(angle)} * reach;
-		if (spot.Distance(position_.pose) >= kStep && open(spot) &&
+		if (spot.Distance(position_.pose) >= kStep && IsOpenFloor(spot) &&
 			CastLineOfSight(map, post_, spot).is_hit) {
 			waypoint_ = spot;
 			return;
 		}
 	}
 	waypoint_ = post_;
+}
+
+bool Enemy::IsOpenFloor(const vector2d& at) const {
+	constexpr double kClearance = 0.35;
+	const Map& map = scene_.GetMap();
+	for (const vector2d off :
+		 {vector2d{0.0, 0.0}, vector2d{kClearance, 0.0},
+		  vector2d{-kClearance, 0.0}, vector2d{0.0, kClearance},
+		  vector2d{0.0, -kClearance}}) {
+		if (map.IsBlocked(at + off)) {
+			return false;
+		}
+	}
+	return true;
+}
+
+vector2d Enemy::ApproachSpot() const {
+	const vector2d player = scene_.GetPlayer().GetPose();
+	const vector2d from = position_.pose - player;
+	if (from.Magnitude() < 1e-9) {
+		return player;
+	}
+	const double mine = std::atan2(from.y, from.x);
+	const auto& tactics = config_.behaviour;
+	constexpr double kInto = 0.75;	// well inside its range, not at the edge
+	const double range =
+		std::max(tactics.near_range, kInto * tactics.far_range);
+	// How far round a bearing is from the nearest other enemy engaged
+	const auto room = [&](double bearing) {
+		double nearest = std::numbers::pi;
+		for (const Enemy* other : scene_.GetEnemies()) {
+			if (other == this || other->GetHealth() <= 0.0 || other->IsCalm()) {
+				continue;
+			}
+			const vector2d at = other->GetPose() - player;
+			nearest = std::min(nearest, std::abs(std::remainder(
+											bearing - std::atan2(at.y, at.x),
+											2.0 * std::numbers::pi)));
+		}
+		return nearest;
+	};
+	// Its own way in, or turned from it by up to a right angle; each turn
+	// must win it more room than it costs
+	constexpr std::array<double, 7> kTurns{0.0,	 0.45, -0.45, 0.9,
+										   -0.9, 1.35, -1.35};
+	constexpr double kTurnCost = 0.3;
+	std::array<std::pair<double, double>, kTurns.size()> choices{};
+	for (std::size_t i = 0; i < kTurns.size(); ++i) {
+		const double bearing = mine + kTurns[i];
+		choices[i] = {room(bearing) - kTurnCost * std::abs(kTurns[i]), bearing};
+	}
+	std::ranges::sort(choices, std::greater{});
+	const Map& map = scene_.GetMap();
+	for (const auto& [score, bearing] : choices) {
+		const vector2d spot =
+			player + vector2d{std::cos(bearing), std::sin(bearing)} * range;
+		if (IsOpenFloor(spot) &&
+			map.FindDoor(static_cast<int>(std::floor(spot.x)),
+						 static_cast<int>(std::floor(spot.y))) == nullptr &&
+			CastLineOfSight(map, spot, player).is_hit) {
+			return spot;
+		}
+	}
+	return player;
+}
+
+bool Enemy::IsBunched() const {
+	constexpr double kElbowRoom = 2.0;
+	return std::ranges::any_of(scene_.GetEnemies(), [&](const Enemy* other) {
+		return other != this && other->GetHealth() > 0.0 && !other->IsCalm() &&
+			   other->GetPose().Distance(position_.pose) < kElbowRoom;
+	});
+}
+
+bool Enemy::InDoorway() const {
+	return scene_.GetMap().FindDoor(
+			   static_cast<int>(std::floor(position_.pose.x)),
+			   static_cast<int>(std::floor(position_.pose.y))) != nullptr;
+}
+
+vector2d Enemy::BackOffSpot() const {
+	const vector2d player = scene_.GetPlayer().GetPose();
+	const vector2d away = position_.pose - player;
+	const double length = away.Magnitude();
+	if (length < 1e-9) {
+		return position_.pose;
+	}
+	// A step at a time: it is chosen afresh every tick
+	constexpr double kStep = 0.75;
+	const Map& map = scene_.GetMap();
+	for (const double turn : {0.0, 0.6, -0.6, 1.2, -1.2}) {
+		const vector2d way{
+			(away.x * std::cos(turn) - away.y * std::sin(turn)) / length,
+			(away.x * std::sin(turn) + away.y * std::cos(turn)) / length};
+		const vector2d spot = position_.pose + way * kStep;
+		if (IsOpenFloor(spot) &&
+			CastLineOfSight(map, position_.pose, spot).is_hit &&
+			CastLineOfSight(map, spot, player).is_hit) {
+			return spot;
+		}
+	}
+	return position_.pose;
+}
+
+void Enemy::PlanSidestep() {
+	sidestep_left_ = 0.0;
+	const double step = config_.behaviour.sidestep;
+	const vector2d player = scene_.GetPlayer().GetPose();
+	const vector2d to = player - position_.pose;
+	const double length = to.Magnitude();
+	if (step <= 0.0 || length < 1e-9) {
+		return;
+	}
+	const vector2d across{-to.y / length, to.x / length};
+	// Mostly the other side from last time, now and then the same again
+	constexpr double kSwitch = 0.75;
+	if (NextRandom() < kSwitch) {
+		sidestep_side_ = -sidestep_side_;
+	}
+	// Longer than the step takes at its pace, less than two shots apart
+	constexpr double kMostSeconds = 1.5;
+	const Map& map = scene_.GetMap();
+	for (const double side : {sidestep_side_, -sidestep_side_}) {
+		for (const double share : {1.0, 0.5}) {
+			const vector2d spot =
+				position_.pose + across * (side * step * share);
+			if (IsOpenFloor(spot) &&
+				CastLineOfSight(map, position_.pose, spot).is_hit &&
+				CastLineOfSight(map, spot, player).is_hit) {
+				sidestep_to_ = spot;
+				sidestep_side_ = side;
+				sidestep_left_ = kMostSeconds;
+				return;
+			}
+		}
+	}
+}
+
+bool Enemy::WantsToRetreat() const {
+	return retreat_ != Retreat::Done && config_.behaviour.retreat_below > 0.0 &&
+		   health_ > 0.0 &&
+		   health_ <= max_health_ * config_.behaviour.retreat_below;
+}
+
+bool Enemy::FindCover() {
+	if (retreat_ == Retreat::Running) {
+		return true;  // where it was running already
+	}
+	retreat_ = Retreat::Done;
+	const vector2d player = scene_.GetPlayer().GetPose();
+	const double from_player = position_.pose.Distance(player);
+	const Map& map = scene_.GetMap();
+	// Spots round it, a cell apart out to six cells; out of the player's
+	// sight, on open floor, not towards the player
+	constexpr int kRings = 6;
+	constexpr int kAround = 16;
+	struct Spot
+	{
+		vector2d at;
+		double run = 0.0;
+	};
+	std::array<Spot, std::size_t{kRings} * kAround> spots{};
+	std::size_t count = 0;
+	for (int ring = 1; ring <= kRings; ++ring) {
+		for (int i = 0; i < kAround; ++i) {
+			const double angle = 2.0 * std::numbers::pi * i / kAround;
+			const vector2d at =
+				position_.pose + vector2d{std::cos(angle), std::sin(angle)} *
+									 static_cast<double>(ring);
+			if (at.Distance(player) > from_player && IsOpenFloor(at) &&
+				!CastLineOfSight(map, player, at).is_hit) {
+				spots[count++] = {.at = at, .run = at.Distance(position_.pose)};
+			}
+		}
+	}
+	// The nearest it has a way to, of the first few
+	std::sort(spots.begin(), spots.begin() + static_cast<std::ptrdiff_t>(count),
+			  [](const Spot& a, const Spot& b) { return a.run < b.run; });
+	constexpr std::size_t kTries = 3;
+	for (std::size_t i = 0; i < std::min(count, kTries); ++i) {
+		if (!(scene_.GetNavigation().FindPath(position_,
+											  Position2D(spots[i].at, 0.0),
+											  GetId()) == position_.pose)) {
+			cover_ = spots[i].at;
+			retreat_ = Retreat::Running;
+			return true;
+		}
+	}
+	return false;
 }
 
 bool Enemy::TakeRetaliation() {

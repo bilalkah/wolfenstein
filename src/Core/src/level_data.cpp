@@ -25,9 +25,9 @@ CharacterStats ToStats(const json& stats) {
 			.height = stats.at("height").get<double>()};
 }
 
-// [at point blank, at range]
-std::pair<double, double> ToDamage(const json& damage) {
-	return {damage.at(0).get<double>(), damage.at(1).get<double>()};
+// Two numbers, [a, b]: a damage at point blank and at range, a range
+std::pair<double, double> ToPair(const json& pair) {
+	return {pair.at(0).get<double>(), pair.at(1).get<double>()};
 }
 
 DamageFalloff ToFalloff(const json& falloff) {
@@ -127,7 +127,7 @@ std::optional<ProjectileConfig> ToProjectile(const json& weapon) {
 		.burst_height = projectile.at("burst_height").get<double>(),
 		.splash_radius = projectile.value("splash_radius", 0.0),
 		.splash_damage = projectile.contains("splash_damage")
-							 ? ToDamage(projectile.at("splash_damage"))
+							 ? ToPair(projectile.at("splash_damage"))
 							 : std::pair{0.0, 0.0},
 		.burst_sound = ToOptionalSound(projectile, "burst_sound"),
 		.noise_range = projectile.value("noise_range", 0)};
@@ -142,7 +142,7 @@ WeaponConfig ToWeapon(const json& weapon) {
 			.reserve_start = reserve.at("start").get<std::size_t>(),
 			.reserve_max = reserve.at("max").get<std::size_t>(),
 			.box_rounds = reserve.at("box").get<std::size_t>(),
-			.attack_damage = ToDamage(weapon.at("damage")),
+			.attack_damage = ToPair(weapon.at("damage")),
 			.attack_range = weapon.at("range").get<double>(),
 			.attack_speed = weapon.at("attack_speed").get<double>(),
 			.reload_speed = weapon.at("reload_speed").get<double>(),
@@ -223,6 +223,14 @@ EnemyConfig ToEnemy(const std::string& type, const json& enemy,
 	const auto& weapon = enemy.at("weapon");
 	const auto& ai = enemy.at("ai");
 	const auto width = enemy.at("width").get<double>();
+	// How far from the player it fights ("range": [near, far])
+	const auto range =
+		ai.contains("range") ? ToPair(ai.at("range")) : std::pair{0.0, 1.5};
+	if (range.first < 0.0 || range.second < range.first) {
+		throw json::other_error::create(
+			509, "an enemy's range is [near, far], near <= far",
+			&ai.at("range"));
+	}
 	return {.type = type,
 			.translation_speed = enemy.at("t_speed").get<double>(),
 			.width = width,
@@ -236,13 +244,17 @@ EnemyConfig ToEnemy(const std::string& type, const json& enemy,
 							  ai.value("pain_cooldown_seconds", 1.2),
 						  .alert_seconds = ai.value("alert_seconds", 10.0),
 						  .patrol_pace = ai.value("patrol_pace", 0.5),
-						  .cry_range = ai.value("cry_range", 6)},
+						  .cry_range = ai.value("cry_range", 6),
+						  .near_range = range.first,
+						  .far_range = range.second,
+						  .sidestep = ai.value("sidestep", 0.0),
+						  .retreat_below = ai.value("retreat_below", 0.0)},
 			.hit_zones = enemy.contains("hit_zones")
 							 ? ToHitZones(enemy.at("hit_zones"), zones)
 							 : zones,
 			.drop = enemy.value("drop", std::string{}),
 			.weapon = {.weapon_name = weapon.at("name").get<std::string>(),
-					   .attack_damage = ToDamage(weapon.at("damage")),
+					   .attack_damage = ToPair(weapon.at("damage")),
 					   .attack_range = weapon.at("range").get<double>(),
 					   .attack_speed = weapon.at("attack_speed").get<double>(),
 					   .attack_rate = weapon.at("attack_rate").get<double>(),
@@ -310,7 +322,8 @@ std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 				 .description = difficulty.at("description").get<std::string>(),
 				 .enemy_damage = difficulty.at("enemy_damage").get<double>(),
 				 .enemy_health = difficulty.at("enemy_health").get<double>(),
-				 .supplies = difficulty.at("supplies").get<double>()});
+				 .supplies = difficulty.at("supplies").get<double>(),
+				 .attackers = difficulty.value("attackers", 3)});
 		}
 		if (config.FindDifficulty("normal") == nullptr) {
 			throw json::other_error::create(

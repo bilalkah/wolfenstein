@@ -36,12 +36,14 @@
 namespace wolfenstein {
 
 // How hard a game is: multipliers on the damage enemies deal, the health
-// they start with and what pickups give
+// they start with and what pickups give, and how many enemies may be
+// shooting at the player at once
 struct Difficulty
 {
 	double enemy_damage = 1.0;
 	double enemy_health = 1.0;
 	double supplies = 1.0;
+	int attackers = 3;
 };
 
 // How the player did in a level: shown on the HUD and when it is cleared
@@ -185,6 +187,9 @@ class Scene
 	// killing blow is counted, once. False, and nothing done, for one
 	// already down.
 	bool Wound(Enemy& enemy, double damage);
+	// Whether `enemy` may shoot (or bite) now: they take turns, no more of
+	// them at it at once than the difficulty's attackers
+	bool MayAttack(const Enemy& enemy) const;
 
 	// Every level object, in update and draw order, the effects and
 	// projectiles last; an object's ObjectId is its index here
