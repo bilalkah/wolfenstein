@@ -192,6 +192,31 @@ TEST_F(ImpactTest, AShotKicksTheViewAndItSettles) {
 	EXPECT_LT(player_.GetKick(), kick / 20) << "settled in a fifth of a second";
 }
 
+// Killed, the player falls: the eye drops from half a wall to the floor in
+// kFallSeconds, slowly at first, as things fall
+TEST_F(ImpactTest, AKilledPlayerFallsToTheFloor) {
+	scene_.FinishLoading();
+	EXPECT_EQ(player_.GetDeathFall(), 0.0) << "alive";
+	EXPECT_DOUBLE_EQ(player_.GetEyeHeight(), 0.5);
+	player_.DecreaseHealth(1000.0);
+	ASSERT_FALSE(player_.IsAlive());
+	EXPECT_EQ(player_.GetDeathFall(), 0.0) << "just killed";
+
+	const int ticks = static_cast<int>(Player::kFallSeconds / kTick);
+	double eye = player_.GetEyeHeight();
+	for (int tick = 0; tick < ticks / 2; ++tick) {
+		scene_.Update(kTick);
+		EXPECT_LE(player_.GetEyeHeight(), eye) << "never back up";
+		eye = player_.GetEyeHeight();
+	}
+	EXPECT_LT(player_.GetDeathFall(), 0.5) << "slower at first";
+	for (int tick = 0; tick < ticks; ++tick) {
+		scene_.Update(kTick);
+	}
+	EXPECT_DOUBLE_EQ(player_.GetDeathFall(), 1.0);
+	EXPECT_LT(player_.GetEyeHeight(), 0.1) << "on the floor";
+}
+
 #ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
 TEST_F(ImpactTest, ShootingAllocatesNothing) {
 	ASSERT_TRUE(scene_.AddEnemy(testing::Enemy("soldier"),

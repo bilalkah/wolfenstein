@@ -4,17 +4,20 @@ textures, the exit switch and the mark on secret walls, and synthesises the
 pickup sound.
 
 Pixel art in the chunky style of the other sprites, written as PNGs (the
-pickups on a transparent background), and a short rising chime as a WAV;
+pickups on a transparent background), and as WAVs a short rising chime,
+the pistol's and the MP5's shots, a dry click for an empty gun and the
+thud of the player falling dead;
 standard library only, so rerunning gives the same files.
 
     ./scripts/make_art.py   # writes assets/sprites/pickups/*.png,
                             # assets/textures/door*.png, exit.png,
                             # secret_mark.png, the puffs where shots land
                             # (assets/sprites/effects/*), bullet_mark.png
-                            # and assets/sounds/pickup.wav
+                            # and assets/sounds/*.wav (all but the Doom ones)
 """
 
 import math
+import random
 import struct
 import wave
 import zlib
@@ -293,6 +296,110 @@ def chime(path):
             for sample in frames))
 
 
+# --------------------------------------------------------------- sounds
+
+SOUND_RATE = 44100
+
+
+def write_wave(path, samples, loudness=0.9):
+    """Mono 16-bit samples, scaled so the loudest is `loudness` of full."""
+    peak = max(abs(sample) for sample in samples) or 1.0
+    with wave.open(str(path), "wb") as out:
+        out.setnchannels(1)
+        out.setsampwidth(2)
+        out.setframerate(SOUND_RATE)
+        out.writeframes(b"".join(
+            struct.pack("<h", int(sample / peak * loudness * 32767))
+            for sample in samples))
+
+
+def lowpass(samples, cutoff):
+    """One-pole low-pass at `cutoff` Hz."""
+    alpha = 1 - math.exp(-2 * math.pi * cutoff / SOUND_RATE)
+    out, level = [], 0.0
+    for sample in samples:
+        level += alpha * (sample - level)
+        out.append(level)
+    return out
+
+
+def gunshot(seed, seconds, crack, body, body_cutoff, thump_from, thump_to,
+            thump_decay, tail, tail_level):
+    """A shot: a sharp crack of noise, a duller body of it, a falling low
+    thump and a room's tail. Decays in seconds; the same seed gives the same
+    shot."""
+    rng = random.Random(seed)
+    count = int(seconds * SOUND_RATE)
+    noise = [rng.uniform(-1.0, 1.0) for _ in range(count)]
+    dull = lowpass(noise, body_cutoff)
+    room = lowpass(noise, 500.0)
+    samples = []
+    phase = 0.0
+    for i in range(count):
+        t = i / SOUND_RATE
+        # The crack: bright noise, the low part taken out
+        bright = noise[i] - dull[i]
+        sample = 2.2 * bright * math.exp(-t / crack)
+        sample += 1.2 * dull[i] * math.exp(-t / body)
+        frequency = thump_to + (thump_from - thump_to) * math.exp(-t / 0.015)
+        phase += 2 * math.pi * frequency / SOUND_RATE
+        sample += 0.35 * math.sin(phase) * math.exp(-t / thump_decay)
+        sample += tail_level * room[i] * math.exp(-t / tail)
+        # A fast attack, so it does not click in
+        sample *= min(1.0, t / 0.0005)
+        samples.append(math.tanh(1.2 * sample))
+    return samples
+
+
+def pistol_shot():
+    return gunshot(seed=101, seconds=0.45, crack=0.012, body=0.04,
+                   body_cutoff=1800.0, thump_from=220.0, thump_to=95.0,
+                   thump_decay=0.035, tail=0.15, tail_level=0.9)
+
+
+def smg_shot():
+    """Lighter and shorter than the pistol's, so bursts do not smear."""
+    return gunshot(seed=202, seconds=0.26, crack=0.008, body=0.022,
+                   body_cutoff=2600.0, thump_from=260.0, thump_to=120.0,
+                   thump_decay=0.02, tail=0.07, tail_level=0.6)
+
+
+def body_fall():
+    """A body hitting the floor: a dull, low thud and the short scuff of it
+    settling."""
+    rng = random.Random(404)
+    count = int(0.45 * SOUND_RATE)
+    noise = [rng.uniform(-1.0, 1.0) for _ in range(count)]
+    dull = lowpass(lowpass(noise, 300.0), 300.0)
+    scuff = lowpass(noise, 1200.0)
+    samples, phase = [], 0.0
+    for i in range(count):
+        t = i / SOUND_RATE
+        frequency = 55.0 + 40.0 * math.exp(-t / 0.03)
+        phase += 2 * math.pi * frequency / SOUND_RATE
+        sample = 1.0 * math.sin(phase) * math.exp(-t / 0.07)
+        sample += 3.0 * dull[i] * math.exp(-t / 0.05)
+        if t > 0.12:
+            sample += 0.25 * scuff[i] * math.exp(-(t - 0.12) / 0.06)
+        samples.append(math.tanh(sample * min(1.0, t / 0.002)))
+    return samples
+
+
+def dry_click():
+    """The trigger pulled on an empty gun: two small metal clicks."""
+    rng = random.Random(303)
+    count = int(0.12 * SOUND_RATE)
+    samples = [0.0] * count
+    for start, pitch, level in ((0.0, 3100.0, 1.0), (0.045, 2300.0, 0.6)):
+        offset = int(start * SOUND_RATE)
+        for i in range(int(0.02 * SOUND_RATE)):
+            t = i / SOUND_RATE
+            ring = math.sin(2 * math.pi * pitch * t) * math.exp(-t / 0.003)
+            tick = rng.uniform(-1.0, 1.0) * math.exp(-t / 0.0008)
+            samples[offset + i] += level * (0.7 * ring + 0.5 * tick)
+    return samples
+
+
 # --------------------------------------------------------------- impacts
 
 # A shot lands half a wall up; the puffs are drawn on a canvas the effect's
@@ -384,11 +491,16 @@ def main():
     secret_mark().save(ASSETS / "textures" / "secret_mark.png")
     for frame in range(4):
         blood_puff(frame).save(ASSETS / "sprites" / "effects" / "blood" /
-                               f"{frame}.png")
+                               "frames" / f"{frame}.png")
         dust_puff(frame).save(ASSETS / "sprites" / "effects" / "dust" /
-                              f"{frame}.png")
+                              "frames" / f"{frame}.png")
     bullet_mark().save(ASSETS / "textures" / "bullet_mark.png")
     chime(ASSETS / "sounds" / "pickup.wav")
+    # A little under the shotgun, whose shot is compressed loud
+    write_wave(ASSETS / "sounds" / "pistol.wav", pistol_shot(), loudness=0.3)
+    write_wave(ASSETS / "sounds" / "mp5.wav", smg_shot(), loudness=0.24)
+    write_wave(ASSETS / "sounds" / "dry_fire.wav", dry_click(), loudness=0.1)
+    write_wave(ASSETS / "sounds" / "player_fall.wav", body_fall(), loudness=0.5)
 
 
 if __name__ == "__main__":

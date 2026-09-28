@@ -1,0 +1,427 @@
+{
+  "name": "THE KEEP",
+  "briefing": "The keep stands between you and the sanctum. Its great hall is shut with gold locks, and the gold key is in the armory behind a silver one; the guards at the gate carry that. Take the keep and go through the great hall.",
+  "map": "level6.txt",
+  "player": {
+    "position": {
+      "x": 27.5,
+      "y": 15.5,
+      "theta": 3.14
+    }
+  },
+  "enemies": [
+    {
+      "type": "soldier",
+      "position": {
+        "x": 14.5,
+        "y": 14.5,
+        "theta": 0.4
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 20.5,
+        "y": 15.5,
+        "theta": 2.94
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 15.5,
+        "y": 18.5,
+        "theta": -0.79
+      }
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 17.5,
+        "y": 17.5,
+        "theta": -1.25
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 18.5,
+        "y": 2.5,
+        "theta": 2.03
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 21.5,
+        "y": 2.5,
+        "theta": 2.86
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 21.5,
+        "y": 27.5,
+        "theta": 2.86
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 18.5,
+        "y": 29.5,
+        "theta": -2.03
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 27.5,
+        "y": 2.5,
+        "theta": 1.74
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 26.5,
+        "y": 7.5,
+        "theta": -1.33
+      }
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 2.5,
+        "y": 2.5,
+        "theta": 0.32
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 2.5,
+        "y": 28.5,
+        "theta": 0.0
+      }
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 7.5,
+        "y": 29.5,
+        "theta": -2.68
+      }
+    },
+    {
+      "type": "cyber_demon",
+      "position": {
+        "x": 3.5,
+        "y": 10.5,
+        "theta": 1.22
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 4.5,
+        "y": 22.5,
+        "theta": -1.42
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 6.5,
+        "y": 16.5,
+        "theta": -2.68
+      }
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 3.5,
+        "y": 17.5,
+        "theta": -0.64
+      }
+    }
+  ],
+  "dynamicObjects": [
+    {
+      "type": "green_light",
+      "position": {
+        "x": 25.5,
+        "y": 14.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 26.5,
+        "y": 18.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 20.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 13.5,
+        "y": 10.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 13.5,
+        "y": 19.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 20.5,
+        "y": 19.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 13.5,
+        "y": 5.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 16.5,
+        "y": 5.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 14.5,
+        "y": 30.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 22.5,
+        "y": 30.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 25.5,
+        "y": 4.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 6.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 7.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 9.5,
+        "y": 26.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 2.5,
+        "y": 30.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 1.5,
+        "y": 12.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 1.5,
+        "y": 16.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 7.5,
+        "y": 11.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 1.5,
+        "y": 19.5
+      }
+    }
+  ],
+  "pickups": [
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 25.5,
+        "y": 18.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 28.5,
+        "y": 15.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 16.5,
+        "y": 20.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 22.5,
+        "y": 2.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 20.5,
+        "y": 26.5
+      }
+    },
+    {
+      "type": "silver_key",
+      "position": {
+        "x": 25.5,
+        "y": 6.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 26.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 1.5,
+        "y": 2.5
+      }
+    },
+    {
+      "type": "gold_key",
+      "position": {
+        "x": 8.5,
+        "y": 30.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 6.5,
+        "y": 30.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 2.5,
+        "y": 26.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 3.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 3.5,
+        "y": 13.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 25.5,
+        "y": 21.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 25.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 25.5,
+        "y": 26.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 25.5,
+        "y": 28.5
+      }
+    }
+  ],
+  "objectives": [
+    {
+      "type": "kill_all",
+      "text": "Take the keep: kill its garrison"
+    }
+  ],
+  "secrets": [
+    {
+      "x": 23,
+      "y": 22,
+      "dx": 1,
+      "dy": 0
+    },
+    {
+      "x": 23,
+      "y": 27,
+      "dx": 1,
+      "dy": 0
+    }
+  ],
+  "staticObjects": []
+}

@@ -56,6 +56,10 @@ TEST(LevelData, ParsesTheGameConfig) {
 	EXPECT_EQ(mp5->reserve_start, 60u);
 	EXPECT_EQ(mp5->reserve_max, 180u);
 	EXPECT_EQ(mp5->box_rounds, 30u);
+	// Each gun sounds its own
+	EXPECT_EQ(config->weapons[0].shot_sound, SoundEffect::PistolShot);
+	EXPECT_EQ(mp5->shot_sound, SoundEffect::SmgShot);
+	EXPECT_EQ(shotgun->shot_sound, SoundEffect::Shotgun);
 	// A shotgun blast is a fan of pellets
 	EXPECT_EQ(shotgun->pellets, 7u);
 	EXPECT_NEAR(shotgun->spread, 8.0 * std::numbers::pi / 180.0, 1e-12);

@@ -99,8 +99,12 @@ void Renderer3D::RenderScene(double delta_time) {
 	render_queue_.clear();
 	// Looking up, or a shot's kick, drops the world down the screen
 	const Player& player = scene_->GetPlayer();
-	horizon_shift_ = static_cast<int>((player.GetPitch() + player.GetKick()) *
+	// Falling dead, the view tips back a little as the eye drops
+	constexpr double kFallTilt = 0.12;
+	horizon_shift_ = static_cast<int>((player.GetPitch() + player.GetKick() +
+									   kFallTilt * player.GetDeathFall()) *
 									  context_->GetConfig().height);
+	eye_height_ = player.GetEyeHeight();
 	ClearScreen();
 	RenderBackground();
 	{
@@ -359,8 +363,11 @@ std::tuple<int, int, int> Renderer3D::CalculateVerticalSlice(
 		std::min(config_.height / std::max(distance, kNearest),
 				 config_.height * kTallest);
 	auto line_height = static_cast<int>(height);
-	int draw_start = -line_height / 2 + config_.height / 2 + horizon_shift_;
-	int draw_end = line_height / 2 + config_.height / 2 + horizon_shift_;
+	// A wall spans the floor to a wall's height; the eye is eye_height_ up
+	// it, level with the horizon
+	const int horizon = config_.height / 2 + horizon_shift_;
+	int draw_start = horizon - static_cast<int>((1.0 - eye_height_) * height);
+	int draw_end = horizon + static_cast<int>(eye_height_ * height);
 	return std::make_tuple(line_height, draw_start, draw_end);
 }
 
@@ -394,8 +401,11 @@ void Renderer3D::RenderWeapon() {
 	const int width_slice = static_cast<int>(config_.width / 1.3);
 	const int height_slice = static_cast<int>(width_slice * ratio);
 	SDL_Rect src_rect{0, 0, texture_width, texture_height};
+	// A dead player's gun drops out of view as they fall
+	const int dropped =
+		static_cast<int>(1.2 * height_slice * player_ptr.GetDeathFall());
 	SDL_Rect dest_rect{config_.width / 2 - width_slice / 2 + 100,
-					   config_.height - height_slice, width_slice,
+					   config_.height - height_slice + dropped, width_slice,
 					   height_slice};
 	Enqueue(texture_id, src_rect, dest_rect, 0.0);
 

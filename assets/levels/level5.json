@@ -1,0 +1,370 @@
+{
+  "name": "THE ARCHIVES",
+  "briefing": "The orders for the forge came from the archives, and so does something else: a cyber demon they call the archivist sits in the vault among the records. The vault takes a gold key from the map room, and the map room a silver one from the stacks. Destroy the archivist.",
+  "map": "level5.txt",
+  "player": {
+    "position": {
+      "x": 27.5,
+      "y": 14.5,
+      "theta": 3.14
+    }
+  },
+  "enemies": [
+    {
+      "type": "soldier",
+      "position": {
+        "x": 18.5,
+        "y": 14.5,
+        "theta": 0.46
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 21.5,
+        "y": 13.5,
+        "theta": 2.5
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 21.5,
+        "y": 15.5,
+        "theta": -2.9
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 21.5,
+        "y": 4.5,
+        "theta": -1.57
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 25.5,
+        "y": 3.5,
+        "theta": 3.14
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 25.5,
+        "y": 27.5,
+        "theta": -2.9
+      }
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 17.5,
+        "y": 27.5,
+        "theta": -0.24
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 11.5,
+        "y": 6.5,
+        "theta": -2.03
+      }
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 10.5,
+        "y": 2.5,
+        "theta": 1.41
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 9.5,
+        "y": 22.5,
+        "theta": 0.93
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 11.5,
+        "y": 25.5,
+        "theta": -2.03
+      }
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 4.5,
+        "y": 3.5,
+        "theta": 2.03
+      }
+    },
+    {
+      "type": "cyber_demon",
+      "position": {
+        "x": 4.5,
+        "y": 15.5,
+        "theta": -2.36
+      },
+      "target": true
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 4.5,
+        "y": 12.5,
+        "theta": 1.77
+      }
+    }
+  ],
+  "dynamicObjects": [
+    {
+      "type": "green_light",
+      "position": {
+        "x": 25.5,
+        "y": 17.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 25.5,
+        "y": 16.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 20.5,
+        "y": 19.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 22.5,
+        "y": 8.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 16.5,
+        "y": 21.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 17.5,
+        "y": 8.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 16.5,
+        "y": 2.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 24.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 16.5,
+        "y": 24.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 22.5,
+        "y": 28.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 13.5,
+        "y": 5.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 8.5,
+        "y": 5.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 13.5,
+        "y": 21.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 13.5,
+        "y": 20.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 1.5,
+        "y": 7.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 6.5,
+        "y": 14.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 1.5,
+        "y": 12.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 1.5,
+        "y": 17.5
+      }
+    }
+  ],
+  "pickups": [
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 28.5,
+        "y": 14.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 22.5,
+        "y": 15.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 22.5,
+        "y": 13.5
+      }
+    },
+    {
+      "type": "silver_key",
+      "position": {
+        "x": 17.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 18.5,
+        "y": 5.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 17.5,
+        "y": 28.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 12.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "gold_key",
+      "position": {
+        "x": 10.5,
+        "y": 28.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 12.5,
+        "y": 20.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 6.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 6.5,
+        "y": 16.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 6.5,
+        "y": 10.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 9.5,
+        "y": 13.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 9.5,
+        "y": 15.5
+      }
+    }
+  ],
+  "objectives": [
+    {
+      "type": "kill_targets",
+      "text": "Destroy the archivist in the vault"
+    }
+  ],
+  "secrets": [
+    {
+      "x": 7,
+      "y": 14,
+      "dx": 1,
+      "dy": 0
+    }
+  ],
+  "staticObjects": []
+}

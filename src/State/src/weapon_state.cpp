@@ -55,7 +55,7 @@ bool LoadedState::PullTrigger() {
 	if (trigger_pulled_) {
 		return false;
 	}
-	context_->PlaySound(SoundEffect::Shotgun);
+	context_->PlaySound(context_->GetShotSound());
 	trigger_pulled_ = true;
 	trigger_pull_time_ = 0;
 	context_->DecreaseAmmo();
@@ -96,6 +96,7 @@ bool OutOfAmmoState::PullTrigger() {
 	if (!trigger_pulled_) {
 		trigger_pulled_ = true;
 		trigger_pull_time_ = 0;
+		context_->PlaySound(SoundEffect::DryFire);
 	}
 	return false;
 }

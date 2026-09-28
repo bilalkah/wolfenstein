@@ -41,6 +41,22 @@ DamageFalloff ToFalloff(const json& falloff) {
 		501, "unknown damage falloff \"" + name + "\"", &falloff);
 }
 
+// A weapon's shot, by the name config.json gives it ("sound": "pistol")
+SoundEffect ToShotSound(const json& sound) {
+	const auto name = sound.get<std::string>();
+	if (name == "pistol") {
+		return SoundEffect::PistolShot;
+	}
+	if (name == "mp5") {
+		return SoundEffect::SmgShot;
+	}
+	if (name == "shotgun") {
+		return SoundEffect::Shotgun;
+	}
+	throw json::other_error::create(
+		508, "unknown weapon sound \"" + name + "\"", &sound);
+}
+
 WeaponConfig ToWeapon(const json& weapon) {
 	const auto& reserve = weapon.at("reserve");
 	return {.weapon_name = weapon.at("name").get<std::string>(),
@@ -58,7 +74,10 @@ WeaponConfig ToWeapon(const json& weapon) {
 			.kick = weapon.value("kick", 0.0),
 			.pellets = weapon.value("pellets", std::size_t{1}),
 			.spread = weapon.value("spread", 0.0) * std::numbers::pi / 180.0,
-			.raise_seconds = weapon.value("raise_seconds", 0.4)};
+			.raise_seconds = weapon.value("raise_seconds", 0.4),
+			.shot_sound = weapon.contains("sound")
+							  ? ToShotSound(weapon.at("sound"))
+							  : SoundEffect::Shotgun};
 }
 
 // The key a pickup is ("key": "gold"), as a KeyBit, or 0

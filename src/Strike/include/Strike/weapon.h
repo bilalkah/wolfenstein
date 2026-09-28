@@ -52,6 +52,8 @@ struct WeaponConfig
 	double spread{};
 	// How long taking it in hand takes, the gun coming up
 	double raise_seconds = 0.4;
+	// What a shot sounds like
+	SoundEffect shot_sound = SoundEffect::Shotgun;
 };
 
 // Pinned (not copyable or movable): its states point back to it
@@ -70,6 +72,7 @@ class Weapon
 	std::size_t GetPellets() const { return config_.pellets; }
 	double GetSpread() const { return config_.spread; }
 	double GetRaiseSeconds() const { return config_.raise_seconds; }
+	SoundEffect GetShotSound() const { return config_.shot_sound; }
 	// Pulls the trigger; true if a shot was fired (the caller resolves it)
 	bool Attack();
 	void Update(double delta_time);

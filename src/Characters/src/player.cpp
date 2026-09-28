@@ -88,6 +88,12 @@ void Player::Update(double delta_time) {
 	pickup_animation_.Update(delta_time);
 	since_hurt_ += delta_time;
 	if (!is_alive_) {
+		// Falling, and a thud as the body lands
+		const bool falling = since_death_ < kFallSeconds;
+		since_death_ += delta_time;
+		if (falling && since_death_ >= kFallSeconds) {
+			sound_.PlayEffect(sound_channel_, SoundEffect::PlayerFall);
+		}
 		return;
 	}
 	SwitchWeapons();
@@ -197,6 +203,21 @@ bool Player::TryPickUp(const PickupEffect& effect, double supplies) {
 void Player::Restore(double health, std::size_t ammo, std::size_t reserve) {
 	health_ = std::clamp(health, 1.0, 100.0);
 	GetWeapon(held_).SetRounds(ammo, reserve);
+}
+
+double Player::GetDeathFall() const {
+	if (is_alive_) {
+		return 0.0;
+	}
+	const double t = std::min(since_death_ / kFallSeconds, 1.0);
+	return t * t;
+}
+
+double Player::GetEyeHeight() const {
+	// Half a wall up, down to the floor but for a head's height
+	constexpr double kStanding = 0.5;
+	constexpr double kLying = 0.08;
+	return kStanding - (kStanding - kLying) * GetDeathFall();
 }
 
 bool Player::IsDamaged() const {

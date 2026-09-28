@@ -117,6 +117,13 @@ class Player : public ICharacter, public IGameObject
 	double GetPitch() const { return pitch_; }
 	// The furthest the player looks up or down
 	static constexpr double kMaxPitch = 0.4;
+	// How far through its fall a dead player is: 0 as it dies, 1 on the
+	// floor (after kFallSeconds, sooner at first, as things fall)
+	double GetDeathFall() const;
+	static constexpr double kFallSeconds = 0.9;
+	// Where the eye is, in walls above the floor: half way up, and lower as
+	// a dead player falls
+	double GetEyeHeight() const;
 	// Opacity of the damage overlay, fading out after a hit
 	std::uint8_t GetDamageAlpha() const { return damage_animation_.GetAlpha(); }
 	// Opacity of the flash after taking a pickup, 0 when none is showing
@@ -141,6 +148,7 @@ class Player : public ICharacter, public IGameObject
 	double since_hurt_{};
 	double kick_{};
 	double pitch_{};
+	double since_death_{};
 	std::uint8_t keys_{};
 	SoundManager& sound_;
 	SoundChannel sound_channel_;

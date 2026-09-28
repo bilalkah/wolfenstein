@@ -92,6 +92,8 @@ class Renderer3D : public IRenderer
 	// How far the world is slid down the screen this frame, in pixels: the
 	// player looking up, and a shot's kick
 	int horizon_shift_ = 0;
+	// Where the eye is, in walls above the floor (half way, standing)
+	double eye_height_ = 0.5;
 	int shown_fps_ = 0;
 	double fps_elapsed_ = 0.0;
 	int fps_frames_ = 0;

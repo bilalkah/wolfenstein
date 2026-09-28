@@ -796,7 +796,10 @@ void Game::CheckGameEvent() {
 
 void Game::CheckGameOver() {
 	const double delta_time = clock_.DeltaTime();
-	if (!world_->GetPlayer().IsAlive() && !renderer_result_) {
+	// Dead: once the player has fallen, game over
+	const Player& player = world_->GetPlayer();
+	if (!player.IsAlive() && player.GetDeathFall() >= 1.0 &&
+		!renderer_result_) {
 		renderer_result_.emplace(
 			*renderer_context_,
 			renderer_context_->Textures().GetTextureId("game_over"));
