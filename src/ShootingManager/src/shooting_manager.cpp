@@ -109,18 +109,8 @@ ShotResult ResolveOneShot(Scene& scene, const Weapon& weapon,
 										 std::max(aim.distance, 0.01),
 					 kEyeHeight + pitch * aim.distance,
 					 zone == HitZones::Zone::Head ? kHeadBurst : 1.0);
-	(*enemy)->DecreaseHealth(zones.Scale(zone) *
-							 CalculateDamage(weapon, aim.distance));
-	(*enemy)->SetAttacked(true);
-	// Hit, it cries out, killed or not: the others near it hear, however far
-	// away the shot was fired from, and a shot from afar takes no one
-	// unawares twice
-	scene.MakeNoise((*enemy)->GetPose(), (*enemy)->GetStateConfig().cry_range);
-	// Aim only offers enemies with health left, so this is the killing shot,
-	// counted once
-	if ((*enemy)->GetHealth() <= 0) {
-		scene.DecreaseAliveEnemies();
-	}
+	scene.Wound(**enemy,
+				zones.Scale(zone) * CalculateDamage(weapon, aim.distance));
 	return {.hit = true, .head = zone == HitZones::Zone::Head};
 }
 

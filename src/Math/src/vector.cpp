@@ -1,5 +1,6 @@
 #include "Math/vector.h"
 #include <cmath>
+#include <numbers>
 
 namespace wolfenstein {
 
@@ -261,5 +262,19 @@ vector2d CalculateCartesianFromPolar(const double angle,
 									 const double distance) {
 	const auto angle_rad = ToRadians(angle);
 	return {distance * std::cos(angle_rad), distance * std::sin(angle_rad)};
+}
+
+double TurnedFrom(const vector2d& at, double facing, const vector2d& viewer) {
+	const vector2d to = viewer - at;
+	return std::remainder(std::atan2(to.y, to.x) - facing,
+						  2.0 * std::numbers::pi);
+}
+
+std::size_t SideSeen(const vector2d& at, double facing,
+					 const vector2d& viewer) {
+	const double turned = TurnedFrom(at, facing, viewer);
+	const auto eighths =
+		static_cast<long>(std::lround(-turned / (std::numbers::pi / 4)));
+	return static_cast<std::size_t>(((eighths % 8) + 8) % 8);
 }
 }  // namespace wolfenstein

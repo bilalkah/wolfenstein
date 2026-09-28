@@ -45,9 +45,30 @@ enum class SoundEffect : std::uint8_t {
 	AmmoPickup,
 	KeyPickup,
 	WeaponPickup,
+	// Enemies' own voices, by kind (config.json names them)
+	DemonAttack,  // a bite
+	DemonAlert,
+	DemonPain,
+	DemonDeath,
+	CacoAlert,
+	CacoDeath,
+	CyberAlert,
+	CyberDeath,
+	ZombieAlert,  // the tougher zombies'
+	ZombieDeath,
+	// Weapons found later
+	SuperShotgun,
+	SuperShotgunReload,	 // broken open, loaded and snapped shut
+	SawUp,				 // the saw starting as it is taken in hand
+	Saw,				 // cutting air
+	SawHit,				 // cutting an enemy
+	RocketLaunch,
+	RocketBurst,
+	Plasma,
+	PlasmaBurst,
 };
-inline constexpr std::size_t kSoundEffectCount = 17;
-static_assert(std::to_underlying(SoundEffect::WeaponPickup) + 1 ==
+inline constexpr std::size_t kSoundEffectCount = 36;
+static_assert(std::to_underlying(SoundEffect::PlasmaBurst) + 1 ==
 			  kSoundEffectCount);
 
 // What the mixer plays at, 0 to MIX_MAX_VOLUME: the music, and every effect

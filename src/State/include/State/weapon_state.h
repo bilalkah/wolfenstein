@@ -69,9 +69,15 @@ class LoadedState : public WeaponState
 	WeaponStateType GetType() const override;
 
 	bool PullTrigger() override;
+	// Held, the gun at rest; firing, the frame of the shot
+	int GetCurrentFrame() const override;
 
   private:
-	bool trigger_pulled_{false};
+	bool trigger_pulled_{false};  // a shot under way
+	// Pulled again this tick, and whether the firing frames show
+	bool trigger_held_{false};
+	bool firing_{false};
+	int held_frame_{0};
 	double trigger_pull_time_{0.0};
 	double fire_rate_{0.0};
 };

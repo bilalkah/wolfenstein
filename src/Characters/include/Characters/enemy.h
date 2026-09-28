@@ -76,6 +76,16 @@ struct HitZones
 	}
 };
 
+// What an enemy type sounds like: shooting (or biting), its cry as it
+// notices the player, hurt, and dying
+struct EnemySounds
+{
+	SoundEffect attack = SoundEffect::NpcAttack;
+	SoundEffect alert = SoundEffect::EnemyAlert;
+	SoundEffect pain = SoundEffect::NpcPain;
+	SoundEffect death = SoundEffect::NpcDeath;
+};
+
 // An enemy type as config.json describes it
 struct EnemyConfig
 {
@@ -93,6 +103,7 @@ struct EnemyConfig
 	// The pickup it drops where it dies ("clip"), if any
 	std::string drop;
 	SimpleWeaponConfig weapon;
+	EnemySounds sounds;
 };
 
 // Pinned (not copyable or movable): its states point back to it. Lives in
@@ -197,6 +208,7 @@ class Enemy : public ICharacter, public IGameObject
 	double GetWidth() const override;
 	double GetHeight() const override;
 	const StateConfig& GetStateConfig() const { return config_.behaviour; }
+	const EnemySounds& GetSounds() const { return config_.sounds; }
 	const HitZones& GetHitZones() const { return config_.hit_zones; }
 	const Ray& GetCrosshairRay() const;
 	const SimpleWeapon& GetWeapon() const;

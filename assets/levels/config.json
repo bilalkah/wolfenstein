@@ -110,6 +110,127 @@
             "sound": "shotgun",
             "noise_range": 12,
             "lower_seconds": 0.35
+        },
+        {
+            "name": "super_shotgun",
+            "label": "SUPER SHOTGUN",
+            "ammo": 1,
+            "reserve": {
+                "start": 6,
+                "max": 24,
+                "box": 4
+            },
+            "damage": [
+                16,
+                1
+            ],
+            "range": 7,
+            "attack_speed": 0.4,
+            "reload_speed": 1.3,
+            "falloff": "exponential",
+            "kick": 0.045,
+            "pellets": 20,
+            "spread": 22,
+            "raise_seconds": 0.6,
+            "lower_seconds": 0.35,
+            "sound": "super_shotgun",
+            "reload_sound": "super_shotgun_reload",
+            "reload_after_shot": true,
+            "noise_range": 14
+        },
+        {
+            "name": "chainsaw",
+            "label": "CHAINSAW",
+            "ammo": 0,
+            "reserve": {
+                "start": 0,
+                "max": 0,
+                "box": 0
+            },
+            "damage": [
+                9,
+                7
+            ],
+            "range": 1.3,
+            "attack_speed": 0.12,
+            "reload_speed": 0.5,
+            "falloff": "linear",
+            "kick": 0.004,
+            "sound": "saw",
+            "hit_sound": "saw_hit",
+            "raise_sound": "saw_up",
+            "noise_range": 6
+        },
+        {
+            "name": "rocket_launcher",
+            "label": "ROCKET LAUNCHER",
+            "ammo": 4,
+            "reserve": {
+                "start": 4,
+                "max": 20,
+                "box": 2
+            },
+            "damage": [
+                40,
+                40
+            ],
+            "range": 20,
+            "attack_speed": 0.8,
+            "reload_speed": 1.8,
+            "falloff": "linear",
+            "kick": 0.035,
+            "raise_seconds": 0.6,
+            "lower_seconds": 0.35,
+            "sound": "rocket_launch",
+            "noise_range": 14,
+            "projectile": {
+                "name": "rocket",
+                "speed": 10,
+                "radius": 0.12,
+                "splash_radius": 1.8,
+                "splash_damage": [
+                    90,
+                    10
+                ],
+                "burst_sound": "rocket_burst",
+                "noise_range": 16,
+                "width": 0.344,
+                "height": 0.203,
+                "burst_width": 0.719,
+                "burst_height": 0.734
+            }
+        },
+        {
+            "name": "plasma_rifle",
+            "label": "PLASMA RIFLE",
+            "ammo": 40,
+            "reserve": {
+                "start": 40,
+                "max": 200,
+                "box": 40
+            },
+            "damage": [
+                18,
+                18
+            ],
+            "range": 20,
+            "attack_speed": 0.1,
+            "reload_speed": 1.6,
+            "falloff": "linear",
+            "kick": 0.004,
+            "sound": "plasma",
+            "noise_range": 12,
+            "projectile": {
+                "name": "plasma",
+                "speed": 16,
+                "radius": 0.08,
+                "burst_sound": "plasma_burst",
+                "noise_range": 4,
+                "width": 0.156,
+                "height": 0.188,
+                "burst_width": 0.297,
+                "burst_height": 0.469
+            }
         }
     ],
     "hit_zones": {
@@ -161,7 +282,13 @@
                 "idle_frame_seconds": 0.8,
                 "follow_range": 5.0
             },
-            "radius": 0.2
+            "radius": 0.2,
+            "sounds": {
+                "attack": "demon_attack",
+                "alert": "caco_alert",
+                "pain": "demon_pain",
+                "death": "caco_death"
+            }
         },
         "cyber_demon": {
             "t_speed": 0.8,
@@ -184,7 +311,96 @@
                 "follow_range": 5.0
             },
             "drop": "large_medkit",
-            "radius": 0.25
+            "radius": 0.25,
+            "sounds": {
+                "alert": "cyber_alert",
+                "pain": "demon_pain",
+                "death": "cyber_death"
+            }
+        },
+        "shotgun_zombie": {
+            "t_speed": 0.8,
+            "width": 0.838,
+            "height": 0.698,
+            "health": 90,
+            "weapon": {
+                "name": "shotgun",
+                "damage": [
+                    30,
+                    3
+                ],
+                "range": 5.0,
+                "attack_speed": 0.7,
+                "attack_rate": 1.5,
+                "noise_range": 12
+            },
+            "ai": {
+                "idle_frame_seconds": 0.8,
+                "follow_range": 5.0
+            },
+            "drop": "clip",
+            "radius": 0.17,
+            "sounds": {
+                "attack": "shotgun",
+                "alert": "zombie_alert",
+                "death": "zombie_death"
+            }
+        },
+        "minigun_zombie": {
+            "t_speed": 0.7,
+            "width": 1.117,
+            "height": 0.711,
+            "health": 220,
+            "weapon": {
+                "name": "minigun",
+                "damage": [
+                    4,
+                    1
+                ],
+                "range": 7.0,
+                "attack_speed": 0.12,
+                "attack_rate": 0.2,
+                "noise_range": 12
+            },
+            "ai": {
+                "idle_frame_seconds": 0.8,
+                "follow_range": 6.0
+            },
+            "drop": "clip",
+            "radius": 0.22,
+            "sounds": {
+                "attack": "mp5",
+                "alert": "zombie_alert",
+                "death": "zombie_death"
+            }
+        },
+        "demon": {
+            "t_speed": 1.6,
+            "width": 0.863,
+            "height": 0.723,
+            "health": 150,
+            "weapon": {
+                "name": "bite",
+                "damage": [
+                    18,
+                    9
+                ],
+                "range": 1.7,
+                "attack_speed": 0.6,
+                "attack_rate": 0.7,
+                "noise_range": 0
+            },
+            "ai": {
+                "idle_frame_seconds": 0.8,
+                "follow_range": 8.0
+            },
+            "radius": 0.25,
+            "sounds": {
+                "attack": "demon_attack",
+                "alert": "demon_alert",
+                "pain": "demon_pain",
+                "death": "demon_death"
+            }
         }
     },
     "pickups": {
@@ -236,6 +452,30 @@
             "height": 0.152,
             "ammo_boxes": 1,
             "box_share": 0.5
+        },
+        "super_shotgun": {
+            "weapon": "super_shotgun",
+            "texture": "super_shotgun_pickup",
+            "width": 0.558,
+            "height": 0.178
+        },
+        "chainsaw": {
+            "weapon": "chainsaw",
+            "texture": "chainsaw_pickup",
+            "width": 0.635,
+            "height": 0.254
+        },
+        "rocket_launcher": {
+            "weapon": "rocket_launcher",
+            "texture": "rocket_launcher_pickup",
+            "width": 0.762,
+            "height": 0.254
+        },
+        "plasma_rifle": {
+            "weapon": "plasma_rifle",
+            "texture": "plasma_rifle_pickup",
+            "width": 0.736,
+            "height": 0.203
         }
     },
     "config_dynamic": {

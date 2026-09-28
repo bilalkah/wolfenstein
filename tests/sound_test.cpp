@@ -8,6 +8,7 @@
 #include "test_services.h"
 #include <gtest/gtest.h>
 #include <numbers>
+#include <string>
 
 namespace wolfenstein {
 namespace {
@@ -30,9 +31,9 @@ class SoundTest : public ::testing::Test
   protected:
 	static constexpr SceneCapacity kCapacity{.enemies = 1};
 
-	void Load(bool enemy) {
+	void Load(bool enemy, const std::string& type = "soldier") {
 		if (enemy) {
-			ASSERT_TRUE(scene_.AddEnemy(testing::Enemy("soldier"),
+			ASSERT_TRUE(scene_.AddEnemy(testing::Enemy(type),
 										Position2D({1.5, 3.5}, -kSouth)));
 		}
 		scene_.FinishLoading();
@@ -79,6 +80,22 @@ TEST_F(SoundTest, AnEnemyShoutsAsItStartsHunting) {
 }
 
 // Walking, a footstep every stride, one foot then the other
+// Each kind has its own voice: a demon roars as it sees the player, rushes
+// in and bites, never with a soldier's shout or shot
+TEST_F(SoundTest, EachEnemySoundsItsOwn) {
+	Load(true, "demon");
+	std::uint32_t roars = 0;
+	std::uint32_t bites = 0;
+	const std::uint32_t shouts = Plays(SoundEffect::EnemyAlert, [&] {
+		roars = Plays(SoundEffect::DemonAlert, [&] {
+			bites = Plays(SoundEffect::DemonAttack, [&] { Run(2.0); });
+		});
+	});
+	EXPECT_EQ(roars, 1u);
+	EXPECT_GE(bites, 1u);
+	EXPECT_EQ(shouts, 0u);
+}
+
 TEST_F(SoundTest, WalkingSoundsFootsteps) {
 	Load(false);
 	const std::uint32_t left =

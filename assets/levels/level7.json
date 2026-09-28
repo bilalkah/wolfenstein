@@ -12,7 +12,7 @@
   },
   "enemies": [
     {
-      "type": "soldier",
+      "type": "shotgun_zombie",
       "position": {
         "x": 20.5,
         "y": 5.5,
@@ -21,13 +21,12 @@
       "patrol_radius": 3.5
     },
     {
-      "type": "soldier",
+      "type": "minigun_zombie",
       "position": {
         "x": 21.5,
         "y": 7.5,
         "theta": -2.21
-      },
-      "patrol_radius": 3.5
+      }
     },
     {
       "type": "caco_demon",
@@ -48,13 +47,12 @@
       "patrol_radius": 3.5
     },
     {
-      "type": "soldier",
+      "type": "minigun_zombie",
       "position": {
         "x": 22.5,
         "y": 26.5,
         "theta": 3.14
-      },
-      "patrol_radius": 3.5
+      }
     },
     {
       "type": "caco_demon",
@@ -66,7 +64,7 @@
       "patrol_radius": 3.5
     },
     {
-      "type": "soldier",
+      "type": "demon",
       "position": {
         "x": 17.5,
         "y": 19.5,
@@ -97,6 +95,15 @@
         "x": 8.5,
         "y": 3.5,
         "theta": 1.25
+      },
+      "patrol_radius": 3.0
+    },
+    {
+      "type": "demon",
+      "position": {
+        "x": 10.5,
+        "y": 7.5,
+        "theta": -2.11
       },
       "patrol_radius": 3.0
     },

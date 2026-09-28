@@ -24,6 +24,7 @@
 #include "GameObjects/effect.h"
 #include "GameObjects/game_object.h"
 #include "GameObjects/pickup.h"
+#include "GameObjects/projectile.h"
 #include "NavigationManager/navigation_manager.h"
 #include <array>
 #include <cstdint>
@@ -169,8 +170,24 @@ class Scene
 		return std::span(wall_marks_).first(wall_mark_count_);
 	}
 
-	// Every level object, in update and draw order, the effects last; an
-	// object's ObjectId is its index here
+	// Projectiles in flight at once, at most: a new one takes the oldest's
+	// place
+	static constexpr std::size_t kProjectiles = 16;
+	// Fires a projectile from `from` along `theta` (the player's rocket or
+	// bolt), doing `damage` to what it strikes. It bursts on the first wall,
+	// closed door or living enemy in its way, straight away if that is at
+	// the muzzle; its blast, if it has one, hurts whoever is in reach and in
+	// sight of the burst, the player too. `config` outlives the level.
+	void Launch(const ProjectileConfig& config, const vector2d& from,
+				double theta, double damage);
+	std::span<const Projectile> GetProjectiles() const { return projectiles_; }
+	// Hurts a living enemy: it feels it, cries out to those near it, and a
+	// killing blow is counted, once. False, and nothing done, for one
+	// already down.
+	bool Wound(Enemy& enemy, double damage);
+
+	// Every level object, in update and draw order, the effects and
+	// projectiles last; an object's ObjectId is its index here
 	std::span<IGameObject* const> GetObjects() const { return objects_; }
 	std::span<Enemy* const> GetEnemies() const { return enemy_list_; }
 	std::span<Pickup* const> GetPickups() const { return pickup_list_; }
@@ -213,6 +230,13 @@ class Scene
 	void UpdateDoors(double delta_time);
 	// Whether a living character stands in or at the door's cell
 	bool IsDoorwayOccupied(const Door& door) const;
+	// Moves each projectile in flight on by its speed
+	void FlyProjectiles(double delta_time);
+	// Moves a projectile `distance` on, a short step at a time so it passes
+	// through no corner or body; false if it burst on the way
+	bool Fly(Projectile& projectile, double distance);
+	// A projectile bursts at `at`, on `struck` if it hit an enemy
+	void Burst(Projectile& projectile, const vector2d& at, Enemy* struck);
 
 	struct DoorMotion
 	{
@@ -263,6 +287,10 @@ class Scene
 	std::array<WallMark, kWallMarks> wall_marks_{};
 	std::size_t wall_mark_count_ = 0;
 	std::size_t next_wall_mark_ = 0;
+	// Kept for the level's life like the effects
+	std::array<Projectile, kProjectiles> projectiles_{};
+	std::size_t next_projectile_ = 0;
+	SoundChannel burst_channel_;
 	NavigationManager navigation_{*this, &arena_};
 	size_t number_of_alive_enemies{};
 };

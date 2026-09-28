@@ -1,7 +1,8 @@
 // The player carries every weapon found, each with its own rounds, and
-// switches between them; a melee weapon (none ships, but the engine takes
-// one: a test blade here) needs no ammunition but reaches only the enemy in
-// front of it
+// switches between them; a melee weapon (the saw; a silent test blade here)
+// needs no ammunition but reaches only the enemy in front of it. Each sounds
+// its own: the double-barrelled shotgun broken open to load, the saw
+// starting up and biting.
 
 #include "Core/scene.h"
 #include "Core/world.h"
@@ -19,7 +20,16 @@ namespace {
 
 constexpr double kTick = 1.0 / 60.0;
 constexpr double kFacingDown = std::numbers::pi / 2;  // towards +y
-constexpr std::size_t kPistol = 0, kMp5 = 1, kShotgun = 2;
+constexpr std::size_t kPistol = 0, kMp5 = 1, kShotgun = 2, kSuperShotgun = 3,
+					  kChainsaw = 4;
+
+// How many more times `effect` is played while `action` runs
+template <typename Action>
+std::uint32_t Plays(SoundEffect effect, Action action) {
+	const std::uint32_t before = testing::TestSound().PlayCount(effect);
+	action();
+	return testing::TestSound().PlayCount(effect) - before;
+}
 
 // A corridor with the player at (1.5, 1.5) facing down it, carrying the
 // game's arsenal
@@ -74,7 +84,7 @@ class ArsenalTest : public ::testing::Test
 };
 
 TEST_F(ArsenalTest, AGameStartsWithThePistol) {
-	EXPECT_EQ(player_.WeaponCount(), 3u);
+	EXPECT_EQ(player_.WeaponCount(), 7u);
 	EXPECT_TRUE(player_.Owns(kPistol));
 	EXPECT_FALSE(player_.Owns(kMp5));
 	EXPECT_FALSE(player_.Owns(kShotgun));
@@ -279,6 +289,89 @@ TEST_F(MeleeTest, ABladeLeavesNoMarkAndNoKick) {
 	scene_.Update(kTick);
 	EXPECT_TRUE(scene_.GetWallMarks().empty());
 	EXPECT_EQ(swordsman_.GetKick(), 0.0);
+}
+
+// Both barrels fired, the double-barrelled shotgun is broken open and
+// loaded again at once, with the sound of it: no reload key needed. With no
+// shells left it stays empty.
+TEST_F(ArsenalTest, TheDoubleBarrelLoadsAgainAfterItsBlast) {
+	scene_.FinishLoading();
+	player_.SetOwnedWeapons(0b11111);
+	Switch({.weapon = kSuperShotgun});
+	WaitForTheWeapon();
+	Weapon& both = player_.GetWeapon(kSuperShotgun);
+	ASSERT_EQ(both.GetAmmo(), 1u);
+	const std::size_t reserve = both.GetReserve();
+	const double cycle = both.GetAttackSpeed() + both.GetReloadSpeed() + 0.1;
+	const std::uint32_t reloads = Plays(SoundEffect::SuperShotgunReload, [&] {
+		Command({.fire = true});
+		EXPECT_EQ(both.GetAmmo(), 0u);
+		for (double t = 0.0; t < cycle; t += kTick) {
+			Command({});
+		}
+	});
+	EXPECT_EQ(reloads, 1u);
+	EXPECT_EQ(both.GetAmmo(), 1u) << "loaded again";
+	EXPECT_EQ(both.GetReserve(), reserve - 1);
+
+	both.SetRounds(1, 0);
+	Command({.fire = true});
+	for (double t = 0.0; t < cycle; t += kTick) {
+		Command({});
+	}
+	EXPECT_EQ(both.GetAmmo(), 0u) << "no shells to load";
+}
+
+// Held down, the trigger keeps a weapon on its firing frames from one
+// stroke to the next: the saw cuts on without jumping back to its rest
+// between strokes, and is back at rest once let go
+TEST_F(ArsenalTest, HeldDownItStaysOnItsFiringFrames) {
+	scene_.FinishLoading();
+	player_.SetOwnedWeapons(0b11111);
+	Switch({.weapon = kChainsaw});
+	WaitForTheWeapon();
+	const Weapon& saw = player_.GetWeapon();
+	const int rest = saw.GetTextureId();
+	EXPECT_EQ(rest, LoopedAnimation::Clip(testing::TestTextures(), "chainsaw",
+										  "loaded")
+						.front());
+	for (int tick = 0; tick < 60; ++tick) {
+		Command({.fire = true});
+		EXPECT_NE(saw.GetTextureId(), rest) << tick;
+	}
+	for (int tick = 0; tick < 30; ++tick) {
+		Command({});
+	}
+	EXPECT_EQ(saw.GetTextureId(), rest);
+}
+
+// The saw starts up as it comes up, cuts the air with one sound and an
+// enemy with another
+TEST_F(ArsenalTest, TheSawSoundsWhatItCuts) {
+	ASSERT_TRUE(scene_.AddEnemy(testing::Enemy("soldier"),
+								Position2D({1.5, 5.5}, -kFacingDown)));
+	scene_.FinishLoading();
+	Enemy& enemy = *scene_.GetEnemies().front();
+	player_.SetOwnedWeapons(0b11111);
+	EXPECT_EQ(Plays(SoundEffect::SawUp,
+					[&] {
+						Switch({.weapon = kChainsaw});
+						WaitForTheWeapon();
+					}),
+			  1u);
+	ASSERT_TRUE(player_.GetWeapon().IsMelee());
+	// The enemy four cells off: the saw cuts air
+	EXPECT_GE(Plays(SoundEffect::Saw, [&] { Command({.fire = true}); }), 1u);
+	// Within reach, it bites
+	enemy.SetPose({1.5, 2.5});
+	const double health = enemy.GetHealth();
+	const std::uint32_t bites = Plays(SoundEffect::SawHit, [&] {
+		for (int tick = 0; tick < 30; ++tick) {
+			Command({.fire = true});
+		}
+	});
+	EXPECT_GE(bites, 1u);
+	EXPECT_LT(enemy.GetHealth(), health);
 }
 
 #ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS

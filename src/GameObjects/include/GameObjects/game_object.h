@@ -24,7 +24,8 @@ enum class ObjectType : std::uint8_t {
 	CHARACTER_PLAYER,
 	CHARACTER_ENEMY,
 	PICKUP,
-	EFFECT	// a puff where a shot lands
+	EFFECT,		// a puff where a shot lands
+	PROJECTILE	// a rocket or a bolt in flight
 };
 
 class IGameObject

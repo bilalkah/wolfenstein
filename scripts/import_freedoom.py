@@ -36,6 +36,9 @@ CONFIG = ASSETS / "levels" / "config.json"
 # World units a sprite pixel spans: the zombie soldier, 52 pixels from its
 # feet to the top of its head, stands 0.66 tall, as the soldier always has
 PIXEL = 0.66 / 52
+# Rockets, bolts and their bursts are sized to the walls they burst on
+# instead: Doom's are 128 pixels high, ours 1 (its figures stand larger here)
+WALL_PIXEL = 1 / 128
 # Doom's pixels are 1.2 times as tall as wide (320 x 200 on a 4:3 screen)
 TALL = 1.2
 
@@ -132,17 +135,34 @@ class Wad:
                 return image
         raise SystemExit(f"texture {name} missing")
 
-    def sound(self, name, path):
-        """A DMX sound lump (8-bit unsigned) as a 16-bit WAV."""
+    def samples(self, name):
+        """A DMX sound lump's samples (8-bit unsigned) and their rate."""
         data = self.lump(name)
         _, rate, count = struct.unpack("<HHI", data[:8])
         # 16 bytes of padding either side of the samples
-        samples = data[8 + 16: 8 + count - 16]
+        return data[8 + 16: 8 + count - 16], rate
+
+    def sound(self, name, path, *later):
+        """A DMX sound lump as a 16-bit WAV; with `later`, (lump, seconds)
+        pairs, those lumps start that many seconds in, over silence (a
+        reload's click and clack, timed to its frames)."""
+        parts = [(self.samples(lump), seconds)
+                 for lump, seconds in ((name, 0.0), *later)]
+        # At the finest of their rates, the others stretched to it
+        rate = max(part_rate for (_, part_rate), _ in parts)
+        mixed = []
+        for (samples, part_rate), seconds in parts:
+            start = round(seconds * rate)
+            length = len(samples) * rate // part_rate
+            mixed += [0] * max(start + length - len(mixed), 0)
+            for i in range(length):
+                s = samples[i * part_rate // rate] - 128
+                mixed[start + i] = max(-128, min(127, mixed[start + i] + s))
         with wave.open(str(path), "wb") as out:
             out.setnchannels(1)
             out.setsampwidth(2)
             out.setframerate(rate)
-            out.writeframes(b"".join(struct.pack("<h", (s - 128) << 8) for s in samples))
+            out.writeframes(b"".join(struct.pack("<h", s << 8) for s in mixed))
 
 
 def place(canvas, image, x, y):
@@ -215,6 +235,31 @@ def enemy(wad, name, prefix, clips, pixel, hover=0):
     return manifest, (round(width * pixel, 3), round(height * pixel, 3))
 
 
+def projectile(wad, name, flight, burst):
+    """A projectile's clips, each a sprite's prefix and letters:
+    "<name>_flight", seen from 8 sides where its frames turn (a rocket), and
+    "<name>_burst". Doom draws a missile about where it is, so each frame
+    goes on its canvas with that point at the middle. Returns the manifest's
+    clips and the sizes in the world, in flight and bursting."""
+    manifest, sizes = {}, []
+    for clip, (prefix, letters) in (("flight", flight), ("burst", burst)):
+        views = range(1, 9) if all(wad.rotates(prefix, l) for l in letters) else [0]
+        frames = [(view, i, wad.sprite(prefix, letter, view))
+                  for view in views for i, letter in enumerate(letters)]
+        half_w = max(max(left, image.width - left) for *_, (image, (left, _)) in frames)
+        half_h = max(max(top, image.height - top) for *_, (image, (_, top)) in frames)
+        for view, i, (image, (left, top)) in frames:
+            canvas = Image.new("RGBA", (2 * half_w, 2 * half_h), (0, 0, 0, 0))
+            place(canvas, image, half_w - left, half_h - top)
+            key = f"{name}_{clip}" + (f"@{view}" if view > 1 else "")
+            manifest.setdefault(key, []).append(save(
+                canvas, ASSETS / "sprites" / "projectile" / name / "import" /
+                f"{clip}_{view}_{i}.png"))
+        sizes.append((round(2 * half_w * WALL_PIXEL, 3),
+                      round(2 * half_h * WALL_PIXEL, 3)))
+    return manifest, sizes
+
+
 def still(wad, prefix, letters, path_for):
     """A thing seen the same from every side (a torch, a pickup): its frames
     on one canvas, and its size in the world."""
@@ -235,11 +280,12 @@ def on_screen(parts, lowered=0):
     return screen
 
 
-def weapon(wad, name, ready, firing, reload_frames=14):
+def weapon(wad, name, ready, firing, reload_frames=14, reloading=None):
     """A weapon's clips: `ready` the picture held, `firing` the frames of a
     shot, each a list of picture names (a gun and its flash). Reloading
-    lowers the gun out of sight and raises it again; switching guns lowers
-    and raises it (Doom's guns have no reloading of their own)."""
+    plays `reloading`, frames named the same way, for a gun drawn loading
+    (the double-barrelled shotgun); else it lowers the gun out of sight and
+    raises it again. Switching guns lowers and raises it."""
     def picture(names):
         return on_screen([wad.picture(n) for n in names])
 
@@ -247,7 +293,8 @@ def weapon(wad, name, ready, firing, reload_frames=14):
     shots = [picture(names) for names in firing]
     slide = [on_screen([held], lowered) for lowered in (0, 16, 32, 52, 76, 96)]
     down = reload_frames // 2 - 2
-    reload = ([on_screen([held], 60 * i // down) for i in range(down)] +
+    reload = ([picture(names) for names in reloading] if reloading else
+              [on_screen([held], 60 * i // down) for i in range(down)] +
               [on_screen([held], 60)] * 4 +
               [on_screen([held], 60 - 60 * i // down) for i in range(down)])
     clips = {"loaded": [on_screen([held])] + shots, "outofammo": [on_screen([held])],
@@ -311,7 +358,9 @@ def main():
     config = json.loads(CONFIG.read_text())
     clips = manifest["clips"]
     for key in [k for k in clips if k.split("_")[0] in ("soldier", "caco", "cyber", "pistol",
-                                                         "mp5", "shotgun", "green", "red")]:
+                                                         "mp5", "shotgun", "minigun", "demon",
+                                                         "green", "red", "super",
+                                                         "chainsaw", "rocket", "plasma")]:
         del clips[key]
 
     # Enemies: the zombie soldier, and stand-ins for the caco and cyber demons
@@ -334,6 +383,18 @@ def main():
     clips.update(cyber)
     enemies["cyber_demon"].update(width=size[0], height=size[1], radius=0.25)
 
+    # The tougher zombies and the demon, as the soldier is scaled
+    for name, prefix, frames, radius in (
+            ("shotgun_zombie", "SPOS", {"idle": "A", "walk": "ABCD", "attack": "EFE",
+                                        "pain": "G", "death": "HIJKL"}, 0.17),
+            ("minigun_zombie", "CPOS", {"idle": "A", "walk": "ABCD", "attack": "EF",
+                                        "pain": "G", "death": "HIJKLMN"}, 0.22),
+            ("demon", "SARG", {"idle": "A", "walk": "ABCD", "attack": "EFG",
+                               "pain": "H", "death": "IJKLMN"}, 0.25)):
+        made, size = enemy(wad, name, prefix, frames, PIXEL)
+        clips.update(made)
+        enemies[name].update(width=size[0], height=size[1], radius=radius)
+
     # Weapons in hand: the pistol, the minigun (the MP5's place) and shotgun
     clips.update(weapon(wad, "pistol", "PISGA0",
                         [["PISGB0", "PISFA0"], ["PISGC0"], ["PISGB0"]], 12))
@@ -342,6 +403,28 @@ def main():
     clips.update(weapon(wad, "shotgun", "SHTGA0",
                         [["SHTGA0", "SHTFA0"], ["SHTGA0", "SHTFB0"], ["SHTGB0"],
                          ["SHTGC0"], ["SHTGD0"], ["SHTGC0"], ["SHTGB0"]], 20))
+    # Found later: the double-barrelled shotgun, broken open and loaded as
+    # it reloads, and the saw
+    clips.update(weapon(wad, "super_shotgun", "SHT2A0",
+                        [["SHT2A0", "SHT2I0"], ["SHT2A0", "SHT2J0"], ["SHT2A0"]],
+                        reloading=[[f"SHT2{c}0"] for c in "BCDEFGH"]))
+    clips.update(weapon(wad, "chainsaw", "SAWGA0",
+                        [["SAWGC0"], ["SAWGD0"], ["SAWGC0"], ["SAWGD0"]]))
+    # And the two whose shots fly: the rocket launcher and the plasma rifle,
+    # with their rockets and bolts, and the bursts of them
+    clips.update(weapon(wad, "rocket_launcher", "MISGA0",
+                        [["MISGB0", "MISFA0"], ["MISGB0", "MISFB0"], ["MISGB0", "MISFC0"],
+                         ["MISGB0", "MISFD0"], ["MISGB0"]]))
+    clips.update(weapon(wad, "plasma_rifle", "PLSGA0",
+                        [["PLSGA0", "PLSFA0"], ["PLSGA0", "PLSFB0"]]))
+    for name, flight, burst in (("rocket", ("MISL", "A"), ("MISL", "BCD")),
+                                ("plasma", ("PLSS", "AB"), ("PLSE", "ABCDE"))):
+        made, sizes = projectile(wad, name, flight, burst)
+        clips.update(made)
+        for w in config["weapons"]:
+            if w.get("projectile", {}).get("name") == name:
+                w["projectile"].update(width=sizes[0][0], height=sizes[0][1],
+                                       burst_width=sizes[1][0], burst_height=sizes[1][1])
     for w in config["weapons"]:
         if w["name"] == "mp5":
             w["label"] = "MINIGUN"
@@ -370,7 +453,11 @@ def main():
             ("gold_key", "YKEY", None, ["gold_key"]),
             ("silver_key", "BKEY", silver, ["silver_key"]),
             ("mp5_pickup", "MGUN", None, ["mp5"]),
-            ("shotgun_pickup", "SHOT", None, ["shotgun"])):
+            ("shotgun_pickup", "SHOT", None, ["shotgun"]),
+            ("super_shotgun_pickup", "SGN2", None, ["super_shotgun"]),
+            ("chainsaw_pickup", "CSAW", None, ["chainsaw"]),
+            ("rocket_launcher_pickup", "LAUN", None, ["rocket_launcher"]),
+            ("plasma_rifle_pickup", "PLAS", None, ["plasma_rifle"])):
         [path], size = still(wad, prefix, "A", lambda i, t=texture:
                              ASSETS / "sprites" / "pickups" / f"{t}.png")
         if recolour:
@@ -411,9 +498,21 @@ def main():
                         ("DSPODTH1", ["npc_death"]), ("DSPLPAIN", ["player_pain"]),
                         ("DSPOSIT1", ["enemy_alert"]), ("DSDOROPN", ["door"]),
                         ("DSITEMUP", ["pickup", "ammo_pickup", "key_pickup"]),
-                        ("DSWPNUP", ["weapon_pickup"])):
+                        ("DSWPNUP", ["weapon_pickup"]),
+                        ("DSSGTATK", ["demon_attack"]), ("DSSGTSIT", ["demon_alert"]),
+                        ("DSDMPAIN", ["demon_pain"]), ("DSSGTDTH", ["demon_death"]),
+                        ("DSCACSIT", ["caco_alert"]), ("DSCACDTH", ["caco_death"]),
+                        ("DSCYBSIT", ["cyber_alert"]), ("DSCYBDTH", ["cyber_death"]),
+                        ("DSPOSIT2", ["zombie_alert"]), ("DSPODTH2", ["zombie_death"]),
+                        ("DSDSHTGN", ["super_shotgun"]), ("DSSAWUP", ["saw_up"]),
+                        ("DSSAWFUL", ["saw"]), ("DSSAWHIT", ["saw_hit"]),
+                        ("DSRLAUNC", ["rocket_launch"]), ("DSBAREXP", ["rocket_burst"]),
+                        ("DSPLASMA", ["plasma"]), ("DSFIRXPL", ["plasma_burst"])):
         for file in files:
             wad.sound(lump, sounds / f"{file}.wav")
+    # Broken open, the shells in, snapped shut: as its reload's frames show
+    wad.sound("DSDBOPN", sounds / "super_shotgun_reload.wav",
+              ("DSDBLOAD", 0.45), ("DSDBCLS", 1.0))
 
     # Music, as MIDI: rendering it to audio takes a synthesizer and a
     # soundfont (scripts/render_music.sh)

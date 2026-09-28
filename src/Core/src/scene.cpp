@@ -1,4 +1,5 @@
 #include "Core/scene.h"
+#include "Camera/single_raycaster.h"
 #include "Profiler/profiler.h"
 #include "TextureManager/texture_manager.h"
 #include <algorithm>
@@ -19,7 +20,8 @@ std::size_t LevelArenaBytes(const Map& map, SceneCapacity capacity) {
 	const std::size_t enemies = capacity.enemies;
 	const std::size_t pickups = capacity.pickups;
 	const std::size_t objects = capacity.enemies + capacity.dynamic_objects +
-								capacity.pickups + Scene::kEffects;
+								capacity.pickups + Scene::kEffects +
+								Scene::kProjectiles;
 	return enemies * (sizeof(Enemy) + alignof(Enemy) + kBookkeeping) +
 		   capacity.dynamic_objects *
 			   (sizeof(DynamicObject) + alignof(DynamicObject) + kBookkeeping) +
@@ -60,10 +62,11 @@ Scene::Scene(const TextureManager& textures, SoundManager& sound,
 					  &arena_),
 	  noise_queue_(std::size_t{map.GetSizeX()} * map.GetSizeY(), 0, &arena_),
 	  doors_(map.GetDoors().size(), DoorMotion{}, &arena_),
-	  door_channel_(sound.AllocateChannel()) {
+	  door_channel_(sound.AllocateChannel()),
+	  burst_channel_(sound.AllocateChannel()) {
 	map_.ReservePushWalls(capacity.secrets);
 	objects_.reserve(capacity.enemies + capacity.dynamic_objects +
-					 capacity.pickups + kEffects);
+					 capacity.pickups + kEffects + kProjectiles);
 	const int size_x = map_.GetSizeX();
 	const int size_y = map_.GetSizeY();
 	for (int x = 0; x < size_x; ++x) {
@@ -125,6 +128,10 @@ void Scene::FinishLoading() {
 	for (Effect& effect : effects_) {
 		effect.SetId(ObjectId{static_cast<std::uint32_t>(objects_.size())});
 		objects_.push_back(&effect);
+	}
+	for (Projectile& projectile : projectiles_) {
+		projectile.SetId(ObjectId{static_cast<std::uint32_t>(objects_.size())});
+		objects_.push_back(&projectile);
 	}
 	navigation_.Build();
 }
@@ -194,6 +201,124 @@ void Scene::ShowImpact(Impact impact, const vector2d& pose, double height,
 	next_effect_ = (next_effect_ + 1) % kEffects;
 }
 
+bool Scene::Wound(Enemy& enemy, double damage) {
+	if (!enemy.IsAlive() || enemy.GetHealth() <= 0.0) {
+		return false;
+	}
+	enemy.DecreaseHealth(damage);
+	enemy.SetAttacked(true);
+	// Hit, it cries out, killed or not: the others near it hear, however
+	// far away the shot came from, and a shot from afar takes no one
+	// unawares twice
+	MakeNoise(enemy.GetPose(), enemy.GetStateConfig().cry_range);
+	if (enemy.GetHealth() <= 0.0) {
+		DecreaseAliveEnemies();
+	}
+	return true;
+}
+
+void Scene::Launch(const ProjectileConfig& config, const vector2d& from,
+				   double theta, double damage) {
+	constexpr double kFlightCycleSeconds = 0.2;
+	Projectile& projectile = projectiles_[next_projectile_];
+	next_projectile_ = (next_projectile_ + 1) % kProjectiles;
+	projectile.Launch(
+		config,
+		LoopedAnimation(textures_, config.name, "flight", kFlightCycleSeconds),
+		from, theta, damage);
+	// Out of the muzzle, a little ahead of the one firing: fired into a
+	// wall (or an enemy) at arm's length, it bursts there
+	constexpr double kMuzzle = 0.3;
+	if (Fly(projectile, kMuzzle)) {
+		projectile.StartTick();
+	}
+}
+
+void Scene::FlyProjectiles(double delta_time) {
+	for (Projectile& projectile : projectiles_) {
+		if (projectile.IsFlying()) {
+			projectile.StartTick();
+			Fly(projectile, projectile.GetConfig().speed * delta_time);
+		}
+	}
+}
+
+bool Scene::Fly(Projectile& projectile, double distance) {
+	// Shorter than any body is wide
+	constexpr double kStep = 0.05;
+	const vector2d direction = projectile.GetDirection();
+	const double radius = projectile.GetConfig().radius;
+	for (double flown = 0.0; flown < distance; flown += kStep) {
+		const vector2d from = projectile.GetPose();
+		const vector2d to =
+			from + direction * std::min(kStep, distance - flown);
+		// Its nose at a wall or a closed door: it bursts short of it, on
+		// the near side
+		if (map_.IsBlocked(to + direction * radius)) {
+			Burst(projectile, from, nullptr);
+			return false;
+		}
+		for (Enemy* enemy : enemy_list_) {
+			if (enemy->IsAlive() && enemy->GetHealth() > 0.0 &&
+				enemy->GetPose().Distance(to) < enemy->GetRadius() + radius) {
+				Burst(projectile, to, enemy);
+				return false;
+			}
+		}
+		projectile.MoveTo(to);
+	}
+	return true;
+}
+
+void Scene::Burst(Projectile& projectile, const vector2d& at, Enemy* struck) {
+	const ProjectileConfig& config = projectile.GetConfig();
+	projectile.Stop();
+	bool hurt = struck != nullptr && Wound(*struck, projectile.GetDamage());
+	// Its blast, falling off from the burst to its edge, on whoever's body
+	// it reaches with nothing in between
+	if (config.splash_radius > 0.0) {
+		const auto blast = [&](const vector2d& pose,
+							   double radius) -> std::optional<double> {
+			const double reach = std::max(pose.Distance(at) - radius, 0.0) /
+								 config.splash_radius;
+			if (reach >= 1.0 || !CastLineOfSight(map_, at, pose).is_hit) {
+				return std::nullopt;
+			}
+			return config.splash_damage.first +
+				   (config.splash_damage.second - config.splash_damage.first) *
+					   reach;
+		};
+		for (Enemy* enemy : enemy_list_) {
+			if (const auto damage =
+					blast(enemy->GetPose(), enemy->GetRadius())) {
+				hurt = Wound(*enemy, *damage) || hurt;
+			}
+		}
+		// Caught in their own blast, the player takes half: enough to
+		// teach care, not to end a game at a wall
+		constexpr double kOwnBlast = 0.5;
+		if (player_->IsAlive()) {
+			if (const auto damage =
+					blast(player_->GetPose(), player_->GetWidth() / 2)) {
+				player_->DecreaseHealth(kOwnBlast * *damage);
+			}
+		}
+	}
+	if (hurt) {
+		player_->NoteHit();
+	}
+	constexpr double kBurstFrameSeconds = 0.1;
+	effects_[next_effect_].Start(
+		at, LoopedAnimation::Clip(textures_, config.name, "burst"),
+		kBurstFrameSeconds, config.burst_width, config.burst_height,
+		std::max(Projectile::kFlightHeight - config.burst_height / 2, 0.0));
+	next_effect_ = (next_effect_ + 1) % kEffects;
+	if (config.burst_sound) {
+		sound_.PlayEffect(burst_channel_, *config.burst_sound);
+	}
+	MakeNoise(at, config.noise_range);
+}
+
 void Scene::AddWallMark(const WallMark& mark) {
 	wall_marks_[next_wall_mark_] = mark;
 	next_wall_mark_ = (next_wall_mark_ + 1) % kWallMarks;
@@ -222,6 +347,7 @@ void Scene::Update(double delta_time) {
 
 	ScopedTimer timer(ProfileSection::UpdatePlayer);
 	player_->Update(delta_time);
+	FlyProjectiles(delta_time);
 	CollectPickups();
 	notice_time_ += delta_time;
 	HandleUse();

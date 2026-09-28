@@ -21,7 +21,7 @@
       "patrol_radius": 2.1
     },
     {
-      "type": "soldier",
+      "type": "shotgun_zombie",
       "position": {
         "x": 17.5,
         "y": 7.5,
@@ -93,7 +93,7 @@
       "patrol_radius": 5.0
     },
     {
-      "type": "soldier",
+      "type": "shotgun_zombie",
       "position": {
         "x": 23.5,
         "y": 13.5,
@@ -249,6 +249,13 @@
       "type": "medkit",
       "position": {
         "x": 6.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "chainsaw",
+      "position": {
+        "x": 7.5,
         "y": 1.5
       }
     },

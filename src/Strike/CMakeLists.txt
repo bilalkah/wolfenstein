@@ -13,6 +13,7 @@ target_link_libraries(
     texture_manager
     weapon_state
     sound_manager
+    game_object
 )
 
 add_library(

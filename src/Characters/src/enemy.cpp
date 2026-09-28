@@ -311,18 +311,11 @@ int Enemy::GetTextureId() const {
 }
 
 double Enemy::TurnedFrom(const vector2d& viewer) const {
-	const vector2d to = viewer - position_.pose;
-	return std::remainder(std::atan2(to.y, to.x) - position_.theta,
-						  2.0 * std::numbers::pi);
+	return wolfenstein::TurnedFrom(position_.pose, position_.theta, viewer);
 }
 
 std::size_t Enemy::ViewFrom(const vector2d& viewer) const {
-	// Straight at the viewer is its front; facing the viewer's right (a
-	// quarter turn one way) shows its left side, view 6 (Doom's rotation 7)
-	const double turned = TurnedFrom(viewer);
-	const auto eighths =
-		static_cast<long>(std::lround(-turned / (std::numbers::pi / 4)));
-	return static_cast<std::size_t>(((eighths % 8) + 8) % 8);
+	return SideSeen(position_.pose, position_.theta, viewer);
 }
 
 IGameObject::Appearance Enemy::SeenFrom(const vector2d& viewer) const {

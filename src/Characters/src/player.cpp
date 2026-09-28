@@ -358,11 +358,17 @@ void Player::ShootOrReload() {
 	if (command_.fire && weapon.Attack()) {
 		kick_ = std::max(kick_, weapon.GetKick());
 		scene_->MakeNoise(position_.pose, weapon.GetNoiseRange());
+		// A rocket or a bolt flies, and bursts on what it meets later
+		if (const ProjectileConfig* projectile = weapon.GetProjectile()) {
+			scene_->Launch(*projectile, position_.pose, position_.theta,
+						   weapon.GetAttackDamage().first);
+			return;
+		}
 		const ShotResult result =
 			ResolvePlayerShot(*scene_, weapon, position_, pitch_);
 		if (result.hit) {
-			since_hit_ = 0.0;
-			headshot_ = result.head;
+			NoteHit(result.head);
+			weapon.PlaySound(weapon.GetHitSound());
 		}
 	}
 }

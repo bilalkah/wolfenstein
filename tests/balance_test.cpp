@@ -1,6 +1,6 @@
 // Keeps the numbers in config.json fair: how many hits each weapon takes to
 // bring a soldier down, how many a soldier takes to bring the player down,
-// and that every level carries the ammunition its enemies need, at every
+// how long the deadliest enemy takes, and that every level carries the ammunition its enemies need, at every
 // difficulty
 
 #include "Core/level_data.h"
@@ -59,6 +59,20 @@ TEST(Balance, WeaponsFoundKillFasterThanThePistol) {
 	const double pistol = seconds_to_kill(testing::Weapon("pistol"), kRoom);
 	EXPECT_LT(seconds_to_kill(testing::Weapon("mp5"), kRoom), pistol);
 	EXPECT_LT(seconds_to_kill(testing::Weapon("shotgun"), 1), pistol);
+	EXPECT_LT(seconds_to_kill(testing::Weapon("super_shotgun"), 1), pistol);
+	// The saw, within its reach
+	EXPECT_LT(seconds_to_kill(testing::Weapon("chainsaw"), 1), pistol);
+	// A rocket or a bolt by its direct hit alone
+	EXPECT_LT(seconds_to_kill(testing::Weapon("rocket_launcher"), kRoom),
+			  pistol);
+	EXPECT_LT(seconds_to_kill(testing::Weapon("plasma_rifle"), kRoom), pistol);
+}
+
+// Both barrels at once drop even a demon point blank
+TEST(Balance, TheDoubleBarrelDropsADemonPointBlank) {
+	EXPECT_EQ(HitsToKill(testing::GameData().enemies.at("demon").health,
+						 Damage(testing::Weapon("super_shotgun"), 1)),
+			  1);
 }
 
 // A level shot (from the eye, half a wall up) meets a soldier below its
@@ -79,6 +93,22 @@ TEST(Balance, ThePlayerTakesSeveralHits) {
 			difficulty.enemy_damage *
 			LinearSlope(soldier.attack_damage, soldier.attack_range, kRoom);
 		EXPECT_GE(HitsToKill(100.0, hit), 8) << difficulty.name;
+	}
+}
+
+// No one enemy, however deadly up close, kills a healthy player standing
+// next to it in less than a few seconds, even on the hardest difficulty:
+// time to fight back or run. Between shots it waits its rate, and each shot
+// takes its attack's length
+TEST(Balance, NoEnemyKillsInAnInstant) {
+	const double hardest = std::ranges::max(testing::GameData().difficulties,
+											{}, &DifficultyConfig::enemy_damage)
+							   .enemy_damage;
+	for (const auto& [type, enemy] : testing::GameData().enemies) {
+		const auto& weapon = enemy.weapon;
+		const double per_second = hardest * weapon.attack_damage.first /
+								  (weapon.attack_rate + weapon.attack_speed);
+		EXPECT_GE(100.0 / per_second, 5.0) << type;
 	}
 }
 

@@ -14,6 +14,7 @@ target_link_libraries(
     navigation_manager
     collision_manager
     character
+    single_raycaster
     profiler
     memory
 )

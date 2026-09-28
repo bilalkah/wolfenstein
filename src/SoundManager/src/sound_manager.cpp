@@ -43,7 +43,27 @@ std::expected<std::unique_ptr<SoundManager>, std::string> SoundManager::Open(
 		  std::tuple{SoundEffect::StepRight, "step_right.wav", 64},
 		  std::tuple{SoundEffect::AmmoPickup, "ammo_pickup.wav", 64},
 		  std::tuple{SoundEffect::KeyPickup, "key_pickup.wav", 64},
-		  std::tuple{SoundEffect::WeaponPickup, "weapon_pickup.wav", 64}}) {
+		  std::tuple{SoundEffect::WeaponPickup, "weapon_pickup.wav", 64},
+		  std::tuple{SoundEffect::DemonAttack, "demon_attack.wav", 64},
+		  std::tuple{SoundEffect::DemonAlert, "demon_alert.wav", 64},
+		  std::tuple{SoundEffect::DemonPain, "demon_pain.wav", 48},
+		  std::tuple{SoundEffect::DemonDeath, "demon_death.wav", 64},
+		  std::tuple{SoundEffect::CacoAlert, "caco_alert.wav", 64},
+		  std::tuple{SoundEffect::CacoDeath, "caco_death.wav", 64},
+		  std::tuple{SoundEffect::CyberAlert, "cyber_alert.wav", 80},
+		  std::tuple{SoundEffect::CyberDeath, "cyber_death.wav", 80},
+		  std::tuple{SoundEffect::ZombieAlert, "zombie_alert.wav", 64},
+		  std::tuple{SoundEffect::ZombieDeath, "zombie_death.wav", 64},
+		  std::tuple{SoundEffect::SuperShotgun, "super_shotgun.wav", 64},
+		  std::tuple{SoundEffect::SuperShotgunReload,
+					 "super_shotgun_reload.wav", 56},
+		  std::tuple{SoundEffect::SawUp, "saw_up.wav", 56},
+		  std::tuple{SoundEffect::Saw, "saw.wav", 56},
+		  std::tuple{SoundEffect::SawHit, "saw_hit.wav", 64},
+		  std::tuple{SoundEffect::RocketLaunch, "rocket_launch.wav", 64},
+		  std::tuple{SoundEffect::RocketBurst, "rocket_burst.wav", 80},
+		  std::tuple{SoundEffect::Plasma, "plasma.wav", 56},
+		  std::tuple{SoundEffect::PlasmaBurst, "plasma_burst.wav", 48}}) {
 		if (auto loaded = sound->LoadSound(effect, sound_dir + file, volume);
 			!loaded) {
 			return std::unexpected(loaded.error());

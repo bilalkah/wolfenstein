@@ -387,7 +387,7 @@ MenuAction Menu::ControlsScreen() {
 		{"Turn", "Mouse, or Left / Right arrows"},
 		{"Fire", "Left click, or Left Ctrl"},
 		{"Reload", "R"},
-		{"Weapons", "1 - 3, or the mouse wheel"},
+		{"Weapons", "Number keys, or the mouse wheel"},
 		{"Open door", "E, or Space"},
 		{"Map", "M"},
 		{"Pause", "Esc"},

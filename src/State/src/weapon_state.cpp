@@ -20,14 +20,21 @@ int WeaponState::GetCurrentFrame() const {
 // ########################################### LoadedState ###########################################
 
 void LoadedState::Update(const double& delta_time) {
+	// Held down from shot to shot, the trigger keeps the firing frames going
+	// (a saw cutting on): the gun is shown held again only once it is let go
+	firing_ = trigger_pulled_ || trigger_held_;
+	trigger_held_ = false;
 	if (trigger_pulled_) {
 		animation_.Update(delta_time);
 		trigger_pull_time_ += delta_time;
 		if (trigger_pull_time_ >= fire_rate_) {
 			trigger_pulled_ = false;
-			animation_.Reset();
 			if (context_->GetAmmo() == 0 && !context_->IsMelee()) {
-				context_->TransitionTo(WeaponStateType::OutOfAmmo);
+				// Broken open at once to load again, or left empty
+				context_->TransitionTo(context_->ReloadsAfterShot() &&
+											   context_->GetReserve() > 0
+										   ? WeaponStateType::Reloading
+										   : WeaponStateType::OutOfAmmo);
 				return;
 			}
 		}
@@ -37,7 +44,14 @@ void LoadedState::Update(const double& delta_time) {
 void LoadedState::OnEnter() {
 	WeaponState::OnEnter();
 	trigger_pulled_ = false;
+	trigger_held_ = false;
+	firing_ = false;
 	trigger_pull_time_ = 0.0;
+}
+
+int LoadedState::GetCurrentFrame() const {
+	return firing_ || trigger_pulled_ ? animation_.GetCurrentFrame()
+									  : held_frame_;
 }
 
 WeaponStateType LoadedState::GetType() const {
@@ -46,18 +60,25 @@ WeaponStateType LoadedState::GetType() const {
 
 void LoadedState::OnContextSet() {
 	fire_rate_ = context_->GetAttackSpeed();
+	// The clip's first frame is the gun held; a shot plays the rest (the
+	// flash, the kick), from its first, over the time a shot takes
+	const auto frames = LoopedAnimation::Clip(
+		context_->GetTextures(), context_->GetWeaponName(), "loaded");
+	held_frame_ = frames.front();
+	const auto shot = frames.size() > 1 ? frames.subspan(1) : frames;
 	animation_ =
-		LoopedAnimation(context_->GetTextures(), context_->GetWeaponName(),
-						"loaded", fire_rate_);
+		LoopedAnimation(shot, fire_rate_ / static_cast<double>(shot.size()));
 }
 
 bool LoadedState::PullTrigger() {
+	trigger_held_ = true;
 	if (trigger_pulled_) {
 		return false;
 	}
 	context_->PlaySound(context_->GetShotSound());
 	trigger_pulled_ = true;
 	trigger_pull_time_ = 0;
+	animation_.Reset();
 	context_->DecreaseAmmo();
 	return true;
 }
@@ -117,6 +138,7 @@ void ReloadingState::Update(const double& delta_time) {
 void ReloadingState::OnEnter() {
 	WeaponState::OnEnter();
 	reload_time_ = 0.0;
+	context_->PlaySound(context_->GetReloadSound());
 }
 
 WeaponStateType ReloadingState::GetType() const {
@@ -145,6 +167,7 @@ void RaisingState::Update(const double& delta_time) {
 void RaisingState::OnEnter() {
 	WeaponState::OnEnter();
 	time_ = 0.0;
+	context_->PlaySound(context_->GetRaiseSound());
 }
 
 WeaponStateType RaisingState::GetType() const {

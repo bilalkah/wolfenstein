@@ -12,11 +12,13 @@
 #ifndef STRIKE_INCLUDE_STRIKE_WEAPON_H
 #define STRIKE_INCLUDE_STRIKE_WEAPON_H
 
+#include "GameObjects/projectile.h"
 #include "SoundManager/sound_manager.h"
 #include "State/weapon_state.h"
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 namespace wolfenstein {
 
@@ -54,10 +56,22 @@ struct WeaponConfig
 	// away for another
 	double raise_seconds = 0.4;
 	double lower_seconds = 0.25;
-	// What a shot sounds like, and how far (in cells, round walls) enemies
-	// hear it; 0 is silent
-	SoundEffect shot_sound = SoundEffect::Shotgun;
+	// What a shot sounds like (none: a silent blade), and how far (in
+	// cells, round walls) enemies hear it; 0 is silent
+	std::optional<SoundEffect> shot_sound{};
 	int noise_range = 0;
+	// What a stroke that bites an enemy sounds like, in place of the shot's
+	// (a saw cutting)
+	std::optional<SoundEffect> hit_sound{};
+	// As it is taken in hand (a saw starting up), and as a reload starts
+	std::optional<SoundEffect> raise_sound{};
+	std::optional<SoundEffect> reload_sound{};
+	// Reloads by itself as its last round goes (a double-barrelled shotgun,
+	// broken open after both barrels are fired), if rounds are left
+	bool reload_after_shot = false;
+	// What it fires, if its shots fly (a rocket, a plasma bolt) rather than
+	// strike at once; a direct hit does the damage above at point blank
+	std::optional<ProjectileConfig> projectile{};
 };
 
 // Pinned (not copyable or movable): its states point back to it
@@ -83,7 +97,21 @@ class Weapon
 				   WeaponStateType::Lowering &&
 			   lowering_state_.IsDown();
 	}
-	SoundEffect GetShotSound() const { return config_.shot_sound; }
+	std::optional<SoundEffect> GetShotSound() const {
+		return config_.shot_sound;
+	}
+	std::optional<SoundEffect> GetHitSound() const { return config_.hit_sound; }
+	std::optional<SoundEffect> GetRaiseSound() const {
+		return config_.raise_sound;
+	}
+	std::optional<SoundEffect> GetReloadSound() const {
+		return config_.reload_sound;
+	}
+	bool ReloadsAfterShot() const { return config_.reload_after_shot; }
+	// What its shots are, if they fly; null if they strike at once
+	const ProjectileConfig* GetProjectile() const {
+		return config_.projectile ? &*config_.projectile : nullptr;
+	}
 	int GetNoiseRange() const { return config_.noise_range; }
 	// Pulls the trigger; true if a shot was fired (the caller resolves it)
 	bool Attack();
@@ -110,10 +138,11 @@ class Weapon
 	double GetReloadSpeed() const;
 	const std::string& GetWeaponName() const;
 	DamageFalloff GetFalloff() const { return config_.falloff; }
-	// Plays on the weapon's own channel; a melee weapon is silent
-	void PlaySound(SoundEffect effect) {
-		if (!IsMelee()) {
-			sound_.PlayEffect(sound_channel_, effect);
+	// Plays on the weapon's own channel, cutting off what it played last;
+	// none plays nothing
+	void PlaySound(std::optional<SoundEffect> effect) {
+		if (effect) {
+			sound_.PlayEffect(sound_channel_, *effect);
 		}
 	}
 	int GetTextureId() const;

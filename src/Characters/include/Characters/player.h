@@ -126,6 +126,11 @@ class Player : public ICharacter, public IGameObject
 	// shows (1 as it hits, fading to 0), and whether it was a headshot
 	double GetHitMarker() const;
 	bool IsHeadshotMarker() const { return headshot_; }
+	// A shot of theirs hit (a projectile, bursting later than it was fired)
+	void NoteHit(bool head = false) {
+		since_hit_ = 0.0;
+		headshot_ = head;
+	}
 	// How far through its fall a dead player is: 0 as it dies, 1 on the
 	// floor (after kFallSeconds, sooner at first, as things fall)
 	double GetDeathFall() const;

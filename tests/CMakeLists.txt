@@ -44,6 +44,7 @@ add_executable(unit_tests
     navigation_test.cpp
     enemy_view_test.cpp
     patrol_test.cpp
+    projectile_test.cpp
     saved_game_test.cpp
     settings_test.cpp
     texture_manifest_test.cpp

@@ -23,7 +23,7 @@ void IdleState::Update(const double& delta_time) {
 
 	// It sees the player near, or heard them
 	if (context_->NoticesPlayer()) {
-		context_->PlaySound(SoundEffect::EnemyAlert);
+		context_->PlaySound(context_->GetSounds().alert);
 		context_->TransitionTo(EnemyStateType::Walk);
 		return;
 	}
@@ -70,7 +70,7 @@ EnemyStateType IdleState::GetType() const {
 
 void PatrolState::Update(const double& delta_time) {
 	if (context_->NoticesPlayer()) {
-		context_->PlaySound(SoundEffect::EnemyAlert);
+		context_->PlaySound(context_->GetSounds().alert);
 		context_->TransitionTo(EnemyStateType::Walk);
 		return;
 	}
@@ -236,7 +236,7 @@ void AttackState::OnEnter() {
 	attack_counter_ = 0.0;
 	// It turns to the player to shoot
 	context_->FacePlayer();
-	context_->PlaySound(SoundEffect::NpcAttack);
+	context_->PlaySound(context_->GetSounds().attack);
 }
 
 EnemyStateType AttackState::GetType() const {
@@ -269,7 +269,7 @@ void PainState::OnContextSet() {
 void PainState::OnEnter() {
 	EnemyState::OnEnter();
 	counter = 0.0;
-	context_->PlaySound(SoundEffect::NpcPain);
+	context_->PlaySound(context_->GetSounds().pain);
 }
 
 EnemyStateType PainState::GetType() const {
@@ -300,7 +300,7 @@ void DeathState::OnEnter() {
 	counter = 0.0;
 	// It falls facing the player who killed it, who sees the fall as drawn
 	context_->FacePlayer();
-	context_->PlaySound(SoundEffect::NpcDeath);
+	context_->PlaySound(context_->GetSounds().death);
 }
 
 EnemyStateType DeathState::GetType() const {

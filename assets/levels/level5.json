@@ -30,7 +30,7 @@
       "patrol_radius": 2.1
     },
     {
-      "type": "soldier",
+      "type": "shotgun_zombie",
       "position": {
         "x": 21.5,
         "y": 15.5,
@@ -57,7 +57,7 @@
       "patrol_radius": 4.5
     },
     {
-      "type": "soldier",
+      "type": "demon",
       "position": {
         "x": 25.5,
         "y": 27.5,
@@ -102,13 +102,12 @@
       "patrol_radius": 3.5
     },
     {
-      "type": "soldier",
+      "type": "minigun_zombie",
       "position": {
         "x": 11.5,
         "y": 25.5,
         "theta": -2.03
-      },
-      "patrol_radius": 3.5
+      }
     },
     {
       "type": "caco_demon",
@@ -299,6 +298,13 @@
       "type": "ammo_box",
       "position": {
         "x": 18.5,
+        "y": 5.5
+      }
+    },
+    {
+      "type": "plasma_rifle",
+      "position": {
+        "x": 22.5,
         "y": 5.5
       }
     },

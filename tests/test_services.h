@@ -22,18 +22,27 @@ inline void DefineTestTextures(TextureManager& textures) {
 								  next + kFramesPerClip);
 		next += kFramesPerClip;
 	};
-	for (const char* enemy : {"soldier", "caco_demon", "cyber_demon"}) {
+	for (const char* enemy : {"soldier", "caco_demon", "cyber_demon",
+							  "shotgun_zombie", "minigun_zombie", "demon"}) {
 		for (const char* clip : {"idle", "walk", "attack", "pain", "death"}) {
 			define(enemy, clip);
 		}
 	}
-	for (const char* weapon : {"blade", "pistol", "mp5", "shotgun"}) {
+	for (const char* weapon :
+		 {"blade", "pistol", "mp5", "shotgun", "super_shotgun", "chainsaw",
+		  "rocket_launcher", "plasma_rifle"}) {
 		for (const char* clip : {"loaded", "outofammo", "reload"}) {
 			define(weapon, clip);
 		}
 	}
 	// A raise clip for the shotgun (a weapon may have one)
 	define("shotgun", "raise");
+	// Rockets and bolts in flight, and bursting
+	for (const char* projectile : {"rocket", "plasma"}) {
+		for (const char* clip : {"flight", "burst"}) {
+			define(projectile, clip);
+		}
+	}
 	// The levels' animated lights, and the puffs where shots land
 	for (const char* light :
 		 {"green_light", "red_light", "blood_puff", "dust_puff"}) {
@@ -41,8 +50,10 @@ inline void DefineTestTextures(TextureManager& textures) {
 		next += kFramesPerClip;
 	}
 	// The pickups' sprites
-	for (const char* pickup : {"medkit", "large_medkit", "ammo_box", "clip",
-							   "mp5_pickup", "shotgun_pickup"}) {
+	for (const char* pickup :
+		 {"medkit", "large_medkit", "ammo_box", "clip", "mp5_pickup",
+		  "shotgun_pickup", "super_shotgun_pickup", "chainsaw_pickup",
+		  "rocket_launcher_pickup", "plasma_rifle_pickup"}) {
 		textures.DefineTexture(pickup, next++);
 	}
 	for (const char* name : {"door", "door_gold", "door_silver", "gold_key",
@@ -61,7 +72,7 @@ inline const TextureManager& TestTextures() {
 	return textures;
 }
 
-// A melee weapon: none ships, but the engine takes one
+// A silent melee weapon, made for the tests
 inline const WeaponConfig& Blade() {
 	static const WeaponConfig blade{.weapon_name = "blade",
 									.label = "BLADE",

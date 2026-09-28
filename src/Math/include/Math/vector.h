@@ -12,6 +12,8 @@
 #ifndef MATH_INCLUDE_MATH_VECTOR_H_
 #define MATH_INCLUDE_MATH_VECTOR_H_
 
+#include <cstddef>
+
 #include <iostream>
 
 namespace wolfenstein {
@@ -113,6 +115,14 @@ double CalculateAngleBetweenThreeVectorsSigned(const vector2d& v1,
 
 // CalculateartesianFromPolar calculates the x and y values from polar coordinates
 vector2d CalculateCartesianFromPolar(const double angle, const double distance);
+
+// How far round from straight ahead of something at `at`, facing `facing`,
+// a viewer at `viewer` stands: -pi to pi
+double TurnedFrom(const vector2d& at, double facing, const vector2d& viewer);
+// Which of its 8 sides that viewer sees: 0 its front, round to 7 (Doom's
+// rotations 1 to 8). Facing the viewer's right (a quarter turn one way)
+// shows its left side, 6 (Doom's rotation 7).
+std::size_t SideSeen(const vector2d& at, double facing, const vector2d& viewer);
 
 }  // namespace wolfenstein
 

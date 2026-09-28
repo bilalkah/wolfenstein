@@ -2,6 +2,7 @@
   "textures": {
     "ammo_box": "sprites/pickups/ammo_box.png",
     "bullet_mark": "textures/bullet_mark.png",
+    "chainsaw_pickup": "sprites/pickups/chainsaw_pickup.png",
     "clip": "sprites/pickups/clip.png",
     "crosshair": "textures/crosshair.png",
     "damage_taken": "textures/damage_taken.png",
@@ -14,11 +15,14 @@
     "medkit": "sprites/pickups/medkit.png",
     "menu_background": "textures/menu_background.png",
     "mp5_pickup": "sprites/pickups/mp5_pickup.png",
+    "plasma_rifle_pickup": "sprites/pickups/plasma_rifle_pickup.png",
+    "rocket_launcher_pickup": "sprites/pickups/rocket_launcher_pickup.png",
     "secret_mark": "textures/secret_mark.png",
     "shotgun_pickup": "sprites/pickups/shotgun_pickup.png",
     "silver_key": "sprites/pickups/silver_key.png",
     "sky": "textures/sky.png",
     "solid_black": "textures/solid_black.png",
+    "super_shotgun_pickup": "sprites/pickups/super_shotgun_pickup.png",
     "win": "textures/win.png"
   },
   "walls": [
@@ -481,6 +485,430 @@
       "sprites/npc/cyber_demon/frames/63.png",
       "sprites/npc/cyber_demon/frames/64.png"
     ],
+    "shotgun_zombie_idle": [
+      "sprites/npc/shotgun_zombie/frames/0.png"
+    ],
+    "shotgun_zombie_idle@2": [
+      "sprites/npc/shotgun_zombie/frames/1.png"
+    ],
+    "shotgun_zombie_idle@3": [
+      "sprites/npc/shotgun_zombie/frames/2.png"
+    ],
+    "shotgun_zombie_idle@4": [
+      "sprites/npc/shotgun_zombie/frames/3.png"
+    ],
+    "shotgun_zombie_idle@5": [
+      "sprites/npc/shotgun_zombie/frames/4.png"
+    ],
+    "shotgun_zombie_idle@6": [
+      "sprites/npc/shotgun_zombie/frames/5.png"
+    ],
+    "shotgun_zombie_idle@7": [
+      "sprites/npc/shotgun_zombie/frames/6.png"
+    ],
+    "shotgun_zombie_idle@8": [
+      "sprites/npc/shotgun_zombie/frames/7.png"
+    ],
+    "shotgun_zombie_walk": [
+      "sprites/npc/shotgun_zombie/frames/0.png",
+      "sprites/npc/shotgun_zombie/frames/8.png",
+      "sprites/npc/shotgun_zombie/frames/9.png",
+      "sprites/npc/shotgun_zombie/frames/10.png"
+    ],
+    "shotgun_zombie_walk@2": [
+      "sprites/npc/shotgun_zombie/frames/1.png",
+      "sprites/npc/shotgun_zombie/frames/11.png",
+      "sprites/npc/shotgun_zombie/frames/12.png",
+      "sprites/npc/shotgun_zombie/frames/13.png"
+    ],
+    "shotgun_zombie_walk@3": [
+      "sprites/npc/shotgun_zombie/frames/2.png",
+      "sprites/npc/shotgun_zombie/frames/14.png",
+      "sprites/npc/shotgun_zombie/frames/15.png",
+      "sprites/npc/shotgun_zombie/frames/16.png"
+    ],
+    "shotgun_zombie_walk@4": [
+      "sprites/npc/shotgun_zombie/frames/3.png",
+      "sprites/npc/shotgun_zombie/frames/17.png",
+      "sprites/npc/shotgun_zombie/frames/18.png",
+      "sprites/npc/shotgun_zombie/frames/19.png"
+    ],
+    "shotgun_zombie_walk@5": [
+      "sprites/npc/shotgun_zombie/frames/4.png",
+      "sprites/npc/shotgun_zombie/frames/20.png",
+      "sprites/npc/shotgun_zombie/frames/21.png",
+      "sprites/npc/shotgun_zombie/frames/22.png"
+    ],
+    "shotgun_zombie_walk@6": [
+      "sprites/npc/shotgun_zombie/frames/5.png",
+      "sprites/npc/shotgun_zombie/frames/23.png",
+      "sprites/npc/shotgun_zombie/frames/24.png",
+      "sprites/npc/shotgun_zombie/frames/25.png"
+    ],
+    "shotgun_zombie_walk@7": [
+      "sprites/npc/shotgun_zombie/frames/6.png",
+      "sprites/npc/shotgun_zombie/frames/26.png",
+      "sprites/npc/shotgun_zombie/frames/27.png",
+      "sprites/npc/shotgun_zombie/frames/28.png"
+    ],
+    "shotgun_zombie_walk@8": [
+      "sprites/npc/shotgun_zombie/frames/7.png",
+      "sprites/npc/shotgun_zombie/frames/29.png",
+      "sprites/npc/shotgun_zombie/frames/30.png",
+      "sprites/npc/shotgun_zombie/frames/31.png"
+    ],
+    "shotgun_zombie_attack": [
+      "sprites/npc/shotgun_zombie/frames/32.png",
+      "sprites/npc/shotgun_zombie/frames/33.png",
+      "sprites/npc/shotgun_zombie/frames/32.png"
+    ],
+    "shotgun_zombie_attack@2": [
+      "sprites/npc/shotgun_zombie/frames/34.png",
+      "sprites/npc/shotgun_zombie/frames/35.png",
+      "sprites/npc/shotgun_zombie/frames/34.png"
+    ],
+    "shotgun_zombie_attack@3": [
+      "sprites/npc/shotgun_zombie/frames/36.png",
+      "sprites/npc/shotgun_zombie/frames/37.png",
+      "sprites/npc/shotgun_zombie/frames/36.png"
+    ],
+    "shotgun_zombie_attack@4": [
+      "sprites/npc/shotgun_zombie/frames/38.png",
+      "sprites/npc/shotgun_zombie/frames/39.png",
+      "sprites/npc/shotgun_zombie/frames/38.png"
+    ],
+    "shotgun_zombie_attack@5": [
+      "sprites/npc/shotgun_zombie/frames/40.png",
+      "sprites/npc/shotgun_zombie/frames/41.png",
+      "sprites/npc/shotgun_zombie/frames/40.png"
+    ],
+    "shotgun_zombie_attack@6": [
+      "sprites/npc/shotgun_zombie/frames/42.png",
+      "sprites/npc/shotgun_zombie/frames/43.png",
+      "sprites/npc/shotgun_zombie/frames/42.png"
+    ],
+    "shotgun_zombie_attack@7": [
+      "sprites/npc/shotgun_zombie/frames/44.png",
+      "sprites/npc/shotgun_zombie/frames/45.png",
+      "sprites/npc/shotgun_zombie/frames/44.png"
+    ],
+    "shotgun_zombie_attack@8": [
+      "sprites/npc/shotgun_zombie/frames/46.png",
+      "sprites/npc/shotgun_zombie/frames/47.png",
+      "sprites/npc/shotgun_zombie/frames/46.png"
+    ],
+    "shotgun_zombie_pain": [
+      "sprites/npc/shotgun_zombie/frames/48.png"
+    ],
+    "shotgun_zombie_pain@2": [
+      "sprites/npc/shotgun_zombie/frames/49.png"
+    ],
+    "shotgun_zombie_pain@3": [
+      "sprites/npc/shotgun_zombie/frames/50.png"
+    ],
+    "shotgun_zombie_pain@4": [
+      "sprites/npc/shotgun_zombie/frames/51.png"
+    ],
+    "shotgun_zombie_pain@5": [
+      "sprites/npc/shotgun_zombie/frames/52.png"
+    ],
+    "shotgun_zombie_pain@6": [
+      "sprites/npc/shotgun_zombie/frames/53.png"
+    ],
+    "shotgun_zombie_pain@7": [
+      "sprites/npc/shotgun_zombie/frames/54.png"
+    ],
+    "shotgun_zombie_pain@8": [
+      "sprites/npc/shotgun_zombie/frames/55.png"
+    ],
+    "shotgun_zombie_death": [
+      "sprites/npc/shotgun_zombie/frames/56.png",
+      "sprites/npc/shotgun_zombie/frames/57.png",
+      "sprites/npc/shotgun_zombie/frames/58.png",
+      "sprites/npc/shotgun_zombie/frames/59.png",
+      "sprites/npc/shotgun_zombie/frames/60.png"
+    ],
+    "minigun_zombie_idle": [
+      "sprites/npc/minigun_zombie/frames/0.png"
+    ],
+    "minigun_zombie_idle@2": [
+      "sprites/npc/minigun_zombie/frames/1.png"
+    ],
+    "minigun_zombie_idle@3": [
+      "sprites/npc/minigun_zombie/frames/2.png"
+    ],
+    "minigun_zombie_idle@4": [
+      "sprites/npc/minigun_zombie/frames/3.png"
+    ],
+    "minigun_zombie_idle@5": [
+      "sprites/npc/minigun_zombie/frames/4.png"
+    ],
+    "minigun_zombie_idle@6": [
+      "sprites/npc/minigun_zombie/frames/5.png"
+    ],
+    "minigun_zombie_idle@7": [
+      "sprites/npc/minigun_zombie/frames/6.png"
+    ],
+    "minigun_zombie_idle@8": [
+      "sprites/npc/minigun_zombie/frames/7.png"
+    ],
+    "minigun_zombie_walk": [
+      "sprites/npc/minigun_zombie/frames/0.png",
+      "sprites/npc/minigun_zombie/frames/8.png",
+      "sprites/npc/minigun_zombie/frames/9.png",
+      "sprites/npc/minigun_zombie/frames/10.png"
+    ],
+    "minigun_zombie_walk@2": [
+      "sprites/npc/minigun_zombie/frames/1.png",
+      "sprites/npc/minigun_zombie/frames/11.png",
+      "sprites/npc/minigun_zombie/frames/12.png",
+      "sprites/npc/minigun_zombie/frames/13.png"
+    ],
+    "minigun_zombie_walk@3": [
+      "sprites/npc/minigun_zombie/frames/2.png",
+      "sprites/npc/minigun_zombie/frames/14.png",
+      "sprites/npc/minigun_zombie/frames/15.png",
+      "sprites/npc/minigun_zombie/frames/16.png"
+    ],
+    "minigun_zombie_walk@4": [
+      "sprites/npc/minigun_zombie/frames/3.png",
+      "sprites/npc/minigun_zombie/frames/17.png",
+      "sprites/npc/minigun_zombie/frames/18.png",
+      "sprites/npc/minigun_zombie/frames/19.png"
+    ],
+    "minigun_zombie_walk@5": [
+      "sprites/npc/minigun_zombie/frames/4.png",
+      "sprites/npc/minigun_zombie/frames/20.png",
+      "sprites/npc/minigun_zombie/frames/21.png",
+      "sprites/npc/minigun_zombie/frames/22.png"
+    ],
+    "minigun_zombie_walk@6": [
+      "sprites/npc/minigun_zombie/frames/5.png",
+      "sprites/npc/minigun_zombie/frames/23.png",
+      "sprites/npc/minigun_zombie/frames/24.png",
+      "sprites/npc/minigun_zombie/frames/25.png"
+    ],
+    "minigun_zombie_walk@7": [
+      "sprites/npc/minigun_zombie/frames/6.png",
+      "sprites/npc/minigun_zombie/frames/26.png",
+      "sprites/npc/minigun_zombie/frames/27.png",
+      "sprites/npc/minigun_zombie/frames/28.png"
+    ],
+    "minigun_zombie_walk@8": [
+      "sprites/npc/minigun_zombie/frames/7.png",
+      "sprites/npc/minigun_zombie/frames/29.png",
+      "sprites/npc/minigun_zombie/frames/30.png",
+      "sprites/npc/minigun_zombie/frames/31.png"
+    ],
+    "minigun_zombie_attack": [
+      "sprites/npc/minigun_zombie/frames/32.png",
+      "sprites/npc/minigun_zombie/frames/33.png"
+    ],
+    "minigun_zombie_attack@2": [
+      "sprites/npc/minigun_zombie/frames/34.png",
+      "sprites/npc/minigun_zombie/frames/35.png"
+    ],
+    "minigun_zombie_attack@3": [
+      "sprites/npc/minigun_zombie/frames/36.png",
+      "sprites/npc/minigun_zombie/frames/37.png"
+    ],
+    "minigun_zombie_attack@4": [
+      "sprites/npc/minigun_zombie/frames/38.png",
+      "sprites/npc/minigun_zombie/frames/39.png"
+    ],
+    "minigun_zombie_attack@5": [
+      "sprites/npc/minigun_zombie/frames/40.png",
+      "sprites/npc/minigun_zombie/frames/41.png"
+    ],
+    "minigun_zombie_attack@6": [
+      "sprites/npc/minigun_zombie/frames/42.png",
+      "sprites/npc/minigun_zombie/frames/43.png"
+    ],
+    "minigun_zombie_attack@7": [
+      "sprites/npc/minigun_zombie/frames/44.png",
+      "sprites/npc/minigun_zombie/frames/45.png"
+    ],
+    "minigun_zombie_attack@8": [
+      "sprites/npc/minigun_zombie/frames/46.png",
+      "sprites/npc/minigun_zombie/frames/47.png"
+    ],
+    "minigun_zombie_pain": [
+      "sprites/npc/minigun_zombie/frames/48.png"
+    ],
+    "minigun_zombie_pain@2": [
+      "sprites/npc/minigun_zombie/frames/49.png"
+    ],
+    "minigun_zombie_pain@3": [
+      "sprites/npc/minigun_zombie/frames/50.png"
+    ],
+    "minigun_zombie_pain@4": [
+      "sprites/npc/minigun_zombie/frames/51.png"
+    ],
+    "minigun_zombie_pain@5": [
+      "sprites/npc/minigun_zombie/frames/52.png"
+    ],
+    "minigun_zombie_pain@6": [
+      "sprites/npc/minigun_zombie/frames/53.png"
+    ],
+    "minigun_zombie_pain@7": [
+      "sprites/npc/minigun_zombie/frames/54.png"
+    ],
+    "minigun_zombie_pain@8": [
+      "sprites/npc/minigun_zombie/frames/55.png"
+    ],
+    "minigun_zombie_death": [
+      "sprites/npc/minigun_zombie/frames/56.png",
+      "sprites/npc/minigun_zombie/frames/57.png",
+      "sprites/npc/minigun_zombie/frames/58.png",
+      "sprites/npc/minigun_zombie/frames/59.png",
+      "sprites/npc/minigun_zombie/frames/60.png",
+      "sprites/npc/minigun_zombie/frames/61.png",
+      "sprites/npc/minigun_zombie/frames/62.png"
+    ],
+    "demon_idle": [
+      "sprites/npc/demon/frames/0.png"
+    ],
+    "demon_idle@2": [
+      "sprites/npc/demon/frames/1.png"
+    ],
+    "demon_idle@3": [
+      "sprites/npc/demon/frames/2.png"
+    ],
+    "demon_idle@4": [
+      "sprites/npc/demon/frames/3.png"
+    ],
+    "demon_idle@5": [
+      "sprites/npc/demon/frames/4.png"
+    ],
+    "demon_idle@6": [
+      "sprites/npc/demon/frames/5.png"
+    ],
+    "demon_idle@7": [
+      "sprites/npc/demon/frames/6.png"
+    ],
+    "demon_idle@8": [
+      "sprites/npc/demon/frames/7.png"
+    ],
+    "demon_walk": [
+      "sprites/npc/demon/frames/0.png",
+      "sprites/npc/demon/frames/8.png",
+      "sprites/npc/demon/frames/9.png",
+      "sprites/npc/demon/frames/10.png"
+    ],
+    "demon_walk@2": [
+      "sprites/npc/demon/frames/1.png",
+      "sprites/npc/demon/frames/11.png",
+      "sprites/npc/demon/frames/12.png",
+      "sprites/npc/demon/frames/13.png"
+    ],
+    "demon_walk@3": [
+      "sprites/npc/demon/frames/2.png",
+      "sprites/npc/demon/frames/14.png",
+      "sprites/npc/demon/frames/15.png",
+      "sprites/npc/demon/frames/16.png"
+    ],
+    "demon_walk@4": [
+      "sprites/npc/demon/frames/3.png",
+      "sprites/npc/demon/frames/17.png",
+      "sprites/npc/demon/frames/18.png",
+      "sprites/npc/demon/frames/19.png"
+    ],
+    "demon_walk@5": [
+      "sprites/npc/demon/frames/4.png",
+      "sprites/npc/demon/frames/20.png",
+      "sprites/npc/demon/frames/21.png",
+      "sprites/npc/demon/frames/22.png"
+    ],
+    "demon_walk@6": [
+      "sprites/npc/demon/frames/5.png",
+      "sprites/npc/demon/frames/23.png",
+      "sprites/npc/demon/frames/24.png",
+      "sprites/npc/demon/frames/25.png"
+    ],
+    "demon_walk@7": [
+      "sprites/npc/demon/frames/6.png",
+      "sprites/npc/demon/frames/26.png",
+      "sprites/npc/demon/frames/27.png",
+      "sprites/npc/demon/frames/28.png"
+    ],
+    "demon_walk@8": [
+      "sprites/npc/demon/frames/7.png",
+      "sprites/npc/demon/frames/29.png",
+      "sprites/npc/demon/frames/30.png",
+      "sprites/npc/demon/frames/31.png"
+    ],
+    "demon_attack": [
+      "sprites/npc/demon/frames/32.png",
+      "sprites/npc/demon/frames/33.png",
+      "sprites/npc/demon/frames/34.png"
+    ],
+    "demon_attack@2": [
+      "sprites/npc/demon/frames/35.png",
+      "sprites/npc/demon/frames/36.png",
+      "sprites/npc/demon/frames/37.png"
+    ],
+    "demon_attack@3": [
+      "sprites/npc/demon/frames/38.png",
+      "sprites/npc/demon/frames/39.png",
+      "sprites/npc/demon/frames/40.png"
+    ],
+    "demon_attack@4": [
+      "sprites/npc/demon/frames/41.png",
+      "sprites/npc/demon/frames/42.png",
+      "sprites/npc/demon/frames/43.png"
+    ],
+    "demon_attack@5": [
+      "sprites/npc/demon/frames/44.png",
+      "sprites/npc/demon/frames/45.png",
+      "sprites/npc/demon/frames/46.png"
+    ],
+    "demon_attack@6": [
+      "sprites/npc/demon/frames/47.png",
+      "sprites/npc/demon/frames/48.png",
+      "sprites/npc/demon/frames/49.png"
+    ],
+    "demon_attack@7": [
+      "sprites/npc/demon/frames/50.png",
+      "sprites/npc/demon/frames/51.png",
+      "sprites/npc/demon/frames/52.png"
+    ],
+    "demon_attack@8": [
+      "sprites/npc/demon/frames/53.png",
+      "sprites/npc/demon/frames/54.png",
+      "sprites/npc/demon/frames/55.png"
+    ],
+    "demon_pain": [
+      "sprites/npc/demon/frames/56.png"
+    ],
+    "demon_pain@2": [
+      "sprites/npc/demon/frames/57.png"
+    ],
+    "demon_pain@3": [
+      "sprites/npc/demon/frames/58.png"
+    ],
+    "demon_pain@4": [
+      "sprites/npc/demon/frames/59.png"
+    ],
+    "demon_pain@5": [
+      "sprites/npc/demon/frames/60.png"
+    ],
+    "demon_pain@6": [
+      "sprites/npc/demon/frames/61.png"
+    ],
+    "demon_pain@7": [
+      "sprites/npc/demon/frames/62.png"
+    ],
+    "demon_pain@8": [
+      "sprites/npc/demon/frames/63.png"
+    ],
+    "demon_death": [
+      "sprites/npc/demon/frames/64.png",
+      "sprites/npc/demon/frames/65.png",
+      "sprites/npc/demon/frames/66.png",
+      "sprites/npc/demon/frames/67.png",
+      "sprites/npc/demon/frames/68.png",
+      "sprites/npc/demon/frames/69.png"
+    ],
     "pistol_loaded": [
       "sprites/weapon/pistol/frames/0.png",
       "sprites/weapon/pistol/frames/1.png",
@@ -613,6 +1041,205 @@
       "sprites/weapon/shotgun/frames/12.png",
       "sprites/weapon/shotgun/frames/18.png",
       "sprites/weapon/shotgun/frames/18.png"
+    ],
+    "super_shotgun_loaded": [
+      "sprites/weapon/super_shotgun/frames/0.png",
+      "sprites/weapon/super_shotgun/frames/1.png",
+      "sprites/weapon/super_shotgun/frames/2.png",
+      "sprites/weapon/super_shotgun/frames/0.png"
+    ],
+    "super_shotgun_outofammo": [
+      "sprites/weapon/super_shotgun/frames/0.png"
+    ],
+    "super_shotgun_reload": [
+      "sprites/weapon/super_shotgun/frames/3.png",
+      "sprites/weapon/super_shotgun/frames/4.png",
+      "sprites/weapon/super_shotgun/frames/5.png",
+      "sprites/weapon/super_shotgun/frames/6.png",
+      "sprites/weapon/super_shotgun/frames/7.png",
+      "sprites/weapon/super_shotgun/frames/8.png",
+      "sprites/weapon/super_shotgun/frames/9.png"
+    ],
+    "super_shotgun_raise": [
+      "sprites/weapon/super_shotgun/frames/10.png",
+      "sprites/weapon/super_shotgun/frames/10.png",
+      "sprites/weapon/super_shotgun/frames/10.png",
+      "sprites/weapon/super_shotgun/frames/11.png",
+      "sprites/weapon/super_shotgun/frames/12.png",
+      "sprites/weapon/super_shotgun/frames/0.png"
+    ],
+    "super_shotgun_lower": [
+      "sprites/weapon/super_shotgun/frames/0.png",
+      "sprites/weapon/super_shotgun/frames/12.png",
+      "sprites/weapon/super_shotgun/frames/11.png",
+      "sprites/weapon/super_shotgun/frames/10.png",
+      "sprites/weapon/super_shotgun/frames/10.png",
+      "sprites/weapon/super_shotgun/frames/10.png"
+    ],
+    "chainsaw_loaded": [
+      "sprites/weapon/chainsaw/frames/0.png",
+      "sprites/weapon/chainsaw/frames/1.png",
+      "sprites/weapon/chainsaw/frames/2.png",
+      "sprites/weapon/chainsaw/frames/1.png",
+      "sprites/weapon/chainsaw/frames/2.png"
+    ],
+    "chainsaw_outofammo": [
+      "sprites/weapon/chainsaw/frames/0.png"
+    ],
+    "chainsaw_reload": [
+      "sprites/weapon/chainsaw/frames/0.png",
+      "sprites/weapon/chainsaw/frames/3.png",
+      "sprites/weapon/chainsaw/frames/4.png",
+      "sprites/weapon/chainsaw/frames/5.png",
+      "sprites/weapon/chainsaw/frames/6.png",
+      "sprites/weapon/chainsaw/frames/7.png",
+      "sprites/weapon/chainsaw/frames/7.png",
+      "sprites/weapon/chainsaw/frames/7.png",
+      "sprites/weapon/chainsaw/frames/7.png",
+      "sprites/weapon/chainsaw/frames/7.png",
+      "sprites/weapon/chainsaw/frames/6.png",
+      "sprites/weapon/chainsaw/frames/5.png",
+      "sprites/weapon/chainsaw/frames/4.png",
+      "sprites/weapon/chainsaw/frames/3.png"
+    ],
+    "chainsaw_raise": [
+      "sprites/weapon/chainsaw/frames/8.png",
+      "sprites/weapon/chainsaw/frames/9.png",
+      "sprites/weapon/chainsaw/frames/10.png",
+      "sprites/weapon/chainsaw/frames/11.png",
+      "sprites/weapon/chainsaw/frames/12.png",
+      "sprites/weapon/chainsaw/frames/0.png"
+    ],
+    "chainsaw_lower": [
+      "sprites/weapon/chainsaw/frames/0.png",
+      "sprites/weapon/chainsaw/frames/12.png",
+      "sprites/weapon/chainsaw/frames/11.png",
+      "sprites/weapon/chainsaw/frames/10.png",
+      "sprites/weapon/chainsaw/frames/9.png",
+      "sprites/weapon/chainsaw/frames/8.png"
+    ],
+    "rocket_launcher_loaded": [
+      "sprites/weapon/rocket_launcher/frames/0.png",
+      "sprites/weapon/rocket_launcher/frames/1.png",
+      "sprites/weapon/rocket_launcher/frames/2.png",
+      "sprites/weapon/rocket_launcher/frames/3.png",
+      "sprites/weapon/rocket_launcher/frames/4.png",
+      "sprites/weapon/rocket_launcher/frames/5.png"
+    ],
+    "rocket_launcher_outofammo": [
+      "sprites/weapon/rocket_launcher/frames/0.png"
+    ],
+    "rocket_launcher_reload": [
+      "sprites/weapon/rocket_launcher/frames/0.png",
+      "sprites/weapon/rocket_launcher/frames/6.png",
+      "sprites/weapon/rocket_launcher/frames/7.png",
+      "sprites/weapon/rocket_launcher/frames/8.png",
+      "sprites/weapon/rocket_launcher/frames/9.png",
+      "sprites/weapon/rocket_launcher/frames/10.png",
+      "sprites/weapon/rocket_launcher/frames/10.png",
+      "sprites/weapon/rocket_launcher/frames/10.png",
+      "sprites/weapon/rocket_launcher/frames/10.png",
+      "sprites/weapon/rocket_launcher/frames/10.png",
+      "sprites/weapon/rocket_launcher/frames/9.png",
+      "sprites/weapon/rocket_launcher/frames/8.png",
+      "sprites/weapon/rocket_launcher/frames/7.png",
+      "sprites/weapon/rocket_launcher/frames/6.png"
+    ],
+    "rocket_launcher_raise": [
+      "sprites/weapon/rocket_launcher/frames/11.png",
+      "sprites/weapon/rocket_launcher/frames/11.png",
+      "sprites/weapon/rocket_launcher/frames/12.png",
+      "sprites/weapon/rocket_launcher/frames/13.png",
+      "sprites/weapon/rocket_launcher/frames/14.png",
+      "sprites/weapon/rocket_launcher/frames/0.png"
+    ],
+    "rocket_launcher_lower": [
+      "sprites/weapon/rocket_launcher/frames/0.png",
+      "sprites/weapon/rocket_launcher/frames/14.png",
+      "sprites/weapon/rocket_launcher/frames/13.png",
+      "sprites/weapon/rocket_launcher/frames/12.png",
+      "sprites/weapon/rocket_launcher/frames/11.png",
+      "sprites/weapon/rocket_launcher/frames/11.png"
+    ],
+    "plasma_rifle_loaded": [
+      "sprites/weapon/plasma_rifle/frames/0.png",
+      "sprites/weapon/plasma_rifle/frames/1.png",
+      "sprites/weapon/plasma_rifle/frames/2.png"
+    ],
+    "plasma_rifle_outofammo": [
+      "sprites/weapon/plasma_rifle/frames/0.png"
+    ],
+    "plasma_rifle_reload": [
+      "sprites/weapon/plasma_rifle/frames/0.png",
+      "sprites/weapon/plasma_rifle/frames/3.png",
+      "sprites/weapon/plasma_rifle/frames/4.png",
+      "sprites/weapon/plasma_rifle/frames/5.png",
+      "sprites/weapon/plasma_rifle/frames/6.png",
+      "sprites/weapon/plasma_rifle/frames/7.png",
+      "sprites/weapon/plasma_rifle/frames/7.png",
+      "sprites/weapon/plasma_rifle/frames/7.png",
+      "sprites/weapon/plasma_rifle/frames/7.png",
+      "sprites/weapon/plasma_rifle/frames/7.png",
+      "sprites/weapon/plasma_rifle/frames/6.png",
+      "sprites/weapon/plasma_rifle/frames/5.png",
+      "sprites/weapon/plasma_rifle/frames/4.png",
+      "sprites/weapon/plasma_rifle/frames/3.png"
+    ],
+    "plasma_rifle_raise": [
+      "sprites/weapon/plasma_rifle/frames/8.png",
+      "sprites/weapon/plasma_rifle/frames/8.png",
+      "sprites/weapon/plasma_rifle/frames/9.png",
+      "sprites/weapon/plasma_rifle/frames/10.png",
+      "sprites/weapon/plasma_rifle/frames/11.png",
+      "sprites/weapon/plasma_rifle/frames/0.png"
+    ],
+    "plasma_rifle_lower": [
+      "sprites/weapon/plasma_rifle/frames/0.png",
+      "sprites/weapon/plasma_rifle/frames/11.png",
+      "sprites/weapon/plasma_rifle/frames/10.png",
+      "sprites/weapon/plasma_rifle/frames/9.png",
+      "sprites/weapon/plasma_rifle/frames/8.png",
+      "sprites/weapon/plasma_rifle/frames/8.png"
+    ],
+    "rocket_flight": [
+      "sprites/projectile/rocket/frames/0.png"
+    ],
+    "rocket_flight@2": [
+      "sprites/projectile/rocket/frames/1.png"
+    ],
+    "rocket_flight@3": [
+      "sprites/projectile/rocket/frames/2.png"
+    ],
+    "rocket_flight@4": [
+      "sprites/projectile/rocket/frames/3.png"
+    ],
+    "rocket_flight@5": [
+      "sprites/projectile/rocket/frames/4.png"
+    ],
+    "rocket_flight@6": [
+      "sprites/projectile/rocket/frames/5.png"
+    ],
+    "rocket_flight@7": [
+      "sprites/projectile/rocket/frames/6.png"
+    ],
+    "rocket_flight@8": [
+      "sprites/projectile/rocket/frames/7.png"
+    ],
+    "rocket_burst": [
+      "sprites/projectile/rocket/frames/8.png",
+      "sprites/projectile/rocket/frames/9.png",
+      "sprites/projectile/rocket/frames/10.png"
+    ],
+    "plasma_flight": [
+      "sprites/projectile/plasma/frames/0.png",
+      "sprites/projectile/plasma/frames/1.png"
+    ],
+    "plasma_burst": [
+      "sprites/projectile/plasma/frames/2.png",
+      "sprites/projectile/plasma/frames/3.png",
+      "sprites/projectile/plasma/frames/4.png",
+      "sprites/projectile/plasma/frames/5.png",
+      "sprites/projectile/plasma/frames/6.png"
     ],
     "green_light": [
       "sprites/animated_sprites/green_light/frames/0.png",

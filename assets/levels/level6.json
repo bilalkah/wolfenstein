@@ -30,7 +30,7 @@
       "patrol_radius": 3.0
     },
     {
-      "type": "soldier",
+      "type": "shotgun_zombie",
       "position": {
         "x": 15.5,
         "y": 18.5,
@@ -57,7 +57,7 @@
       "patrol_radius": 4.0
     },
     {
-      "type": "soldier",
+      "type": "demon",
       "position": {
         "x": 21.5,
         "y": 2.5,
@@ -75,7 +75,7 @@
       "patrol_radius": 4.0
     },
     {
-      "type": "soldier",
+      "type": "shotgun_zombie",
       "position": {
         "x": 18.5,
         "y": 29.5,
@@ -93,13 +93,12 @@
       "patrol_radius": 3.5
     },
     {
-      "type": "soldier",
+      "type": "minigun_zombie",
       "position": {
         "x": 26.5,
         "y": 7.5,
         "theta": -1.33
-      },
-      "patrol_radius": 3.5
+      }
     },
     {
       "type": "caco_demon",
@@ -146,7 +145,7 @@
       "patrol_radius": 5.0
     },
     {
-      "type": "soldier",
+      "type": "demon",
       "position": {
         "x": 6.5,
         "y": 16.5,

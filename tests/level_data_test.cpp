@@ -37,18 +37,56 @@ TEST(LevelData, ParsesTheGameConfig) {
 	EXPECT_EQ(config->menu_music, "menu");
 	EXPECT_DOUBLE_EQ(soldier.behaviour.follow_range, 5.0);
 
-	// The arsenal, in slot order: a pistol to start with
-	ASSERT_EQ(config->weapons.size(), 3u);
+	// The arsenal, in slot order: a pistol to start with, the rest found
+	ASSERT_EQ(config->weapons.size(), 7u);
 	EXPECT_EQ(config->weapons[0].weapon_name, "pistol");
 	EXPECT_TRUE(config->weapons[0].start);
-	EXPECT_FALSE(config->weapons[1].start);
-	EXPECT_FALSE(config->weapons[2].start);
+	for (std::size_t i = 1; i < config->weapons.size(); ++i) {
+		EXPECT_FALSE(config->weapons[i].start) << i;
+	}
+	// A double-barrelled shotgun: both barrels at once, broken open to load
+	// again straight after, with the sound of it
+	const WeaponConfig* both = config->FindWeapon("super_shotgun");
+	ASSERT_NE(both, nullptr);
+	EXPECT_EQ(both->ammo_capacity, 1u);
+	EXPECT_TRUE(both->reload_after_shot);
+	EXPECT_EQ(both->reload_sound, SoundEffect::SuperShotgunReload);
+	// A saw: melee, that starts up as it comes up and cuts with its own
+	// sound
+	const WeaponConfig* saw = config->FindWeapon("chainsaw");
+	ASSERT_NE(saw, nullptr);
+	EXPECT_EQ(saw->ammo_capacity, 0u);
+	EXPECT_EQ(saw->raise_sound, SoundEffect::SawUp);
+	EXPECT_EQ(saw->shot_sound, SoundEffect::Saw);
+	EXPECT_EQ(saw->hit_sound, SoundEffect::SawHit);
+	EXPECT_FALSE(config->weapons[0].hit_sound) << "a gun sounds its shot";
+	// A rocket launcher: its rockets fly, and burst with a blast
+	const WeaponConfig* launcher = config->FindWeapon("rocket_launcher");
+	ASSERT_NE(launcher, nullptr);
+	ASSERT_TRUE(launcher->projectile);
+	const ProjectileConfig rocket =
+		launcher->projectile.value_or(ProjectileConfig{});
+	EXPECT_EQ(rocket.name, "rocket");
+	EXPECT_GT(rocket.speed, 0.0);
+	EXPECT_GT(rocket.splash_radius, 0.0);
+	EXPECT_GT(rocket.splash_damage.first, rocket.splash_damage.second);
+	EXPECT_EQ(rocket.burst_sound, SoundEffect::RocketBurst);
+	EXPECT_GT(rocket.width, 0.0) << "sized from its art";
+	// A plasma rifle: its bolts fly, and burst with none
+	const WeaponConfig* plasma = config->FindWeapon("plasma_rifle");
+	ASSERT_NE(plasma, nullptr);
+	ASSERT_TRUE(plasma->projectile);
+	EXPECT_DOUBLE_EQ(
+		plasma->projectile.value_or(ProjectileConfig{}).splash_radius, 0.0);
+	EXPECT_FALSE(config->weapons[0].projectile)
+		<< "a pistol shot strikes at once";
 	// A weapon pickup gives its weapon, as the bit of its slot
 	ASSERT_TRUE(config->pickups.contains("mp5"));
 	EXPECT_EQ(config->pickups.at("mp5").effect.weapons, 1U << 1);
 	const WeaponConfig* shotgun = config->FindWeapon("shotgun");
 	ASSERT_NE(shotgun, nullptr);
 	EXPECT_EQ(shotgun->ammo_capacity, 2u);
+	EXPECT_FALSE(shotgun->reload_after_shot);
 	EXPECT_EQ(shotgun->falloff, DamageFalloff::Exponential);
 	EXPECT_EQ(config->FindWeapon("bazooka"), nullptr);
 	EXPECT_DOUBLE_EQ(config->light.animation_speed, 0.3);
@@ -70,6 +108,25 @@ TEST(LevelData, ParsesTheGameConfig) {
 	EXPECT_EQ(mp5->pellets, 1u);
 	// Each enemy type has its own health
 	EXPECT_DOUBLE_EQ(config->enemies.at("soldier").health, 60.0);
+	// Each has its own voice and weapon's sound; one that names none sounds
+	// as every enemy
+	EXPECT_EQ(soldier.sounds.alert, SoundEffect::EnemyAlert);
+	EXPECT_EQ(soldier.sounds.attack, SoundEffect::NpcAttack);
+	ASSERT_TRUE(config->enemies.contains("demon"));
+	const EnemyConfig& demon = config->enemies.at("demon");
+	EXPECT_EQ(demon.sounds.attack, SoundEffect::DemonAttack);
+	EXPECT_EQ(demon.sounds.alert, SoundEffect::DemonAlert);
+	EXPECT_EQ(demon.sounds.pain, SoundEffect::DemonPain);
+	EXPECT_EQ(demon.sounds.death, SoundEffect::DemonDeath);
+	ASSERT_TRUE(config->enemies.contains("shotgun_zombie"));
+	EXPECT_EQ(config->enemies.at("shotgun_zombie").sounds.attack,
+			  SoundEffect::Shotgun);
+	EXPECT_EQ(config->enemies.at("shotgun_zombie").sounds.pain,
+			  SoundEffect::NpcPain);
+	ASSERT_TRUE(config->enemies.contains("minigun_zombie"));
+	EXPECT_GT(config->enemies.at("minigun_zombie").health,
+			  config->enemies.at("shotgun_zombie").health)
+		<< "a mini-boss";
 	// Where a shot lands on a figure: the head hurts twice as much
 	EXPECT_DOUBLE_EQ(config->enemies.at("soldier").hit_zones.head_damage, 2.0);
 	EXPECT_DOUBLE_EQ(config->enemies.at("soldier").hit_zones.leg_damage, 0.6);
@@ -98,6 +155,23 @@ TEST(LevelData, RejectsAnUnknownDamageFalloff) {
 	const auto parsed = ParseGameConfig(config);
 	ASSERT_FALSE(parsed);
 	EXPECT_NE(parsed.error().find("quadratic"), std::string::npos);
+}
+
+TEST(LevelData, RejectsAnUnknownEnemySound) {
+	std::istringstream config(R"({
+		"player_config": {"t_speed": 2, "r_speed": 0.4, "width": 0.4, "height": 1},
+		"weapons": [],
+		"config_enemy": {"x": {"t_speed": 1, "r_speed": 1, "width": 1,
+							   "height": 1, "health": 1,
+							   "ai": {"idle_frame_seconds": 1, "follow_range": 1},
+							   "weapon": {"name": "x", "damage": [1, 1],
+										  "range": 1, "attack_speed": 1,
+										  "attack_rate": 1},
+							   "sounds": {"alert": "moo"}}},
+		"config_dynamic": {"light": {"animation_speed": 1, "width": 1, "height": 1}}})");
+	const auto parsed = ParseGameConfig(config);
+	ASSERT_FALSE(parsed);
+	EXPECT_NE(parsed.error().find("moo"), std::string::npos) << parsed.error();
 }
 
 TEST(LevelData, ReportsMalformedFilesAsErrors) {

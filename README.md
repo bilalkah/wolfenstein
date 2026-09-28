@@ -111,7 +111,7 @@ The game binary is `build/<preset>/bin/wolfenstein`; `--benchmark 300` runs the 
 - **Turn**: Move the mouse, or use `Left Arrow` and `Right Arrow`.
 - **Attack**: Use `Left Click` or `Left Ctrl` to attack enemies.
 - **Reload**: Press `R`.
-- **Select Weapon**: Use `Left Arrow`, `Right Arrow`, and `Space` to navigate and select your weapon.
+- **Switch Weapon**: Press its number key, or scroll the mouse wheel.
 - **Map View**: Press `P` to toggle the top-down view.
 - **Browser**: Click the game to capture the mouse; `Esc` releases it.
 

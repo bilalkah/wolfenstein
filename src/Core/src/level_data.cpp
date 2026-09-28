@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <nlohmann/json.hpp>
 #include <numbers>
+#include <optional>
 #include <string_view>
 #include <utility>
 
@@ -41,20 +42,95 @@ DamageFalloff ToFalloff(const json& falloff) {
 		501, "unknown damage falloff \"" + name + "\"", &falloff);
 }
 
-// A weapon's shot, by the name config.json gives it ("sound": "pistol")
-SoundEffect ToShotSound(const json& sound) {
+// A sound, by the name config.json gives it ("sound": "pistol"): its file's
+// name in assets/sounds
+SoundEffect ToSound(const json& sound) {
+	static constexpr std::array<std::pair<std::string_view, SoundEffect>, 26>
+		kNames{{{"pistol", SoundEffect::PistolShot},
+				{"mp5", SoundEffect::SmgShot},
+				{"shotgun", SoundEffect::Shotgun},
+				{"npc_attack", SoundEffect::NpcAttack},
+				{"npc_pain", SoundEffect::NpcPain},
+				{"npc_death", SoundEffect::NpcDeath},
+				{"enemy_alert", SoundEffect::EnemyAlert},
+				{"demon_attack", SoundEffect::DemonAttack},
+				{"demon_alert", SoundEffect::DemonAlert},
+				{"demon_pain", SoundEffect::DemonPain},
+				{"demon_death", SoundEffect::DemonDeath},
+				{"caco_alert", SoundEffect::CacoAlert},
+				{"caco_death", SoundEffect::CacoDeath},
+				{"cyber_alert", SoundEffect::CyberAlert},
+				{"cyber_death", SoundEffect::CyberDeath},
+				{"zombie_alert", SoundEffect::ZombieAlert},
+				{"zombie_death", SoundEffect::ZombieDeath},
+				{"super_shotgun", SoundEffect::SuperShotgun},
+				{"super_shotgun_reload", SoundEffect::SuperShotgunReload},
+				{"saw_up", SoundEffect::SawUp},
+				{"saw", SoundEffect::Saw},
+				{"saw_hit", SoundEffect::SawHit},
+				{"rocket_launch", SoundEffect::RocketLaunch},
+				{"rocket_burst", SoundEffect::RocketBurst},
+				{"plasma", SoundEffect::Plasma},
+				{"plasma_burst", SoundEffect::PlasmaBurst}}};
 	const auto name = sound.get<std::string>();
-	if (name == "pistol") {
-		return SoundEffect::PistolShot;
+	const auto found =
+		std::ranges::find(kNames, std::string_view(name),
+						  &std::pair<std::string_view, SoundEffect>::first);
+	if (found == kNames.end()) {
+		throw json::other_error::create(508, "unknown sound \"" + name + "\"",
+										&sound);
 	}
-	if (name == "mp5") {
-		return SoundEffect::SmgShot;
+	return found->second;
+}
+
+// The sound `object` names under `key`, if it names one
+std::optional<SoundEffect> ToOptionalSound(const json& object,
+										   const char* key) {
+	if (!object.contains(key)) {
+		return std::nullopt;
 	}
-	if (name == "shotgun") {
-		return SoundEffect::Shotgun;
+	return ToSound(object.at(key));
+}
+
+// An enemy type's voice: each of its sounds config.json names, the
+// others as every enemy's
+EnemySounds ToEnemySounds(const json& enemy) {
+	EnemySounds sounds;
+	if (!enemy.contains("sounds")) {
+		return sounds;
 	}
-	throw json::other_error::create(
-		508, "unknown weapon sound \"" + name + "\"", &sound);
+	const auto& named = enemy.at("sounds");
+	for (auto [key, target] :
+		 {std::pair{"attack", &sounds.attack},
+		  std::pair{"alert", &sounds.alert}, std::pair{"pain", &sounds.pain},
+		  std::pair{"death", &sounds.death}}) {
+		if (named.contains(key)) {
+			*target = ToSound(named.at(key));
+		}
+	}
+	return sounds;
+}
+
+// What a weapon fires, if its shots fly ("projectile": {...})
+std::optional<ProjectileConfig> ToProjectile(const json& weapon) {
+	if (!weapon.contains("projectile")) {
+		return std::nullopt;
+	}
+	const auto& projectile = weapon.at("projectile");
+	return ProjectileConfig{
+		.name = projectile.at("name").get<std::string>(),
+		.speed = projectile.at("speed").get<double>(),
+		.radius = projectile.value("radius", 0.1),
+		.width = projectile.at("width").get<double>(),
+		.height = projectile.at("height").get<double>(),
+		.burst_width = projectile.at("burst_width").get<double>(),
+		.burst_height = projectile.at("burst_height").get<double>(),
+		.splash_radius = projectile.value("splash_radius", 0.0),
+		.splash_damage = projectile.contains("splash_damage")
+							 ? ToDamage(projectile.at("splash_damage"))
+							 : std::pair{0.0, 0.0},
+		.burst_sound = ToOptionalSound(projectile, "burst_sound"),
+		.noise_range = projectile.value("noise_range", 0)};
 }
 
 WeaponConfig ToWeapon(const json& weapon) {
@@ -76,10 +152,13 @@ WeaponConfig ToWeapon(const json& weapon) {
 			.spread = weapon.value("spread", 0.0) * std::numbers::pi / 180.0,
 			.raise_seconds = weapon.value("raise_seconds", 0.4),
 			.lower_seconds = weapon.value("lower_seconds", 0.25),
-			.shot_sound = weapon.contains("sound")
-							  ? ToShotSound(weapon.at("sound"))
-							  : SoundEffect::Shotgun,
-			.noise_range = weapon.value("noise_range", 0)};
+			.shot_sound = ToOptionalSound(weapon, "sound"),
+			.noise_range = weapon.value("noise_range", 0),
+			.hit_sound = ToOptionalSound(weapon, "hit_sound"),
+			.raise_sound = ToOptionalSound(weapon, "raise_sound"),
+			.reload_sound = ToOptionalSound(weapon, "reload_sound"),
+			.reload_after_shot = weapon.value("reload_after_shot", false),
+			.projectile = ToProjectile(weapon)};
 }
 
 // The key a pickup is ("key": "gold"), as a KeyBit, or 0
@@ -167,7 +246,8 @@ EnemyConfig ToEnemy(const std::string& type, const json& enemy,
 					   .attack_range = weapon.at("range").get<double>(),
 					   .attack_speed = weapon.at("attack_speed").get<double>(),
 					   .attack_rate = weapon.at("attack_rate").get<double>(),
-					   .noise_range = weapon.value("noise_range", 0)}};
+					   .noise_range = weapon.value("noise_range", 0)},
+			.sounds = ToEnemySounds(enemy)};
 }
 
 // Parses input and converts it with convert, turning every JSON error
