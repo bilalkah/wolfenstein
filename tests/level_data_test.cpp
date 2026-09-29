@@ -197,7 +197,8 @@ TEST(LevelData, ParsesTheGameConfig) {
 
 TEST(LevelData, RejectsAnUnknownDamageFalloff) {
 	std::istringstream config(R"({
-		"player_config": {"t_speed": 2, "r_speed": 0.4, "width": 0.4, "height": 1},
+		"player_config": {"t_speed": 2, "r_speed": 0.4, "width": 0.4, "height": 1,
+						  "figure": {"clips": "x", "width": 1, "height": 1}},
 		"weapons": [{"name": "x", "label": "X", "description": "", "ammo": 1,
 					 "reserve": {"start": 0, "max": 1, "box": 1},
 					 "damage": [1, 1], "range": 1, "attack_speed": 1,
@@ -211,7 +212,8 @@ TEST(LevelData, RejectsAnUnknownDamageFalloff) {
 
 TEST(LevelData, RejectsAnUnknownEnemySound) {
 	std::istringstream config(R"({
-		"player_config": {"t_speed": 2, "r_speed": 0.4, "width": 0.4, "height": 1},
+		"player_config": {"t_speed": 2, "r_speed": 0.4, "width": 0.4, "height": 1,
+						  "figure": {"clips": "x", "width": 1, "height": 1}},
 		"weapons": [],
 		"config_enemy": {"x": {"t_speed": 1, "r_speed": 1, "width": 1,
 							   "height": 1, "health": 1,
@@ -229,7 +231,8 @@ TEST(LevelData, RejectsAnUnknownEnemySound) {
 // A drop's chance is from 0 to 1
 TEST(LevelData, RejectsAnImpossibleChance) {
 	std::istringstream config(R"({
-		"player_config": {"t_speed": 2, "r_speed": 0.4, "width": 0.4, "height": 1},
+		"player_config": {"t_speed": 2, "r_speed": 0.4, "width": 0.4, "height": 1,
+						  "figure": {"clips": "x", "width": 1, "height": 1}},
 		"weapons": [],
 		"config_enemy": {"x": {"t_speed": 1, "r_speed": 1, "width": 1,
 							   "height": 1, "health": 1,
@@ -248,7 +251,8 @@ TEST(LevelData, RejectsAnImpossibleChance) {
 // A campaign lists its levels by chapter; a chapter with none is a mistake
 TEST(LevelData, ReadsTheCampaignByChapter) {
 	const std::string head = R"({
-		"player_config": {"t_speed": 2, "r_speed": 0.4, "width": 0.4, "height": 1},
+		"player_config": {"t_speed": 2, "r_speed": 0.4, "width": 0.4, "height": 1,
+						  "figure": {"clips": "x", "width": 1, "height": 1}},
 		"weapons": [{"name": "x", "label": "X", "start": true, "ammo": 1,
 					 "reserve": {"start": 0, "max": 1, "box": 1},
 					 "damage": [1, 1], "range": 1, "attack_speed": 1,
@@ -284,7 +288,8 @@ TEST(LevelData, ReadsTheCampaignByChapter) {
 // An enemy's range is [near, far]: nearer than far
 TEST(LevelData, RejectsABackwardsRange) {
 	std::istringstream config(R"({
-		"player_config": {"t_speed": 2, "r_speed": 0.4, "width": 0.4, "height": 1},
+		"player_config": {"t_speed": 2, "r_speed": 0.4, "width": 0.4, "height": 1,
+						  "figure": {"clips": "x", "width": 1, "height": 1}},
 		"weapons": [],
 		"config_enemy": {"x": {"t_speed": 1, "r_speed": 1, "width": 1,
 							   "height": 1, "health": 1,

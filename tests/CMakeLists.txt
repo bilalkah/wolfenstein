@@ -53,6 +53,7 @@ add_executable(unit_tests
     saved_game_test.cpp
     settings_test.cpp
     texture_manifest_test.cpp
+    players_test.cpp
 )
 target_link_libraries(unit_tests PRIVATE
     GTest::gtest_main

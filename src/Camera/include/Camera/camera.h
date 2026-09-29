@@ -59,13 +59,14 @@ class Camera2D
 	const Ray& GetCrosshairRay() const { return crosshair_ray_; }
 	// An object as the eye sees it this frame: the rays bounding it, how far
 	// in front of the eye its centre stands (along the view: what it is drawn
-	// at), and whether its picture is mirrored (a body lying dead, seen from
-	// behind)
+	// at), whether its picture is mirrored (a body lying dead, seen from
+	// behind), and its tint (another player's colour)
 	struct Sight
 	{
 		RayPair rays;
 		double distance = 0.0;
 		bool mirrored = false;
+		IGameObject::Tint tint{};
 	};
 	// How the eye sees an object in the current frame, or nullptr if it is
 	// not in view

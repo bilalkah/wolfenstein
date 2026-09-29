@@ -177,7 +177,8 @@ void Camera2D::Calculate(const IGameObject& object, double alpha) {
 	auto& view = views_[ToIndex(object.GetId())];
 	view.sight = {.rays = object_ray_pair,
 				  .distance = distance,
-				  .mirrored = seen.mirrored};
+				  .mirrored = seen.mirrored,
+				  .tint = seen.tint};
 	view.frame = frame_;
 
 	// Calculate if the object is in the crosshair

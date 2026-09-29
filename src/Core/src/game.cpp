@@ -934,6 +934,9 @@ void Game::CheckGameEvent() {
 			if (event.key.key == SDLK_M) {
 				map_expanded_ = !map_expanded_;
 			}
+			if (event.key.key == SDLK_J && debug_view_) {
+				JoinStandIn();
+			}
 			if (event.key.key == SDLK_P && debug_view_) {
 				if (render_type_ == RenderType::TEXTURE) {
 					render_type_ = RenderType::LINE;
@@ -965,6 +968,34 @@ void Game::CheckGameEvent() {
 		}
 	}
 #endif
+}
+
+// Another player joins in the first free slot, a few steps ahead (where
+// there is floor), walking round in a small circle: the others' figures
+// seen from every side
+void Game::JoinStandIn() {
+	for (std::size_t slot = 1; slot < Scene::kMaxPlayers; ++slot) {
+		if (world_->FindPlayer(slot) != nullptr) {
+			continue;
+		}
+		if (!world_->JoinPlayer(slot)) {
+			return;
+		}
+		const Position2D& eye = world_->GetPlayer().GetPosition();
+		const vector2d facing{std::cos(eye.theta), std::sin(eye.theta)};
+		vector2d at = eye.pose + facing;
+		for (const double ahead : {2.0, 1.5}) {
+			const vector2d there = eye.pose + facing * ahead;
+			if (!world_->CurrentLevel().GetMap().IsBlocked(there)) {
+				at = there;
+				break;
+			}
+		}
+		Player& stand_in = *world_->FindPlayer(slot);
+		stand_in.SetPosition(Position2D(at, eye.theta + std::numbers::pi));
+		stand_in.SetCommand({.forward = 1, .turn = 1});
+		return;
+	}
 }
 
 void Game::CheckGameOver() {

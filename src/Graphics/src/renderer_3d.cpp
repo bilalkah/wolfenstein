@@ -123,10 +123,10 @@ void Renderer3D::ReserveObjects(std::size_t objects) {
 
 void Renderer3D::Enqueue(int texture_id, const SDL_Rect& src_rect,
 						 const SDL_Rect& dest_rect, double distance,
-						 bool mirrored) {
+						 bool mirrored, IGameObject::Tint tint) {
 	render_queue_.push_back({texture_id, src_rect, dest_rect, distance,
 							 static_cast<std::uint32_t>(render_queue_.size()),
-							 nullptr, mirrored});
+							 nullptr, mirrored, tint});
 }
 
 void Renderer3D::RenderScene(double delta_time) {
@@ -516,7 +516,7 @@ void Renderer3D::RenderObjects() {
 		}
 
 		Enqueue(first.wall_id, src_rect, dest_rect, sight->distance,
-				sight->mirrored);
+				sight->mirrored, sight->tint);
 	}
 }
 
@@ -703,12 +703,22 @@ void Renderer3D::RenderTextures() {
 		else {
 			const SDL_FRect src = ToFRect(command.src_rect);
 			const SDL_FRect dest = ToFRect(command.dest_rect);
+			// Pictures are shared (every soldier's, a player's figure): a
+			// tint is set for the one drawing, then taken off
+			const bool tinted = command.tint != IGameObject::Tint{};
+			if (tinted) {
+				SDL_SetTextureColorMod(texture.texture, command.tint.r,
+									   command.tint.g, command.tint.b);
+			}
 			if (command.mirrored) {
 				SDL_RenderTextureRotated(renderer, texture.texture, &src, &dest,
 										 0.0, nullptr, SDL_FLIP_HORIZONTAL);
 			}
 			else {
 				SDL_RenderTexture(renderer, texture.texture, &src, &dest);
+			}
+			if (tinted) {
+				SDL_SetTextureColorMod(texture.texture, 255, 255, 255);
 			}
 		}
 	}

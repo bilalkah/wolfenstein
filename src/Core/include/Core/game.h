@@ -127,6 +127,8 @@ class Game
 	void Pause();
 	// The mouse turns the view (hidden, and locked to the window) or points
 	void CaptureMouse(bool captured);
+	// Debug (J): another player joins, walking round in front of the view
+	void JoinStandIn();
 	void HandleMenuAction(const MenuAction& action);
 	void ApplySettings();
 	void Present();

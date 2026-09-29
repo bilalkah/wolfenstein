@@ -176,15 +176,16 @@ void Enemy::Move(double delta_time) {
 	}
 	vector2d delta_movement =
 		direction * translation_speed_ * pace_ * delta_time;
-	// As far as it can go: round lamps and the player (other enemies do not
-	// stop it, or they would jam in doorways), then along the walls
-	const Player& player = scene_.GetPlayer();
+	// As far as it can go: round lamps and the players (other enemies do
+	// not stop it, or they would jam in doorways), then along the walls
 	vector2d reached = ResolveObjectCollisions(
 		scene_.GetObjects(), this, position_.pose,
 		position_.pose + delta_movement, radius_, /*ignore_enemies=*/true);
-	if (player.IsAlive()) {
-		reached = PushOutOf(player.GetPose(), player.GetWidth() / 2,
-							position_.pose, reached, radius_);
+	for (const Player* player : scene_.GetPlayers()) {
+		if (player != nullptr && player->IsAlive()) {
+			reached = PushOutOf(player->GetPose(), player->GetWidth() / 2,
+								position_.pose, reached, radius_);
+		}
 	}
 	Slide(reached - position_.pose);
 }

@@ -21,8 +21,7 @@ std::size_t LevelArenaBytes(const Map& map, SceneCapacity capacity) {
 	const std::size_t enemies = capacity.enemies;
 	const std::size_t pickups = capacity.pickups;
 	const std::size_t objects = capacity.enemies + capacity.dynamic_objects +
-								capacity.pickups + Scene::kEffects +
-								Scene::kProjectiles;
+								capacity.pickups + Scene::kSceneObjects;
 	return enemies * (sizeof(Enemy) + alignof(Enemy) + kBookkeeping) +
 		   capacity.dynamic_objects *
 			   (sizeof(DynamicObject) + alignof(DynamicObject) + kBookkeeping) +
@@ -65,7 +64,7 @@ Scene::Scene(const TextureManager& textures, SoundManager& sound,
 	  doors_(map.GetDoors().size(), DoorMotion{}, &arena_) {
 	map_.ReservePushWalls(capacity.secrets);
 	objects_.reserve(capacity.enemies + capacity.dynamic_objects +
-					 capacity.pickups + kEffects + kProjectiles);
+					 capacity.pickups + kSceneObjects);
 	const int size_x = map_.GetSizeX();
 	const int size_y = map_.GetSizeY();
 	for (int x = 0; x < size_x; ++x) {
@@ -75,6 +74,21 @@ Scene::Scene(const TextureManager& textures, SoundManager& sound,
 	}
 	enemy_list_.reserve(capacity.enemies);
 	pickup_list_.reserve(capacity.pickups);
+	// A colour for each slot's figure, told apart at a glance; the last
+	// one's own
+	constexpr std::array<IGameObject::Tint, kMaxPlayers> kTints{{
+		{.r = 255, .g = 96, .b = 96},
+		{.r = 110, .g = 150, .b = 255},
+		{.r = 120, .g = 255, .b = 120},
+		{.r = 255, .g = 235, .b = 90},
+		{.r = 220, .g = 120, .b = 255},
+		{.r = 100, .g = 255, .b = 255},
+		{.r = 255, .g = 165, .b = 70},
+		{.r = 255, .g = 255, .b = 255},
+	}};
+	for (std::size_t slot = 0; slot < kMaxPlayers; ++slot) {
+		figures_[slot].SetTint(kTints[slot]);
+	}
 }
 
 std::expected<memory::Handle<Enemy>, memory::PoolError> Scene::AddEnemy(
@@ -116,9 +130,35 @@ std::expected<memory::Handle<Pickup>, memory::PoolError> Scene::AddPickup(
 	return handle;
 }
 
-void Scene::SetPlayer(Player& player) {
-	player_ = &player;
+void Scene::SetPlayer(Player& player, std::size_t slot) {
+	assert(slot < kMaxPlayers && "no such player slot");
+	players_[slot] = &player;
 	player.EnterScene(*this);
+	ShowFigures();
+}
+
+void Scene::RemovePlayer(std::size_t slot) {
+	assert(slot < kMaxPlayers && "no such player slot");
+	players_[slot] = nullptr;
+	ShowFigures();
+}
+
+void Scene::SetViewer(std::size_t slot) {
+	assert(slot < kMaxPlayers && "no such player slot");
+	viewer_ = slot;
+	ShowFigures();
+}
+
+void Scene::SetPlayerLook(std::string_view clips, double width, double height) {
+	for (PlayerFigure& figure : figures_) {
+		figure.SetLook(textures_, clips, width, height);
+	}
+}
+
+void Scene::ShowFigures() {
+	for (std::size_t slot = 0; slot < kMaxPlayers; ++slot) {
+		figures_[slot].Show(players_[slot], slot == viewer_);
+	}
 }
 
 void Scene::FinishLoading() {
@@ -131,6 +171,10 @@ void Scene::FinishLoading() {
 	for (Projectile& projectile : projectiles_) {
 		projectile.SetId(ObjectId{static_cast<std::uint32_t>(objects_.size())});
 		objects_.push_back(&projectile);
+	}
+	for (PlayerFigure& figure : figures_) {
+		figure.SetId(ObjectId{static_cast<std::uint32_t>(objects_.size())});
+		objects_.push_back(&figure);
 	}
 	navigation_.Build();
 }
@@ -204,9 +248,10 @@ void Scene::PlaySoundAt(SoundEffect effect, const vector2d& where,
 						std::uint32_t source) {
 	// Through a wall it is heard, but dull; a sound in a wall's own cell (a
 	// door sliding in its frame) is not behind it
+	const Player* viewer = Viewer();
 	const bool muffled =
-		player_ != nullptr && !map_.IsBlocked(where) &&
-		!CastLineOfSight(map_, player_->GetPose(), where).is_hit;
+		viewer != nullptr && !map_.IsBlocked(where) &&
+		!CastLineOfSight(map_, viewer->GetPose(), where).is_hit;
 	sound_.PlayAt(effect, where, muffled, source);
 }
 
@@ -333,15 +378,16 @@ void Scene::Burst(Projectile& projectile, const vector2d& at, Enemy* struck) {
 		// Caught in their own blast, the player takes half: enough to
 		// teach care, not to end a game at a wall
 		constexpr double kOwnBlast = 0.5;
-		if (player_->IsAlive()) {
+		Player* player = Viewer();
+		if (player != nullptr && player->IsAlive()) {
 			if (const auto damage =
-					blast(player_->GetPose(), player_->GetWidth() / 2)) {
-				player_->DecreaseHealth(kOwnBlast * *damage);
+					blast(player->GetPose(), player->GetWidth() / 2)) {
+				player->DecreaseHealth(kOwnBlast * *damage);
 			}
 		}
 	}
-	if (hurt) {
-		player_->NoteHit();
+	if (hurt && Viewer() != nullptr) {
+		Viewer()->NoteHit();
 	}
 	constexpr double kBurstFrameSeconds = 0.1;
 	effects_[next_effect_].Start(
@@ -382,13 +428,26 @@ void Scene::Update(double delta_time) {
 	}
 
 	ScopedTimer timer(ProfileSection::UpdatePlayer);
-	player_->Update(delta_time);
+	// In slot order, so the same commands always give the same level
+	for (Player* player : players_) {
+		if (player != nullptr) {
+			player->Update(delta_time);
+		}
+	}
 	FlyProjectiles(delta_time);
-	CollectPickups();
+	for (Player* player : players_) {
+		if (player != nullptr) {
+			CollectPickups(*player);
+		}
+	}
 	ReadIntel();
 	notice_time_ += delta_time;
 	since_document_ += delta_time;
-	HandleUse();
+	for (Player* player : players_) {
+		if (player != nullptr) {
+			HandleUse(*player);
+		}
+	}
 	// Secrets sliding back: where one stops, the enemies' ways change
 	const auto walls = map_.GetPushWalls();
 	std::uint64_t moving = 0;
@@ -447,35 +506,43 @@ void Scene::UseExit() {
 	}
 }
 
-// The player uses what is just ahead: a door (if it has the key) or the
-// exit switch
-void Scene::HandleUse() {
-	if (!player_->IsAlive() || !player_->IsUsing()) {
+// The player uses what is just ahead: a door (if it has the key), a secret
+// or the exit switch. Only the viewer is told what came of it.
+void Scene::HandleUse(Player& player) {
+	if (!player.IsAlive() || !player.IsUsing()) {
 		return;
 	}
-	const Position2D& eye = player_->GetPosition();
+	const bool viewer = &player == Viewer();
+	const Position2D& eye = player.GetPosition();
 	const vector2d facing{std::cos(eye.theta), std::sin(eye.theta)};
 	for (const double reach : {0.6, 1.2}) {
 		const vector2d point = eye.pose + facing * reach;
 		const int x = static_cast<int>(std::floor(point.x));
 		const int y = static_cast<int>(std::floor(point.y));
 		if (map_.IsExit(x, y)) {
-			UseExit();
+			// Another player gets through it too, but untold
+			if (viewer) {
+				UseExit();
+			}
+			else if (ObjectivesDone()) {
+				completed_ = true;
+			}
 			return;
 		}
 		if (const PushWall* wall = map_.FindPushWall(x, y)) {
 			if (PushSecret(static_cast<std::size_t>(
-					wall - map_.GetPushWalls().data()))) {
+					wall - map_.GetPushWalls().data())) &&
+				viewer) {
 				ShowNotice(Notice::Secret);
 			}
 			return;
 		}
 		if (const Door* door = map_.FindDoor(x, y)) {
-			if (door->lock == KeyColour::None || player_->HasKey(door->lock)) {
+			if (door->lock == KeyColour::None || player.HasKey(door->lock)) {
 				OpenDoor(
 					static_cast<std::size_t>(door - map_.GetDoors().data()));
 			}
-			else {
+			else if (viewer) {
 				ShowNotice(door->lock == KeyColour::Gold
 							   ? Notice::NeedGoldKey
 							   : Notice::NeedSilverKey);
@@ -484,7 +551,8 @@ void Scene::HandleUse() {
 		}
 		if (map_.IsWall(x, y)) {
 			// A page of intel on it is read again
-			if (const WallIntel* page = FindIntel(x, y)) {
+			if (const WallIntel* page = FindIntel(x, y, eye.pose);
+				page != nullptr && viewer) {
 				ShowIntel(static_cast<std::size_t>(page - intel_.data()));
 			}
 			return;	 // nothing to use through a wall
@@ -547,7 +615,10 @@ bool Scene::IsDoorwayOccupied(const Door& door) const {
 		return std::abs(pose.x - centre.x) < kReach &&
 			   std::abs(pose.y - centre.y) < kReach;
 	};
-	if (player_->IsAlive() && near(player_->GetPose())) {
+	if (std::ranges::any_of(players_, [&](const Player* player) {
+			return player != nullptr && player->IsAlive() &&
+				   near(player->GetPose());
+		})) {
 		return true;
 	}
 	return std::ranges::any_of(enemy_list_, [&](const Enemy* enemy) {
@@ -612,17 +683,17 @@ void Scene::UpdateDoors(double delta_time) {
 	}
 }
 
-void Scene::CollectPickups() {
-	if (!player_->IsAlive()) {
+void Scene::CollectPickups(Player& player) {
+	if (!player.IsAlive()) {
 		return;
 	}
-	const vector2d position = player_->GetPose();
+	const vector2d position = player.GetPose();
 	for (Pickup* pickup : pickup_list_) {
 		// Close enough that the player's body touches the item
-		const double reach = (player_->GetWidth() + pickup->GetWidth()) / 2;
+		const double reach = (player.GetWidth() + pickup->GetWidth()) / 2;
 		if (!pickup->IsTaken() &&
 			pickup->GetPose().Distance(position) <= reach &&
-			player_->TryPickUp(pickup->GetEffect(), difficulty_.supplies)) {
+			player.TryPickUp(pickup->GetEffect(), difficulty_.supplies)) {
 			pickup->Take();
 		}
 	}
@@ -661,12 +732,13 @@ void Scene::RestoreRead(std::size_t index) {
 }
 
 void Scene::ReadIntel() {
-	if (!player_->IsAlive()) {
+	const Player* viewer = Viewer();
+	if (viewer == nullptr || !viewer->IsAlive()) {
 		return;
 	}
 	// Looking no further than this from it (the cosine of the angle)
 	constexpr double kLooking = 0.7;
-	const Position2D& eye = player_->GetPosition();
+	const Position2D& eye = viewer->GetPosition();
 	const vector2d facing{std::cos(eye.theta), std::sin(eye.theta)};
 	for (std::size_t i = 0; i < intel_count_; ++i) {
 		const WallIntel& page = intel_[i];
@@ -680,10 +752,10 @@ void Scene::ReadIntel() {
 	}
 }
 
-Scene::WallIntel* Scene::FindIntel(int x, int y) {
+Scene::WallIntel* Scene::FindIntel(int x, int y, const vector2d& from) {
 	const auto pages = std::span(intel_).first(intel_count_);
 	const auto page = std::ranges::find_if(pages, [&](const WallIntel& p) {
-		return p.x == x && p.y == y && InFrontOf(p, player_->GetPose());
+		return p.x == x && p.y == y && InFrontOf(p, from);
 	});
 	return page != pages.end() ? &*page : nullptr;
 }
@@ -692,7 +764,7 @@ void Scene::ShowIntel(std::size_t index) {
 	intel_[index].read = true;
 	document_ = static_cast<int>(index);
 	since_document_ = 0.0;
-	PlaySoundAt(SoundEffect::KeyPickup, player_->GetPose());
+	PlaySoundAt(SoundEffect::KeyPickup, Viewer()->GetPose());
 }
 
 void Scene::Explore(int x, int y) {
@@ -728,11 +800,13 @@ Map& Scene::GetMap() {
 }
 
 const Player& Scene::GetPlayer() const {
-	return *player_;
+	assert(Viewer() != nullptr && "no player in the viewer's slot");
+	return *Viewer();
 }
 
 Player& Scene::GetPlayer() {
-	return *player_;
+	assert(Viewer() != nullptr && "no player in the viewer's slot");
+	return *Viewer();
 }
 
 size_t Scene::GetNumberOfAliveEnemies() const {

@@ -59,13 +59,23 @@ class IGameObject
 	// be walked through (a pickup, a dead enemy)
 	virtual double GetCollisionRadius() const { return 0.0; }
 	virtual int GetTextureId() const = 0;
-	// How it looks from somewhere: its picture, how wide it is drawn, and
-	// whether mirrored
+	// A colour its picture is multiplied by: white leaves it as it is
+	struct Tint
+	{
+		std::uint8_t r = 255;
+		std::uint8_t g = 255;
+		std::uint8_t b = 255;
+
+		friend bool operator==(const Tint&, const Tint&) = default;
+	};
+	// How it looks from somewhere: its picture, how wide it is drawn,
+	// whether mirrored, and tinted how (another player, in their colour)
 	struct Appearance
 	{
 		int texture_id = 0;
 		double width = 0.0;
 		bool mirrored = false;
+		Tint tint{};
 	};
 	// Seen from `viewer`: the same from everywhere, but for what turns (an
 	// enemy, seen from its side or its back)

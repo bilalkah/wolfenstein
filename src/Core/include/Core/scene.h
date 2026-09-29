@@ -19,6 +19,7 @@
 #include "Allocators/object_pool.h"
 #include "Characters/enemy.h"
 #include "Characters/player.h"
+#include "Characters/player_figure.h"
 #include "GameMap/map.h"
 #include "GameObjects/dynamic_object.h"
 #include "GameObjects/effect.h"
@@ -32,6 +33,7 @@
 #include <memory_resource>
 #include <span>
 #include <string>
+#include <string_view>
 
 namespace wolfenstein {
 
@@ -78,8 +80,11 @@ struct SceneCapacity
 // which borrow it.
 //
 // A scene has a single owner (the game); renderers, the camera, enemies and
-// the player borrow it for its lifetime. It borrows the player, which
-// outlives levels. Pinned: its objects and systems point back to it.
+// the players borrow it for its lifetime. It borrows the players, which
+// outlive levels: as many as kMaxPlayers, each in a slot of its own, one of
+// them the viewer, whom the level is seen and heard from. Alone, the player
+// is in slot 0 and is the viewer. Pinned: its objects and systems point back
+// to it.
 class Scene
 {
   public:
@@ -111,8 +116,23 @@ class Scene
 		difficulty_ = difficulty;
 	}
 	const Difficulty& GetDifficulty() const { return difficulty_; }
-	// Borrows the player for the scene's life and lets it act in this scene
-	void SetPlayer(Player& player);
+	// Players a level holds at once, at most
+	static constexpr std::size_t kMaxPlayers = 8;
+	// Borrows the player for the scene's life, or until it leaves, and lets
+	// it act in this scene, in slot `slot` (below kMaxPlayers) in place of
+	// any player there
+	void SetPlayer(Player& player, std::size_t slot = 0);
+	// The player in slot `slot` leaves the level
+	void RemovePlayer(std::size_t slot);
+	// Which slot's player the level is seen and heard from: GetPlayer's, the
+	// one whose figure is not drawn, who reads intel and is told notices
+	void SetViewer(std::size_t slot);
+	std::size_t GetViewer() const { return viewer_; }
+	// Every slot, empty ones nullptr, in slot order
+	std::span<Player* const> GetPlayers() const { return players_; }
+	// How the players are drawn: the clips of `clips` ("soldier"), a picture
+	// `width` across and `height` tall (a wall is 1)
+	void SetPlayerLook(std::string_view clips, double width, double height);
 	// Builds what depends on the finished level (the navigation grid): call
 	// once every object is in place
 	void FinishLoading();
@@ -207,6 +227,10 @@ class Scene
 	// Projectiles in flight at once, at most: a new one takes the oldest's
 	// place
 	static constexpr std::size_t kProjectiles = 16;
+	// Objects every scene has besides its level's own: the puffs, the
+	// projectiles and a figure for each player slot
+	static constexpr std::size_t kSceneObjects =
+		kEffects + kProjectiles + kMaxPlayers;
 	// Fires a projectile from `from` along `theta` (the player's rocket or
 	// bolt), doing `damage` to what it strikes. It bursts on the first wall,
 	// closed door or living enemy in its way, straight away if that is at
@@ -228,14 +252,15 @@ class Scene
 	// them at it at once than the difficulty's attackers
 	bool MayAttack(const Enemy& enemy) const;
 
-	// Every level object, in update and draw order, the effects and
-	// projectiles last; an object's ObjectId is its index here
+	// Every level object, in update and draw order, the effects, projectiles
+	// and player figures last; an object's ObjectId is its index here
 	std::span<IGameObject* const> GetObjects() const { return objects_; }
 	std::span<Enemy* const> GetEnemies() const { return enemy_list_; }
 	std::span<Pickup* const> GetPickups() const { return pickup_list_; }
 
 	const Map& GetMap() const;
 	Map& GetMap();
+	// The viewer (SetViewer); there must be one
 	const Player& GetPlayer() const;
 	Player& GetPlayer();
 	const TextureManager& Textures() const { return textures_; }
@@ -271,17 +296,22 @@ class Scene
 	static constexpr double kDoorOpenSeconds = 4.0;
 
   private:
+	// The viewer's player, if there is one
+	Player* Viewer() const { return players_[viewer_]; }
+	// Tells each figure the player it shows, and whether that is the viewer
+	void ShowFigures();
 	// The player takes every pickup it stands on and has a use for
-	void CollectPickups();
-	// The player reads the first page of intel not yet read that it stands
+	void CollectPickups(Player& player);
+	// The viewer reads the first page of intel not yet read that it stands
 	// in front of and looks at
 	void ReadIntel();
-	// The page on the face of wall cell (x, y) the player is in front of, if
-	// any
-	WallIntel* FindIntel(int x, int y);
+	// The page on the face of wall cell (x, y) that `from` is in front of,
+	// if any
+	WallIntel* FindIntel(int x, int y, const vector2d& from);
 	// Shows page `index`, read
 	void ShowIntel(std::size_t index);
-	void HandleUse();
+	// The player uses what is just ahead
+	void HandleUse(Player& player);
 	void ShowNotice(Notice notice);
 	// Opens doors the player uses or an enemy reaches, and moves every door
 	// on: open doors close again once their doorway is clear
@@ -342,7 +372,11 @@ class Scene
 	bool kill_all_ = false;
 	bool kill_targets_ = false;
 	bool completed_ = false;
-	Player* player_ = nullptr;
+	std::array<Player*, kMaxPlayers> players_{};
+	std::size_t viewer_ = 0;
+	// Each slot's player, as the others see them: level objects from when
+	// the level has loaded, whether the slot is taken or not
+	std::array<PlayerFigure, kMaxPlayers> figures_{};
 	// Kept for the level's life, joining the objects when it is loaded
 	std::array<Effect, kEffects> effects_{};
 	std::size_t next_effect_ = 0;

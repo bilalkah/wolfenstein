@@ -410,6 +410,10 @@ std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 				504, "no \"normal\" difficulty listed", &root);
 		}
 		config.player = ToStats(root.at("player_config"));
+		const auto& figure = root.at("player_config").at("figure");
+		config.player_figure = {.clips = figure.at("clips").get<std::string>(),
+								.width = figure.at("width").get<double>(),
+								.height = figure.at("height").get<double>()};
 		const auto& light = root.at("config_dynamic").at("light");
 		config.light = {
 			.animation_speed = light.at("animation_speed").get<double>(),

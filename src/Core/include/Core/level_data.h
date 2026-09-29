@@ -34,6 +34,15 @@ struct CharacterStats
 	double height{};
 };
 
+// How the other players see a player: the pictures of `clips` ("soldier"),
+// drawn `width` across and `height` tall (a wall is 1)
+struct FigureStats
+{
+	std::string clips;
+	double width{};
+	double height{};
+};
+
 struct DynamicObjectStats
 {
 	double animation_speed{};
@@ -114,6 +123,7 @@ struct GameConfig
 	// From easiest to hardest, as a new game offers them
 	std::vector<DifficultyConfig> difficulties;
 	CharacterStats player;
+	FigureStats player_figure;
 	DynamicObjectStats light;
 
 	// The named weapon, or nullptr

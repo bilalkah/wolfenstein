@@ -2,6 +2,7 @@ add_library(
     character
     STATIC
     src/player.cpp
+    src/player_figure.cpp
     src/enemy.cpp
 )
 target_include_directories(character PUBLIC

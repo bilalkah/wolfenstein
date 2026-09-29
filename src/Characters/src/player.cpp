@@ -296,13 +296,19 @@ void Player::Move(double delta_time) {
 		wish = wish / length;
 	}
 	const vector2d delta_movement = wish * speed;
-	// As far as it can go: out of the living enemies and lamps it meets
-	// (sliding round them), then an axis at a time against the walls
-	// (sliding along them)
+	// As far as it can go: out of the living enemies, lamps and other
+	// players it meets (sliding round them), then an axis at a time against
+	// the walls (sliding along them)
 	const Map& map = scene_->GetMap();
-	const vector2d reached =
+	vector2d reached =
 		ResolveObjectCollisions(scene_->GetObjects(), this, position_.pose,
 								position_.pose + delta_movement, width_ / 2);
+	for (const Player* other : scene_->GetPlayers()) {
+		if (other != nullptr && other != this && other->IsAlive()) {
+			reached = PushOutOf(other->GetPose(), other->GetWidth() / 2,
+								position_.pose, reached, width_ / 2);
+		}
+	}
 	const vector2d step = reached - position_.pose;
 	const vector2d before = position_.pose;
 	if (!CheckWallCollision(map, position_.pose, {step.x, 0}, width_ / 2)) {

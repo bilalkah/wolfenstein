@@ -137,9 +137,10 @@ std::expected<void, std::string> SceneLoader::Prepare(const std::string& file) {
 	}
 	largest_memory_ =
 		std::max(largest_memory_, Scene::MemoryFor(*map, capacity));
-	largest_objects_ = std::max(
-		largest_objects_, data->enemies.size() + data->dynamic_objects.size() +
-							  data->pickups.size() + drops + Scene::kEffects);
+	largest_objects_ =
+		std::max(largest_objects_,
+				 data->enemies.size() + data->dynamic_objects.size() +
+					 data->pickups.size() + drops + Scene::kSceneObjects);
 	levels_.emplace(file, PreparedLevel{.data = std::move(*data),
 										.map = std::move(*map),
 										.capacity = capacity});
@@ -172,6 +173,8 @@ std::expected<void, std::string> SceneLoader::Populate(
 	player.IncreaseHealth(100);
 	player.SetKeys(0);	// the last level's keys open nothing here
 	scene.SetPlayer(player);
+	const FigureStats& figure = config_.player_figure;
+	scene.SetPlayerLook(figure.clips, figure.width, figure.height);
 	for (const EnemySpawn& spawn : level.data.enemies) {
 		// Checked when the level was prepared
 		const EnemyConfig& enemy = config_.enemies.find(spawn.type)->second;

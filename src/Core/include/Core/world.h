@@ -11,6 +11,7 @@
 #include "Core/scene_loader.h"
 #include "Settings/saved_game.h"
 #include "SoundManager/sound_manager.h"
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -113,10 +114,18 @@ class World
 		assert(scene_ && "no level loaded");
 		return *scene_;
 	}
+	// The local player, the one this game is played from (slot 0)
 	Player& GetPlayer() {
 		assert(player_ && "no game started");
 		return *player_;
 	}
+	// Another player joins the game in `slot` (1 to Scene::kMaxPlayers - 1)
+	// carrying the weapons a game starts with, where the level starts; in
+	// every level after, too, until it leaves. Once a game has started.
+	std::expected<void, std::string> JoinPlayer(std::size_t slot);
+	void LeavePlayer(std::size_t slot);
+	// The player in `slot`, the local one's included, or nullptr
+	Player* FindPlayer(std::size_t slot);
 	SoundManager& Sound() { return *sound_; }
 	const GameConfig& Config() const { return loader_.Config(); }
 	// The most objects any level has: what per-object views are sized for
@@ -132,6 +141,10 @@ class World
 	std::unique_ptr<SoundManager> sound_;
 	memory::MonotonicArena level_memory_;
 	std::optional<Player> player_;
+	// The other players, by slot (the local player's slot, 0, stays empty)
+	std::array<std::optional<Player>, Scene::kMaxPlayers> others_;
+	// What a player starts a game with: the weapon in hand
+	std::size_t first_weapon_ = 0;
 	std::optional<Scene> scene_;
 	const DifficultyConfig* difficulty_ = nullptr;
 	const PreparedLevel* level_ = nullptr;

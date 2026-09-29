@@ -3,7 +3,12 @@
         "t_speed": 2.0,
         "r_speed": 0.4,
         "width": 0.4,
-        "height": 1.0
+        "height": 1.0,
+        "figure": {
+            "clips": "soldier",
+            "width": 1.117,
+            "height": 0.673
+        }
     },
     "benchmark_level": "benchmark.json",
     "menu_music": "menu",
