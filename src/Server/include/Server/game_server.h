@@ -56,7 +56,7 @@ class Outbox
 class GameServer
 {
   public:
-	static constexpr double kTickSeconds = 1.0 / 60.0;
+	static constexpr double kTickSeconds = net::kTickSeconds;
 	// A snapshot every this many ticks: 30 a second
 	static constexpr std::uint32_t kSnapshotEvery = 2;
 	// Connections held at once: the players, and a few more waiting to say

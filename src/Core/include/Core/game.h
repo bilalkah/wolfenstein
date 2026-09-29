@@ -15,6 +15,7 @@
 #include "Camera/camera.h"
 #include "Characters/player.h"
 #include "Characters/view_angles.h"
+#include "Client/match_client.h"
 #include "Core/scene.h"
 #include "Core/story.h"
 #include "Core/world.h"
@@ -42,7 +43,8 @@ namespace wolfenstein {
 
 enum class RenderType : std::uint8_t { TEXTURE, LINE };
 
-enum class GameState : std::uint8_t { Menu, Playing, Paused, Result };
+// Joining: connecting to a multiplayer game's server, or told why not
+enum class GameState : std::uint8_t { Menu, Joining, Playing, Paused, Result };
 
 struct GeneralConfig
 {
@@ -104,6 +106,9 @@ class Game
 	// Lets P switch to the full 2D view of the level, with its enemies,
 	// paths and rays: for developers, not players
 	void EnableDebugView() { debug_view_ = true; }
+	// Plays a multiplayer game: connects to the server at `url`
+	// ("ws://host:port") as `name`, in place of the menu
+	void Connect(const std::string& url, std::string_view name);
 
   private:
 	void Init();
@@ -134,6 +139,14 @@ class Game
 	void Present();
 
 	void MenuTick();
+	// Connecting to the server, until it welcomes this player in
+	void JoiningTick();
+	// The server has welcomed this player: play its match
+	void BeginMatch();
+	// `ticks` ticks of the match: what the server said, and each tick's
+	// command sent and played (the first `command`, the rest it repeated)
+	void TickMatch(const PlayerCommand& command, int ticks);
+	bool InMatch() const { return match_ != nullptr; }
 	void GameTick();
 	void PausedTick();
 	void ResultTick();
@@ -201,6 +214,9 @@ class Game
 	std::unique_ptr<Menu> menu_;
 	// Built in place when a game ends, so it needs no allocation
 	std::optional<RendererResult> renderer_result_;
+	// A multiplayer game's connection, and where it goes
+	std::unique_ptr<MatchClient> match_;
+	std::string server_url_;
 
 	FrameClock clock_;
 	// The simulation runs at 60 ticks per second whatever the frame rate

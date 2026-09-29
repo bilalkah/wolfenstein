@@ -381,6 +381,11 @@
     : params.has('soak') ? ['--soak'] : [];
   // ?debug: P shows the whole level in 2D (for developers)
   if (params.has('debug')) benchmarkArgs.push('--debug');
+  // ?server=ws://host:port[&name=NAME]: play that server's multiplayer game
+  if (params.has('server')) {
+    benchmarkArgs.push('--connect', params.get('server'));
+    if (params.has('name')) benchmarkArgs.push('--name', params.get('name'));
+  }
 
   var Module = {
     arguments: benchmarkArgs,

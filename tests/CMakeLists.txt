@@ -56,6 +56,7 @@ add_executable(unit_tests
     players_test.cpp
     protocol_test.cpp
     game_server_test.cpp
+    match_test.cpp
 )
 target_link_libraries(unit_tests PRIVATE
     GTest::gtest_main
@@ -83,6 +84,7 @@ target_link_libraries(unit_tests PRIVATE
     settings
     net
     game_server
+    match_client
 )
 # Counting heap allocations replaces global operator new, which clashes with
 # the sanitizers' allocator, so allocation tests run in non-sanitizer builds

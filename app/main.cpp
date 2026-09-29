@@ -12,6 +12,7 @@
 #include "Core/game.h"
 #include <algorithm>
 #include <cstdlib>
+#include <string>
 #include <string_view>
 
 int main(int argc, char** argv) {
@@ -23,6 +24,17 @@ int main(int argc, char** argv) {
 	for (int i = 1; i < argc; ++i) {
 		if (std::string_view(argv[i]) == "--debug") {
 			game.EnableDebugView();
+		}
+	}
+	// --connect ws://host:port [--name NAME]: play a multiplayer game
+	std::string_view server;
+	std::string_view name = "player";
+	for (int i = 1; i + 1 < argc; ++i) {
+		if (std::string_view(argv[i]) == "--connect") {
+			server = argv[i + 1];
+		}
+		if (std::string_view(argv[i]) == "--name") {
+			name = argv[i + 1];
 		}
 	}
 	// --benchmark [frames]: run the performance benchmark instead of the game
@@ -37,6 +49,9 @@ int main(int argc, char** argv) {
 		constexpr int kMinimumFrames = 1000;
 		const int frames = argc > 2 ? std::atoi(argv[2]) : 0;
 		game.StartSoak(std::max(frames, kMinimumFrames));
+	}
+	else if (!server.empty()) {
+		game.Connect(std::string(server), name);
 	}
 	game.Run();
 

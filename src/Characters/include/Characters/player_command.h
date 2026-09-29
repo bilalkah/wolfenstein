@@ -74,6 +74,21 @@ inline PlayerCommand Gather(const PlayerCommand& earlier,
 	return gathered;
 }
 
+// The command again for a tick that has no new one of its own (a frame
+// that runs two ticks, a server whose player's next command is late):
+// moving, looking and holding the trigger as it was, but what is pressed
+// once (use, reload, a weapon chosen or stepped to, mouse motion) not again
+inline PlayerCommand Repeated(const PlayerCommand& command) {
+	PlayerCommand repeated = command;
+	repeated.look = 0.0;
+	repeated.look_up = 0.0;
+	repeated.use = false;
+	repeated.reload = false;
+	repeated.weapon = -1;
+	repeated.cycle = 0;
+	return repeated;
+}
+
 }  // namespace wolfenstein
 
 #endif	// CHARACTERS_INCLUDE_CHARACTERS_PLAYER_COMMAND_H_

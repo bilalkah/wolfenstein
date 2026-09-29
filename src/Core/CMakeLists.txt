@@ -92,4 +92,5 @@ target_link_libraries(
     scene_loader
     world
     profiler
+    match_client
 )

@@ -144,15 +144,9 @@ PlayerCommand GameServer::NextCommand(Client& client) {
 		client.last = next.command;
 		return next.command;
 	}
-	// Late: it goes on as it was, moving and holding the trigger, but a key
-	// pressed once is not pressed again
-	PlayerCommand held = client.last;
-	held.use = false;
-	held.reload = false;
-	held.weapon = -1;
-	held.cycle = 0;
-	client.last = held;
-	return held;
+	// Late: it goes on as it was
+	client.last = Repeated(client.last);
+	return client.last;
 }
 
 void GameServer::Disconnect(ClientId id) {

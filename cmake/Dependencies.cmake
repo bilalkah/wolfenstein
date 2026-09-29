@@ -149,6 +149,18 @@ if(NOT EMSCRIPTEN)
     target_compile_definitions(wolfenstein_uwebsockets INTERFACE UWS_NO_ZLIB)
     target_link_libraries(wolfenstein_uwebsockets INTERFACE usockets)
     add_library(wolfenstein::uwebsockets ALIAS wolfenstein_uwebsockets)
+
+    # The native game's WebSocket client (the browser has its own). Plain
+    # ws:// for now: TLS comes with a server on the internet.
+    FetchContent_Declare(ixwebsocket
+        URL https://github.com/machinezone/IXWebSocket/archive/refs/tags/v12.0.1.tar.gz
+        URL_HASH SHA256=d23bdc91dbfe2b9ae13c322d539392d7a6b8b506560f41c90e227fa0f86a2405
+        SYSTEM
+    )
+    wolfenstein_dependency_options(
+        USE_TLS OFF USE_ZLIB OFF IXWEBSOCKET_INSTALL OFF)
+    FetchContent_MakeAvailable(ixwebsocket)
+    target_compile_options(ixwebsocket PRIVATE $<$<CONFIG:Debug>:-O2>)
 endif()
 
 # ---- nlohmann/json (header only, pinned) ----------------------------------

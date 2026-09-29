@@ -26,6 +26,8 @@ namespace wolfenstein::net {
 // Both sides must speak the same: a player of another version is turned
 // away
 inline constexpr std::uint16_t kProtocolVersion = 1;
+// A tick, on the server and in a player's game alike: a command each
+inline constexpr double kTickSeconds = 1.0 / 60.0;
 // The most bytes a message takes
 inline constexpr std::size_t kMaxMessage = 512;
 // Players a game holds at most

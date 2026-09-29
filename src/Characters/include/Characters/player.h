@@ -62,6 +62,23 @@ class Player : public ICharacter, public IGameObject
 	void EnterScene(Scene& scene) { scene_ = &scene; }
 	// What to do from the next update on; the player reads no input device
 	void SetCommand(const PlayerCommand& command);
+	// Driven from outside (another player in a networked game, placed where
+	// the server's snapshots put it): an update only keeps where it was, to
+	// draw it moving smoothly, and plays out a fall; Follow moves it
+	void SetPuppet(bool puppet) { puppet_ = puppet; }
+	bool IsPuppet() const { return puppet_; }
+	// A puppet goes where the server has it: there, looking so, this
+	// healthy, alive or not (falling as it dies, whole again as it comes
+	// back)
+	void Follow(const Position2D& position, double pitch, double health,
+				bool alive);
+	// The local player's move under `command` again, and nothing else: no
+	// shot, no sound (a networked game putting it where the server says it
+	// was, then replaying the commands the server has not seen yet)
+	void Replay(const PlayerCommand& command, double delta_time);
+	// Puts it where the server has it, without drawing it there as a jump
+	// from where it was: as far as the next update, it is drawn moving
+	void Correct(const Position2D& position);
 	// Whether the player is trying to open what is in front of them
 	bool IsUsing() const { return command_.use; }
 	void SetPose(const vector2d& pose) override;
@@ -159,6 +176,8 @@ class Player : public ICharacter, public IGameObject
 
 	Scene* scene_ = nullptr;
 	PlayerCommand command_;
+	bool puppet_ = false;
+	bool replaying_ = false;  // quiet: no footsteps
 	bool is_alive_{true};
 	bool damaged_{false};
 	double translation_speed_{};

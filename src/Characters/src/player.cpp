@@ -112,6 +112,10 @@ void Player::Update(double delta_time) {
 	pickup_animation_.Update(delta_time);
 	since_hurt_ += delta_time;
 	since_hit_ += delta_time;
+	if (puppet_) {
+		since_death_ += is_alive_ ? 0.0 : delta_time;
+		return;	 // placed from outside (Follow), after this
+	}
 	if (!is_alive_) {
 		// Falling, and a thud as the body lands
 		const bool falling = since_death_ < kFallSeconds;
@@ -285,6 +289,35 @@ void Player::SetCommand(const PlayerCommand& command) {
 	command_ = command;
 }
 
+void Player::Follow(const Position2D& position, double pitch, double health,
+					bool alive) {
+	if (alive && !is_alive_) {
+		// Back in the game: where it comes in, not drawn sliding there
+		is_alive_ = true;
+		since_death_ = 0.0;
+		previous_position_ = position;
+	}
+	else if (!alive && is_alive_) {
+		is_alive_ = false;
+		since_death_ = 0.0;
+	}
+	position_ = position;
+	pitch_ = pitch;
+	health_ = health;
+}
+
+void Player::Replay(const PlayerCommand& command, double delta_time) {
+	command_ = command;
+	replaying_ = true;
+	Move(delta_time);
+	Rotate(delta_time);
+	replaying_ = false;
+}
+
+void Player::Correct(const Position2D& position) {
+	position_ = position;
+}
+
 void Player::Move(double delta_time) {
 	const double speed = translation_speed_ * delta_time;
 	const vector2d facing{std::cos(position_.theta), std::sin(position_.theta)};
@@ -319,6 +352,10 @@ void Player::Move(double delta_time) {
 	}
 	// A footstep every stride walked, one foot then the other
 	constexpr double kStride = 0.9;
+	// A replay goes over steps already taken (and heard)
+	if (replaying_) {
+		return;
+	}
 	walked_ += position_.pose.Distance(before);
 	if (walked_ >= kStride) {
 		walked_ -= kStride;

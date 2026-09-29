@@ -280,6 +280,8 @@ void Game::HandleMenuAction(const MenuAction& action) {
 			EnterPlaying();
 			break;
 		case MenuAction::Type::QuitToMenu:
+			// Leaving a match leaves its server
+			match_.reset();
 			// Where the player left off, unless in the middle of a fight
 			if (world_->IsQuiet() && fade_ == Fade::None && !renderer_result_) {
 				SaveProgress();
@@ -572,6 +574,9 @@ bool Game::Tick() {
 		case GameState::Menu:
 			MenuTick();
 			break;
+		case GameState::Joining:
+			JoiningTick();
+			break;
 		case GameState::Playing:
 			GameTick();
 			break;
@@ -612,13 +617,89 @@ void Game::MenuTick() {
 	HandleMenuAction(action);
 }
 
-// The game stays frozen behind the pause, controls and settings screens
+void Game::Connect(const std::string& url, std::string_view name) {
+	server_url_ = url;
+	match_ = std::make_unique<MatchClient>(net::Connection::Open(url), name);
+	state_ = GameState::Joining;
+}
+
+void Game::JoiningTick() {
+	if (!PollMenuEvents()) {
+		return;
+	}
+	clock_.Tick();
+	if (match_) {
+		match_->Poll(*world_);
+		if (match_->GetState() == MatchClient::State::Playing) {
+			BeginMatch();
+			return;
+		}
+	}
+	SDL_SetRenderDrawColor(renderer_context_->GetRenderer(), 0, 0, 0, 255);
+	SDL_RenderClear(renderer_context_->GetRenderer());
+	const MatchClient::State state =
+		match_ ? match_->GetState() : MatchClient::State::Closed;
+	if (state == MatchClient::State::Rejected) {
+		menu_->DrawNotice(match_->Reason() == net::RejectReason::Full
+							  ? "The game is full"
+							  : "The server plays another version");
+	}
+	else if (state == MatchClient::State::Closed) {
+		menu_->DrawNotice(ui::FixedText<160>("Cannot reach {}", server_url_));
+	}
+	else {
+		menu_->DrawNotice(ui::FixedText<160>("Joining {}", server_url_));
+	}
+	Present();
+}
+
+void Game::BeginMatch() {
+	render_type_ = RenderType::TEXTURE;
+	renderer_ = renderer_3d_.get();
+	map_expanded_ = false;
+	ShowLevel();
+	renderer_result_.reset();
+	fade_ = Fade::None;
+	fade_time_ = 0.0;
+	EnterPlaying();
+}
+
+void Game::TickMatch(const PlayerCommand& command, int ticks) {
+	match_->Poll(*world_);
+	for (int tick = 0;
+		 tick < ticks && match_->GetState() == MatchClient::State::Playing;
+		 ++tick) {
+		match_->BeforeTick(*world_, tick == 0 ? command : Repeated(command));
+		world_->CurrentLevel().Update(step_.TickSeconds());
+		match_->AfterTick(*world_);
+	}
+	// The server gone: why, on the joining screen
+	if (match_->GetState() != MatchClient::State::Playing) {
+		CaptureMouse(false);
+		state_ = GameState::Joining;
+	}
+}
+
+// The game stays frozen behind the pause, controls and settings screens; a
+// match goes on, this player standing where it was
 void Game::PausedTick() {
 	if (!PollMenuEvents()) {
 		return;
 	}
 	clock_.Tick();
-	RenderView(ViewPosition(1.0));
+	if (InMatch()) {
+		TickMatch(PlayerCommand{.has_view = true,
+								.view_theta = view_.Theta(),
+								.view_pitch = view_.Pitch()},
+				  step_.Advance(clock_.DeltaTime()));
+		if (state_ != GameState::Paused) {
+			return;
+		}
+		const double alpha = step_.Alpha();
+		camera_->SetPitch(ViewPitch(alpha));
+		camera_->Update(ViewPosition(alpha), alpha);
+	}
+	RenderView(ViewPosition(InMatch() ? step_.Alpha() : 1.0));
 	const auto action = menu_->Update(clock_.DeltaTime());
 	Present();
 	HandleMenuAction(action);
@@ -650,7 +731,8 @@ void Game::GameTick() {
 		BenchmarkStep();
 		return;
 	}
-	if (state_ == GameState::Playing) {
+	// A match has no end yet: no level cleared, no game over
+	if (state_ == GameState::Playing && !InMatch()) {
 		CheckGameOver();
 	}
 #ifndef __EMSCRIPTEN__
@@ -767,6 +849,16 @@ void Game::UpdateAndRender() {
 	// a burst of ticks. A frame with no tick keeps its input for the next.
 	pending_ = Gather(pending_, command);
 	int ticks = step_.Advance(clock_.DeltaTime());
+	if (InMatch()) {
+		TickMatch(pending_, ticks);
+		if (ticks > 0) {
+			pending_ = {};
+		}
+		ticks = 0;
+		if (state_ != GameState::Playing) {
+			return;
+		}
+	}
 	if (ticks > 0) {
 		world_->GetPlayer().SetCommand(pending_);
 		pending_ = {};
@@ -835,8 +927,10 @@ void Game::RenderView(const Position2D& eye) {
 	renderer_->RenderScene(clock_.DeltaTime());
 	if (render_type_ == RenderType::TEXTURE) {
 		minimap_->Render(eye, map_expanded_);
-		const LevelStats stats = world_->CurrentLevel().GetStats();
-		menu_->DrawEnemyCounter(stats.kills, stats.enemies);
+		if (!InMatch()) {
+			const LevelStats stats = world_->CurrentLevel().GetStats();
+			menu_->DrawEnemyCounter(stats.kills, stats.enemies);
+		}
 		const Player& player = world_->GetPlayer();
 		// The weapon chosen shows at once, while the last one goes down
 		menu_->DrawWeaponSlots(
@@ -864,7 +958,7 @@ void Game::RenderView(const Position2D& eye) {
 				}
 				break;
 		}
-		if (fade_ == Fade::None) {
+		if (fade_ == Fade::None && !InMatch()) {
 			menu_->DrawObjective(CurrentObjective());
 		}
 		// A page of intel just read, over the view, fading at the end
