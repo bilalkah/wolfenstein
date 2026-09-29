@@ -84,7 +84,12 @@
     const known = [progress.wasm, progress.data].filter(([, total]) => total);
     const loaded = known.reduce((sum, [bytes]) => sum + bytes, 0);
     const total = known.reduce((sum, [, bytes]) => sum + bytes, 0);
-    if (!total) return;
+    if (!total) {
+      // Sizes unknown (compressed on the way): how much has come so far
+      const come = progress.wasm[0] + progress.data[0];
+      if (come) statusEl.textContent = `Loading ${megabytes(come)} MB`;
+      return;
+    }
     // Totals become known one download at a time: never move backwards
     shownFraction = Math.max(shownFraction, Math.min(loaded / total, 1));
     fillEl.style.width = `${shownFraction * 100}%`;
@@ -263,11 +268,17 @@
         const stamp = stampOf(response);
         const size = Number(response.headers.get('Content-Length'));
         if (!response.ok || !stamp || !size) return null;
+        // A file the server compresses on the way (GitHub Pages gzips the
+        // .wasm and the .data) cannot be fetched in pieces: a byte range is
+        // of the compressed bytes, and Content-Length is theirs, not the
+        // file's. It comes whole, and the browser inflates it.
+        const compressed = Boolean(response.headers.get('Content-Encoding'));
         return {
           size,
           stamp,
           version: `${size} ${stamp}`,
-          ranges: response.headers.get('Accept-Ranges') === 'bytes',
+          compressed,
+          ranges: !compressed && response.headers.get('Accept-Ranges') === 'bytes',
         };
       } catch {
         // no answer: ask again
@@ -276,6 +287,25 @@
       }
     }
     return null;
+  }
+
+  // `url` whole, in one request, as the server sends it; `onProgress` hears
+  // of its bytes as they arrive, of `remote.size` in all, or of an unknown
+  // total if the server compresses them
+  async function wholeFetch(url, type, remote, onProgress) {
+    const response = await nativeFetch(url, { cache: 'no-store' });
+    if (!response.ok || !response.body) return response;
+    const total = remote.compressed ? 0 : remote.size;
+    let received = 0;
+    onProgress(0, total);
+    const counted = response.body.pipeThrough(new TransformStream({
+      transform(chunk, stream) {
+        received += chunk.length;
+        onProgress(received, total);
+        stream.enqueue(chunk);
+      },
+    }));
+    return new Response(counted, { headers: { 'Content-Type': type } });
   }
 
   async function cachedFetch(url, type, onProgress) {
@@ -288,8 +318,10 @@
         headers: { 'Content-Type': type, 'Content-Length': String(kept.blob.size) },
       });
     }
-    if (!remote.ranges) return nativeFetch(url);
-    const response = piecedFetch(url, type, remote.size, remote.stamp, onProgress);
+    const response = remote.ranges
+      ? piecedFetch(url, type, remote.size, remote.stamp, onProgress)
+      : await wholeFetch(url, type, remote, onProgress);
+    if (!response.ok) return response;
     // Kept only if every piece arrived: a failed download is fetched afresh
     // next time
     const [forGame, forStore] = response.body.tee();
