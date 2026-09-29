@@ -103,11 +103,6 @@ bool MatchRules::Tick(double seconds, std::span<const MatchEvent> events,
 		End(Leader());
 		changed = true;
 	}
-	else if (phase_ == net::MatchPhase::Intermission &&
-			 elapsed_ >= settings_.intermission_seconds) {
-		Restart();
-		changed = true;
-	}
 	return changed;
 }
 

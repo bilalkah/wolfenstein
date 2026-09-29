@@ -666,6 +666,10 @@ void Game::BeginMatch() {
 
 void Game::TickMatch(const PlayerCommand& command, int ticks) {
 	match_->Poll(*world_);
+	// The next match, on another arena: the views onto it
+	if (match_->TakeNewLevel()) {
+		ShowLevel();
+	}
 	for (int tick = 0;
 		 tick < ticks && match_->GetState() == MatchClient::State::Playing;
 		 ++tick) {

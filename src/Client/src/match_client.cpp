@@ -28,7 +28,8 @@ void MatchClient::Poll(World& world) {
 			continue;  // not the game's: nothing to do with it
 		}
 		if (const auto* welcome = std::get_if<net::Welcome>(&*message);
-			welcome != nullptr && state_ == State::Joining) {
+			welcome != nullptr &&
+			(state_ == State::Joining || state_ == State::Playing)) {
 			OnWelcome(world, *welcome);
 		}
 		else if (const auto* reject = std::get_if<net::Reject>(&*message)) {
@@ -63,16 +64,24 @@ void MatchClient::OnWelcome(World& world, const net::Welcome& welcome) {
 	}
 	// The server judges what happens to the players here
 	world.CurrentLevel().SetJudging(false);
+	// Welcomed again, to the next arena: the commands go on numbered as
+	// they were (the server has them so), but where they took the player
+	// is in the last arena
+	if (state_ == State::Playing) {
+		new_level_ = true;
+	}
+	else {
+		sequence_ = 0;
+		scores_ = {};
+		kill_count_ = 0;
+	}
 	slot_ = welcome.slot;
-	sequence_ = 0;
 	history_ = {};
 	snapshot_count_ = 0;
 	snapshot_next_ = 0;
 	latest_tick_ = welcome.tick;
 	ticks_since_ = 0;
 	shown_tick_ = welcome.tick;
-	scores_ = {};
-	kill_count_ = 0;
 	revived_ = false;
 	state_ = State::Playing;
 }
@@ -362,22 +371,25 @@ void MatchClient::Reconcile(World& world, const net::PlayerState& state,
 							std::uint32_t ack) {
 	Player& player = world.GetPlayer();
 	const Sent& at = history_[ack % kHistory];
-	// No command of ours applied yet, or too long ago to replay from: where
-	// the server has it, looking where it looks
-	if (ack == 0 || at.sequence != ack) {
-		if (player.GetPose().Distance(state.pose) > kTolerance) {
-			++corrections_;
-			player.Correct(Position2D(state.pose, player.GetPosition().theta));
-		}
-		return;
-	}
-	if (at.reached.pose.Distance(state.pose) <= kTolerance) {
+	// What was foreseen for command `ack`; not remembered (none of ours
+	// applied yet, too long ago, or in the last arena): where the player
+	// stands now
+	const bool remembered = ack != 0 && at.sequence == ack;
+	const vector2d foreseen = remembered ? at.reached.pose : player.GetPose();
+	if (foreseen.Distance(state.pose) <= kTolerance) {
 		return;	 // predicted right
 	}
 	++corrections_;
 	player.Correct(Position2D(state.pose, state.theta));
-	for (std::uint32_t sequence = ack + 1; sequence <= sequence_; ++sequence) {
+	// The commands since, those remembered, played again from there
+	const std::uint32_t oldest =
+		sequence_ >= kHistory ? sequence_ - kHistory + 1 : 1;
+	for (std::uint32_t sequence = std::max(ack + 1, oldest);
+		 sequence <= sequence_; ++sequence) {
 		Sent& sent = history_[sequence % kHistory];
+		if (sent.sequence != sequence) {
+			continue;
+		}
 		player.Replay(sent.command, net::kTickSeconds);
 		sent.reached = player.GetPosition();
 	}

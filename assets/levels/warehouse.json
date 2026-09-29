@@ -1,0 +1,244 @@
+{
+    "name": "THE WAREHOUSE",
+    "music": "level5",
+    "map": "warehouse.txt",
+    "player": {
+        "position": {
+            "x": 1.5,
+            "y": 1.5,
+            "theta": 0.89
+        }
+    },
+    "spawns": [
+        {
+            "x": 1.5,
+            "y": 1.5,
+            "theta": 0.89
+        },
+        {
+            "x": 1.5,
+            "y": 20.5,
+            "theta": -0.18
+        },
+        {
+            "x": 1.5,
+            "y": 34.5,
+            "theta": -0.89
+        },
+        {
+            "x": 2.5,
+            "y": 12.5,
+            "theta": 0.41
+        },
+        {
+            "x": 5.5,
+            "y": 8.5,
+            "theta": 0.79
+        },
+        {
+            "x": 5.5,
+            "y": 33.5,
+            "theta": -1.02
+        },
+        {
+            "x": 9.5,
+            "y": 2.5,
+            "theta": 1.23
+        },
+        {
+            "x": 9.5,
+            "y": 7.5,
+            "theta": 1.09
+        },
+        {
+            "x": 9.5,
+            "y": 33.5,
+            "theta": -1.23
+        },
+        {
+            "x": 12.5,
+            "y": 16.5,
+            "theta": 0.54
+        },
+        {
+            "x": 16.5,
+            "y": 8.5,
+            "theta": 1.73
+        },
+        {
+            "x": 20.5,
+            "y": 2.5,
+            "theta": 1.91
+        },
+        {
+            "x": 20.5,
+            "y": 23.5,
+            "theta": -2.36
+        },
+        {
+            "x": 20.5,
+            "y": 33.5,
+            "theta": -1.91
+        },
+        {
+            "x": 27.5,
+            "y": 1.5,
+            "theta": 2.22
+        },
+        {
+            "x": 27.5,
+            "y": 17.5,
+            "theta": 3.1
+        },
+        {
+            "x": 27.5,
+            "y": 34.5,
+            "theta": -2.22
+        }
+    ],
+    "enemies": [],
+    "dynamicObjects": [
+        {
+            "type": "green_light",
+            "position": {
+                "x": 3.5,
+                "y": 30.5
+            }
+        },
+        {
+            "type": "green_light",
+            "position": {
+                "x": 16.5,
+                "y": 2.5
+            }
+        },
+        {
+            "type": "green_light",
+            "position": {
+                "x": 26.5,
+                "y": 23.5
+            }
+        }
+    ],
+    "pickups": [
+        {
+            "type": "medkit",
+            "position": {
+                "x": 2.5,
+                "y": 6.5
+            }
+        },
+        {
+            "type": "mp5",
+            "position": {
+                "x": 2.5,
+                "y": 24.5
+            }
+        },
+        {
+            "type": "ammo_box",
+            "position": {
+                "x": 5.5,
+                "y": 11.5
+            }
+        },
+        {
+            "type": "large_medkit",
+            "position": {
+                "x": 5.5,
+                "y": 17.5
+            }
+        },
+        {
+            "type": "medkit",
+            "position": {
+                "x": 9.5,
+                "y": 14.5
+            }
+        },
+        {
+            "type": "ammo_box",
+            "position": {
+                "x": 10.5,
+                "y": 32.5
+            }
+        },
+        {
+            "type": "ammo_box",
+            "position": {
+                "x": 12.5,
+                "y": 3.5
+            }
+        },
+        {
+            "type": "rocket_launcher",
+            "position": {
+                "x": 12.5,
+                "y": 14.5
+            }
+        },
+        {
+            "type": "plasma_rifle",
+            "position": {
+                "x": 15.5,
+                "y": 30.5
+            }
+        },
+        {
+            "type": "ammo_box",
+            "position": {
+                "x": 16.5,
+                "y": 17.5
+            }
+        },
+        {
+            "type": "shotgun",
+            "position": {
+                "x": 17.5,
+                "y": 3.5
+            }
+        },
+        {
+            "type": "medkit",
+            "position": {
+                "x": 20.5,
+                "y": 14.5
+            }
+        },
+        {
+            "type": "medkit",
+            "position": {
+                "x": 21.5,
+                "y": 28.5
+            }
+        },
+        {
+            "type": "ammo_box",
+            "position": {
+                "x": 24.5,
+                "y": 22.5
+            }
+        },
+        {
+            "type": "super_shotgun",
+            "position": {
+                "x": 26.5,
+                "y": 5.5
+            }
+        },
+        {
+            "type": "large_medkit",
+            "position": {
+                "x": 26.5,
+                "y": 29.5
+            }
+        },
+        {
+            "type": "chainsaw",
+            "position": {
+                "x": 27.5,
+                "y": 12.5
+            }
+        }
+    ]
+}

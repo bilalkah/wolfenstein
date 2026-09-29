@@ -17,6 +17,7 @@
 #include <optional>
 #include <span>
 #include <string_view>
+#include <utility>
 
 namespace wolfenstein {
 
@@ -98,11 +99,11 @@ class MatchClient
 	}
 	// Whether the local player has come back since last asked (the game
 	// turns its view to where it now looks)
-	bool TakeRevived() {
-		const bool revived = revived_;
-		revived_ = false;
-		return revived;
-	}
+	bool TakeRevived() { return std::exchange(revived_, false); }
+	// Whether the match has moved to another arena since last asked: the
+	// world's level is a new one, and the game's views must be pointed at
+	// it before they draw again
+	bool TakeNewLevel() { return std::exchange(new_level_, false); }
 
   private:
 	// What the local player carried after a command
@@ -166,6 +167,7 @@ class MatchClient
 	std::array<Kill, kKillFeed> kills_{};
 	std::size_t kill_count_ = 0;
 	bool revived_ = false;
+	bool new_level_ = false;
 	std::array<std::uint8_t, net::kMaxMessage> buffer_{};
 };
 

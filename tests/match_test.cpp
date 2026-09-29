@@ -17,6 +17,7 @@
 #include <map>
 #include <memory>
 #include <numbers>
+#include <string>
 #include <vector>
 
 namespace wolfenstein {
@@ -128,11 +129,13 @@ class MatchTest : public ::testing::Test
   protected:
 	MatchTest() { Play({}); }
 
-	// A server afresh, playing by `settings`; before anyone joins
-	void Play(const MatchSettings& settings) {
+	// A server afresh, playing by `settings` on `arenas`; before anyone
+	// joins
+	void Play(const MatchSettings& settings,
+			  std::vector<std::string> arenas = {"bazaar.json"}) {
 		server_.reset();
-		auto created =
-			GameServer::Create(RESOURCE_DIR, "bazaar.json", loop_, settings);
+		auto created = GameServer::Create(RESOURCE_DIR, std::move(arenas),
+										  loop_, settings);
 		EXPECT_TRUE(created) << (created ? "" : created.error());
 		if (created) {
 			server_ = std::move(*created);
@@ -353,6 +356,47 @@ TEST_F(MatchTest, AGunRaceKillArmsTheKillerInItsGame) {
 	EXPECT_EQ(a.Me().HeldWeapon(), ladder[1]);
 	EXPECT_EQ(a.Me().GetOwnedWeapons(), 1U << ladder[1]);
 	EXPECT_EQ(a.match->GetScores().players[0].step, 1u);
+}
+
+// The match over, the next is on the next arena: every game goes there,
+// the players in it, and plays on as before
+TEST_F(MatchTest, TheNextMatchIsOnTheNextArena) {
+	Play({.frag_limit = 1, .intermission_seconds = 1.0},
+		 {"bazaar.json", "warehouse.json"});
+	loop_.delay = 2;
+	PlayerGame& a = Join(ClientId{1});
+	PlayerGame& b = Join(ClientId{2});
+	Settle();
+	EXPECT_EQ(a.world->LevelName(), "THE BAZAAR");
+	Player& b_there = *server_->GetWorld().FindPlayer(1);
+	b_there.Protect(0.0);
+	server_->GetWorld().CurrentLevel().HurtPlayer(b_there, 1000.0, 0, 0);
+	ASSERT_TRUE(TicksUntil(
+		[&] {
+			return server_->Rules().Phase() == net::MatchPhase::Playing &&
+				   server_->GetWorld().LevelName() == "THE WAREHOUSE";
+		},
+		200));
+	Ticks(2 * loop_.delay + 6);
+	for (PlayerGame* game : {&a, &b}) {
+		EXPECT_EQ(game->world->LevelName(), "THE WAREHOUSE");
+		EXPECT_TRUE(game->match->TakeNewLevel()) << "told once";
+		EXPECT_FALSE(game->match->TakeNewLevel());
+		EXPECT_TRUE(game->Me().IsAlive());
+		EXPECT_LT(game->Me().GetPose().Distance(
+					  OnServer(game->world->LocalSlot().value_or(0)).GetPose()),
+				  0.01);
+	}
+	ASSERT_NE(b.world->FindPlayer(0), nullptr) << "each sees the other there";
+	EXPECT_EQ(a.match->GetScores().players[0].frags, 0) << "scores afresh";
+	// Walking there as anywhere: at once, where the server agrees
+	const std::size_t corrections = a.match->Corrections();
+	a.command = Walking(a.Me().GetPosition().theta);
+	Ticks(20);
+	a.command = Walking(a.Me().GetPosition().theta, 0);
+	Ticks(2 * loop_.delay + 6);
+	EXPECT_LT(a.Me().GetPose().Distance(OnServer(0).GetPose()), 0.01);
+	EXPECT_EQ(a.match->Corrections(), corrections);
 }
 
 TEST_F(MatchTest, APlayerLeavingIsGoneFromTheOthersGame) {

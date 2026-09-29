@@ -54,7 +54,7 @@ struct Standing
 // wins; in a gun race each kill takes the killer up a ladder of weapons,
 // every other weapon and its rounds left out of the level, and a kill with
 // the last wins. Past the time limit the leader wins. The result shows a
-// while, everyone shielded, then the next match begins.
+// while, everyone shielded, until the next match begins (Restart).
 class MatchRules
 {
   public:
@@ -72,7 +72,8 @@ class MatchRules
 	// After a tick `seconds` long in which `events` happened: kills are
 	// counted, pickups taken go, players down long enough (or asking,
 	// `wants_back`, by slot) come back, pickups come back and the clock
-	// runs. True if a standing or the phase changed.
+	// runs. True if a standing or the phase changed. The intermission over,
+	// the next match waits for Restart.
 	bool Tick(double seconds, std::span<const MatchEvent> events,
 			  std::span<const bool> wants_back);
 	// Everyone's score back to none, everyone whole, the pickups back: the
@@ -81,6 +82,11 @@ class MatchRules
 
 	const MatchSettings& Settings() const { return settings_; }
 	net::MatchPhase Phase() const { return phase_; }
+	// The result has shown long enough: time for the next match
+	bool IntermissionOver() const {
+		return phase_ == net::MatchPhase::Intermission &&
+			   elapsed_ >= settings_.intermission_seconds;
+	}
 	// Of the match, or of the intermission
 	double SecondsLeft() const;
 	std::optional<std::size_t> Winner() const { return winner_; }

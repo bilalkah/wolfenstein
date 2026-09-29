@@ -4,13 +4,14 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <ranges>
 #include <utility>
 
 namespace wolfenstein {
 
 std::expected<std::unique_ptr<GameServer>, std::string> GameServer::Create(
-	const std::string& asset_dir, const std::string& level, Outbox& outbox,
-	const MatchSettings& settings) {
+	const std::string& asset_dir, std::vector<std::string> arenas,
+	Outbox& outbox, const MatchSettings& settings) {
 	auto loader = SceneLoader::Open(asset_dir);
 	if (!loader) {
 		return std::unexpected(loader.error());
@@ -29,8 +30,18 @@ std::expected<std::unique_ptr<GameServer>, std::string> GameServer::Create(
 	// Silent: no one listens on a server
 	auto world = std::make_unique<World>(**textures, std::move(*loader),
 										 std::make_unique<SoundManager>());
-	if (auto started = world->NewMatch(level, std::nullopt); !started) {
-		return std::unexpected(started.error());
+	if (arenas.empty()) {
+		arenas = world->Config().arenas;
+	}
+	if (arenas.empty()) {
+		return std::unexpected(std::string("no arena to play on"));
+	}
+	// Each arena started once, the first last, so a later match cannot
+	// fail to start
+	for (const std::string& arena : std::views::reverse(arenas)) {
+		if (auto started = world->NewMatch(arena, std::nullopt); !started) {
+			return std::unexpected(started.error());
+		}
 	}
 	if (settings.mode == net::MatchMode::GunRace &&
 		world->Config().gun_race.empty()) {
@@ -38,21 +49,55 @@ std::expected<std::unique_ptr<GameServer>, std::string> GameServer::Create(
 			std::string("a gun race needs the configuration's gun_race"));
 	}
 	return std::make_unique<GameServer>(std::move(*textures), std::move(world),
-										level, outbox, settings);
+										std::move(arenas), outbox, settings);
 }
 
 GameServer::GameServer(std::unique_ptr<TextureManager> textures,
-					   std::unique_ptr<World> world, const std::string& level,
-					   Outbox& outbox, const MatchSettings& settings)
+					   std::unique_ptr<World> world,
+					   std::vector<std::string> arenas, Outbox& outbox,
+					   const MatchSettings& settings)
 	: textures_(std::move(textures)),
 	  world_(std::move(world)),
-	  level_(level),
+	  arenas_(std::move(arenas)),
+	  level_(arenas_.front()),
 	  outbox_(outbox),
 	  rules_(*world_, settings) {
-	Scene& scene = world_->CurrentLevel();
+	Watch(world_->CurrentLevel());
+}
+
+void GameServer::Watch(Scene& scene) {
 	scene.RecordEvents(true);
 	scene.SetHindsight(this);
+	past_ = {};
 	Remember();
+}
+
+void GameServer::NextArena() {
+	if (arenas_.size() < 2) {
+		return;	 // the next match here
+	}
+	arena_ = (arena_ + 1) % arenas_.size();
+	level_ = net::LevelName(arenas_[arena_]);
+	// Each arena was started once already: it starts again
+	if (auto started = world_->NewMatch(arenas_[arena_], std::nullopt);
+		!started) {
+		return;
+	}
+	for (const Client& client : clients_) {
+		// No room for it there (cannot be: every slot is free): it goes
+		if (client.open && client.slot && !world_->JoinPlayer(*client.slot)) {
+			outbox_.Close(client.id);
+		}
+	}
+	Watch(world_->CurrentLevel());
+	for (const Client& client : clients_) {
+		if (client.open && client.slot) {
+			Send(client.id,
+				 net::Welcome{.slot = static_cast<std::uint8_t>(*client.slot),
+							  .tick = tick_,
+							  .level = level_});
+		}
+	}
 }
 
 std::size_t GameServer::PlayerCount() const {
@@ -210,6 +255,12 @@ void GameServer::Tick() {
 					  scores_changed_;
 	SendEvents(scene.Events());
 	scene.ClearEvents();
+	// The result shown: the next match, on the next arena
+	if (rules_.IntermissionOver()) {
+		NextArena();
+		rules_.Restart();
+		scores_changed_ = true;
+	}
 	if (scores_changed_ || tick_ % kScoresEvery == 0) {
 		SendScores();
 		scores_changed_ = false;

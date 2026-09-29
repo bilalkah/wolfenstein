@@ -102,7 +102,52 @@ BAZAAR = Arena(
 """,
 )
 
-ARENAS = [BAZAAR]
+# A goods yard at dusk: offices and a yard to the north, the warehouse in
+# the middle with its stacks of crates, a corridor down its west side and
+# the loading dock to its east, and the old tunnel under the tracks along
+# the south. Three lanes north to south, crossed by the yard and the
+# tunnel, doors where they meet the warehouse. Drawn afresh, in the manner
+# of the industrial maps players know.
+WAREHOUSE = Arena(
+    name="warehouse",
+    title="THE WAREHOUSE",
+    music="level5",
+    walls=(CONCRETE, MOSS, BRICK, CONCRETE),
+    drawing="""
+####################################
+#S.......&....&.....S.............S#
+#.....m..&..S.&.........u..........#
+#........&....D.......o....o..l....#
+#&&.&&........&....................#
+#.......S..a..&..M...............S.#
+#.............&....................#
+##..#######D######..#########...####
+#....#...................#.........#
+#.S..#.S......m..........#.......S.#
+#....#...&&........&&...........a..#
+#....#...&&........&&..............#
+#..a.#........r.S........#.........#
+#....#...................#...&&....#
+#....D.......&&&&........#...&&....#
+#....#.......&&&&........#....p....#
+#.l..#..S........a.......#.........#
+#..g.#...................D.........#
+#....#...&&........&&....#.....&&..#
+#........&&........&&....#.....&&..#
+#.S..#........m........S.#.......S.#
+#....#...................#..m......#
+#%..%%%%%%%%%%%D%%%%%%%%%%%%%%..%%%#
+#.........%%.......................#
+#.........%%..........a............#
+#.......o.....o.....o.....o........#
+#....G.................l.....M.....#
+#S..........c....S................S#
+#..................................#
+####################################
+""",
+)
+
+ARENAS = [BAZAAR, WAREHOUSE]
 
 
 def cells(arena):
@@ -166,7 +211,42 @@ def check(arena, rows):
     return spawns
 
 
+def campaign_files():
+    """Every level file the campaign (or the benchmark) plays: an arena
+    must never be written over one"""
+    config = json.loads((ASSETS / "levels" / "config.json").read_text())
+    found = {config.get("benchmark_level", "")}
+
+    def walk(node):
+        if isinstance(node, dict):
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+        elif isinstance(node, str) and node.endswith(".json"):
+            found.add(node)
+
+    walk(config.get("campaign", {}))
+    walk(config.get("levels", []))
+    return found
+
+
+def campaign_maps(levels):
+    """The maps those levels are drawn on"""
+    maps = set()
+    for level in levels:
+        path = ASSETS / "levels" / level
+        if path.exists():
+            maps.add(json.loads(path.read_text()).get("map", ""))
+    return maps
+
+
 def build(arena):
+    levels = campaign_files()
+    if f"{arena.name}.json" in levels or \
+            f"{arena.name}.txt" in campaign_maps(levels):
+        raise SystemExit(f"{arena.name}: a campaign level has that name")
     rows = cells(arena)
     spawns = check(arena, rows)
     height, width = len(rows), len(rows[0])

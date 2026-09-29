@@ -11,7 +11,7 @@
         }
     },
     "benchmark_level": "benchmark.json",
-    "arenas": ["bazaar.json"],
+    "arenas": ["bazaar.json", "warehouse.json"],
     "gun_race": ["pistol", "mp5", "shotgun", "super_shotgun", "plasma_rifle", "rocket_launcher", "chainsaw"],
     "menu_music": "menu",
     "difficulties": [

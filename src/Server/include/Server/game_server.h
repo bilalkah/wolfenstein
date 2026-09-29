@@ -18,6 +18,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <vector>
 
 namespace wolfenstein {
 
@@ -77,14 +78,16 @@ class GameServer : private Hindsight
 	static constexpr std::uint32_t kScoresEvery = 60;
 
 	// Loads the game's content from `asset_dir`, drawing nothing, and starts
-	// a match on the arena `level` with no one in it yet, played by
-	// `settings`
+	// a match on the first of `arenas` (none: the configuration's) with no
+	// one in it yet, played by `settings`; each match after is played on
+	// the next, round and round
 	static std::expected<std::unique_ptr<GameServer>, std::string> Create(
-		const std::string& asset_dir, const std::string& level, Outbox& outbox,
-		const MatchSettings& settings = {});
-	// Borrows the outbox, which outlives it
+		const std::string& asset_dir, std::vector<std::string> arenas,
+		Outbox& outbox, const MatchSettings& settings = {});
+	// Its world's match started on the first of `arenas`; borrows the
+	// outbox, which outlives it
 	GameServer(std::unique_ptr<TextureManager> textures,
-			   std::unique_ptr<World> world, const std::string& level,
+			   std::unique_ptr<World> world, std::vector<std::string> arenas,
 			   Outbox& outbox, const MatchSettings& settings = {});
 	// Pinned: the world borrows the textures, the level this
 	GameServer(const GameServer&) = delete;
@@ -139,6 +142,10 @@ class GameServer : private Hindsight
 								 std::size_t target) const override;
 	// Where everyone stands after this tick, for shots judged later
 	void Remember();
+	// The next match on the next arena: everyone in it, and welcomed to it
+	void NextArena();
+	// A new level's: its events recorded, its shots judged in hindsight
+	void Watch(Scene& scene);
 	void SendEvents(std::span<const MatchEvent> events);
 	void SendScores();
 
@@ -154,6 +161,8 @@ class GameServer : private Hindsight
 
 	std::unique_ptr<TextureManager> textures_;
 	std::unique_ptr<World> world_;
+	std::vector<std::string> arenas_;
+	std::size_t arena_ = 0;	 // the one played
 	net::LevelName level_;
 	Outbox& outbox_;
 	MatchRules rules_;

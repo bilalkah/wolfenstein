@@ -77,8 +77,8 @@ class GameServerTest : public ::testing::Test
 	// A server afresh, playing by `settings`
 	void Play(const MatchSettings& settings) {
 		server_.reset();
-		auto created =
-			GameServer::Create(RESOURCE_DIR, "bazaar.json", outbox_, settings);
+		auto created = GameServer::Create(RESOURCE_DIR, {"bazaar.json"},
+										  outbox_, settings);
 		EXPECT_TRUE(created) << (created ? "" : created.error());
 		if (created) {
 			server_ = std::move(*created);

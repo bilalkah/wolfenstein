@@ -2,7 +2,8 @@
 // connected by WebSocket. uWebSockets carries the messages; GameServer
 // plays the game.
 //
-//   wolfenstein-server [--port 8080] [--level bazaar.json] [--assets DIR]
+//   wolfenstein-server [--port 8080] [--level bazaar.json,warehouse.json]
+//                      [--assets DIR]
 //                      [--mode deathmatch|gunrace] [--frags 20]
 //                      [--minutes 10]
 //
@@ -19,6 +20,7 @@
 #include <exception>
 #include <iostream>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -143,7 +145,14 @@ int main(int argc, char** argv) try {
 		std::cerr << "Not a port: " << port_text << '\n';
 		return EXIT_FAILURE;
 	}
-	const std::string level(Option(argc, argv, "--level", "bazaar.json"));
+	// The arenas, one after another; none named: every arena the game has
+	std::vector<std::string> arenas;
+	for (const auto part :
+		 std::views::split(Option(argc, argv, "--level", ""), ',')) {
+		if (!part.empty()) {
+			arenas.emplace_back(std::string_view(part));
+		}
+	}
 	const std::string assets(Option(argc, argv, "--assets", RESOURCE_DIR));
 	wolfenstein::MatchSettings settings;
 	const std::string_view mode = Option(argc, argv, "--mode", "deathmatch");
@@ -166,7 +175,7 @@ int main(int argc, char** argv) try {
 	settings.time_limit = *time_limit * 60.0;
 
 	Sockets sockets;
-	auto created = GameServer::Create(assets, level, sockets, settings);
+	auto created = GameServer::Create(assets, arenas, sockets, settings);
 	if (!created) {
 		std::cerr << "Cannot start the game: " << created.error() << '\n';
 		return EXIT_FAILURE;
@@ -212,13 +221,12 @@ int main(int argc, char** argv) try {
 				 server.Disconnect(id);
 				 sockets.Remove(id);
 			 }});
-	app.listen(*port, [port, &level, mode](auto* listening) {
+	app.listen(*port, [port, mode](auto* listening) {
 		if (listening == nullptr) {
 			std::cerr << "Cannot listen on port " << *port << '\n';
 			std::exit(EXIT_FAILURE);
 		}
-		std::cout << "Serving " << mode << " on " << level << ", port " << *port
-				  << '\n'
+		std::cout << "Serving " << mode << " on port " << *port << '\n'
 				  << std::flush;
 	});
 
