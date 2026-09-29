@@ -15,8 +15,8 @@
 #include "Camera/camera.h"
 #include "Core/scene.h"
 #include "TextureManager/texture_manager.h"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
+#include <SDL3/SDL.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -63,6 +63,13 @@ inline double PixelsPerRadian(const RenderConfig& config, double fov) {
 	return config.width / (2 * std::tan(fov / 2));
 }
 
+// SDL draws at fractional positions; the views lay out in whole pixels
+inline SDL_FRect ToFRect(const SDL_Rect& rect) {
+	SDL_FRect result{};
+	SDL_RectToFRect(&rect, &result);
+	return result;
+}
+
 // Cuts a picture drawn over `dest` down to the part inside `screen`: `dest`
 // becomes that part and `src` the part of the picture it shows (counted from
 // the other side if the picture is drawn mirrored). False if none of it
@@ -73,7 +80,7 @@ inline bool ClipToScreen(SDL_Rect& src, SDL_Rect& dest, const SDL_Rect& screen,
 						 bool mirrored) {
 	SDL_Rect visible;
 	if (src.w <= 0 || src.h <= 0 ||
-		SDL_IntersectRect(&dest, &screen, &visible) == SDL_FALSE) {
+		!SDL_GetRectIntersection(&dest, &screen, &visible)) {
 		return false;
 	}
 	// Cut at whole texels, so the picture keeps its scale: the rectangle
@@ -102,7 +109,7 @@ inline bool ClipToScreen(SDL_Rect& src, SDL_Rect& dest, const SDL_Rect& screen,
 	constexpr int kMargin = 64;
 	const SDL_Rect bound{screen.x - kMargin, screen.y - kMargin,
 						 screen.w + 2 * kMargin, screen.h + 2 * kMargin};
-	SDL_IntersectRect(&whole, &bound, &dest);
+	SDL_GetRectIntersection(&whole, &bound, &dest);
 	src = {src.x + first, src.y + top, last - first, bottom - top};
 	return true;
 }

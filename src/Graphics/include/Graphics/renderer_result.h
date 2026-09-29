@@ -15,7 +15,7 @@
 #include "Animation/triggered_single_animation.h"
 #include "Graphics/renderer_interface.h"
 #include "TextureManager/texture_manager.h"
-#include <SDL2/SDL_render.h>
+#include <SDL3/SDL_render.h>
 #include <memory>
 
 namespace wolfenstein {

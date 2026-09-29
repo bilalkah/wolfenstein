@@ -14,7 +14,7 @@ target_link_libraries(
     collision_manager
     enemy_state
     game_object
-    wolfenstein::sdl2
+    wolfenstein::sdl3
     vector
     weapon
     camera

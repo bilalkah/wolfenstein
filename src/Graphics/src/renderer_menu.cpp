@@ -2,7 +2,7 @@
 #include "Core/scene.h"
 #include "Settings/settings.h"
 #include "TextureManager/texture_manager.h"
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -603,9 +603,10 @@ MenuAction Menu::ResultScreen() {
 }
 
 void Menu::DrawBackground() {
-	SDL_RenderCopy(context_->GetRenderer(),
-				   context_->Textures().GetTexture(background_texture_).texture,
-				   nullptr, nullptr);
+	SDL_RenderTexture(
+		context_->GetRenderer(),
+		context_->Textures().GetTexture(background_texture_).texture, nullptr,
+		nullptr);
 }
 
 void Menu::DrawDimmer(Uint8 alpha) {

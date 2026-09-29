@@ -14,7 +14,7 @@
 
 #include "Graphics/quad_batch.h"
 #include "Graphics/renderer_interface.h"
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include <cstddef>
 #include <vector>
 

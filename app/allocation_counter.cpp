@@ -9,7 +9,7 @@
 //
 // Native builds count operator new only, i.e. our own code. Headless native
 // runs (CI, the dev container) draw through SDL's software renderer, which
-// allocates inside every SDL_RenderCopy; counting that would measure the
+// allocates inside every SDL_RenderTexture; counting that would measure the
 // test setup, not the game.
 
 #include "Profiler/profiler.h"

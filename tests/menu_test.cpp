@@ -50,8 +50,8 @@ TEST(Menu, NoFrameAllocates) {
 	// Move the settings sliders, which redraws their values as new text
 	menu.Open(MenuScreen::Settings);
 	SDL_Event right{};
-	right.type = SDL_KEYDOWN;
-	right.key.keysym.sym = SDLK_RIGHT;
+	right.type = SDL_EVENT_KEY_DOWN;
+	right.key.key = SDLK_RIGHT;
 	const auto sliding = AllocationStats::count;
 	for (int i = 0; i < 40; ++i) {
 		menu.HandleEvent(right);
@@ -101,8 +101,8 @@ TEST(Menu, ANewGameStartsAtTheChosenDifficulty) {
 	Menu menu(context, difficulties);
 	const auto press = [&](SDL_Keycode key) {
 		SDL_Event event{};
-		event.type = SDL_KEYDOWN;
-		event.key.keysym.sym = key;
+		event.type = SDL_EVENT_KEY_DOWN;
+		event.key.key = key;
 		menu.HandleEvent(event);
 		return menu.Update(1.0 / 60.0);
 	};

@@ -70,13 +70,13 @@ struct GeneralConfig
 
 // Mouse motion as the player's view moves: a turn, in radians, and a look
 // up (+) or down, as a slope. A mouse pixel moves the picture as far either
-// way, however wide the view.
+// way, however wide the view. SDL counts the motion in fractions of a pixel.
 struct MouseLook
 {
 	double turn = 0.0;
 	double up = 0.0;
 };
-MouseLook ToMouseLook(int dx, int dy, const Settings& settings,
+MouseLook ToMouseLook(double dx, double dy, const Settings& settings,
 					  const GeneralConfig& view);
 
 class Game
@@ -125,6 +125,8 @@ class Game
 	void ShowLevel();
 	void EnterPlaying();
 	void Pause();
+	// The mouse turns the view (hidden, and locked to the window) or points
+	void CaptureMouse(bool captured);
 	void HandleMenuAction(const MenuAction& action);
 	void ApplySettings();
 	void Present();
@@ -161,7 +163,7 @@ class Game
 	// way from the last tick to the next
 	Position2D ViewPosition(double alpha) const;
 	double ViewPitch(double alpha) const;
-	// How much SDL's web backend has scaled the mouse's motion (1 natively)
+	// What undoes SDL's web backend scaling the mouse's motion (1 natively)
 	double CanvasStretch() const;
 	std::string_view CurrentObjective() const;
 	void BenchmarkStep();

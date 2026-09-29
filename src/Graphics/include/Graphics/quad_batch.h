@@ -6,7 +6,7 @@
 #ifndef GRAPHICS_INCLUDE_GRAPHICS_QUAD_BATCH_H_
 #define GRAPHICS_INCLUDE_GRAPHICS_QUAD_BATCH_H_
 
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include <cstddef>
 #include <vector>
 
@@ -25,7 +25,13 @@ class QuadBatch
 
 	explicit QuadBatch(SDL_Renderer* renderer);
 
-	void SetColor(SDL_Color color) { color_ = color; }
+	void SetColor(SDL_Color color) {
+		constexpr float kFull = 255.0F;
+		color_ = {static_cast<float>(color.r) / kFull,
+				  static_cast<float>(color.g) / kFull,
+				  static_cast<float>(color.b) / kFull,
+				  static_cast<float>(color.a) / kFull};
+	}
 	// Corners in order round the quad
 	void AddQuad(SDL_FPoint a, SDL_FPoint b, SDL_FPoint c, SDL_FPoint d);
 	void AddTriangle(SDL_FPoint a, SDL_FPoint b, SDL_FPoint c);
@@ -39,7 +45,7 @@ class QuadBatch
 	SDL_Renderer* renderer_;
 	std::vector<SDL_Vertex> vertices_;
 	std::vector<int> indices_;
-	SDL_Color color_{255, 255, 255, 255};
+	SDL_FColor color_{1.0F, 1.0F, 1.0F, 1.0F};
 };
 
 }  // namespace wolfenstein

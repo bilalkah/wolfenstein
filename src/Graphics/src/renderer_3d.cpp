@@ -67,9 +67,9 @@ Renderer3D::Renderer3D(RendererContext& context) : IRenderer(context) {
 	for (int digit = 0; digit < 10; ++digit) {
 		const std::array<char, 2> text{static_cast<char>('0' + digit), '\0'};
 		SDL_Surface* surface =
-			TTF_RenderText_Solid(context_->GetFont(), text.data(), white);
+			TTF_RenderText_Solid(context_->GetFont(), text.data(), 0, white);
 		if (surface == nullptr) {
-			std::cerr << "Failed to render FPS digit: " << TTF_GetError()
+			std::cerr << "Failed to render FPS digit: " << SDL_GetError()
 					  << '\n';
 			continue;
 		}
@@ -78,13 +78,13 @@ Renderer3D::Renderer3D(RendererContext& context) : IRenderer(context) {
 			SDL_CreateTextureFromSurface(context_->GetRenderer(), surface));
 		glyph.width = surface->w;
 		glyph.height = surface->h;
-		SDL_FreeSurface(surface);
+		SDL_DestroySurface(surface);
 		// Drawn once now, so its first draw in play costs nothing extra
-		const SDL_Rect pixel{0, 0, 1, 1};
-		SDL_RenderCopy(context_->GetRenderer(), glyph.texture.get(), nullptr,
-					   &pixel);
+		const SDL_FRect pixel{0, 0, 1, 1};
+		SDL_RenderTexture(context_->GetRenderer(), glyph.texture.get(), nullptr,
+						  &pixel);
 	}
-	SDL_RenderFlush(context_->GetRenderer());
+	SDL_FlushRenderer(context_->GetRenderer());
 
 	// Where a dead player's view is drawn to be rolled over; without render
 	// targets they fall without rolling
@@ -92,6 +92,29 @@ Renderer3D::Renderer3D(RendererContext& context) : IRenderer(context) {
 		SDL_CreateTexture(context_->GetRenderer(), SDL_PIXELFORMAT_RGBA8888,
 						  SDL_TEXTUREACCESS_TARGET, context_->GetConfig().width,
 						  context_->GetConfig().height));
+	if (fallen_view_ != nullptr) {
+		WarmUpFallenView();
+	}
+}
+
+// Every picture drawn into it once, and it drawn onto the screen: a GL
+// driver sets up a program for each pairing of a picture's pixel format with
+// the view's on first use, which belongs to startup, not to the moment the
+// player falls
+void Renderer3D::WarmUpFallenView() {
+	SDL_Renderer* renderer = context_->GetRenderer();
+	TextureManager& textures = context_->Textures();
+	const SDL_FRect pixel{0, 0, 1, 1};
+	SDL_SetRenderTarget(renderer, fallen_view_.get());
+	for (int id = 0; id < textures.TextureCount(); ++id) {
+		SDL_RenderTexture(renderer, textures.GetTexture(id).texture, &pixel,
+						  &pixel);
+	}
+	SDL_RenderFillRect(renderer, &pixel);
+	SDL_SetRenderTarget(renderer, nullptr);
+	SDL_RenderTextureRotated(renderer, fallen_view_.get(), &pixel, &pixel, 1.0,
+							 nullptr, SDL_FLIP_NONE);
+	SDL_FlushRenderer(renderer);
 }
 
 void Renderer3D::ReserveObjects(std::size_t objects) {
@@ -172,22 +195,25 @@ void Renderer3D::RenderBackground() {
 		const SDL_FRect band{static_cast<float>(x), static_cast<float>(sky_top),
 							 static_cast<float>(layout.width),
 							 static_cast<float>(sky_height)};
-		SDL_RenderCopyF(renderer, sky.texture, nullptr, &band);
+		SDL_RenderTexture(renderer, sky.texture, nullptr, &band);
 	}
 	// Higher still (a shot's kick on top of looking fully up): the colour
 	// of its top edge, into which the edge fades
 	if (sky_top > 0) {
 		const SDL_Color top = sky.top_colour;
 		SDL_SetRenderDrawColor(renderer, top.r, top.g, top.b, 255);
-		const SDL_Rect above{0, 0, config.width, sky_top};
+		const SDL_FRect above = ToFRect({0, 0, config.width, sky_top});
 		SDL_RenderFillRect(renderer, &above);
 
 		const auto from = static_cast<float>(sky_top);
 		const auto to =
 			from + static_cast<float>(std::min(sky_top, sky_height / 3));
 		const auto right = static_cast<float>(config.width);
-		const SDL_Color opaque{top.r, top.g, top.b, 255};
-		const SDL_Color clear{top.r, top.g, top.b, 0};
+		constexpr float kFull = 255.0F;
+		const SDL_FColor opaque{static_cast<float>(top.r) / kFull,
+								static_cast<float>(top.g) / kFull,
+								static_cast<float>(top.b) / kFull, 1.0F};
+		const SDL_FColor clear{opaque.r, opaque.g, opaque.b, 0.0F};
 		const std::array<SDL_Vertex, 4> fade{{{{0.0F, from}, opaque, {}},
 											  {{right, from}, opaque, {}},
 											  {{0.0F, to}, clear, {}},
@@ -203,7 +229,8 @@ void Renderer3D::RenderBackground() {
 	}
 
 	SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
-	const SDL_Rect ground{0, horizon, config.width, config.height - horizon};
+	const SDL_FRect ground =
+		ToFRect({0, horizon, config.width, config.height - horizon});
 	SDL_RenderFillRect(renderer, &ground);
 }
 
@@ -414,11 +441,11 @@ void Renderer3D::EnqueueDecals() {
 			static_cast<float>(std::clamp(decal.last_u + step, 0.0, 1.0));
 		const auto left = static_cast<float>(decal.first_x);
 		const auto right = static_cast<float>(decal.last_x + 2);
+		const float shade = static_cast<float>(decal.shade) / 255.0F;
 		const auto corner = [&](float x, int y, float u, float v) {
-			return SDL_Vertex{
-				.position = {x, static_cast<float>(y)},
-				.color = {decal.shade, decal.shade, decal.shade, 255},
-				.tex_coord = {u, v}};
+			return SDL_Vertex{.position = {x, static_cast<float>(y)},
+							  .color = {shade, shade, shade, 1.0F},
+							  .tex_coord = {u, v}};
 		};
 		decal_quads_[i] = {
 			corner(left, decal.first_top, first_u, 0.0F),
@@ -547,9 +574,11 @@ void Renderer3D::RenderHitMarker() {
 		for (const int dy : {-1, 1}) {
 			// Two pixels thick
 			for (const int thick : {0, 1}) {
-				SDL_RenderDrawLine(renderer, cx + dx * from + thick,
-								   cy + dy * from, cx + dx * to + thick,
-								   cy + dy * to);
+				SDL_RenderLine(renderer,
+							   static_cast<float>(cx + dx * from + thick),
+							   static_cast<float>(cy + dy * from),
+							   static_cast<float>(cx + dx * to + thick),
+							   static_cast<float>(cy + dy * to));
 			}
 		}
 	}
@@ -567,8 +596,9 @@ void Renderer3D::RenderDamage() {
 	const SDL_Rect source{0, 0, damage.width, damage.height};
 	const SDL_Rect screen{0, 0, config.width, config.height};
 	if (falling_) {
-		SDL_RenderCopy(context_->GetRenderer(), damage.texture, &source,
-					   &screen);
+		const SDL_FRect from = ToFRect(source);
+		const SDL_FRect to = ToFRect(screen);
+		SDL_RenderTexture(context_->GetRenderer(), damage.texture, &from, &to);
 	}
 	else {
 		Enqueue(damage_texture_, source, screen, -1.0);
@@ -590,12 +620,12 @@ void Renderer3D::RenderFallen(double fall) {
 		(width * std::sin(radians) + height * std::cos(radians)) / height);
 	const int scaled_width = static_cast<int>(std::ceil(width * scale));
 	const int scaled_height = static_cast<int>(std::ceil(height * scale));
-	const SDL_Rect cover{(config.width - scaled_width) / 2,
-						 (config.height - scaled_height) / 2, scaled_width,
-						 scaled_height};
+	const SDL_FRect cover = ToFRect({(config.width - scaled_width) / 2,
+									 (config.height - scaled_height) / 2,
+									 scaled_width, scaled_height});
 	ClearScreen();
-	SDL_RenderCopyEx(context_->GetRenderer(), fallen_view_.get(), nullptr,
-					 &cover, angle, nullptr, SDL_FLIP_NONE);
+	SDL_RenderTextureRotated(context_->GetRenderer(), fallen_view_.get(),
+							 nullptr, &cover, angle, nullptr, SDL_FLIP_NONE);
 }
 
 void Renderer3D::RenderWeapon() {
@@ -670,14 +700,16 @@ void Renderer3D::RenderTextures() {
 							   kQuadTriangles.data(),
 							   static_cast<int>(kQuadTriangles.size()));
 		}
-		else if (command.mirrored) {
-			SDL_RenderCopyEx(renderer, texture.texture, &command.src_rect,
-							 &command.dest_rect, 0.0, nullptr,
-							 SDL_FLIP_HORIZONTAL);
-		}
 		else {
-			SDL_RenderCopy(renderer, texture.texture, &command.src_rect,
-						   &command.dest_rect);
+			const SDL_FRect src = ToFRect(command.src_rect);
+			const SDL_FRect dest = ToFRect(command.dest_rect);
+			if (command.mirrored) {
+				SDL_RenderTextureRotated(renderer, texture.texture, &src, &dest,
+										 0.0, nullptr, SDL_FLIP_HORIZONTAL);
+			}
+			else {
+				SDL_RenderTexture(renderer, texture.texture, &src, &dest);
+			}
 		}
 	}
 }
@@ -695,10 +727,12 @@ void Renderer3D::RenderHUD(double delta_time) {
 		const double ratio =
 			static_cast<double>(texture.height) / texture.width;
 		const int height = static_cast<int>(width * ratio);
-		const SDL_Rect src_rect{0, 0, texture.width, texture.height};
-		const SDL_Rect dest_rect{x, config.height - height - 10, width, height};
-		SDL_RenderCopy(context_->GetRenderer(), texture.texture, &src_rect,
-					   &dest_rect);
+		const SDL_FRect src_rect =
+			ToFRect({0, 0, texture.width, texture.height});
+		const SDL_FRect dest_rect =
+			ToFRect({x, config.height - height - 10, width, height});
+		SDL_RenderTexture(context_->GetRenderer(), texture.texture, &src_rect,
+						  &dest_rect);
 	};
 
 	// A gold flash over the view after taking a pickup
@@ -708,7 +742,7 @@ void Renderer3D::RenderHUD(double delta_time) {
 		SDL_GetRenderDrawBlendMode(renderer, &previous);
 		SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 		SDL_SetRenderDrawColor(renderer, 255, 208, 96, alpha);
-		const SDL_Rect screen{0, 0, config.width, config.height};
+		const SDL_FRect screen = ToFRect({0, 0, config.width, config.height});
 		SDL_RenderFillRect(renderer, &screen);
 		SDL_SetRenderDrawBlendMode(renderer, previous);
 	}
@@ -733,9 +767,11 @@ void Renderer3D::RenderHUD(double delta_time) {
 		const auto& texture =
 			textures.GetTexture(key_textures_[static_cast<std::size_t>(key)]);
 		const int size = digit_width * 3 / 2;
-		const SDL_Rect src{0, 0, texture.width, texture.height};
-		const SDL_Rect dest{x, config.height - size - 10, size, size};
-		SDL_RenderCopy(context_->GetRenderer(), texture.texture, &src, &dest);
+		const SDL_FRect src = ToFRect({0, 0, texture.width, texture.height});
+		const SDL_FRect dest =
+			ToFRect({x, config.height - size - 10, size, size});
+		SDL_RenderTexture(context_->GetRenderer(), texture.texture, &src,
+						  &dest);
 		x += size + digit_width / 4;
 	}
 
@@ -782,9 +818,9 @@ void Renderer3D::RenderFps(double delta_time) {
 	int x = 0;
 	for (std::size_t i = 0; i < count; ++i) {
 		const auto& glyph = fps_digits_[static_cast<std::size_t>(digits[i])];
-		const SDL_Rect dest{x, 0, glyph.width, glyph.height};
-		SDL_RenderCopy(context_->GetRenderer(), glyph.texture.get(), nullptr,
-					   &dest);
+		const SDL_FRect dest = ToFRect({x, 0, glyph.width, glyph.height});
+		SDL_RenderTexture(context_->GetRenderer(), glyph.texture.get(), nullptr,
+						  &dest);
 		x += glyph.width;
 	}
 }

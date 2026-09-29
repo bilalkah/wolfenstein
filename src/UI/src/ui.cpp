@@ -50,6 +50,13 @@ constexpr std::array<FontSpec, static_cast<std::size_t>(FontStyle::Count)>
 		{false, 20},  // Small
 	}};
 
+// SDL draws at fractional positions; the toolkit lays out in whole pixels
+SDL_FRect ToFRect(const SDL_Rect& rect) {
+	SDL_FRect result{};
+	SDL_RectToFRect(&rect, &result);
+	return result;
+}
+
 }  // namespace
 
 void Input::BeginFrame() {
@@ -61,43 +68,43 @@ void Input::BeginFrame() {
 
 void Input::Handle(const SDL_Event& event) {
 	switch (event.type) {
-		case SDL_MOUSEMOTION:
-			mouse_x = event.motion.x;
-			mouse_y = event.motion.y;
+		case SDL_EVENT_MOUSE_MOTION:
+			mouse_x = static_cast<int>(event.motion.x);
+			mouse_y = static_cast<int>(event.motion.y);
 			mouse_moved = true;
 			break;
-		case SDL_MOUSEBUTTONDOWN:
+		case SDL_EVENT_MOUSE_BUTTON_DOWN:
 			if (event.button.button == SDL_BUTTON_LEFT) {
-				mouse_x = event.button.x;
-				mouse_y = event.button.y;
+				mouse_x = static_cast<int>(event.button.x);
+				mouse_y = static_cast<int>(event.button.y);
 				mouse_pressed = true;
 				mouse_down = true;
 			}
 			break;
-		case SDL_MOUSEBUTTONUP:
+		case SDL_EVENT_MOUSE_BUTTON_UP:
 			if (event.button.button == SDL_BUTTON_LEFT) {
-				mouse_x = event.button.x;
-				mouse_y = event.button.y;
+				mouse_x = static_cast<int>(event.button.x);
+				mouse_y = static_cast<int>(event.button.y);
 				mouse_released = true;
 				mouse_down = false;
 			}
 			break;
-		case SDL_KEYDOWN:
-			switch (event.key.keysym.sym) {
+		case SDL_EVENT_KEY_DOWN:
+			switch (event.key.key) {
 				case SDLK_UP:
-				case SDLK_w:
+				case SDLK_W:
 					previous = true;
 					break;
 				case SDLK_DOWN:
-				case SDLK_s:
+				case SDLK_S:
 					next = true;
 					break;
 				case SDLK_LEFT:
-				case SDLK_a:
+				case SDLK_A:
 					left = true;
 					break;
 				case SDLK_RIGHT:
-				case SDLK_d:
+				case SDLK_D:
 					right = true;
 					break;
 				case SDLK_RETURN:
@@ -124,10 +131,10 @@ Ui::Ui(SDL_Renderer* renderer, const std::string& display_font_path,
 	for (std::size_t i = 0; i < kFontSpecs.size(); ++i) {
 		const auto& spec = kFontSpecs[i];
 		const auto& path = spec.display ? display_font_path : text_font_path;
-		fonts_[i] = TTF_OpenFont(path.c_str(), spec.size);
+		fonts_[i] = TTF_OpenFont(path.c_str(), static_cast<float>(spec.size));
 		if (fonts_[i] == nullptr) {
 			std::cerr << "Failed to load font " << path << ": "
-					  << TTF_GetError() << '\n';
+					  << SDL_GetError() << '\n';
 			std::exit(EXIT_FAILURE);
 		}
 	}
@@ -138,7 +145,7 @@ void Ui::RasteriseGlyphs() {
 	const SDL_Color white{255, 255, 255, 255};
 	for (std::size_t style = 0; style < fonts_.size(); ++style) {
 		TTF_Font* font = fonts_[style];
-		line_heights_[style] = TTF_FontHeight(font);
+		line_heights_[style] = TTF_GetFontHeight(font);
 		const auto rasterise = [&](std::uint8_t code) {
 			// The character as UTF-8
 			std::array<char, 3> text{};
@@ -150,7 +157,7 @@ void Ui::RasteriseGlyphs() {
 				text[1] = static_cast<char>(0x80 | (code & 0x3F));
 			}
 			SDL_Surface* surface =
-				TTF_RenderUTF8_Blended(font, text.data(), white);
+				TTF_RenderText_Blended(font, text.data(), 0, white);
 			if (surface == nullptr) {
 				return;
 			}
@@ -159,12 +166,12 @@ void Ui::RasteriseGlyphs() {
 			glyph.width = surface->w;
 			glyph.height = surface->h;
 			int advance = surface->w;
-			if (TTF_GlyphMetrics(font, code, nullptr, nullptr, nullptr, nullptr,
-								 &advance) != 0) {
+			if (!TTF_GetGlyphMetrics(font, code, nullptr, nullptr, nullptr,
+									 nullptr, &advance)) {
 				advance = surface->w;
 			}
 			glyph.advance = advance;
-			SDL_FreeSurface(surface);
+			SDL_DestroySurface(surface);
 		};
 		for (int code = kFirstPrintable; code <= kLastPrintable; ++code) {
 			rasterise(static_cast<std::uint8_t>(code));
@@ -174,17 +181,17 @@ void Ui::RasteriseGlyphs() {
 	}
 	// Draw each glyph once, tinted, so any work a driver defers to a
 	// texture's first draw is done now rather than on a menu's first frame
-	const SDL_Rect pixel{0, 0, 1, 1};
+	const SDL_FRect pixel{0, 0, 1, 1};
 	for (const GlyphSet& set : glyphs_) {
 		for (const Glyph& glyph : set) {
 			if (glyph.texture != nullptr) {
 				SDL_SetTextureColorMod(glyph.texture, 255, 255, 255);
 				SDL_SetTextureAlphaMod(glyph.texture, 255);
-				SDL_RenderCopy(renderer_, glyph.texture, nullptr, &pixel);
+				SDL_RenderTexture(renderer_, glyph.texture, nullptr, &pixel);
 			}
 		}
 	}
-	SDL_RenderFlush(renderer_);
+	SDL_FlushRenderer(renderer_);
 }
 
 const Ui::Glyph& Ui::GlyphFor(FontStyle style, std::uint8_t code) const {
@@ -254,10 +261,11 @@ void Ui::ResetFocus(int index) {
 
 void Ui::FillRect(const SDL_Rect& rect, SDL_Color c) {
 	SDL_SetRenderDrawColor(renderer_, c.r, c.g, c.b, c.a);
-	SDL_RenderFillRect(renderer_, &rect);
+	const SDL_FRect area = ToFRect(rect);
+	SDL_RenderFillRect(renderer_, &area);
 }
 
-// Four filled bands rather than SDL_RenderDrawRect, whose outline goes
+// Four filled bands rather than SDL_RenderRect, whose outline goes
 // through SDL's line drawing, which allocates on some renderers (WebGL)
 void Ui::DrawRect(const SDL_Rect& rect, SDL_Color c, int thickness) {
 	SDL_SetRenderDrawColor(renderer_, c.r, c.g, c.b, c.a);
@@ -269,7 +277,8 @@ void Ui::DrawRect(const SDL_Rect& rect, SDL_Color c, int thickness) {
 		{rect.x + rect.w - t, rect.y + t, t, rect.h - 2 * t},  // right
 	}};
 	for (const SDL_Rect& band : bands) {
-		SDL_RenderFillRect(renderer_, &band);
+		const SDL_FRect area = ToFRect(band);
+		SDL_RenderFillRect(renderer_, &area);
 	}
 }
 
@@ -300,8 +309,8 @@ SDL_Point Ui::Text(std::string_view text, int x, int y, FontStyle style,
 		if (glyph.texture != nullptr) {
 			SDL_SetTextureColorMod(glyph.texture, c.r, c.g, c.b);
 			SDL_SetTextureAlphaMod(glyph.texture, c.a);
-			const SDL_Rect dest{pen, y, glyph.width, glyph.height};
-			SDL_RenderCopy(renderer_, glyph.texture, nullptr, &dest);
+			const SDL_FRect dest = ToFRect({pen, y, glyph.width, glyph.height});
+			SDL_RenderTexture(renderer_, glyph.texture, nullptr, &dest);
 		}
 		pen += glyph.advance;
 	}

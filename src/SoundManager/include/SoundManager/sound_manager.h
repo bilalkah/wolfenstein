@@ -14,8 +14,8 @@
 
 #include "Math/vector.h"
 #include "SoundManager/spatial_mixer.h"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_mixer.h>
+#include <SDL3/SDL.h>
+#include <SDL3_mixer/SDL_mixer.h>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -73,19 +73,20 @@ inline constexpr std::size_t kSoundEffectCount = 36;
 static_assert(std::to_underlying(SoundEffect::PlasmaBurst) + 1 ==
 			  kSoundEffectCount);
 
-// What the mixer plays at, 0 to MIX_MAX_VOLUME: the music, and every effect
-// (each keeps its own level under that). `master`, `music` and `effects`
-// run 0 (silent) to 1 (full); music and effects are shares of the master.
+// What the mixer plays at, as gains (1 as recorded): the music, and every
+// effect (each keeps its own level under that). `master`, `music` and
+// `effects` run 0 (silent) to 1 (full); music and effects are shares of the
+// master.
 struct MixerLevels
 {
-	int music = 0;
-	int effects = 0;
+	float music = 0.0F;
+	float effects = 0.0F;
 };
 MixerLevels ToMixerLevels(double master, double music, double effects);
 
-// The mixer channel a sound source plays on: a new sound from the source
-// cuts off its previous one, never another source's
-enum class SoundChannel : int {};
+// The channel a sound source plays on: a new sound from the source cuts off
+// its previous one, never another source's
+enum class SoundChannel : std::uint32_t {};
 
 // The audio device, the sound effects and the music. Owned by the World,
 // which destroys it (closing the device) before SDL shuts down.
@@ -113,7 +114,7 @@ class SoundManager
 	// master volume
 	void SetVolume(double master, double music, double effects);
 	// A channel for a new sound source (an enemy, the player, a weapon), kept
-	// for its life. Sources share the mixer channels round-robin.
+	// for its life. Sources share the channels round-robin.
 	SoundChannel AllocateChannel();
 	// Effects are an enum indexing an array, so playing one involves no
 	// string or lookup (a string name allocated on wasm32, whose short-string
@@ -142,26 +143,46 @@ class SoundManager
 	}
 
   private:
+	// Reads a WAV file as the effects are mixed: float stereo at the
+	// mixer's rate. `volume` is its level, 0 to 128.
 	std::expected<void, std::string> LoadSound(SoundEffect effect,
 											   const std::string& sound_path,
 											   int volume);
+	// The next `frames` sample frames of what is heard: the music, then the
+	// effects over it
+	void Generate(int frames);
+	// SDL's audio thread asks the device's stream for more to play
+	static void SDLCALL Feed(void* manager, SDL_AudioStream* stream,
+							 int additional_amount, int total_amount);
 
 	bool open_{false};
-	// Mixes the sounds from places; used when the device plays 16-bit
-	// stereo, as it is asked to (else those play as the others do)
+	// The music's mixer, which the game drives (Generate) rather than the
+	// device: every track can be played a moment at startup (see Open)
+	MIX_Mixer* mixer_ = nullptr;
+	SDL_AudioStream* device_ = nullptr;
+	// Mixes the effects, the player's own and those from places
 	SpatialMixer spatial_;
-	bool spatial_open_{false};
-	// Mixer channels allocated when the device is opened
-	static constexpr int kChannels = 16;
-	int next_channel_{};
-	std::array<Mix_Chunk*, kSoundEffectCount> chunks_{};
+	// What Generate fills, a piece of the device's request at a time
+	static constexpr int kFeedFrames = 2048;
+	std::array<float, std::size_t{2} * kFeedFrames> feed_{};
+	// Channels the sources share
+	static constexpr std::uint32_t kChannels = 16;
+	std::uint32_t next_channel_{};
+	std::array<std::vector<float>, kSoundEffectCount> samples_{};
+	std::array<SoundClip, kSoundEffectCount> clips_{};
 	std::array<std::uint32_t, kSoundEffectCount> play_counts_{};
+	// Every track has its own SDL_mixer track, given its music once, at
+	// startup: giving a track other music allocates
 	struct Track
 	{
 		std::string name;
-		Mix_Music* music;
+		MIX_Audio* audio = nullptr;
+		MIX_Track* track = nullptr;
 	};
 	std::vector<Track> tracks_;
+	Track* current_ = nullptr;	// the one playing, if any
+	// How music plays: over and over, fading in
+	SDL_PropertiesID music_options_ = 0;
 	std::string_view playing_;
 };
 

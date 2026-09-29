@@ -1,6 +1,6 @@
 #include "Graphics/renderer_result.h"
 #include "TextureManager/texture_manager.h"
-#include <SDL2/SDL_render.h>
+#include <SDL3/SDL_render.h>
 #include <utility>
 
 namespace wolfenstein {
@@ -20,7 +20,7 @@ void RendererResult::RenderScreen(double delta_time) {
 
 	SDL_Texture* texture = context_->Textures().GetTexture(texture_id_).texture;
 	SDL_SetTextureAlphaMod(texture, result_animation_.GetAlpha());
-	SDL_RenderCopy(context_->GetRenderer(), texture, nullptr, nullptr);
+	SDL_RenderTexture(context_->GetRenderer(), texture, nullptr, nullptr);
 }
 
 void RendererResult::ClearScreen() {

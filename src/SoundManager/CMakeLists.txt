@@ -10,7 +10,7 @@ target_include_directories(sound_manager PUBLIC
 target_link_libraries(
     sound_manager
     PUBLIC
-    wolfenstein::sdl2
-    wolfenstein::sdl2_mixer
+    wolfenstein::sdl3
+    wolfenstein::sdl3_mixer
     vector
 )

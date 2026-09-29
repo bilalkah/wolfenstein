@@ -19,7 +19,8 @@ if command -v emcmake >/dev/null; then
 	cmake --preset web-release
 	cmake --build --preset web-release
 else
-	# The named volume keeps Emscripten's compiled SDL ports between builds
+	# The named volume keeps Emscripten's compiled system libraries between
+	# builds (SDL 3 is built in the build directory, with the game)
 	docker run --rm \
 		-v "$PWD":/src -w /src \
 		-v wolfenstein-emcache:/emsdk/upstream/emscripten/cache \

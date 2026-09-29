@@ -137,21 +137,21 @@ TEST_F(SoundTest, EachPickupHasItsSound) {
 // The music and the effects turn down apart, and the master both
 TEST(MixerLevels, MusicAndEffectsAreSharesOfTheMaster) {
 	const MixerLevels full = ToMixerLevels(1.0, 1.0, 1.0);
-	EXPECT_EQ(full.effects, MIX_MAX_VOLUME);
-	EXPECT_GT(full.music, 0);
+	EXPECT_FLOAT_EQ(full.effects, 1.0F) << "as recorded";
+	EXPECT_GT(full.music, 0.0F);
 
-	EXPECT_EQ(ToMixerLevels(1.0, 0.0, 1.0).music, 0);
-	EXPECT_EQ(ToMixerLevels(1.0, 0.0, 1.0).effects, full.effects)
+	EXPECT_FLOAT_EQ(ToMixerLevels(1.0, 0.0, 1.0).music, 0.0F);
+	EXPECT_FLOAT_EQ(ToMixerLevels(1.0, 0.0, 1.0).effects, full.effects)
 		<< "no music, the effects as loud";
-	EXPECT_EQ(ToMixerLevels(1.0, 1.0, 0.0).effects, 0);
-	EXPECT_EQ(ToMixerLevels(1.0, 1.0, 0.0).music, full.music);
+	EXPECT_FLOAT_EQ(ToMixerLevels(1.0, 1.0, 0.0).effects, 0.0F);
+	EXPECT_FLOAT_EQ(ToMixerLevels(1.0, 1.0, 0.0).music, full.music);
 
 	const MixerLevels half = ToMixerLevels(0.5, 1.0, 1.0);
-	EXPECT_EQ(half.effects, full.effects / 2);
-	EXPECT_EQ(half.music, full.music / 2);
-	EXPECT_EQ(ToMixerLevels(0.0, 1.0, 1.0).music, 0);
-	EXPECT_EQ(ToMixerLevels(0.0, 1.0, 1.0).effects, 0);
-	EXPECT_EQ(ToMixerLevels(2.0, 1.0, 1.0).effects, full.effects)
+	EXPECT_FLOAT_EQ(half.effects, full.effects / 2);
+	EXPECT_FLOAT_EQ(half.music, full.music / 2);
+	EXPECT_FLOAT_EQ(ToMixerLevels(0.0, 1.0, 1.0).music, 0.0F);
+	EXPECT_FLOAT_EQ(ToMixerLevels(0.0, 1.0, 1.0).effects, 0.0F);
+	EXPECT_FLOAT_EQ(ToMixerLevels(2.0, 1.0, 1.0).effects, full.effects)
 		<< "beyond full is full";
 }
 

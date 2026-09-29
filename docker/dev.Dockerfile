@@ -1,5 +1,6 @@
 # Native toolchain used by scripts/dev.sh: Ubuntu 26.04 with Clang, libc++
-# (the same standard library as the Emscripten and macOS builds) and SDL2.
+# (the same standard library as the Emscripten and macOS builds) and the
+# system headers SDL 3 builds against.
 # Build context is the repository root; see docker/dev.Dockerfile.dockerignore.
 FROM ubuntu:26.04
 

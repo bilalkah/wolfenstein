@@ -13,9 +13,7 @@
 #include "State/enemy_state.h"
 #include "TextureManager/texture_manager.h"
 #include "TimeManager/time_manager.h"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_keycode.h>
-#include <SDL2/SDL_video.h>
+#include <SDL3/SDL.h>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -255,15 +253,19 @@ void Game::EnterPlaying() {
 	had_pointer_lock_ = false;
 	fire_armed_ = false;
 	clicked_ = false;
-	SDL_SetRelativeMouseMode(SDL_TRUE);
+	CaptureMouse(true);
 	// Drop mouse motion that happened in the menu
 	SDL_GetRelativeMouseState(nullptr, nullptr);
 }
 
 void Game::Pause() {
 	state_ = GameState::Paused;
-	SDL_SetRelativeMouseMode(SDL_FALSE);
+	CaptureMouse(false);
 	menu_->Open(MenuScreen::Pause);
+}
+
+void Game::CaptureMouse(bool captured) {
+	SDL_SetWindowRelativeMouseMode(renderer_context_->GetWindow(), captured);
 }
 
 void Game::HandleMenuAction(const MenuAction& action) {
@@ -283,7 +285,7 @@ void Game::HandleMenuAction(const MenuAction& action) {
 				SaveProgress();
 			}
 			state_ = GameState::Menu;
-			SDL_SetRelativeMouseMode(SDL_FALSE);
+			CaptureMouse(false);
 			menu_->Open(MenuScreen::Main);
 			world_->Sound().PlayMusic(world_->Config().menu_music);
 			break;
@@ -438,8 +440,8 @@ void Game::SoakStep() {
 	else if (frame > 240 && frame < 300) {
 		// Nudge a setting every frame: its value is redrawn as new text
 		SDL_Event right{};
-		right.type = SDL_KEYDOWN;
-		right.key.keysym.sym = SDLK_RIGHT;
+		right.type = SDL_EVENT_KEY_DOWN;
+		right.key.key = SDLK_RIGHT;
 		menu_->HandleEvent(right);
 	}
 	else if (frame == 300) {
@@ -586,10 +588,13 @@ bool Game::Tick() {
 bool Game::PollMenuEvents() {
 	SDL_Event event;
 	while (SDL_PollEvent(&event)) {
-		if (event.type == SDL_QUIT) {
+		if (event.type == SDL_EVENT_QUIT) {
 			running_ = false;
 			return false;
 		}
+		// Where the mouse is on the picture, which SDL scales to the window
+		SDL_ConvertEventToRenderCoordinates(renderer_context_->GetRenderer(),
+											&event);
 		menu_->HandleEvent(event);
 	}
 	return true;
@@ -657,22 +662,27 @@ void Game::GameTick() {
 #endif
 }
 
-// How much SDL's web backend has scaled the mouse's motion: the canvas's
-// pixels over its size on the page (1 natively)
+// What undoes SDL's web backend scaling the mouse's motion (by the window's
+// width over the canvas's on the page): the canvas's width over the
+// window's, 1 natively. The window takes the canvas's size on the page as
+// the game starts; the page can change it later.
 double Game::CanvasStretch() const {
 #ifdef __EMSCRIPTEN__
 	double width = 0.0;
 	double height = 0.0;
+	int window_width = 0;
 	if (emscripten_get_element_css_size("#canvas", &width, &height) ==
 			EMSCRIPTEN_RESULT_SUCCESS &&
-		width > 0.0) {
-		return width / config_.screen_width;
+		SDL_GetWindowSize(renderer_context_->GetWindow(), &window_width,
+						  nullptr) &&
+		width > 0.0 && window_width > 0) {
+		return width / window_width;
 	}
 #endif
 	return 1.0;
 }
 
-MouseLook ToMouseLook(int dx, int dy, const Settings& settings,
+MouseLook ToMouseLook(double dx, double dy, const Settings& settings,
 					  const GeneralConfig& view) {
 	constexpr double kRadiansPerPixel = 0.005;
 	const double turn = dx * kRadiansPerPixel * settings.mouse_sensitivity;
@@ -690,9 +700,10 @@ MouseLook ToMouseLook(int dx, int dy, const Settings& settings,
 
 // Reads this frame's player input from the keyboard and mouse
 PlayerCommand Game::SampleCommand() {
-	const Uint8* keys = SDL_GetKeyboardState(nullptr);
+	const bool* keys = SDL_GetKeyboardState(nullptr);
 	const auto axis = [keys](SDL_Scancode positive, SDL_Scancode negative) {
-		return static_cast<std::int8_t>(keys[positive] - keys[negative]);
+		return static_cast<std::int8_t>(static_cast<int>(keys[positive]) -
+										static_cast<int>(keys[negative]));
 	};
 	PlayerCommand command;
 	command.forward = axis(SDL_SCANCODE_W, SDL_SCANCODE_S);
@@ -701,8 +712,8 @@ PlayerCommand Game::SampleCommand() {
 
 	// Relative mouse mode reports motion since the last call, which also
 	// works under browser pointer lock (unlike warping the cursor)
-	int dx = 0;
-	int dy = 0;
+	float dx = 0.0F;
+	float dy = 0.0F;
 	SDL_GetRelativeMouseState(&dx, &dy);
 	if (captured_) {
 		// SDL's web backend scales the motion by how far the canvas is
@@ -721,8 +732,8 @@ PlayerCommand Game::SampleCommand() {
 	fire_armed_ = captured_ && (fire_armed_ || !held);
 	command.fire = fire_armed_ && (held || clicked_);
 	clicked_ = false;
-	command.reload = keys[SDL_SCANCODE_R] != 0;
-	command.use = keys[SDL_SCANCODE_E] != 0 || keys[SDL_SCANCODE_SPACE] != 0;
+	command.reload = keys[SDL_SCANCODE_R];
+	command.use = keys[SDL_SCANCODE_E] || keys[SDL_SCANCODE_SPACE];
 	return command;
 }
 
@@ -871,15 +882,14 @@ void Game::RenderView(const Position2D& eye) {
 void Game::CheckGameEvent() {
 	SDL_Event event;
 	while (SDL_PollEvent(&event)) {
-		if (event.type == SDL_QUIT) {
+		if (event.type == SDL_EVENT_QUIT) {
 			running_ = false;
 			return;
 		}
 		if (IsScripted()) {
 			continue;
 		}
-		if (event.type == SDL_WINDOWEVENT &&
-			event.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
+		if (event.type == SDL_EVENT_WINDOW_FOCUS_LOST) {
 			Pause();
 			return;
 		}
@@ -888,12 +898,10 @@ void Game::CheckGameEvent() {
 		if ((fade_ == Fade::Stats || fade_ == Fade::Story ||
 			 fade_ == Fade::Briefing) &&
 			fade_time_ >= kStatsInputDelay &&
-			(event.type == SDL_MOUSEBUTTONDOWN ||
-			 (event.type == SDL_KEYDOWN &&
-			  (event.key.keysym.sym == SDLK_RETURN ||
-			   event.key.keysym.sym == SDLK_KP_ENTER ||
-			   event.key.keysym.sym == SDLK_SPACE ||
-			   event.key.keysym.sym == SDLK_e)))) {
+			(event.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+			 (event.type == SDL_EVENT_KEY_DOWN &&
+			  (event.key.key == SDLK_RETURN || event.key.key == SDLK_KP_ENTER ||
+			   event.key.key == SDLK_SPACE || event.key.key == SDLK_E)))) {
 			if (fade_ == Fade::Stats) {
 				ContinueFromStats();
 			}
@@ -905,27 +913,28 @@ void Game::CheckGameEvent() {
 			}
 			continue;
 		}
-		if (event.type == SDL_MOUSEWHEEL) {
-			// Down the wheel is on to the next weapon
-			wheel_ -= event.wheel.y;
+		if (event.type == SDL_EVENT_MOUSE_WHEEL) {
+			// Down the wheel is on to the next weapon, a whole notch at a
+			// time
+			wheel_ -= event.wheel.integer_y;
 		}
-		if (event.type == SDL_MOUSEBUTTONDOWN &&
+		if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
 			event.button.button == SDL_BUTTON_LEFT) {
 			clicked_ = true;
 		}
-		if (event.type == SDL_KEYDOWN) {
-			const SDL_Scancode key = event.key.keysym.scancode;
+		if (event.type == SDL_EVENT_KEY_DOWN) {
+			const SDL_Scancode key = event.key.scancode;
 			if (key >= SDL_SCANCODE_1 && key <= SDL_SCANCODE_8) {
 				weapon_key_ = key - SDL_SCANCODE_1;
 			}
-			if (event.key.keysym.sym == SDLK_ESCAPE) {
+			if (event.key.key == SDLK_ESCAPE) {
 				Pause();
 				return;
 			}
-			if (event.key.keysym.sym == SDLK_m) {
+			if (event.key.key == SDLK_M) {
 				map_expanded_ = !map_expanded_;
 			}
-			if (event.key.keysym.sym == SDLK_p && debug_view_) {
+			if (event.key.key == SDLK_P && debug_view_) {
 				if (render_type_ == RenderType::TEXTURE) {
 					render_type_ = RenderType::LINE;
 					renderer_ = renderer_2d_.get();
@@ -938,7 +947,7 @@ void Game::CheckGameEvent() {
 		}
 	}
 
-	captured_ = SDL_GetRelativeMouseMode() == SDL_TRUE;
+	captured_ = SDL_GetWindowRelativeMouseMode(renderer_context_->GetWindow());
 #ifdef __EMSCRIPTEN__
 	// Browsers release the pointer lock on Esc without passing the key on, so
 	// losing the lock is what pauses the game there
@@ -982,7 +991,7 @@ void Game::CheckGameOver() {
 		result_delay_time_ += delta_time;
 		if (result_delay_time_ >= kEndOfLevelDelay) {
 			state_ = GameState::Result;
-			SDL_SetRelativeMouseMode(SDL_FALSE);
+			CaptureMouse(false);
 			menu_->Open(MenuScreen::Result);
 		}
 	}

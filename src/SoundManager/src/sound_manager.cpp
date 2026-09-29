@@ -1,5 +1,6 @@
 #include "SoundManager/sound_manager.h"
 #include <algorithm>
+#include <cstring>
 #include <iostream>
 #include <string>
 #include <string_view>
@@ -8,33 +9,46 @@
 
 namespace wolfenstein {
 
+namespace {
+
+// What the sounds are mixed in: float stereo at CD rate, as the sounds are
+// recorded (SDL converts it to what the device plays)
+constexpr SDL_AudioSpec kMix{.format = SDL_AUDIO_F32,
+							 .channels = 2,
+							 .freq = 44100};
+constexpr int kFrameBytes = static_cast<int>(SDL_AUDIO_FRAMESIZE(kMix));
+
+}  // namespace
+
 std::expected<std::unique_ptr<SoundManager>, std::string> SoundManager::Open(
 	const std::string& sound_dir, const std::string& music_dir,
 	std::span<const std::string> tracks) {
-	const auto error = [](std::string_view what, const char* detail) {
-		return std::unexpected(std::string(what) + ": " + detail);
+	const auto error = [](std::string_view what) {
+		return std::unexpected(std::string(what) + ": " + SDL_GetError());
 	};
-	if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0) {
-		return error("cannot initialise SDL audio", SDL_GetError());
+	if (!SDL_InitSubSystem(SDL_INIT_AUDIO)) {
+		return error("cannot initialise SDL audio");
 	}
-	if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+	if (!MIX_Init()) {
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
-		return error("cannot open the audio device", Mix_GetError());
+		return error("cannot initialise SDL_mixer");
 	}
-	// From here the destructor closes the device, whatever fails next
+	MIX_Mixer* mixer = MIX_CreateMixer(&kMix);
+	if (mixer == nullptr) {
+		MIX_Quit();
+		SDL_QuitSubSystem(SDL_INIT_AUDIO);
+		return error("cannot create the mixer");
+	}
+	// From here the destructor closes everything, whatever fails next
 	auto sound = std::make_unique<SoundManager>();
 	sound->open_ = true;
-	Mix_AllocateChannels(kChannels);
-	// Sounds from places are mixed in after the channels, by the game: in
-	// the 16-bit stereo it asked the device for
-	int frequency = 0;
-	Uint16 format = 0;
-	int channels = 0;
-	if (Mix_QuerySpec(&frequency, &format, &channels) != 0 &&
-		format == AUDIO_S16SYS && channels == 2) {
-		Mix_SetPostMix(&SpatialMixer::MixHook, &sound->spatial_);
-		sound->spatial_open_ = true;
-	}
+	sound->mixer_ = mixer;
+	sound->music_options_ = SDL_CreateProperties();
+	SDL_SetNumberProperty(sound->music_options_, MIX_PROP_PLAY_LOOPS_NUMBER,
+						  -1);
+	constexpr int kFadeInMs = 400;
+	SDL_SetNumberProperty(sound->music_options_,
+						  MIX_PROP_PLAY_FADE_IN_MILLISECONDS_NUMBER, kFadeInMs);
 
 	for (const auto& [effect, file, volume] :
 		 {std::tuple{SoundEffect::NpcAttack, "npc_attack.wav", 32},
@@ -80,18 +94,44 @@ std::expected<std::unique_ptr<SoundManager>, std::string> SoundManager::Open(
 		}
 	}
 
-	// Every track, loaded now: switching tracks as levels start allocates
-	// nothing
+	// Every track, loaded now (decoded as it plays), each on a track of its
+	// own: switching tracks as levels start allocates nothing
 	sound->tracks_.reserve(tracks.size());
+	const MixerLevels levels = ToMixerLevels(1.0, 1.0, 1.0);
 	for (const std::string& name : tracks) {
 		const std::string file = music_dir + name + ".mp3";
-		Mix_Music* music = Mix_LoadMUS(file.c_str());
-		if (music == nullptr) {
-			return error("cannot load " + file, Mix_GetError());
+		MIX_Audio* audio = MIX_LoadAudio(mixer, file.c_str(), false);
+		if (audio == nullptr) {
+			return error("cannot load " + file);
 		}
-		sound->tracks_.push_back({name, music});
+		Track& track =
+			sound->tracks_.emplace_back(name, audio, MIX_CreateTrack(mixer));
+		if (track.track == nullptr || !MIX_SetTrackAudio(track.track, audio)) {
+			return error("cannot load " + file);
+		}
+		MIX_SetTrackGain(track.track, levels.music);
 	}
-	Mix_VolumeMusic(64);
+	// Each track played a moment, unheard, as it will be: SDL_mixer sets up
+	// what a track needs to play (its buffers) the first time it plays,
+	// which would otherwise be as a level starts
+	constexpr int kPrimeFeeds = 8;
+	for (const Track& track : sound->tracks_) {
+		MIX_PlayTrack(track.track, sound->music_options_);
+		for (int feed = 0; feed < kPrimeFeeds; ++feed) {
+			sound->Generate(kFeedFrames);
+		}
+		MIX_StopTrack(track.track, 0);
+		sound->Generate(kFeedFrames);
+	}
+
+	// Last, the device: from here SDL's audio thread asks for what to play
+	sound->device_ =
+		SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &kMix,
+								  &SoundManager::Feed, sound.get());
+	if (sound->device_ == nullptr) {
+		return error("cannot open the audio device");
+	}
+	SDL_ResumeAudioStreamDevice(sound->device_);
 	return sound;
 }
 
@@ -103,42 +143,45 @@ void SoundManager::PlayMusic(std::string_view name) {
 	if (!open_) {
 		return;
 	}
+	if (current_ != nullptr) {
+		MIX_StopTrack(current_->track, 0);
+		current_ = nullptr;
+	}
 	const auto track = std::ranges::find(tracks_, name, &Track::name);
 	if (track == tracks_.end()) {
-		Mix_HaltMusic();  // no such track: silence
+		return;	 // no such track: silence
+	}
+	if (!MIX_PlayTrack(track->track, music_options_)) {
+		std::cerr << "Failed to play " << name << ": " << SDL_GetError()
+				  << '\n';
 		return;
 	}
-	constexpr int kFadeInMs = 400;
-	if (Mix_FadeInMusic(track->music, -1, kFadeInMs) == -1) {
-		std::cerr << "Failed to play " << name << ": " << Mix_GetError()
-				  << '\n';
-	}
+	current_ = &*track;
 }
 
 SoundManager::~SoundManager() {
 	if (!open_) {
 		return;
 	}
-	Mix_SetPostMix(nullptr, nullptr);
-	Mix_HaltMusic();
-	Mix_HaltChannel(-1);
-	for (Mix_Chunk* chunk : chunks_) {
-		Mix_FreeChunk(chunk);
-	}
+	// The device first, so its thread stops asking; then the mixer with its
+	// tracks, and the music they played
+	SDL_DestroyAudioStream(device_);
+	MIX_DestroyMixer(mixer_);
 	for (const Track& track : tracks_) {
-		Mix_FreeMusic(track.music);
+		MIX_DestroyAudio(track.audio);
 	}
-	Mix_CloseAudio();
+	SDL_DestroyProperties(music_options_);
+	MIX_Quit();
 	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
 MixerLevels ToMixerLevels(double master, double music, double effects) {
-	constexpr int kMusicLevel = 64;	 // the theme's level at full volume
+	constexpr double kMusicLevel = 0.5;	 // the theme's level at full volume
 	const double share = std::clamp(master, 0.0, 1.0);
-	return {.music = static_cast<int>(kMusicLevel * share *
-									  std::clamp(music, 0.0, 1.0)),
-			.effects = static_cast<int>(MIX_MAX_VOLUME * share *
-										std::clamp(effects, 0.0, 1.0))};
+	return {
+		.music = static_cast<float>(kMusicLevel * share *
+									std::clamp(music, 0.0, 1.0)),
+		.effects = static_cast<float>(share * std::clamp(effects, 0.0, 1.0))};
 }
 
 // Changes the audio device, not the manager's members, but is not const:
@@ -149,19 +192,14 @@ void SoundManager::SetVolume(double master, double music, double effects) {
 		return;
 	}
 	const MixerLevels levels = ToMixerLevels(master, music, effects);
-	Mix_VolumeMusic(levels.music);
-	// The master volume scales the effects' channels, not the music
-#if SDL_MIXER_VERSION_ATLEAST(2, 6, 0)
-	Mix_MasterVolume(levels.effects);
-#else
-	Mix_Volume(-1, levels.effects);
-#endif
-	spatial_.SetVolume(static_cast<float>(levels.effects) /
-					   static_cast<float>(MIX_MAX_VOLUME));
+	for (const Track& track : tracks_) {
+		MIX_SetTrackGain(track.track, levels.music);
+	}
+	spatial_.SetVolume(levels.effects);
 }
 
 SoundChannel SoundManager::AllocateChannel() {
-	const int channel = next_channel_;
+	const std::uint32_t channel = next_channel_;
 	next_channel_ = (next_channel_ + 1) % kChannels;
 	return SoundChannel{channel};
 }
@@ -171,11 +209,8 @@ void SoundManager::PlayEffect(SoundChannel channel, SoundEffect effect) {
 	if (!open_) {
 		return;
 	}
-	const int index = std::to_underlying(channel);
-	Mix_HaltChannel(index);
-	if (Mix_PlayChannel(index, chunks_[std::to_underlying(effect)], 0) == -1) {
-		std::cerr << "Failed to play sound: " << Mix_GetError() << '\n';
-	}
+	spatial_.PlayCentred(&clips_[std::to_underlying(effect)],
+						 std::to_underlying(channel));
 }
 
 void SoundManager::PlayAt(SoundEffect effect, const vector2d& where,
@@ -184,30 +219,66 @@ void SoundManager::PlayAt(SoundEffect effect, const vector2d& where,
 	if (!open_) {
 		return;
 	}
-	Mix_Chunk* chunk = chunks_[std::to_underlying(effect)];
-	if (spatial_open_) {
-		spatial_.Play(chunk, where, muffled, source);
-	}
-	else if (Mix_PlayChannel(-1, chunk, 0) == -1) {
-		std::cerr << "Failed to play sound: " << Mix_GetError() << '\n';
-	}
+	spatial_.Play(&clips_[std::to_underlying(effect)], where, muffled, source);
 }
 
 void SoundManager::SetListener(const vector2d& ear, double theta) {
-	if (spatial_open_) {
+	if (open_) {
 		spatial_.SetListener(ear, theta);
+	}
+}
+
+void SoundManager::Generate(int frames) {
+	const int bytes = frames * kFrameBytes;
+	if (MIX_Generate(mixer_, feed_.data(), bytes) != bytes) {
+		std::ranges::fill(feed_, 0.0F);
+	}
+	spatial_.Mix(feed_.data(), frames, kMix.channels);
+}
+
+void SDLCALL SoundManager::Feed(void* manager, SDL_AudioStream* stream,
+								int additional_amount, int /*total_amount*/) {
+	auto& sound = *static_cast<SoundManager*>(manager);
+	for (int left = additional_amount; left > 0;) {
+		const int frames =
+			std::min((left + kFrameBytes - 1) / kFrameBytes, kFeedFrames);
+		sound.Generate(frames);
+		SDL_PutAudioStreamData(stream, sound.feed_.data(),
+							   frames * kFrameBytes);
+		left -= frames * kFrameBytes;
 	}
 }
 
 std::expected<void, std::string> SoundManager::LoadSound(
 	SoundEffect effect, const std::string& sound_path, int volume) {
-	Mix_Chunk* sound = Mix_LoadWAV(sound_path.c_str());
-	if (sound == nullptr) {
+	const auto failed = [&] {
 		return std::unexpected("cannot load " + sound_path + ": " +
-							   Mix_GetError());
+							   SDL_GetError());
+	};
+	SDL_AudioSpec spec{};
+	Uint8* data = nullptr;
+	Uint32 length = 0;
+	if (!SDL_LoadWAV(sound_path.c_str(), &spec, &data, &length)) {
+		return failed();
 	}
-	Mix_VolumeChunk(sound, volume);
-	chunks_[std::to_underlying(effect)] = sound;
+	Uint8* converted = nullptr;
+	int converted_length = 0;
+	const bool ok =
+		SDL_ConvertAudioSamples(&spec, data, static_cast<int>(length), &kMix,
+								&converted, &converted_length);
+	SDL_free(data);
+	if (!ok) {
+		return failed();
+	}
+	const std::size_t index = std::to_underlying(effect);
+	std::vector<float>& samples = samples_[index];
+	samples.resize(static_cast<std::size_t>(converted_length) / sizeof(float));
+	std::memcpy(samples.data(), converted, samples.size() * sizeof(float));
+	SDL_free(converted);
+	constexpr float kFullVolume = 128.0F;
+	clips_[index] = {.samples = samples.data(),
+					 .frames = static_cast<std::uint32_t>(samples.size() / 2),
+					 .level = static_cast<float>(volume) / kFullVolume};
 	return {};
 }
 

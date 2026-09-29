@@ -2,20 +2,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <limits>
 
 namespace wolfenstein {
-
-namespace {
-
-// A sample frame: left and right, 16 bits each
-constexpr std::uint32_t kFrameBytes = 4;
-
-std::uint32_t FramesOf(const Mix_Chunk& chunk) {
-	return chunk.alen / kFrameBytes;
-}
-
-}  // namespace
 
 StereoGain Hear(const vector2d& ear, double theta, const vector2d& source,
 				bool muffled) {
@@ -42,14 +30,24 @@ StereoGain Hear(const vector2d& ear, double theta, const vector2d& source,
 			.right = static_cast<float>(loud * std::min(1.0, 1.0 + side))};
 }
 
-void SpatialMixer::Play(const Mix_Chunk* chunk, const vector2d& where,
+void SpatialMixer::Play(const SoundClip* clip, const vector2d& where,
 						bool muffled, std::uint32_t source) {
-	if (chunk != nullptr && FramesOf(*chunk) > 0) {
+	if (clip != nullptr && clip->frames > 0) {
 		Send({.kind = Command::Kind::Play,
-			  .chunk = chunk,
+			  .clip = clip,
 			  .where = where,
 			  .muffled = muffled,
+			  .placed = true,
 			  .source = source});
+	}
+}
+
+void SpatialMixer::PlayCentred(const SoundClip* clip, std::uint32_t channel) {
+	if (clip != nullptr && clip->frames > 0) {
+		Send({.kind = Command::Kind::Play,
+			  .clip = clip,
+			  .placed = false,
+			  .source = channel});
 	}
 }
 
@@ -72,22 +70,24 @@ void SpatialMixer::Take(const Command& command) {
 		ear_ = command.where;
 		theta_ = command.theta;
 		for (Voice& voice : voices_) {
-			if (voice.chunk != nullptr) {
+			if (voice.clip != nullptr && voice.placed) {
 				voice.gain = Hear(ear_, theta_, voice.where, voice.muffled);
 			}
 		}
 		return;
 	}
-	// The source's own voice, else a free one, else the quietest
+	// The source's or channel's own voice, else a free one, else the
+	// quietest
 	Voice* voice = nullptr;
-	if (command.source != 0) {
+	if (!command.placed || command.source != 0) {
 		const auto own = std::ranges::find_if(voices_, [&](const Voice& v) {
-			return v.chunk != nullptr && v.source == command.source;
+			return v.clip != nullptr && v.placed == command.placed &&
+				   v.source == command.source;
 		});
 		voice = own != voices_.end() ? &*own : nullptr;
 	}
 	if (voice == nullptr) {
-		const auto free = std::ranges::find(voices_, nullptr, &Voice::chunk);
+		const auto free = std::ranges::find(voices_, nullptr, &Voice::clip);
 		voice =
 			free != voices_.end()
 				? &*free
@@ -95,20 +95,23 @@ void SpatialMixer::Take(const Command& command) {
 					  return v.gain.left + v.gain.right;
 				  });
 	}
-	*voice = {.chunk = command.chunk,
+	*voice = {.clip = command.clip,
 			  .at = 0,
 			  .where = command.where,
 			  .muffled = command.muffled,
+			  .placed = command.placed,
 			  .source = command.source,
-			  .gain = Hear(ear_, theta_, command.where, command.muffled)};
+			  .gain = command.placed
+						  ? Hear(ear_, theta_, command.where, command.muffled)
+						  : StereoGain{.left = 1.0F, .right = 1.0F}};
 }
 
 std::size_t SpatialMixer::Playing() const {
 	return static_cast<std::size_t>(std::ranges::count_if(
-		voices_, [](const Voice& voice) { return voice.chunk != nullptr; }));
+		voices_, [](const Voice& voice) { return voice.clip != nullptr; }));
 }
 
-void SpatialMixer::Mix(std::uint8_t* stream, int bytes) {
+void SpatialMixer::Mix(float* out, int frames, int channels) {
 	// What the game asked since the last mix, in order
 	std::uint32_t taken = taken_.load(std::memory_order_relaxed);
 	const std::uint32_t sent = sent_.load(std::memory_order_acquire);
@@ -116,49 +119,46 @@ void SpatialMixer::Mix(std::uint8_t* stream, int bytes) {
 		Take(commands_[taken % kCommands]);
 	}
 	taken_.store(taken, std::memory_order_release);
+	if (frames <= 0 || channels <= 0) {
+		return;
+	}
 
-	auto* out = reinterpret_cast<std::int16_t*>(stream);
-	const auto frames = static_cast<std::uint32_t>(bytes) / kFrameBytes;
-	constexpr float kLowest = std::numeric_limits<std::int16_t>::min();
-	constexpr float kHighest = std::numeric_limits<std::int16_t>::max();
+	const auto stride = static_cast<std::size_t>(channels);
+	// Mono: left and right go into its one channel, at half each
+	const std::size_t right_channel = channels > 1 ? 1 : 0;
+	const float share = channels > 1 ? 1.0F : 0.5F;
 	for (Voice& voice : voices_) {
-		if (voice.chunk == nullptr) {
+		if (voice.clip == nullptr) {
 			continue;
 		}
-		const auto* in =
-			reinterpret_cast<const std::int16_t*>(voice.chunk->abuf);
-		const std::uint32_t count =
-			std::min(frames, FramesOf(*voice.chunk) - voice.at);
-		// The sound's own level, as SDL_mixer would play it, and the
-		// effects' volume
-		const float level = volume_.load(std::memory_order_relaxed) *
-							static_cast<float>(voice.chunk->volume) /
-							static_cast<float>(MIX_MAX_VOLUME);
+		const float* in = voice.clip->samples;
+		const std::uint32_t count = std::min(static_cast<std::uint32_t>(frames),
+											 voice.clip->frames - voice.at);
+		// The sound's own level, and the effects' volume
+		const float level =
+			volume_.load(std::memory_order_relaxed) * voice.clip->level * share;
 		const float left = voice.gain.left * level;
 		const float right = voice.gain.right * level;
 		for (std::uint32_t i = 0; i < count; ++i) {
 			const std::size_t from = 2 * static_cast<std::size_t>(voice.at + i);
-			// Heard as one voice, from its place: both its channels together
-			const float sample = 0.5F * (static_cast<float>(in[from]) +
-										 static_cast<float>(in[from + 1]));
-			std::int16_t& out_left = out[2 * static_cast<std::size_t>(i)];
-			std::int16_t& out_right = out[2 * static_cast<std::size_t>(i) + 1];
-			out_left = static_cast<std::int16_t>(
-				std::clamp(static_cast<float>(out_left) + sample * left,
-						   kLowest, kHighest));
-			out_right = static_cast<std::int16_t>(
-				std::clamp(static_cast<float>(out_right) + sample * right,
-						   kLowest, kHighest));
+			float* frame = out + stride * i;
+			if (voice.placed) {
+				// Heard as one voice, from its place: both its channels
+				// together
+				const float sample = 0.5F * (in[from] + in[from + 1]);
+				frame[0] += sample * left;
+				frame[right_channel] += sample * right;
+			}
+			else {
+				frame[0] += in[from] * left;
+				frame[right_channel] += in[from + 1] * right;
+			}
 		}
 		voice.at += count;
-		if (voice.at >= FramesOf(*voice.chunk)) {
+		if (voice.at >= voice.clip->frames) {
 			voice = Voice{};
 		}
 	}
-}
-
-void SpatialMixer::MixHook(void* mixer, std::uint8_t* stream, int bytes) {
-	static_cast<SpatialMixer*>(mixer)->Mix(stream, bytes);
 }
 
 }  // namespace wolfenstein

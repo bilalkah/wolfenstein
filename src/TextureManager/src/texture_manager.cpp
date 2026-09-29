@@ -1,5 +1,5 @@
 #include "TextureManager/texture_manager.h"
-#include <SDL2/SDL_image.h>
+#include <SDL3_image/SDL_image.h>
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -17,10 +17,10 @@ namespace {
 SDL_Color TopColour(SDL_Surface* image) {
 	constexpr int kRows = 4;
 	const int rows = std::min(kRows, image->h);
-	SDL_Surface* top = SDL_CreateRGBSurfaceWithFormat(0, image->w, rows, 32,
-													  SDL_PIXELFORMAT_RGBA32);
+	SDL_Surface* top =
+		SDL_CreateSurface(image->w, rows, SDL_PIXELFORMAT_RGBA32);
 	if (top == nullptr || rows == 0) {
-		SDL_FreeSurface(top);
+		SDL_DestroySurface(top);
 		return {0, 0, 0, 255};
 	}
 	// Copied as it is, not blended onto the empty surface
@@ -42,7 +42,7 @@ SDL_Color TopColour(SDL_Surface* image) {
 			}
 		}
 	}
-	SDL_FreeSurface(top);
+	SDL_DestroySurface(top);
 	const auto count =
 		static_cast<std::uint64_t>(rows) * static_cast<std::uint64_t>(image->w);
 	const auto average = [&](std::size_t channel) {
@@ -97,13 +97,13 @@ TextureManager::Load(SDL_Renderer* renderer, const TextureManifest& manifest,
 		SDL_Surface* image = IMG_Load(full_path.c_str());
 		if (image == nullptr) {
 			return std::unexpected("cannot load " + full_path + ": " +
-								   IMG_GetError());
+								   SDL_GetError());
 		}
 		texture.top_colour = TopColour(image);
 		const auto id = static_cast<int>(manager->textures_.size());
 		if (image->w * image->h <= kMaskPixels) {
 			SDL_Surface* rgba =
-				SDL_ConvertSurfaceFormat(image, SDL_PIXELFORMAT_RGBA32, 0);
+				SDL_ConvertSurface(image, SDL_PIXELFORMAT_RGBA32);
 			if (rgba != nullptr) {
 				constexpr std::uint8_t kHalf = 128;
 				const auto* pixels =
@@ -115,17 +115,17 @@ TextureManager::Load(SDL_Renderer* renderer, const TextureManifest& manifest,
 									  static_cast<std::ptrdiff_t>(x) * 4 + 3] >=
 							   kHalf;
 					}));
-				SDL_FreeSurface(rgba);
+				SDL_DestroySurface(rgba);
 			}
 		}
 		texture.texture = SDL_CreateTextureFromSurface(renderer, image);
-		SDL_FreeSurface(image);
+		SDL_DestroySurface(image);
 		if (texture.texture == nullptr) {
 			return std::unexpected("cannot load " + full_path + ": " +
 								   SDL_GetError());
 		}
-		SDL_QueryTexture(texture.texture, nullptr, nullptr, &texture.width,
-						 &texture.height);
+		texture.width = texture.texture->w;
+		texture.height = texture.texture->h;
 		manager->textures_.push_back(texture);
 		loaded.emplace(path, id);
 		return id;

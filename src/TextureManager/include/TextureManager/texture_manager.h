@@ -12,7 +12,7 @@
 #ifndef TEXTURE_MANAGER_INCLUDE_TEXTURE_MANAGER_H
 #define TEXTURE_MANAGER_INCLUDE_TEXTURE_MANAGER_H
 
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>

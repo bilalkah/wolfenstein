@@ -116,6 +116,8 @@ class Renderer3D : public IRenderer
 	// A dead player's view, drawn into fallen_view_, rolled onto its side
 	// as far as `fall` (0 to 1) and scaled to cover the screen
 	void RenderFallen(double fall);
+	// Draws into fallen_view_ and from it once, at startup
+	void WarmUpFallenView();
 	void RenderTextures();
 	void RenderHUD(double delta_time);
 	void RenderFps(double delta_time);

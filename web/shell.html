@@ -435,7 +435,7 @@
 
   // Browsers start audio suspended until the page gets a user gesture
   function resumeAudio() {
-    const ctx = Module.SDL2 && Module.SDL2.audioContext;
+    const ctx = Module.SDL3?.audioContext;
     if (ctx && ctx.state === 'suspended') ctx.resume();
   }
   for (const type of ['keydown', 'mousedown']) {

@@ -1,7 +1,9 @@
 # LeakSanitizer suppressions for the sanitizer builds' tests.
 #
-# Creating an SDL window and renderer loads the system's graphics driver
+# Creating an SDL window and renderer can load the system's graphics driver
 # (Mesa, EGL), which keeps one-time allocations for the life of the process
 # and never frees them. They show up as leaks whose allocation stacks pass
-# through libSDL2; the game's own allocations never do.
-leak:libSDL2
+# through the EGL libraries, or SDL's code that loads them (SDL is linked
+# into the tests); the game's own allocations never do.
+leak:libEGL
+leak:SDL_EGL_

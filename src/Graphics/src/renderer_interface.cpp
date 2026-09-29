@@ -12,40 +12,67 @@ namespace wolfenstein {
 RendererContext::RendererContext(const std::string& window_name,
 								 const RenderConfig& config, Camera2D& camera)
 	: config_(config), camera_ptr(camera) {
-	if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+	if (!SDL_Init(SDL_INIT_VIDEO)) {
 		SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
 
-	if (TTF_Init() != 0) {
+	if (!TTF_Init()) {
 		SDL_Log("Unable to initialize TTF: %s", SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
 
 	const auto font_path =
 		std::string(RESOURCE_DIR) + "font/BlackOpsOne-Regular.ttf";
-	font_ = TTF_OpenFont(font_path.c_str(), 30);  // Font size: 24
+	font_ = TTF_OpenFont(font_path.c_str(), 30);
 	if (!font_) {
-		std::cerr << "Failed to load font: " << TTF_GetError() << '\n';
+		std::cerr << "Failed to load font: " << SDL_GetError() << '\n';
 		exit(EXIT_FAILURE);
 	}
 
-	window_ = SDL_CreateWindow(window_name.c_str(), SDL_WINDOWPOS_CENTERED,
-							   SDL_WINDOWPOS_CENTERED, config_.width,
-							   config_.height, SDL_WINDOW_SHOWN);
+	// Centred on the screen (a plain SDL_CreateWindow leaves it to the system)
+	const SDL_PropertiesID window = SDL_CreateProperties();
+	SDL_SetStringProperty(window, SDL_PROP_WINDOW_CREATE_TITLE_STRING,
+						  window_name.c_str());
+	SDL_SetNumberProperty(window, SDL_PROP_WINDOW_CREATE_X_NUMBER,
+						  SDL_WINDOWPOS_CENTERED);
+	SDL_SetNumberProperty(window, SDL_PROP_WINDOW_CREATE_Y_NUMBER,
+						  SDL_WINDOWPOS_CENTERED);
+	SDL_SetNumberProperty(window, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER,
+						  config_.width);
+	SDL_SetNumberProperty(window, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER,
+						  config_.height);
+	window_ = SDL_CreateWindowWithProperties(window);
+	SDL_DestroyProperties(window);
 	if (window_ == nullptr) {
 		SDL_Log("Unable to create window: %s", SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
 
-	renderer_ = SDL_CreateRenderer(window_, -1, SDL_RENDERER_ACCELERATED);
+	// The system's best renderer, or the one SDL_RENDER_DRIVER names
+	renderer_ = SDL_CreateRenderer(window_, nullptr);
 	if (renderer_ == nullptr) {
 		SDL_Log("Unable to create renderer: %s", SDL_GetError());
 		exit(EXIT_FAILURE);
 	}
+	// Pictures scaled up keep their pixels sharp (SDL 3 smooths them unless
+	// told otherwise); set before any texture is made
+	SDL_SetDefaultTextureScaleMode(renderer_, SDL_SCALEMODE_NEAREST);
+	// The views draw at the configured size, which SDL scales to the window,
+	// keeping its shape: a window can be another size (in the browser it
+	// takes the size the page gives the canvas; fullscreen, the screen's)
+	SDL_SetRenderLogicalPresentation(renderer_, config_.width, config_.height,
+									 SDL_LOGICAL_PRESENTATION_LETTERBOX);
+#ifdef __EMSCRIPTEN__
+	// In the browser SDL paces the page's main loop by the renderer's vsync:
+	// off, it runs on setTimeout, as fast as it can go; on, a frame each
+	// display refresh (requestAnimationFrame), as the game's loop expects.
+	// Natively the game paces itself, and SDL would only imitate vsync.
+	SDL_SetRenderVSync(renderer_, 1);
+#endif
 
 	if (config_.fullscreen) {
-		SDL_SetWindowFullscreen(window_, SDL_WINDOW_FULLSCREEN_DESKTOP);
+		SDL_SetWindowFullscreen(window_, true);
 	}
 
 	const std::string manifest_path =
@@ -75,11 +102,11 @@ RendererContext::RendererContext(const std::string& window_name,
 	// a texture's first draw is done here too
 	constexpr int kWarmUpCommands = 4096;
 	const int texture_count = textures_->TextureCount();
-	const SDL_Rect pixel{0, 0, 1, 1};
+	const SDL_FRect pixel{0, 0, 1, 1};
 	for (int i = 0; i < kWarmUpCommands; ++i) {
-		SDL_RenderCopy(renderer_,
-					   textures_->GetTexture(i % texture_count).texture, &pixel,
-					   &pixel);
+		SDL_RenderTexture(renderer_,
+						  textures_->GetTexture(i % texture_count).texture,
+						  &pixel, &pixel);
 	}
 	SDL_Texture* warm_up = textures_->GetTexture(0).texture;
 	// One of every kind of draw the game makes (tinted and faded copies,
@@ -88,15 +115,15 @@ RendererContext::RendererContext(const std::string& window_name,
 	// frame of play
 	SDL_SetTextureColorMod(warm_up, 200, 200, 200);
 	SDL_SetTextureAlphaMod(warm_up, 128);
-	SDL_RenderCopy(renderer_, warm_up, &pixel, &pixel);
+	SDL_RenderTexture(renderer_, warm_up, &pixel, &pixel);
 	SDL_SetTextureColorMod(warm_up, 255, 255, 255);
 	SDL_SetTextureAlphaMod(warm_up, 255);
 	for (const SDL_BlendMode mode : {SDL_BLENDMODE_NONE, SDL_BLENDMODE_BLEND}) {
 		SDL_SetRenderDrawBlendMode(renderer_, mode);
 		SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 128);
 		SDL_RenderFillRect(renderer_, &pixel);
-		SDL_RenderDrawLine(renderer_, 0, 0, 1, 1);
-		SDL_RenderDrawPoint(renderer_, 0, 0);
+		SDL_RenderLine(renderer_, 0, 0, 1, 1);
+		SDL_RenderPoint(renderer_, 0, 0);
 	}
 	// One batch as large as the 2D view ever draws, growing SDL's vertex
 	// buffer for it
