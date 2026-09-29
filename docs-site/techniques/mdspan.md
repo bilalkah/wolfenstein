@@ -46,7 +46,7 @@ class Map
     static constexpr double kPassableOpenness = 0.8;
     static constexpr bool IsDoorCell(std::uint16_t cell) {
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/GameMap/include/GameMap/map.h#L69-L87){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/GameMap/include/GameMap/map.h#L69-L87){ .excerpt-source }
 
 The DDA loop, the hottest code in the engine, reads cells as
 `cells[map_check.x, map_check.y]` and the extents as `cells.extent(0)`

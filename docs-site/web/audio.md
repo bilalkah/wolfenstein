@@ -30,7 +30,7 @@ the first key press or click:
   }
   canvas.addEventListener('mousedown', () => canvas.focus());
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/web/shell.html#L437-L444){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/web/shell.html#L437-L444){ .excerpt-source }
 
 The menu is navigated with the keyboard or the mouse, so the first action
 in the menu unlocks the sound; the menu's music starts then. In an iframe,

@@ -85,12 +85,3 @@ excerpts link to the exact lines on GitHub.
 
 Click a diagram or a screenshot to see it full-screen. In a diagram, scroll
 or pinch to zoom and drag to move around; Esc closes it.
-
-!!! note "Notes for the author"
-    Where the code or the history does not say *why* something is as it
-    is, a box like this asks for it:
-
-    !!! todo "Bilal: explain why"
-        A guess, marked as one.
-
-    Those boxes are the places to fill in from memory.

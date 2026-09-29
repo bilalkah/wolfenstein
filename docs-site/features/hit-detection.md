@@ -49,11 +49,11 @@ a marker round the crosshair on a hit.
 
 ## Key code
 
-- [`Cross`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/ShootingManager/src/shooting_manager.cpp#L119-L145):
+- [`Cross`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/ShootingManager/src/shooting_manager.cpp#L119-L145):
   the board test and the mask.
-- [`ResolveOneShot`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/ShootingManager/src/shooting_manager.cpp#L75-L115):
+- [`ResolveOneShot`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/ShootingManager/src/shooting_manager.cpp#L75-L115):
   zone, blood and damage.
-- [`AddDecalColumn` and `EnqueueDecals`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Graphics/src/renderer_3d.cpp#L367-L435):
+- [`AddDecalColumn` and `EnqueueDecals`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/src/renderer_3d.cpp#L367-L435):
   merging a mark's columns into one quad.
 
 ## Pitfalls

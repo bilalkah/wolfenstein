@@ -52,11 +52,11 @@ alive when enemies move about, hear a fight, and come to it.
 
 ## Key code
 
-- [`Scene::MakeNoise`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/scene.cpp#L138-L188):
+- [`Scene::MakeNoise`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/scene.cpp#L138-L188):
   the flood fill.
-- [`Enemy::NoticesPlayer`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/enemy.cpp#L261-L268):
+- [`Enemy::NoticesPlayer`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/enemy.cpp#L261-L268):
   heard, or seen near, in any direction.
-- [`Enemy::TakeHit`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/enemy.cpp#L243-L255):
+- [`Enemy::TakeHit`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/enemy.cpp#L243-L255):
   the pain cooldown.
 
 ## Pitfalls

@@ -39,9 +39,9 @@ from the game through a lock-free single-producer, single-consumer ring.
 
 ## Key code
 
-- [`Hear`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/SoundManager/src/spatial_mixer.cpp#L20-L43)
-- [`SpatialMixer::Send`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/SoundManager/src/spatial_mixer.cpp#L60-L68)
-- [`SpatialMixer::Mix`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/SoundManager/src/spatial_mixer.cpp#L111-L158)
+- [`Hear`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/SoundManager/src/spatial_mixer.cpp#L20-L43)
+- [`SpatialMixer::Send`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/SoundManager/src/spatial_mixer.cpp#L60-L68)
+- [`SpatialMixer::Mix`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/SoundManager/src/spatial_mixer.cpp#L111-L158)
 
 ## Pitfalls
 

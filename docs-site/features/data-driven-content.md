@@ -46,10 +46,10 @@ tuning in lookup functions" (`1a8663e`).
 
 ## Key code
 
-- [`GameConfig` and the config structs](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/include/Core/level_data.h)
-- [`level_data.cpp`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/level_data.cpp):
+- [`GameConfig` and the config structs](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/include/Core/level_data.h)
+- [`level_data.cpp`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/level_data.cpp):
   the config parser and the level reader.
-- [`assets/levels/config.json`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/assets/levels/config.json)
+- [`assets/levels/config.json`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/assets/levels/config.json)
 
 ## Pitfalls
 

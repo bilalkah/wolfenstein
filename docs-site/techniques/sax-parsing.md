@@ -38,7 +38,7 @@ class LevelReader final : public nlohmann::json_sax<json>
         level_.secrets.reserve(4);
         level_.intel.reserve(4);
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/level_data.cpp#L425-L439){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/level_data.cpp#L425-L439){ .excerpt-source }
 
 How it keeps track:
 
@@ -64,7 +64,7 @@ std::expected<LevelData, std::string> ParseLevel(std::istream& input) {
     return level;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/level_data.cpp#L959-L966){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/level_data.cpp#L959-L966){ .excerpt-source }
 
 The much smaller and more deeply nested `config.json` is still parsed with
 the tree API: it is read once, and the tree makes the code for dozens of

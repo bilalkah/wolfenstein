@@ -36,7 +36,7 @@ struct StateType<Enemy>
 };
 using EnemyStateType = StateType<Enemy>::Type;
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/State/include/State/enemy_state.h#L25-L38){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/State/include/State/enemy_state.h#L25-L38){ .excerpt-source }
 
 `StateType<Weapon>` is specialised the same way with `Loaded`,
 `OutOfAmmo`, `Reloading`, `Raising` and `Lowering`. The primary template
@@ -88,7 +88,7 @@ class StateMachine
     bool updating_ = false;
 };
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/State/include/State/state.h#L72-L112){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/State/include/State/state.h#L72-L112){ .excerpt-source }
 
 - **States are members of their owner.** An `Enemy` holds its seven
   states by value; the machine only switches a pointer, so a transition
@@ -125,7 +125,7 @@ EnemyState& Enemy::StateFor(EnemyStateType type) {
     std::unreachable();
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/enemy.cpp#L45-L63){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/enemy.cpp#L45-L63){ .excerpt-source }
 
 A `switch` over an `enum class` with every case handled: the compiler warns
 if a new state is added and not handled, and C++23's `std::unreachable()`

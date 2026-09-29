@@ -53,11 +53,11 @@ cutscenes, in the game's own screens, and reward exploring.
 
 ## Key code
 
-- [`StoryBefore` and `StoryAtTheEnd`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/include/Core/story.h)
+- [`StoryBefore` and `StoryAtTheEnd`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/include/Core/story.h)
 - `Scene::ReadIntel`, `FindIntel` and `ShowIntel` in
-  [`scene.cpp`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/scene.cpp)
+  [`scene.cpp`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/scene.cpp)
 - `Renderer3D::RenderIntel` in
-  [`renderer_3d.cpp`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Graphics/src/renderer_3d.cpp)
+  [`renderer_3d.cpp`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/src/renderer_3d.cpp)
 
 ## Pitfalls
 

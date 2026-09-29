@@ -2,8 +2,8 @@
 
 ## Purpose
 
-The engine runs on desktops (macOS, Linux) and in browsers from one code
-base. The platform layer is what makes that possible: SDL2 and its three
+The engine runs natively (on Linux, where the dev container and CI build
+it) and in browsers, from one code base. The platform layer is what makes that possible: SDL2 and its three
 satellite libraries for windows, drawing, fonts, images and sound; CMake
 targets that pick system packages natively and Emscripten ports on the
 web; and a handful of `#ifdef __EMSCRIPTEN__` blocks for what genuinely

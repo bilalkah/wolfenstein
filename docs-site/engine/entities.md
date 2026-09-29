@@ -48,7 +48,7 @@ constexpr std::size_t ToIndex(ObjectId id) noexcept {
     return std::to_underlying(id);
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/GameObjects/include/GameObjects/object_id.h#L16-L26){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/GameObjects/include/GameObjects/object_id.h#L16-L26){ .excerpt-source }
 
 ## How it is implemented here
 
@@ -111,7 +111,7 @@ Scene::Scene(const TextureManager& textures, SoundManager& sound,
     pickup_list_.reserve(capacity.pickups);
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/scene.cpp#L48-L78){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/scene.cpp#L48-L78){ .excerpt-source }
 
 Every container here is a `std::pmr` container handed the arena, and each
 is reserved to its final size before anything is added, so filling the
@@ -133,7 +133,7 @@ std::expected<memory::Handle<Enemy>, memory::PoolError> Scene::AddEnemy(
     return handle;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/scene.cpp#L80-L91){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/scene.cpp#L80-L91){ .excerpt-source }
 
 When the loader has added everything, `FinishLoading` appends the fixed
 effects and projectiles to the object list (last, so they draw and update
@@ -154,7 +154,7 @@ void Scene::FinishLoading() {
     navigation_.Build();
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/scene.cpp#L124-L136){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/scene.cpp#L124-L136){ .excerpt-source }
 
 ### Rings for short-lived things
 
@@ -176,7 +176,7 @@ void Scene::ShowImpact(Impact impact, const vector2d& pose, double height,
     next_effect_ = (next_effect_ + 1) % kEffects;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/scene.cpp#L190-L201){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/scene.cpp#L190-L201){ .excerpt-source }
 
 ### Pickups and drops
 

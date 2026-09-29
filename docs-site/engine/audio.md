@@ -92,7 +92,7 @@ StereoGain Hear(const vector2d& ear, double theta, const vector2d& source,
             .right = static_cast<float>(loud * std::min(1.0, 1.0 + side))};
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/SoundManager/src/spatial_mixer.cpp#L20-L43){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/SoundManager/src/spatial_mixer.cpp#L20-L43){ .excerpt-source }
 
 Whether a sound is muffled is decided by the `Scene`
 (`PlaySoundAt`): muffled if there is no line of sight from the player to
@@ -112,7 +112,7 @@ bool SpatialMixer::Send(const Command& command) {
     return true;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/SoundManager/src/spatial_mixer.cpp#L60-L68){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/SoundManager/src/spatial_mixer.cpp#L60-L68){ .excerpt-source }
 
 Two commands exist: *play this chunk from here* and *the listener is now
 here, facing this way* (sent every frame). The ring holds 256 commands;
@@ -178,7 +178,7 @@ void SpatialMixer::Mix(std::uint8_t* stream, int bytes) {
     }
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/SoundManager/src/spatial_mixer.cpp#L111-L158){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/SoundManager/src/spatial_mixer.cpp#L111-L158){ .excerpt-source }
 
 Each voice is heard as one point source: its stereo sample is averaged,
 then split between the ears by the voice's gains. A voice's gains are

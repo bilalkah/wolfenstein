@@ -24,7 +24,7 @@ The game configuration's maps are ordered and transparent:
     // By enemy type ("soldier"); std::less<> allows string_view lookups
     std::map<std::string, EnemyConfig, std::less<>> enemies;
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/include/Core/level_data.h#L100-L101){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/include/Core/level_data.h#L100-L101){ .excerpt-source }
 
 The same goes for pickups and for the loader's prepared levels
 (`std::map<std::string, PreparedLevel, std::less<>>`), so
@@ -44,7 +44,7 @@ The texture manager's name tables are unordered and transparent:
     using StringMap =
         std::unordered_map<std::string, V, StringHash, std::equal_to<>>;
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/TextureManager/include/TextureManager/texture_manager.h#L125-L134){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/TextureManager/include/TextureManager/texture_manager.h#L125-L134){ .excerpt-source }
 
 `GetTextureCollection(std::string_view)` finds a clip by name without a
 temporary string. `LoopedAnimation` builds side names like

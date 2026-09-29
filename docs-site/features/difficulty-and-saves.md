@@ -44,9 +44,9 @@ fifteen levels be played over several sessions.
 
 ## Key code
 
-- [`Game::AutoSave`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/game.cpp#L227-L236)
-- [`World::Capture` and `ContinueGame`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/world.cpp)
-- [`SavedGame::kFormat`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Settings/include/Settings/saved_game.h#L24-L29)
+- [`Game::AutoSave`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/game.cpp#L227-L236)
+- [`World::Capture` and `ContinueGame`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/world.cpp)
+- [`SavedGame::kFormat`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Settings/include/Settings/saved_game.h#L24-L29)
 
 ## Pitfalls
 

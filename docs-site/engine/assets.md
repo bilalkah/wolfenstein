@@ -70,7 +70,7 @@ backgrounds are bigger and never shot through), loading also builds a
                     }));
                 SDL_FreeSurface(rgba);
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/TextureManager/src/texture_manager.cpp#L104-L118){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/TextureManager/src/texture_manager.cpp#L104-L118){ .excerpt-source }
 
 `IsSolidAt(id, across, down)` answers "does this frame show at this
 point?" for [shots](combat.md), and `SolidRows(id)` gives the first and last
@@ -119,7 +119,7 @@ LoopedAnimation::LoopedAnimation(const TextureManager& textures,
     views_[0] = frames_.data();
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Animation/src/looped_animation.cpp#L55-L85){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Animation/src/looped_animation.cpp#L55-L85){ .excerpt-source }
 
 ### Which side is seen
 
@@ -132,7 +132,7 @@ std::size_t SideSeen(const vector2d& at, double facing,
     return static_cast<std::size_t>(((eighths % 8) + 8) % 8);
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Math/src/vector.cpp#L273-L279){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Math/src/vector.cpp#L273-L279){ .excerpt-source }
 
 `TurnedFrom` is the viewer's bearing relative to the object's facing, in
 \([-\pi, \pi]\); rounding it to the nearest eighth of a turn picks the

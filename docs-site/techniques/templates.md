@@ -38,7 +38,7 @@ arguments to `std::format_to_n` the same way (see
         }
     }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/NavigationManager/include/NavigationManager/grid_path_finder.h#L56-L65){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/NavigationManager/include/NavigationManager/grid_path_finder.h#L56-L65){ .excerpt-source }
 
 The path finder fills its grid by asking a callable whether each cell is a
 wall. The navigation manager passes a lambda that consults the map; the

@@ -1,5 +1,10 @@
 # Building
 
+Everything builds in Docker, so Docker is the one tool a machine needs.
+The WebAssembly build is the one to play, in any desktop browser; the
+native build, in a Linux container, runs the tests, the benchmark and the
+scripted sessions.
+
 ## Get the code and the assets
 
 The assets (images, fonts, sounds, music) are stored with
@@ -12,98 +17,96 @@ git clone https://github.com/bilalkah/wolfenstein
 cd wolfenstein
 ```
 
-## Native builds
+## Build and play in the browser
 
-The native toolchain is Clang with libc++ (the standard library the
-Emscripten and macOS builds use too; libstdc++ lacks `<mdspan>`), CMake
-3.25 or newer, and SDL2 with SDL_image, SDL_ttf and SDL_mixer.
+```bash
+docker build -f docker/web.Dockerfile -t wolfenstein-web .
+docker run --rm -p 8000:8000 wolfenstein-web
+```
 
-=== "In the dev container (any OS with Docker)"
+Then open <http://localhost:8000>; Ctrl+C stops the server. (The address
+it prints for other machines is the container's own; from another machine,
+use this one's address.)
 
-    ```bash
-    ./scripts/dev.sh cmake --preset native-debug
-    ./scripts/dev.sh cmake --build --preset native-debug
-    ./scripts/dev.sh ctest --preset native-debug
-    ```
+`docker/web.Dockerfile` builds in two stages:
 
-    `scripts/dev.sh` builds `docker/dev.Dockerfile` (Ubuntu 26.04, LLVM 21,
-    SDL2) on first use and runs the command inside it, with the repository
-    mounted.
+1. **Build**, in `emscripten/emsdk:6.0.10`, the Emscripten SDK that CI
+   pins: `cmake --preset web-release`, then `cmake --build --preset
+   web-release`. Emscripten downloads and compiles SDL2 and its satellite
+   libraries as ports along with the game, which takes about two minutes.
+   It stops early if the assets are Git LFS pointers rather than files.
+2. **Serve**, in a small Python image: the four files of the build
+   (`index.html`, `index.js`, `index.wasm`, `index.data`) and
+   `scripts/serve_web.py`, which answers byte-range requests as the page's
+   loader expects.
 
-=== "On Ubuntu 26.04"
+Only the sources the build needs go into the image
+(`docker/web.Dockerfile.dockerignore`), not the build trees or the history.
 
-    ```bash
-    ./scripts/install_deps.sh        # Clang, libc++, clang-format, clang-tidy, SDL2
-    cmake --preset native-release
-    cmake --build --preset native-release
-    ./build/native-release/bin/wolfenstein
-    ```
+### While changing the code
 
-=== "Elsewhere"
+A change to any source rebuilds the image from that step, ports and all.
+For quicker rounds, the scripts build incrementally into
+`build/web-release`, with Emscripten still in Docker (a named volume keeps
+SDL's compiled ports between builds), and serve the result with Python on
+port 8000 and to the local network:
 
-    Install Clang, libc++ and SDL2 with its three satellite libraries
-    (for example with Homebrew on macOS), then use the presets as above.
+```bash
+./scripts/build_web.sh   # build/web-release/bin
+./scripts/run_web.sh     # builds, then serves on http://localhost:8000
+```
 
-    !!! todo "Bilal: explain the macOS setup you use"
-        The scripts target Ubuntu and Docker; the repository does not
-        record how the native macOS build is set up. A guess: the game is
-        built and tested in the dev container and played on macOS through
-        the web build; a native macOS build would use Apple's Clang (whose
-        standard library is libc++) with SDL2 from Homebrew.
+With an Emscripten SDK installed locally (`emcmake` on the `PATH`),
+`build_web.sh` uses it instead of the container. The output is a static
+site; browsers refuse to load WebAssembly from `file://`, so it has to be
+served over HTTP. See [Building with Emscripten](web/emscripten-build.md).
+
+## The native build, tests and checks
+
+The native build runs in a container too: `docker/dev.Dockerfile`
+(Ubuntu 26.04, LLVM 21, SDL2), which `scripts/dev.sh` builds on first use
+and runs any command in, with the repository mounted. CI uses the same
+toolchain.
+
+```bash
+./scripts/dev.sh cmake --preset native-debug
+./scripts/dev.sh cmake --build --preset native-debug
+./scripts/dev.sh ctest --preset native-debug
+```
+
+The toolchain is Clang with libc++ (the standard library the Emscripten
+build uses too; libstdc++ lacks `<mdspan>`), CMake 3.25 or newer, and SDL2
+with SDL_image, SDL_ttf and SDL_mixer. The container has no display or
+sound card: SDL runs off-screen, so there the game is built, tested and
+measured, and the browser is where it is played.
 
 ### Presets
 
 | Preset | What |
 | --- | --- |
 | `native-debug` | Debug build, tests, the allocation gates |
-| `native-release` | Optimised with debug info, for playing and benchmarking |
+| `native-release` | Optimised with debug info, for benchmarking |
 | `native-asan` | AddressSanitizer and UndefinedBehaviorSanitizer |
-| `web-release` | The WebAssembly build (needs `$EMSDK`) |
+| `web-release` | The WebAssembly build (`docker/web.Dockerfile`, `scripts/build_web.sh`) |
 
 All presets build with `-Werror`.
 
-### Running
+### Scripted runs
 
 ```bash
-./build/native-release/bin/wolfenstein              # the game
-./build/native-release/bin/wolfenstein --debug      # P shows the 2D view
-./build/native-release/bin/wolfenstein --benchmark 2000
-./build/native-release/bin/wolfenstein --soak
+./scripts/dev.sh bash -c "./build/native-release/bin/wolfenstein --benchmark 2000 | python3 scripts/alloc_breakdown.py"
+./scripts/dev.sh bash -c "./build/native-debug/bin/wolfenstein --soak | python3 scripts/check_soak.py"
 ```
+
+In the browser the same runs are `?benchmark=2000` and `?soak` in the
+address, and `?debug` lets **P** show the top-down view.
 
 ### Checks
 
 ```bash
 ./scripts/dev.sh ctest --preset native-debug        # unit tests
-./scripts/dev.sh bash -c "./build/native-debug/bin/wolfenstein --soak | python3 scripts/check_soak.py"
 ./scripts/dev.sh ./scripts/tidy.sh                   # clang-tidy, after configuring native-debug
 ```
-
-## The WebAssembly build
-
-=== "With the build script"
-
-    ```bash
-    ./scripts/build_web.sh   # local SDK if emcmake is on PATH, else the emsdk Docker image
-    ./scripts/run_web.sh     # builds, then serves on http://localhost:8000
-    ```
-
-=== "With a local Emscripten SDK"
-
-    ```bash
-    git clone https://github.com/emscripten-core/emsdk.git
-    ./emsdk/emsdk install 6.0.10     # the version CI pins
-    ./emsdk/emsdk activate 6.0.10
-    source ./emsdk/emsdk_env.sh
-    cmake --preset web-release
-    cmake --build --preset web-release
-    python3 scripts/serve_web.py build/web-release/bin 8000
-    ```
-
-The output in `build/web-release/bin` (`index.html`, `index.js`,
-`index.wasm`, `index.data`) is a static site. Browsers refuse to load
-WebAssembly from `file://`, so serve it over HTTP. See
-[Building with Emscripten](web/emscripten-build.md).
 
 ## This documentation site
 

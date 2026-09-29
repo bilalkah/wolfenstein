@@ -44,12 +44,49 @@ gzip`, and a `Range` request returns a slice of the gzip stream).
         })
       : nativeFetch(input, init);
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/web/shell.html#L362-L368){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/web/shell.html#L362-L368){ .excerpt-source }
 
 Emscripten's generated loader fetches `index.data` with `fetch`, so the
 page replaces `window.fetch` for that one URL; `index.wasm` goes through
 `Module.instantiateWasm`, which the page also provides, streaming the
 download into `WebAssembly.instantiateStreaming`. Both use `cachedFetch`.
+
+### `index.js`, by its version
+
+`index.js` is Emscripten's runtime glue and the table of where each file
+lies in `index.data`, so it must come from the same build as the two big
+files. A plain `<script src="index.js">` would be taken from the browser's
+HTTP cache for as long as the server allows (on GitHub Pages ten minutes,
+`max-age=600`): in the ten minutes after a deployment, a returning
+player's browser would run the previous build's script against the new
+files. So the page asks the server for the script's version, with the same
+`HEAD` request as for the other two, and loads it under a name that
+changes with it:
+
+```javascript title="web/shell.html"
+  remoteFile('index.js').then((remote) => {
+    const script = document.createElement('script');
+    script.src = `index.js?v=${encodeURIComponent(remote?.version ?? Date.now())}`;
+    script.onerror = () => recover('Could not load the game, see the browser console.');
+    document.body.append(script);
+  });
+```
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/web/shell.html#L470-L475){ .excerpt-source }
+
+The browser still keeps the script, as `index.js?v=<size and date>`; a new
+build has a new name and is fetched afresh. A server that sends no
+validator gets a new name on every visit. Emscripten insists on writing
+its own `<script>` tag into the page (`{{{ SCRIPT }}}` in the shell), so the
+shell keeps that placeholder inside an HTML comment, where the tag does
+nothing. Only `index.html` itself may still be up to ten minutes old, and
+it holds the loader alone, which works with either build.
+
+This was checked across a simulated deployment, with a server that sends
+`max-age=600` as GitHub Pages does: a visit, then a new build with every
+file in `index.data` moved, then a second visit in the same browser. With
+a plain script tag, the second visit ran the old `index.js`, its fonts
+failed to load and the recovery reload met the same cached script; with
+the versioned name it loaded the new build (`b2564d5`).
 
 ### Keep, or fetch
 
@@ -78,7 +115,7 @@ download into `WebAssembly.instantiateStreaming`. Both use `cachedFetch`.
     return new Response(forGame, { headers: response.headers });
   }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/web/shell.html#L311-L333){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/web/shell.html#L311-L333){ .excerpt-source }
 
 1. A `HEAD` request (`remoteFile`) learns the file's size and its date or
    tag, which together identify the build, whether ranges are offered, and
@@ -125,7 +162,7 @@ counts the inflated bytes for the progress text:
     return new Response(counted, { headers: { 'Content-Type': type } });
   }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/web/shell.html#L295-L309){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/web/shell.html#L295-L309){ .excerpt-source }
 
 !!! bug "Fixed while writing these docs: the game did not start on GitHub Pages"
     Before `73aaf65` ("Load the game from a server that compresses it"),
@@ -166,7 +203,7 @@ a second after the runtime is ready, or the runtime aborts, the page
     location.reload();
   }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/web/shell.html#L346-L358){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/web/shell.html#L346-L358){ .excerpt-source }
 
 ## Design decisions and trade-offs
 
@@ -179,6 +216,12 @@ a second after the runtime is ready, or the runtime aborts, the page
   a changed build is detected by one `HEAD` per file.
 - **No service worker.** Everything happens in the page; there is nothing
   to install or update separately.
+- **A versioned name for `index.js`, not hashed file names.** Hashed names
+  (`index.<hash>.js`) would need the build or the Pages workflow to rename
+  the files and rewrite Emscripten's references to them, and an
+  `index.html` cached from before a deployment would then ask for files
+  the deployment had removed. A version taken from the server's own
+  headers needs neither.
 
 ## Pitfalls
 
@@ -188,7 +231,7 @@ a second after the runtime is ready, or the runtime aborts, the page
 - **Storage can be refused** (private windows, quotas); every IndexedDB
   call tolerates failure and the game still loads, just without keeping a
   copy.
-- **Two builds must never mix.** The version check per file and the stamp
-  check per piece prevent a new `index.wasm` running with an old
-  `index.data`; the store was versioned (`indexedDB.open('wolfenstein', 2)`)
+- **Two builds must never mix.** The version check per file (`index.js`
+  through its versioned name) and the stamp check per piece prevent a new
+  `index.wasm` running with an old `index.data` or `index.js`; the store was versioned (`indexedDB.open('wolfenstein', 2)`)
   to drop copies an older page version kept without those checks.

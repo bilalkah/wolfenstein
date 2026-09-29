@@ -50,11 +50,11 @@ and sounds right, with the rounds each carries saved with the game.
 
 ## Key code
 
-- [`WeaponConfig`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Strike/include/Strike/weapon.h):
+- [`WeaponConfig`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Strike/include/Strike/weapon.h):
   everything a weapon is, read from `config.json`.
-- [`Player::SelectWeapon`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/player.cpp#L74-L95):
+- [`Player::SelectWeapon`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/player.cpp#L74-L95):
   lowering one weapon before raising the next, and changing one's mind.
-- [`LoadedState::PullTrigger`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/State/src/weapon_state.cpp#L73-L84):
+- [`LoadedState::PullTrigger`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/State/src/weapon_state.cpp#L73-L84):
   one shot per shot's duration, the magazine decremented, the sound played.
 
 ## Pitfalls

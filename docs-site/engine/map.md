@@ -76,7 +76,7 @@ class Map
     static constexpr double kPassableOpenness = 0.8;
     static constexpr bool IsDoorCell(std::uint16_t cell) {
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/GameMap/include/GameMap/map.h#L69-L87){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/GameMap/include/GameMap/map.h#L69-L87){ .excerpt-source }
 
 One `uint16_t` per cell encodes all three kinds: 0 is floor, a small
 number is a wall's texture id, and `0x8000 + i` is door number `i`, whose
@@ -121,7 +121,7 @@ also decides which way the door faces:
             }
             map.cells_.push_back(static_cast<std::uint16_t>(c - '0'));
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/GameMap/src/map.cpp#L69-L96){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/GameMap/src/map.cpp#L69-L96){ .excerpt-source }
 
 Errors come back as `std::expected<Map, std::string>`, naming the file and
 the row; see [Errors as values](../techniques/expected.md).
@@ -157,7 +157,7 @@ bool Map::IsBlocked(int x, int y) const {
     return cell != 0;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/GameMap/src/map.cpp#L160-L178){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/GameMap/src/map.cpp#L160-L178){ .excerpt-source }
 
 Cells outside the map count as blocked, so nothing walks, sees or hears
 past its edge; that fixed a line of sight that could loop forever
@@ -199,7 +199,7 @@ void Map::AdvancePushWalls(double cells) {
     }
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/GameMap/src/map.cpp#L231-L246){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/GameMap/src/map.cpp#L231-L246){ .excerpt-source }
 
 The comment on `PushWall` explains why two cells: "so the block does not
 end in front of the gap it leaves". When a secret stops, the `Scene`

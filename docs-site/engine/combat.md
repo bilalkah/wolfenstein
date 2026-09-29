@@ -130,7 +130,7 @@ std::optional<Crossing> Cross(const Scene& scene, const Position2D& eye,
     return Crossing{.across = across, .down = down, .distance = along};
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/ShootingManager/src/shooting_manager.cpp#L119-L145){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/ShootingManager/src/shooting_manager.cpp#L119-L145){ .excerpt-source }
 
 `IsSolidAt` reads a one-bit-per-pixel mask the `TextureManager` built for
 every sprite-sized texture at load (see [Textures and animation](assets.md)).

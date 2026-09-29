@@ -141,13 +141,24 @@ link line, so this builds, but it means `Scene` and the characters are one
 unit in practice: an enemy reaches the map, the player and the navigation
 through its `Scene&`, and the scene updates the enemies.
 
-!!! todo "Bilal: explain why"
-    Why the libraries are split per directory even where they depend on
-    each other both ways. A guess: the split follows the original 2024
-    layout (one package per concept, as in the first UML diagram,
-    `project.drawio.png`), and the 2026 CMake overhaul (`a2929f3`, "Move
-    to target-based CMake") kept the packages as targets rather than
-    redraw the boundaries.
+### Why the libraries are split this way
+
+There are 32 libraries in 20 folders, one folder per concept. Six of them
+form a single loop: `scene`, `character`, `camera`, `navigation_manager`,
+`shooting_manager` and `enemy_state` each depend, directly or through the
+others, on all the rest. `weapon` and `weapon_state` form a second, smaller
+one. None of the six can be built, used or tested without the other five,
+so in practice they are one library kept in six folders.
+
+No reason is recorded. The per-folder libraries date from `8cea7cb`
+("Refactor the codebase", August 2024), one per concept, and the move to
+target-based CMake (`a2929f3`) kept their boundaries. They stay as they
+are: the folders group the code by what it is about, and merging the loop
+into one library would change only the build files, not the code.
+Untangling it for real would mean the characters asking their level
+through a small interface that the scene implements, so the dependencies
+ran one way; the tests already build small levels easily, so that would
+buy little.
 
 ## Where to go next
 

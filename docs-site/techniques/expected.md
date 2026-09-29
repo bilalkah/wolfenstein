@@ -58,7 +58,7 @@ std::expected<SceneLoader, std::string> SceneLoader::Open(
     return loader;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/scene_loader.cpp#L56-L73){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/scene_loader.cpp#L56-L73){ .excerpt-source }
 
 At the top, `Game::Init` prints the error and exits: a game that cannot
 load its content cannot run. In tests, the same functions let a test

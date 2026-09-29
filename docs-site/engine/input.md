@@ -82,7 +82,7 @@ PlayerCommand Game::SampleCommand() {
     return command;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/game.cpp#L691-L726){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/game.cpp#L692-L727){ .excerpt-source }
 
 Scancodes (`SDL_SCANCODE_W`) name physical key positions, so WASD stays
 under the same fingers on AZERTY or Dvorak keyboards.
@@ -101,17 +101,18 @@ MouseLook ToMouseLook(int dx, int dy, const Settings& settings,
     constexpr double kRadiansPerPixel = 0.005;
     const double turn = dx * kRadiansPerPixel * settings.mouse_sensitivity;
     // Looking up slides the view by as many screen pixels as turning the
-    // same mouse distance does. A view fov across shows width / fov pixels
-    // a radian, and a slope of 1 is height * base_fov / fov pixels up: the
-    // fov cancels, so the slope does not depend on it. The mouse pushed
-    // away looks up, unless inverted.
+    // same mouse distance does. In a view fov across, a radian of turn moves
+    // the middle of the picture width / (2 tan(fov / 2)) pixels, and a slope
+    // of 1 is height tan(base_fov / 2) / tan(fov / 2) pixels up: the fov
+    // cancels, so the slope does not depend on it. The mouse pushed away
+    // looks up, unless inverted.
     const double up = (settings.invert_mouse_y ? dy : -dy) * kRadiansPerPixel *
                       settings.mouse_sensitivity * view.screen_width /
-                      (view.screen_height * view.base_fov);
+                      (2 * view.screen_height * std::tan(view.base_fov / 2));
     return {.turn = turn, .up = up};
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/game.cpp#L675-L688){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/game.cpp#L675-L689){ .excerpt-source }
 
 A mouse pixel turns 0.005 rad (times the sensitivity setting). Looking up
 and down is a *slope* (the view is sheared, see
@@ -137,7 +138,7 @@ would, whatever the field of view.
         return command;
     }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/include/Characters/view_angles.h#L33-L46){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/include/Characters/view_angles.h#L33-L46){ .excerpt-source }
 
 `ViewAngles` belongs to the presentation. Every frame, it adds the
 frame's mouse motion and keyboard turning (2.5 rad/s) to the view, which
@@ -173,7 +174,7 @@ inline PlayerCommand Gather(const PlayerCommand& earlier,
     return gathered;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/include/Characters/player_command.h#L54-L75){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/include/Characters/player_command.h#L54-L75){ .excerpt-source }
 
 On a 240 Hz screen four frames pass between two ticks. `Gather` merges
 their commands: mouse motion adds up, a button pressed in any frame

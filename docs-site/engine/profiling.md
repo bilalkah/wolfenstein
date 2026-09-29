@@ -52,7 +52,7 @@ ScopedTimer::~ScopedTimer() {
     }
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Profiler/src/profiler.cpp#L153-L168){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Profiler/src/profiler.cpp#L153-L168){ .excerpt-source }
 
 Each section records time **and** the heap allocations made while it ran
 (read from the counter described in [Memory](memory.md)), so a report

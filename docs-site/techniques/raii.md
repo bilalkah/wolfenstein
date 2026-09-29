@@ -24,7 +24,7 @@ a function pointer), the `unique_ptr` is no bigger than a raw pointer.
         void operator()(SDL_Texture* texture) const noexcept;
     };
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Graphics/include/Graphics/renderer_3d.h#L83-L86){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/include/Graphics/renderer_3d.h#L83-L86){ .excerpt-source }
 
 `Renderer3D` holds the pre-rendered FPS digits and the off-screen texture
 the dying view is drawn into as

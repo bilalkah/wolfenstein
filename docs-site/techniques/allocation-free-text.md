@@ -38,7 +38,7 @@ class FixedText
     std::size_t size_ = 0;
 };
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/UI/include/UI/ui.h#L58-L74){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/UI/include/UI/ui.h#L58-L74){ .excerpt-source }
 
 Every number the menus and HUD draw each frame goes through it: the kill
 counter, slider values ("0.75x"), the results screen, the description of
@@ -70,7 +70,7 @@ passed straight to `Ui::Text`.
         return *this;
     }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Settings/include/Settings/storage.h#L47-L65){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Settings/include/Settings/storage.h#L47-L65){ .excerpt-source }
 
 Saved games and settings are `key=value` lines written into a
 `std::span<char>` the caller owns (a 1 KB array on the stack when saving a

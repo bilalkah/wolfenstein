@@ -53,8 +53,8 @@ and [The toolchain and CI](toolchain-and-ci.md)).
 ## Key code
 
 The DDA and the fishbowl correction as they are today:
-[the DDA loop](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Camera/src/raycaster.cpp#L99-L144)
-and [the per-column correction and texture strip](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Graphics/src/renderer_3d.cpp#L228-L254),
+[the DDA loop](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Camera/src/raycaster.cpp#L99-L144)
+and [the per-column correction and texture strip](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/src/renderer_3d.cpp#L228-L254),
 both explained in [Raycasting and the camera](../engine/raycasting.md).
 
 ## Pitfalls
@@ -63,18 +63,14 @@ both explained in [Raycasting and the camera](../engine/raycasting.md).
   one cosine, but the variable names kept a trace of the confusion: a ray's
   `perpendicular_distance` is still the distance along the ray until the
   renderer multiplies it by the cosine.
-- Equal angles between rays (rather than equal steps on a camera plane)
-  date from this first version; see the pitfalls in
-  [Raycasting](../engine/raycasting.md#pitfalls).
+- This first version spread its rays at equal angles rather than through
+  even steps on a camera plane. That stayed until `dafd4e8` (September
+  2026), and bent long walls at wide fields of view (see
+  [Spreading the rays](../engine/raycasting.md#spreading-the-rays)).
 
 ## What I'd change
 
-!!! todo "Bilal: explain why"
-    Why rays are spread by equal angles rather than on a camera plane,
-    and why one ray per two columns. A guess: the first version followed
-    a tutorial that did it this way (the README credits
-    StanislavPetrovV's *DOOM-style Game*, which also casts rays at equal
-    angles), and two columns per ray halved the cost when the renderer
-    was slower.
-
-- Cast rays on a camera plane and map sprites with the same projection.
+- The projection is done: the rays go through a camera plane since
+  `dafd4e8`. One ray per two columns remains, which halves the work;
+  [Raycasting](../engine/raycasting.md#possible-improvements) lists what
+  could follow (a ray per column at high resolutions, textured floors).

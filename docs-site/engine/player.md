@@ -99,7 +99,7 @@ bool Player::TryPickUp(const PickupEffect& effect, double supplies) {
     return taken;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/player.cpp#L196-L245){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/player.cpp#L196-L245){ .excerpt-source }
 
 The rule is "take it only if it does something": a medkit at full health
 and an ammo box with every reserve full stay on the floor for later.
@@ -132,7 +132,7 @@ void Player::DecreaseHealth(double amount) {
     damage_animation_.Reset();
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/player.cpp#L163-L175){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/player.cpp#L163-L175){ .excerpt-source }
 
 A dead player falls for 0.9 s. The fall eases in (\(t^2\), as things fall)
 and drives three things: the eye drops from half a wall to near the floor,
@@ -149,7 +149,7 @@ double Player::GetDeathFall() const {
     return t * t;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/player.cpp#L257-L263){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/player.cpp#L257-L263){ .excerpt-source }
 
 ```cpp title="src/Characters/src/player.cpp"
 double Player::GetEyeHeight() const {
@@ -159,7 +159,7 @@ double Player::GetEyeHeight() const {
     return kStanding - (kStanding - kLying) * GetDeathFall();
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/player.cpp#L265-L270){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/player.cpp#L265-L270){ .excerpt-source }
 
 ### The kick
 

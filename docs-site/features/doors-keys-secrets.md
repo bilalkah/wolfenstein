@@ -50,10 +50,10 @@ slide back to reveal hidden supplies.
 
 ## Key code
 
-- [`HitDoor`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Camera/src/raycaster.cpp#L21-L44)
-  and [`HitMovingPushWalls`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Camera/src/raycaster.cpp#L48-L95)
-- [`Map::IsBlocked`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/GameMap/src/map.cpp#L160-L178)
-- [`Map::AdvancePushWalls`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/GameMap/src/map.cpp#L231-L246)
+- [`HitDoor`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Camera/src/raycaster.cpp#L21-L44)
+  and [`HitMovingPushWalls`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Camera/src/raycaster.cpp#L48-L95)
+- [`Map::IsBlocked`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/GameMap/src/map.cpp#L160-L178)
+- [`Map::AdvancePushWalls`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/GameMap/src/map.cpp#L231-L246)
 
 ## Pitfalls
 

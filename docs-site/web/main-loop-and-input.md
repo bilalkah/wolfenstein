@@ -27,7 +27,7 @@ void Game::Run() {
 #endif
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/game.cpp#L547-L563){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/game.cpp#L547-L563){ .excerpt-source }
 
 - `_arg` passes `this` through a `void*`, so a capture-free lambda works
   as the C callback.
@@ -80,7 +80,7 @@ pointer acceleration, where the browser offers it:
     return request?.catch?.(() => lockPointer(options)) ?? request;
   };
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/web/shell.html#L449-L460){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/web/shell.html#L449-L460){ .excerpt-source }
 
 SDL calls `canvas.requestPointerLock()` without options, so the page wraps
 the method: it asks for `unadjustedMovement`, and if the browser refuses

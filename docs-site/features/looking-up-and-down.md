@@ -46,9 +46,9 @@ look up and down, and shots to follow the aim.
 
 ## Key code
 
-- [`LaySky`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Graphics/include/Graphics/renderer_interface.h#L70-L80)
-- [`ToMouseLook`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/game.cpp#L675-L688)
-- [`CalculateVerticalSlice`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Graphics/src/renderer_3d.cpp#L504-L521)
+- [`LaySky`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/include/Graphics/renderer_interface.h#L70-L80)
+- [`ToMouseLook`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/game.cpp#L675-L688)
+- [`CalculateVerticalSlice`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/src/renderer_3d.cpp#L504-L521)
 
 ## Pitfalls
 

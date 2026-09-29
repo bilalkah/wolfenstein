@@ -29,7 +29,7 @@ void Renderer3D::RenderTextures() {
     // ...
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Graphics/src/renderer_3d.cpp#L650-L683){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/src/renderer_3d.cpp#L644-L677){ .excerpt-source }
 
 The static lambda and the explicit tie-breaker (`order`, the command's
 position in the queue) give the stable order of `std::stable_sort` without
@@ -41,7 +41,7 @@ the temporary buffer it may allocate.
     const auto read = static_cast<std::size_t>(
         std::ranges::count_if(GetIntel(), &WallIntel::read));
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/scene.cpp#L764-L765){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/scene.cpp#L764-L765){ .excerpt-source }
 
 A pointer to a data member is a valid predicate: `&WallIntel::read`
 counts the pages read. The same trick appears with

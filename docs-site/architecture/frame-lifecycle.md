@@ -28,7 +28,7 @@ void Game::Run() {
 #endif
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/game.cpp#L547-L563){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/game.cpp#L547-L563){ .excerpt-source }
 
 `Tick` dispatches on the game state (`Menu`, `Playing`, `Paused`,
 `Result`). While playing, `GameTick` wraps the frame in the profiler's
@@ -123,7 +123,7 @@ sequenceDiagram
     ScopedTimer timer(ProfileSection::Present);
     Present();
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/game.cpp#L752-L785){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/game.cpp#L753-L786){ .excerpt-source }
 
 6. **The simulation tick.** `Scene::Update` advances every object in the
    level, then the player, then the rest of the level's systems:
@@ -149,7 +149,7 @@ sequenceDiagram
         since_document_ += delta_time;
         HandleUse();
     ```
-    [View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/scene.cpp#L373-L391){ .excerpt-source }
+    [View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/scene.cpp#L373-L391){ .excerpt-source }
 
     Each enemy casts a line of sight to the player, runs its
     [state machine](../engine/ai.md) (which may plan a path with
@@ -213,7 +213,7 @@ that number to be zero.
         damage_animation_.Update(delta_time);
     }
     ```
-    [View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/player.cpp#L124-L137){ .excerpt-source }
+    [View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/player.cpp#L124-L137){ .excerpt-source }
 
     `Rotate()` is what takes the command's view angles. A shot fired in a
     tick is therefore aimed with the angle the *previous* tick took, and

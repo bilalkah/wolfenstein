@@ -51,9 +51,9 @@ were never released, and nothing ordered their shutdown against
 
 ## Key code
 
-- [The `Game`'s members, in dependency order](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/include/Core/game.h#L172-L181)
-- [The `World`'s members](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/include/Core/world.h#L130-L135)
-- [`State<T>` and `StateMachine<S>`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/State/include/State/state.h)
+- [The `Game`'s members, in dependency order](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/include/Core/game.h#L172-L181)
+- [The `World`'s members](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/include/Core/world.h#L130-L135)
+- [`State<T>` and `StateMachine<S>`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/State/include/State/state.h)
 
 ## Pitfalls
 

@@ -60,7 +60,7 @@ class ICharacter
     virtual double GetHealth() const = 0;
 };
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/include/Characters/character.h#L59-L79){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/include/Characters/character.h#L59-L79){ .excerpt-source }
 
 Copying an object through a reference to its base class copies only the
 base part (**slicing**). Protected copies let derived classes use them but
@@ -100,7 +100,7 @@ static_assert(kPinned<Enemy>);
 static_assert(!std::is_copy_constructible_v<IGameObject>);
 static_assert(!std::is_copy_constructible_v<ICharacter>);
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/tests/type_traits_test.cpp#L21-L47){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/tests/type_traits_test.cpp#L21-L47){ .excerpt-source }
 
 The `noexcept` moves matter: `std::vector` moves its elements when it
 grows only if their move constructor cannot throw; otherwise it copies

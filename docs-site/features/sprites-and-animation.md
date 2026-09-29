@@ -50,11 +50,11 @@ them, and, for enemies, show the side the player sees.
 
 ## Key code
 
-- [`LoopedAnimation`'s constructor](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Animation/src/looped_animation.cpp#L55-L85):
+- [`LoopedAnimation`'s constructor](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Animation/src/looped_animation.cpp#L55-L85):
   finding the seven other sides of a clip without allocating.
-- [`SideSeen`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Math/src/vector.cpp#L273-L279):
+- [`SideSeen`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Math/src/vector.cpp#L273-L279):
   which of eight views a viewer sees.
-- [`Renderer3D::RenderObjects`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Graphics/src/renderer_3d.cpp#L448-L492):
+- [`Renderer3D::RenderObjects`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/src/renderer_3d.cpp#L448-L492):
   sizing and queuing a sprite.
 
 ## Pitfalls

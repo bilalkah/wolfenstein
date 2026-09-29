@@ -66,7 +66,7 @@ std::expected<SceneLoader, std::string> SceneLoader::Open(
     return loader;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/scene_loader.cpp#L56-L73){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/scene_loader.cpp#L56-L73){ .excerpt-source }
 
 While preparing, the loader also works out the largest arena any level
 needs, so the `World` can take one block of that size up front.
@@ -100,7 +100,7 @@ std::expected<void, std::string> World::StartLevel(
     return loader_.Populate(*scene_, *level, *player_, seed_);
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/world.cpp#L240-L262){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/world.cpp#L240-L262){ .excerpt-source }
 
 1. The old `Scene` is destroyed, and the arena it lived in is rewound.
 2. A new `Scene` is built **in place** (`std::optional::emplace`) with a

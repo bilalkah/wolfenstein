@@ -10,11 +10,11 @@ uses it.
 
 ## The toolchain
 
-- **The SDK version is pinned in CI**: `emscripten/emsdk:6.0.10` (the web
-  job in `.github/workflows/ci.yml`), and the Pages workflow installs the
-  same version with `mymindstorm/setup-emsdk`. Local scripts use a local
-  SDK if `emcmake` is on the `PATH`, otherwise the `emscripten/emsdk`
-  Docker image.
+- **The SDK version is pinned: 6.0.10** everywhere. CI's web job runs in
+  `emscripten/emsdk:6.0.10` (`.github/workflows/ci.yml`), the Pages
+  workflow installs the same version with `emscripten-core/setup-emsdk`,
+  and `docker/web.Dockerfile` and `scripts/build_web.sh` use the same
+  image (the script prefers a local SDK if `emcmake` is on the `PATH`).
 - The `web-release` CMake preset points CMake at the SDK's toolchain file
   (`$EMSDK/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake`),
   builds `Release` and turns warnings into errors.
@@ -58,6 +58,16 @@ and the shell are listed as link dependencies, so editing either relinks.
 
 ## Building and serving
 
+With Docker alone, the image builds the game and serves it
+(see [Building](../building.md)):
+
+```bash
+docker build -f docker/web.Dockerfile -t wolfenstein-web .
+docker run --rm -p 8000:8000 wolfenstein-web      # http://localhost:8000
+```
+
+While changing the code, the scripts build incrementally instead:
+
 ```bash
 ./scripts/build_web.sh   # build/web-release/bin: index.html, .js, .wasm, .data
 ./scripts/run_web.sh     # builds, then serves it on http://localhost:8000
@@ -72,7 +82,8 @@ server is needed even locally.
 
 - **Git LFS.** The assets are LFS objects; a clone without LFS has pointer
   files, and packing those would produce a game that cannot load its
-  textures. `build_web.sh` refuses to build in that case.
+  textures. `build_web.sh` and `docker/web.Dockerfile` refuse to build in
+  that case.
 - **First build is slow.** Emscripten compiles the SDL ports on first use
   and caches them (the Docker scripts keep the cache in a named volume).
 - **Sanitizers** are native only (`WOLFENSTEIN_SANITIZERS` fails on the

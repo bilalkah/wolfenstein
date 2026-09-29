@@ -59,8 +59,8 @@ License, Roboto under Apache 2.0). The code is MIT.
 
 ## Key code
 
-- [`scripts/import_freedoom.py`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/scripts/import_freedoom.py)
-- [`assets/licenses/`](https://github.com/bilalkah/wolfenstein/tree/73aaf653bbc3b5dbb26be73432bb845df5e76c52/assets/licenses)
+- [`scripts/import_freedoom.py`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/scripts/import_freedoom.py)
+- [`assets/licenses/`](https://github.com/bilalkah/wolfenstein/tree/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/assets/licenses)
 
 ## Pitfalls
 

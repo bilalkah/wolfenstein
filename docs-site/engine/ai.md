@@ -98,7 +98,7 @@ bool Enemy::NoticesPlayer() const {
                                              position_.pose) <= SightRange());
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/enemy.cpp#L261-L268){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/enemy.cpp#L261-L268){ .excerpt-source }
 
 `SightRange()` is the type's `follow_range` plus two cells: 7 cells for
 the soldiers and zombies, 8 for the minigun zombie, 10 for the demon. It
@@ -157,7 +157,7 @@ is 2.5 to 4.5 cells, the demon's 0 to 1.2):
     // Its legs move as it does: standing to shoot, it does not step
     if (context_->IsMoving()) {
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/State/src/enemy_state.cpp#L168-L250){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/State/src/enemy_state.cpp#L168-L250){ .excerpt-source }
 
 - **Too far, out of sight, or in a doorway:** it closes in, along a path
   from the [pathfinder](navigation.md). On a player it sees it heads for
@@ -188,7 +188,7 @@ bool Scene::MayAttack(const Enemy& enemy) const {
     return attacking < difficulty_.attackers;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/scene.cpp#L237-L244){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/scene.cpp#L237-L244){ .excerpt-source }
 
 The limit is the difficulty's `attackers`: 2 on Easy, 3 on Normal, 4 on
 Hard. The others keep moving meanwhile. This is the single biggest
@@ -227,7 +227,7 @@ bool Enemy::TakeHit() {
     return true;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/enemy.cpp#L243-L255){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/enemy.cpp#L243-L255){ .excerpt-source }
 
 ### Retreat
 
@@ -255,7 +255,7 @@ double Enemy::NextRandom() {
     return static_cast<double>(random_) / 4294967296.0;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/enemy.cpp#L293-L298){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/enemy.cpp#L293-L298){ .excerpt-source }
 
 ### The enemy types
 

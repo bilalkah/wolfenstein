@@ -38,7 +38,7 @@ EM_JS(char*, ReadStoredRecord, (const char* name), {
     return value === null ? 0 : stringToNewUTF8(value);
 });
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Settings/src/storage.cpp#L35-L42){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Settings/src/storage.cpp#L35-L42){ .excerpt-source }
 
 - **Web:** `localStorage` keys `wolfenstein.settings` and
   `wolfenstein.progress`, reached through `EM_JS` functions (JavaScript
@@ -78,7 +78,7 @@ explored (as hex).
     // without intel; format 3, intel lying among the pickups)
     static constexpr unsigned kFormat = 4;
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Settings/include/Settings/saved_game.h#L24-L29){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Settings/include/Settings/saved_game.h#L24-L29){ .excerpt-source }
 
 A record with another format (or none) parses as no saved game. The game
 also drops a save that points past the content it has (a level index
@@ -103,7 +103,7 @@ beyond the campaign, a weapon or difficulty that does not exist).
         }
     }
     ```
-    [View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/game.cpp#L227-L236){ .excerpt-source }
+    [View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/game.cpp#L227-L236){ .excerpt-source }
 
 - On **Quit to menu**, if the level is quiet.
 - The save is **cleared** when the campaign is won.

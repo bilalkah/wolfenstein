@@ -78,7 +78,7 @@ one of the project's first commits: `ef50b73`, "Fix fishbowl effect".)
 A wall is one unit tall. At distance \(d_\perp\) it spans
 
 \[
-h = \frac{P}{d_\perp}, \qquad P = H \cdot \frac{\text{FOV}_{base}}{\text{FOV}}
+h = \frac{P}{d_\perp}, \qquad P = H \cdot \frac{\tan(\text{FOV}_{base}/2)}{\tan(\text{FOV}/2)}
 \]
 
 pixels, where \(H\) is the screen height and \(P\) is "pixels per unit at
@@ -87,6 +87,36 @@ everything vertically as much as horizontally, so the picture keeps its
 proportions. The eye is half a wall up, level with the horizon; the wall is
 drawn from the horizon minus \((1 - e)\,h\) to the horizon plus \(e\,h\),
 with \(e\) the eye height (0.5 alive; lower as a dead player falls).
+
+### Spreading the rays
+
+There are two ways to aim a view's rays. Spread at **equal angles**, each
+ray is turned the same step from the last (60° across 600 rays: 0.1°
+apart). Aimed through **evenly spaced points on a flat camera plane** in
+front of the eye, the steps shrink towards the edges of the view, in
+\(\tan\): a ray at angle \(\phi\) off the centre lands at
+
+\[
+x = \frac{\tan\phi}{\tan(\text{FOV}/2)}
+\]
+
+across the screen, from \(-1\) at the left edge to \(1\) at the right. A
+screen is flat, so the plane is the true perspective: straight lines stay
+straight. Equal angles put things off the centre slightly out of place,
+more so the wider the view: something 15° off the centre of a 60° view
+lands 21 pixels from where the plane puts it (on a screen 1200 pixels
+wide), and something 20° off the centre of an 80° view, 40 pixels. The
+long edges of walls bend.
+
+<figure markdown="span">
+  ![Nine rays across an 80-degree view meeting a straight wall: spread at equal angles they hit it at uneven gaps, through a camera plane at even gaps](../assets/diagrams/ray-spreading.svg){ width="720" }
+  <figcaption>Nine rays across an 80° view, meeting a straight wall 200 units
+  ahead; the numbers are the gaps between neighbouring hits. Every ray
+  starts at the eye either way: the blue arc (left) or flat window (right)
+  only sets which way each one goes. At equal angles the wall is met
+  unevenly, so the screen's evenly spaced columns show uneven slices of it
+  and its edges bend; through the window, evenly.</figcaption>
+</figure>
 
 ### Which part of the texture
 
@@ -99,11 +129,13 @@ Its fractional part \(u \in [0, 1)\) picks the texture column:
 
 - `Camera2D` holds `width / 2` rays: **one ray per two screen columns**.
   With the default 1200-pixel-wide view that is 600 rays a frame.
-- The rays are spread **evenly in angle** across the field of view:
-  `RayCaster` starts at \(\theta - \text{FOV}/2\) and adds
-  \(\Delta = \text{FOV} / (\text{width}/2)\) per ray. Screen columns map
-  linearly to angles the same way (`CalculateHorizontalSlice`), for walls
-  and sprites alike.
+- The rays pass through **evenly spaced points on a flat camera plane**:
+  ray \(i\) of \(N\) crosses it at \(x_i = 2i/N - 1\), in the direction
+  \(\theta + \arctan(x_i \tan(\text{FOV}/2))\). Sprites are placed by the
+  same projection (`Camera2D::Across`, snapped to the pairs of columns the
+  walls are drawn on), so they line up with the walls. Until `dafd4e8`
+  the rays were spread at equal angles, and walls bent at wide fields of
+  view (see [Spreading the rays](#spreading-the-rays)).
 - `Cast` runs the DDA. It stops at a wall cell, at the closed part of a
   door, or after `depth` units (15, the view distance); beyond that the
   renderer draws a black column.
@@ -160,7 +192,7 @@ void PrepareRay(const Position2D& position, const double ray_theta, Ray& ray,
     // ...
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Camera/src/raycaster.cpp#L146-L179){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Camera/src/raycaster.cpp#L147-L180){ .excerpt-source }
 
 `ray_unit_step` is \((\Delta t_x, \Delta t_y)\); `ray_length_1d` is the
 distance along the ray to the first crossing on each axis. A direction
@@ -216,7 +248,7 @@ Ray Cast(const Map& map, const Position2D& position, double ray_theta,
     return ray;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Camera/src/raycaster.cpp#L99-L144){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Camera/src/raycaster.cpp#L100-L145){ .excerpt-source }
 
 `cells[x, y]` is C++23's multidimensional subscript on a `std::mdspan`
 over the map's one flat array of cells (see [std::mdspan](../techniques/mdspan.md)).
@@ -251,7 +283,7 @@ bool HitDoor(Ray& ray, const Door& door) {
     return true;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Camera/src/raycaster.cpp#L21-L44){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Camera/src/raycaster.cpp#L22-L45){ .excerpt-source }
 
 The door's plane is \(x = x_{door} + 0.5\) (or \(y\)); the ray meets it at
 \(t = (plane - O)/D\). The door slides sideways as it opens: the part of
@@ -262,14 +294,34 @@ the doorway from 0 to `openness` is clear.
 ```cpp title="src/Camera/src/raycaster.cpp"
 void RayCaster::Update(const Map& map, const Position2D& position,
                        RayVector& rays) const {
-    double ray_theta = position.theta - (fov_ / 2);
-    for (auto& ray : rays) {
-        ray = Cast(map, position, ray_theta, depth_);
-        ray_theta += delta_theta_;
+    // Ray i crosses the plane at the left edge of its pair of columns, where
+    // Across places a sprite that starts there
+    for (std::size_t i = 0; i < rays.size(); ++i) {
+        const double across = 2.0 * static_cast<double>(i) / num_ray_ - 1.0;
+        rays[i] =
+            Cast(map, position,
+                 position.theta + std::atan(across * half_width_), depth_);
     }
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Camera/src/raycaster.cpp#L183-L190){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Camera/src/raycaster.cpp#L184-L194){ .excerpt-source }
+
+`half_width_` is \(\tan(\text{FOV}/2)\), the camera plane's half width one
+unit ahead. Sprites are placed by the inverse, the same projection:
+
+```cpp title="src/Camera/src/raycaster.cpp"
+double RayCaster::Across(double camera_angle) const {
+    // A right angle off is at infinity on the plane, and beyond it behind the
+    // eye: held just short of it, such a direction lands far off that side
+    constexpr double kLimit = std::numbers::pi / 2 - 1e-3;
+    return std::tan(std::clamp(camera_angle, -kLimit, kLimit)) / half_width_;
+}
+```
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Camera/src/raycaster.cpp#L201-L206){ .excerpt-source }
+
+Ray \(i\)'s own direction comes back as \(2i/N - 1\), its own column
+(`tests/raycaster_test.cpp` checks both this and that a flat wall facing
+the eye is met at even steps, at 80°).
 
 ### Correcting the fishbowl and picking the texture column
 
@@ -304,14 +356,14 @@ void Renderer3D::RenderIfRayHit(const int& horizontal_slice, const Ray& ray) {
     SDL_Rect dest_rect = {horizontal_slice, draw_start, 2, line_height};
     Enqueue(wall_texture, src_rect, dest_rect, distance);
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Graphics/src/renderer_3d.cpp#L228-L254){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/src/renderer_3d.cpp#L229-L255){ .excerpt-source }
 
 ### Line of sight
 
 Enemies check whether they can see the player with the same DDA, from
 their position towards the player's, stopping at the first blocked cell
 (a wall or a closed door): `CastLineOfSight` in
-[`single_raycaster.cpp`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Camera/src/single_raycaster.cpp).
+[`single_raycaster.cpp`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Camera/src/single_raycaster.cpp).
 It is a pure function of the map and two points, so any system can use it:
 enemies seeing the player, the positional audio muffling sounds behind
 walls, tactics choosing spots in sight of the player.
@@ -322,10 +374,12 @@ walls, tactics choosing spots in sight of the player.
   column is drawn two pixels wide from a one-texel-wide slice of the
   texture. At 1200 pixels across that is still finer than the
   low-resolution Freedoom textures, so it does not show.
-- **Equal angles between rays.** Simple, and walls and sprites use the same
-  angle-to-column mapping, so they line up. The classic alternative spaces
-  rays evenly on a camera *plane* (column \(x\) proportional to
-  \(\tan\phi\)); see *Pitfalls*.
+- **Rays on a camera plane.** Straight walls stay straight at any field
+  of view, and walls and sprites share one projection (the sky turns with
+  the middle of the picture). The cost is one arctangent a ray, 600 a
+  frame. The engine spread its rays at
+  equal angles from its first version until `dafd4e8`, when the bending
+  they caused at wide views was fixed.
 - **Rendering by the GPU, not a framebuffer.** Each column is a
   `SDL_RenderCopy` of a one-texel-wide strip of the wall texture; SDL's
   accelerated renderer (WebGL in the browser) scales it. No software pixel
@@ -341,10 +395,15 @@ walls, tactics choosing spots in sight of the player.
   `Ray::perpendicular_distance`; the renderer applies the cosine. Code that
   uses a ray's `perpendicular_distance` straight from `Cast` gets the
   Euclidean distance.
-- **Equal-angle projection bends lines.** With columns linear in angle
-  rather than in \(\tan\phi\), a straight wall seen at a slant has a very
-  slightly curved top and bottom edge, more so at the 80° maximum field of
-  view. It is consistent (sprites use the same mapping), so nothing tears.
+- **Wide views stretch the edges.** A flat projection keeps lines straight
+  but draws things near the screen's edges wider than in the middle, as a
+  wide-angle lens does; at the 80° maximum it shows. That is the price of
+  straight walls.
+- **Directions behind the eye.** \(\tan\phi\) runs to infinity at a right
+  angle and turns back beyond it, so a sprite reaching round the side of
+  the eye would land on the wrong side of the screen. `Across` holds the
+  angle just short of a right angle: such an edge lands far off screen on
+  its own side.
 - **Texture coordinate across a face.** The texture column is the
   fractional part of the hit coordinate, whichever side the wall is seen
   from, so a texture is mirrored on two of a cell's four faces. Pictures
@@ -357,9 +416,6 @@ walls, tactics choosing spots in sight of the player.
 
 ## Possible improvements
 
-- Cast rays on a camera plane (direction \(\text{dir} + \text{plane}
-  \cdot x\), as in Lode's tutorial) and map sprites the same way, to
-  remove the slight bending at wide fields of view.
 - Cast one ray per column at high resolutions, or cast fewer rays and
   interpolate on slow devices, chosen at run time.
 - Floors and ceilings are flat colours and a sky picture; textured floors

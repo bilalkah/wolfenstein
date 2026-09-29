@@ -53,9 +53,9 @@ walls, lamps or each other.
 
 ## Key code
 
-- [The A* search](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/NavigationManager/src/grid_path_finder.cpp#L110-L201)
-- [Generations instead of clearing](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/NavigationManager/src/grid_path_finder.cpp#L99-L108)
-- [A query for one enemy](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/NavigationManager/src/navigation_manager.cpp#L141-L178)
+- [The A* search](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/NavigationManager/src/grid_path_finder.cpp#L110-L201)
+- [Generations instead of clearing](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/NavigationManager/src/grid_path_finder.cpp#L99-L108)
+- [A query for one enemy](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/NavigationManager/src/navigation_manager.cpp#L141-L178)
 
 ## Pitfalls
 

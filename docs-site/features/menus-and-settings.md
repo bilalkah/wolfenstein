@@ -52,9 +52,9 @@ and in the browser, and settings that persist.
 
 ## Key code
 
-- [`FixedText`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/UI/include/UI/ui.h#L58-L74)
-- [The UI toolkit](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/UI/src/ui.cpp)
-- [The menu screens](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Graphics/src/renderer_menu.cpp)
+- [`FixedText`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/UI/include/UI/ui.h#L58-L74)
+- [The UI toolkit](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/UI/src/ui.cpp)
+- [The menu screens](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/src/renderer_menu.cpp)
 
 ## Pitfalls
 
@@ -64,9 +64,11 @@ and in the browser, and settings that persist.
   text draws as "?".
 
 - **The field of view is capped at 80 degrees** (it was 100 in
-  `7524277`): "wider, the view distorted too much" (`d41e706`); with rays
-  spread at equal angles, straight walls bend visibly at wide angles (see
-  [Raycasting](../engine/raycasting.md#pitfalls)).
+  `7524277`): "wider, the view distorted too much" (`d41e706`). The rays
+  were then spread at equal angles, which bent straight walls at wide
+  angles; since `dafd4e8` they go through a camera plane and walls stay
+  straight (see [Spreading the rays](../engine/raycasting.md#spreading-the-rays)).
+  The cap has not been revisited since.
 
 ## What I'd change
 

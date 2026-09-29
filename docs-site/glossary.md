@@ -99,7 +99,8 @@ Terms used across this site, in the sense the engine uses them.
 
 **Pixels per unit**
 :   How many screen pixels an object one unit tall spans one unit away:
-    screen height times the base field of view over the current one.
+    the screen's height at the base field of view, and less as the view
+    widens, by \(\tan(\text{FOV}_{base}/2) / \tan(\text{FOV}/2)\).
 
 **Pointer lock**
 :   The browser API that hides the cursor and reports raw mouse motion; the

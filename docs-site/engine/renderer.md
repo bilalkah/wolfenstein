@@ -33,9 +33,12 @@ by the pillar's nearer columns, with no per-pixel depth test.
 ### Billboards
 
 A sprite is a flat picture turned to face the viewer, scaled by its
-distance like a wall: an object `h` units tall at perpendicular distance
-\(d\) is \(h \cdot P / d\) pixels tall, standing on the floor (or raised by
-its elevation). Enemies have eight pictures, one per side they can be seen
+distance like a wall: an object `h` units tall at distance \(d\) is
+\(h \cdot P / d\) pixels tall, standing on the floor (or raised by its
+elevation). \(d\) is how far in front of the eye its **centre** stands,
+along the view (`Camera2D::Sight::distance`). A sprite the viewer stands
+in, less than 0.25 units from its centre (a lamp does not block the way),
+is not drawn: it would cover the screen. Enemies have eight pictures, one per side they can be seen
 from; which one is shown depends on the angle between the enemy's facing
 and the viewer (see [Textures and animation](assets.md)).
 
@@ -67,7 +70,7 @@ Every thing to draw becomes a `RenderCommand`:
         bool mirrored = false;    // drawn flipped left to right
     };
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Graphics/include/Graphics/renderer_3d.h#L39-L48){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/include/Graphics/renderer_3d.h#L39-L48){ .excerpt-source }
 
 A command is a rectangle of a texture to copy into a rectangle of the
 screen, or (for decals) a quad of four vertices. The queue is a
@@ -119,7 +122,7 @@ void Renderer3D::RenderScene(double delta_time) {
     RenderHUD(delta_time);
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Graphics/src/renderer_3d.cpp#L109-L148){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/src/renderer_3d.cpp#L109-L148){ .excerpt-source }
 
 1. **Horizon.** Looking up or down, and a shot's kick, do not tilt the
    camera; they slide the whole world down or up the screen by
@@ -165,7 +168,7 @@ std::tuple<int, int, int> Renderer3D::CalculateVerticalSlice(
     return std::make_tuple(line_height, draw_start, draw_end);
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Graphics/src/renderer_3d.cpp#L504-L521){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/src/renderer_3d.cpp#L498-L515){ .excerpt-source }
 
 ### Sorting and drawing
 
@@ -205,7 +208,7 @@ void Renderer3D::RenderTextures() {
     }
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Graphics/src/renderer_3d.cpp#L650-L683){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/src/renderer_3d.cpp#L644-L677){ .excerpt-source }
 
 The comparator is a C++23 **static lambda** (`static` after the parameter
 list): it captures nothing, so it has no `this` to pass. `std::stable_sort`
@@ -231,9 +234,12 @@ inline SkyLayout LaySky(double theta, double pixels_per_radian,
     return {.width = width, .offset = offset};
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Graphics/include/Graphics/renderer_interface.h#L70-L80){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/include/Graphics/renderer_interface.h#L76-L86){ .excerpt-source }
 
-A full turn is \(2\pi \cdot\) (pixels per radian) wide; the picture's
+A full turn is \(2\pi \cdot\) (pixels per radian) wide, at the rate the
+middle of the picture moves when turning (`PixelsPerRadian`,
+\(\text{width} / 2\tan(\text{FOV}/2)\)), so the sky keeps pace with the
+walls in front of the player; the picture's
 natural width at the sky's height is rounded to the nearest whole fraction
 of that. The comment above `SkyLayout` records the bug this fixed: with a
 part of a repeat left over, the sky jumped where the view's angle wrapped
@@ -292,8 +298,15 @@ would allocate inside SDL and stutter.
   the correct mapping is not linear in screen \(x\), so a decal on a
   slanted wall is very slightly squeezed towards its far end. The decals
   are small, so it is barely visible.
+- **A sprite's distance is its centre's.** Until `fab3414` it was taken
+  at the picture's left edge, which up close is far off to the side and so
+  seems much nearer. An enemy's picture is wider than its body (a
+  soldier's, 1.12 units against 0.33), so walking up to one it was drawn
+  too tall, and a step closer (about 0.42 units, straight ahead) it
+  vanished: its left edge seemed nearer than 0.25 units, where a sprite
+  the viewer stands in is dropped.
 - **A sprite is sorted by one distance.** `RenderObjects` queues the whole
-  sprite at its left edge's perpendicular distance. Against wall columns
+  sprite at its centre's distance. Against wall columns
   that is right almost always, since each column sorts on its own; but a
   sprite standing right against a wall, at nearly the wall's distance, can
   be covered by columns it should stand in front of, or the reverse.

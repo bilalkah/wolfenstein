@@ -43,9 +43,9 @@ through a `QuadBatch`, one `SDL_RenderGeometry` call for everything.
 
 ## Key code
 
-- [`Camera2D::ExploreView`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Camera/src/camera.cpp#L52-L77):
+- [`Camera2D::ExploreView`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Camera/src/camera.cpp#L52-L77):
   every fourth ray, sampled every 0.3 units.
-- [`Minimap`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Graphics/src/minimap.cpp)
+- [`Minimap`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/src/minimap.cpp)
 
 ## Pitfalls
 

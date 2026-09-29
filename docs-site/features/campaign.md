@@ -52,9 +52,9 @@ difficulty that rises as the player finds better weapons.
 
 ## Key code
 
-- [`World::StartLevel`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/world.cpp#L240-L262)
-- [The level generator](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/scripts/make_levels.py)
-- [The level-design test](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/tests/level_design_test.cpp)
+- [`World::StartLevel`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/world.cpp#L240-L262)
+- [The level generator](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/scripts/make_levels.py)
+- [The level-design test](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/tests/level_design_test.cpp)
 
 ## Pitfalls
 

@@ -65,7 +65,7 @@ bool CheckWallCollision(const Map& map, const vector2d& pose,
     return false;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/CollisionManager/src/collision_manager.cpp#L6-L32){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/CollisionManager/src/collision_manager.cpp#L6-L32){ .excerpt-source }
 
 Three details carry the design:
 
@@ -98,7 +98,7 @@ vector2d PushOutOf(const vector2d& centre, double solid, const vector2d& from,
     return centre + away * (reach / length);
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/CollisionManager/src/collision_manager.cpp#L34-L49){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/CollisionManager/src/collision_manager.cpp#L34-L49){ .excerpt-source }
 
 A step that ends inside another body is moved out onto its edge, straight
 away from its centre. A step **away** from a body (the end further from
@@ -147,7 +147,7 @@ void Player::Move(double delta_time) {
     }
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/player.cpp#L288-L323){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/player.cpp#L288-L323){ .excerpt-source }
 
 The wish vector (forward plus strafe) is normalised when both are held, so
 diagonal movement is not \(\sqrt{2}\) times faster. Then bodies first,
@@ -194,7 +194,7 @@ An enemy moves the same way (`Enemy::Move`), with two differences.
         }
     }
     ```
-    [View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/enemy.cpp#L203-L233){ .excerpt-source }
+    [View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/enemy.cpp#L203-L233){ .excerpt-source }
 
 - Each enemy type has its own body radius (from `config.json`), separate
   from its picture's width, which must be wide enough for every frame

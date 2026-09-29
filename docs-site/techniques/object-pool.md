@@ -53,7 +53,7 @@ backs the scene's enemies, lamps and pickups:
         return Handle<T>{index, generations_[index]};
     }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Allocators/include/Allocators/object_pool.h#L94-L115){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Allocators/include/Allocators/object_pool.h#L94-L115){ .excerpt-source }
 
 Design points, from its header and commit `1e1bbc5`:
 

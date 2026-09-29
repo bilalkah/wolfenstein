@@ -115,7 +115,7 @@ game's seed:
         }
     }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/scene_loader.cpp#L204-L230){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/scene_loader.cpp#L204-L230){ .excerpt-source }
 
 `DropRoll` hashes the level's map file name (FNV-1a), mixes in the seed, the enemy's
 index and the drop's index, and finishes with the SplitMix64 mixer, giving
@@ -155,7 +155,7 @@ class Room:
     def centre(self):
         return ((self.x0 + self.x1 + 1) / 2, (self.y0 + self.y1 + 1) / 2)
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/scripts/make_levels.py#L47-L72){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/scripts/make_levels.py#L47-L72){ .excerpt-source }
 
 For each level it carves the rooms and corridors out of solid wall, gives
 every wall the texture of the room it faces, hangs a door in the middle of

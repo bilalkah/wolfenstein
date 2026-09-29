@@ -16,24 +16,12 @@ What the browser build cannot do, or does differently, and why.
 
 ## After a new deployment
 
-GitHub Pages serves every file with `Cache-Control: max-age=600`. The page
-downloads `index.wasm` and `index.data` fresh (checked against the server
-with a `HEAD` request, and kept in IndexedDB), but `index.html` and
-`index.js` may come from the browser's HTTP cache for up to ten minutes
-after a deployment. `index.js` holds Emscripten's runtime glue and the
-table of files inside `index.data`, so a cached `index.js` from the
-previous build with a fresh `index.wasm` and `index.data` from the new one
-may fail to start. The page's recovery (clear the kept copies, reload
-once) does not help while the browser still holds the old script.
-
-A hard reload (Ctrl+Shift+R, or Cmd+Shift+R) fetches everything afresh;
-otherwise the problem clears within ten minutes.
-
-!!! todo "Bilal: decide how to version the web build"
-    A lasting fix would make the page load a script that always matches
-    the data it downloads: for example, the Pages workflow could add the
-    commit's hash to the file names (`index.<sha>.js` and so on) and to the
-    page's references, or the page could fetch `index.js` itself with
-    `cache: 'no-store'` as it does `index.wasm`. Not done yet: it
-    changes the loading path, which deserves a careful test across a real
-    deployment.
+GitHub Pages serves every file with `Cache-Control: max-age=600`, so a
+returning player's browser may reuse any file it has for up to ten minutes
+after a deployment. The game's three files are safe from that:
+`index.wasm` and `index.data` are checked against the server on every
+visit, and `index.js` is loaded under a name that carries its version (see
+[Downloading and caching](loading-and-caching.md#indexjs-by-its-version)),
+so all three always come from the same build. Only `index.html` may be up
+to ten minutes old; it holds the loader alone, which works with either
+build.

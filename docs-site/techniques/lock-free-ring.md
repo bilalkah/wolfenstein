@@ -41,7 +41,7 @@ bool SpatialMixer::Send(const Command& command) {
     return true;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/SoundManager/src/spatial_mixer.cpp#L60-L68){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/SoundManager/src/spatial_mixer.cpp#L60-L68){ .excerpt-source }
 
 - `sent_` is loaded **relaxed** by its only writer: a thread always sees
   its own latest store.

@@ -52,9 +52,9 @@ Each page below follows the same outline: **Problem**, **Constraints**,
 | [Hearing where sounds are](positional-audio.md) | 2026-09-29 | `d41e706` |
 | [Story and intel](story-and-intel.md) | 2026-09-26 to 29 | `0bf1592`, `5880c6e`, `5880c6e` |
 
-!!! note "Commits on the `freedoom` branch"
-    The history described here is that of the local `freedoom` branch at
-    `73aaf65`. At the time of writing, GitHub's `master` stops at
-    `83da4c4` (27 September 2026, "Merge pull request #28 from
-    bilalkah/missions"), and the `arsenal` and `behaviour` branches carry
-    part of what followed; the commits after them are local until pushed.
+!!! note "Squashed history"
+    The commits of 28 and 29 September 2026 were squashed before they were
+    published: a hash cited for one of those days names the commit its
+    change went into, which may hold several of the changes listed. Each
+    squashed commit's message keeps the messages of the commits it joined,
+    so the quotations on these pages can still be found there.

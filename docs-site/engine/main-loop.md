@@ -96,7 +96,7 @@ bool Game::Tick() {
     return running_;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/game.cpp#L565-L584){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/game.cpp#L565-L584){ .excerpt-source }
 
 ### The clocks
 
@@ -111,7 +111,7 @@ void FrameClock::Tick() {
     previous_ = now;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/TimeManager/src/time_manager.cpp#L13-L17){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/TimeManager/src/time_manager.cpp#L13-L17){ .excerpt-source }
 
 `FixedStep` is the accumulator, with a tick of 1/60 s and frames capped at
 a quarter of a second:
@@ -122,7 +122,7 @@ a quarter of a second:
     // The input of the frames since the last tick, for the next
     PlayerCommand pending_;
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/include/Core/game.h#L202-L205){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/include/Core/game.h#L202-L205){ .excerpt-source }
 
 ```cpp title="src/TimeManager/src/time_manager.cpp"
 int FixedStep::Advance(double frame_seconds) {
@@ -135,7 +135,7 @@ int FixedStep::Advance(double frame_seconds) {
     return ticks;
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/TimeManager/src/time_manager.cpp#L39-L47){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/TimeManager/src/time_manager.cpp#L39-L47){ .excerpt-source }
 
 `Alpha()` is `accumulator_ / tick_seconds_`, and `Reset()` forgets time
 not yet simulated: `Game::ShowLevel` calls it after loading a level, so
@@ -151,7 +151,7 @@ Position2D Player::GetRenderPosition(double alpha) const {
     return Interpolate(previous_position_, position_, alpha);
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/player.cpp#L181-L183){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/player.cpp#L181-L183){ .excerpt-source }
 
 ```cpp title="src/Characters/include/Characters/character.h"
 inline Position2D Interpolate(const Position2D& from, const Position2D& to,
@@ -161,7 +161,7 @@ inline Position2D Interpolate(const Position2D& from, const Position2D& to,
     return {Interpolate(from.pose, to.pose, alpha), from.theta + turn * alpha};
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/include/Characters/character.h#L36-L41){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/include/Characters/character.h#L36-L41){ .excerpt-source }
 
 `std::remainder` with \(2\pi\) returns the difference in \([-\pi, \pi]\):
 the short way round. Enemies and projectiles override
@@ -192,7 +192,7 @@ state machine of its own, `Fade`:
     // ending) comes before a level's briefing, and after its results
     enum class Fade : std::uint8_t { None, Out, Stats, Story, Briefing, In };
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/include/Core/game.h#L214-L220){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/include/Core/game.h#L214-L220){ .excerpt-source }
 
 ```mermaid
 stateDiagram-v2

@@ -50,10 +50,10 @@ than any body is wide), testing walls, enemies and lamps at each step.
 
 ## Key code
 
-- [`Projectile`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/GameObjects/include/GameObjects/projectile.h):
+- [`Projectile`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/GameObjects/include/GameObjects/projectile.h):
   launched, moved and stopped by the scene; interpolated when drawn.
 - `Scene::Fly` and `Scene::Burst` in
-  [`scene.cpp`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/scene.cpp).
+  [`scene.cpp`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/scene.cpp).
 
 ## Pitfalls
 

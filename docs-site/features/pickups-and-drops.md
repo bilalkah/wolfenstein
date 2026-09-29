@@ -42,9 +42,9 @@ fallen, in amounts that depend on the difficulty.
 
 ## Key code
 
-- [`Player::TryPickUp`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/player.cpp#L196-L245)
-- [`DropRoll`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/scene_loader.cpp#L20-L34)
-- [Drops made at load](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/scene_loader.cpp#L204-L230)
+- [`Player::TryPickUp`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/player.cpp#L196-L245)
+- [`DropRoll`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/scene_loader.cpp#L20-L34)
+- [Drops made at load](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/scene_loader.cpp#L204-L230)
 
 ## Pitfalls
 

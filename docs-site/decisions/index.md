@@ -138,7 +138,7 @@ and compression (`73aaf65`). See
 ## 8. SDL_Renderer and the painter's algorithm
 
 **Context.** A raycaster draws the walls as columns and everything else
-as flat pictures; it runs on macOS, Linux and in browsers.
+as flat pictures; this one runs natively and in browsers.
 
 **Decision.** Draw through SDL's 2D renderer (Metal, OpenGL, WebGL
 underneath) with textured quads, sorted far to near, and no depth buffer.
@@ -146,11 +146,10 @@ underneath) with textured quads, sorted far to near, and no depth buffer.
 **Consequences.** No shaders to port and one code path everywhere; less
 control over batching. See [The 3D renderer](../engine/renderer.md).
 
-!!! todo "Bilal: explain why"
-    The history does not record why SDL_Renderer was chosen in 2024 over
-    OpenGL or a software framebuffer. A guess: it was the quickest way to
-    get textured columns on screen on macOS, and it later made the
-    WebGL port free.
+**Why.** No particular reason: SDL's renderer was simply what the engine
+started with in 2024, rather than OpenGL or a framebuffer of its own, and
+it stayed. It has held up since: in the browser SDL draws through WebGL,
+so the same drawing code serves both builds.
 
 ## 9. A single-threaded web build
 

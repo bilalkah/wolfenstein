@@ -95,7 +95,7 @@ vector2d NavigationManager::FindPath(Position2D start, Position2D end,
         radius);
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/NavigationManager/src/navigation_manager.cpp#L141-L178){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/NavigationManager/src/navigation_manager.cpp#L141-L178){ .excerpt-source }
 
 The answer is **where to head next**, not the whole path: the centre of
 the path's second cell, steered round any lamp in the way. Enemies replan
@@ -160,7 +160,7 @@ bool GridPathFinder::FindPath(GridCell start, GridCell goal,
     // ...
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/NavigationManager/src/grid_path_finder.cpp#L110-L201){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/NavigationManager/src/grid_path_finder.cpp#L110-L201){ .excerpt-source }
 
 - The **open set** is a binary heap in a `std::pmr::vector`, driven by
   `std::ranges::push_heap` and `pop_heap`. A cell reached again more
@@ -190,7 +190,7 @@ void GridPathFinder::NextGeneration() {
     }
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/NavigationManager/src/grid_path_finder.cpp#L99-L108){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/NavigationManager/src/grid_path_finder.cpp#L99-L108){ .excerpt-source }
 
 Starting a query is one increment. The arrays are allocated once per
 level from the level arena (`SetGrid`), so a query allocates nothing.

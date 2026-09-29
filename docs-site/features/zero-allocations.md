@@ -58,9 +58,9 @@ can only grow.
 
 ## Key code
 
-- [`app/allocation_counter.cpp`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/app/allocation_counter.cpp)
-- [`MonotonicArena`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Allocators/include/Allocators/monotonic_arena.h)
-- [`scripts/check_soak.py`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/scripts/check_soak.py)
+- [`app/allocation_counter.cpp`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/app/allocation_counter.cpp)
+- [`MonotonicArena`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Allocators/include/Allocators/monotonic_arena.h)
+- [`scripts/check_soak.py`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/scripts/check_soak.py)
 
 ## Pitfalls
 

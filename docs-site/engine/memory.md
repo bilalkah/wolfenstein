@@ -79,7 +79,7 @@ handle no longer matches. See
         return current_;
     }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Allocators/include/Allocators/monotonic_arena.h#L69-L87){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Allocators/include/Allocators/monotonic_arena.h#L69-L87){ .excerpt-source }
 
 Three choices stand out, all explained in its header:
 
@@ -122,7 +122,7 @@ the `Scene` inside it.
         return Handle<T>{index, generations_[index]};
     }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Allocators/include/Allocators/object_pool.h#L94-L115){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Allocators/include/Allocators/object_pool.h#L94-L115){ .excerpt-source }
 
 The `Scene` keeps a pool each for enemies, lamps and pickups, sized from
 the level's counts, with their storage in the arena. A full pool is an
@@ -165,7 +165,7 @@ void Count(std::size_t size) {
     }
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/app/allocation_counter.cpp#L50-L55){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/app/allocation_counter.cpp#L50-L55){ .excerpt-source }
 
 Every profiler section reads the counter as it begins and ends, so a
 report says not only *that* a frame allocated but *which section* did.

@@ -54,10 +54,10 @@ needed a build it could trust on every platform.
 
 ## Key code
 
-- [`cmake/ProjectOptions.cmake`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/cmake/ProjectOptions.cmake)
-- [`cmake/Dependencies.cmake`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/cmake/Dependencies.cmake)
-- [`CMakePresets.json`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/CMakePresets.json)
-- [`.github/workflows/ci.yml`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/.github/workflows/ci.yml)
+- [`cmake/ProjectOptions.cmake`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/cmake/ProjectOptions.cmake)
+- [`cmake/Dependencies.cmake`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/cmake/Dependencies.cmake)
+- [`CMakePresets.json`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/CMakePresets.json)
+- [`.github/workflows/ci.yml`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/.github/workflows/ci.yml)
 
 ## Pitfalls
 
@@ -72,4 +72,5 @@ needed a build it could trust on every platform.
 ## What I'd change
 
 - Cache the SDL ports and GoogleTest downloads in CI between runs.
-- A macOS job, since the author develops on one.
+- Build `docker/web.Dockerfile` in CI, so the documented way to build and
+  play the game is checked on every change.

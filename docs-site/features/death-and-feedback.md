@@ -42,8 +42,8 @@ round them.
 
 ## Key code
 
-- [`Player::GetDeathFall` and `GetEyeHeight`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/player.cpp#L257-L270)
-- [`Renderer3D::RenderFallen`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Graphics/src/renderer_3d.cpp#L578-L599)
+- [`Player::GetDeathFall` and `GetEyeHeight`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/player.cpp#L257-L270)
+- [`Renderer3D::RenderFallen`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/src/renderer_3d.cpp#L578-L599)
 
 ## Pitfalls
 

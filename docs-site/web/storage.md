@@ -18,7 +18,7 @@ EM_JS(char*, ReadStoredRecord, (const char* name), {
     return value === null ? 0 : stringToNewUTF8(value);
 });
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Settings/src/storage.cpp#L35-L42){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Settings/src/storage.cpp#L35-L42){ .excerpt-source }
 
 - `UTF8ToString` reads a C string out of the WebAssembly memory;
   `stringToNewUTF8` allocates a C string in it (with `malloc`) for the

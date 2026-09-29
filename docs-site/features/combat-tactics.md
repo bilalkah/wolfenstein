@@ -49,10 +49,10 @@ Five rules, each a commit:
 
 ## Key code
 
-- [The tactics branch of `WalkState::Update`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/State/src/enemy_state.cpp#L168-L250)
-- [`Scene::MayAttack`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/scene.cpp#L237-L244)
+- [The tactics branch of `WalkState::Update`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/State/src/enemy_state.cpp#L168-L250)
+- [`Scene::MayAttack`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/scene.cpp#L237-L244)
 - `Enemy::ApproachSpot`, `BackOffSpot`, `PlanSidestep`, `FindCover` in
-  [`enemy.cpp`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/enemy.cpp)
+  [`enemy.cpp`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/enemy.cpp)
 
 ## Pitfalls
 

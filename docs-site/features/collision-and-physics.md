@@ -50,9 +50,9 @@ Each commit fixed one thing, and its message says which:
 
 ## Key code
 
-- [`CheckWallCollision`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/CollisionManager/src/collision_manager.cpp#L6-L32)
-- [`PushOutOf`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/CollisionManager/src/collision_manager.cpp#L34-L49)
-- [`Enemy::KeepApart`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/src/enemy.cpp#L203-L233)
+- [`CheckWallCollision`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/CollisionManager/src/collision_manager.cpp#L6-L32)
+- [`PushOutOf`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/CollisionManager/src/collision_manager.cpp#L34-L49)
+- [`Enemy::KeepApart`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/src/enemy.cpp#L203-L233)
 
 ## Pitfalls
 

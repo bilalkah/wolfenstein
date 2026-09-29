@@ -43,9 +43,9 @@ could not be scripted, replayed or run without a view" (`2beddb5`).
 
 ## Key code
 
-- [`PlayerCommand` and `Gather`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/include/Characters/player_command.h)
-- [`FixedStep::Advance`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/TimeManager/src/time_manager.cpp#L39-L47)
-- [`ViewAngles::Apply`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Characters/include/Characters/view_angles.h#L33-L46)
+- [`PlayerCommand` and `Gather`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/include/Characters/player_command.h)
+- [`FixedStep::Advance`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/TimeManager/src/time_manager.cpp#L39-L47)
+- [`ViewAngles::Apply`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Characters/include/Characters/view_angles.h#L33-L46)
 
 ## Pitfalls
 

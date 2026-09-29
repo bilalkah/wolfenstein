@@ -53,17 +53,19 @@ hostable as static files.
 
 ## Key code
 
-- [`web/shell.html`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/web/shell.html):
+- [`web/shell.html`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/web/shell.html):
   the page, its downloader and its hooks.
-- [`Game::Run`](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/src/game.cpp#L547-L563)
+- [`Game::Run`](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/src/game.cpp#L547-L563)
 
 ## Pitfalls
 
 - **Servers differ**: ranges, compression, validators and caching headers
   each change what the loader must do (see
   [Downloading and caching](../web/loading-and-caching.md)).
-- **Stale scripts after a deployment** on hosts with long cache lifetimes
-  (see [Limitations](../web/limitations.md#after-a-new-deployment)).
+- **Stale scripts after a deployment** on hosts with long cache lifetimes:
+  a cached `index.js` ran against a new build's files until `b2564d5`
+  loaded it by its version (see
+  [Downloading and caching](../web/loading-and-caching.md#indexjs-by-its-version)).
 - **Pointer lock and Esc**: the browser owns Esc; losing the lock is the
   pause.
 

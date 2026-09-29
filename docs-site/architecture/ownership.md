@@ -57,7 +57,7 @@ dependency order, so what borrows is destroyed before what it borrows from.
     std::unique_ptr<Renderer3D> renderer_3d_;
     std::unique_ptr<Renderer2D> renderer_2d_;
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/include/Core/game.h#L172-L181){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/include/Core/game.h#L172-L181){ .excerpt-source }
 
 The same inside the `World`:
 
@@ -69,7 +69,7 @@ The same inside the `World`:
     std::optional<Player> player_;
     std::optional<Scene> scene_;
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/73aaf653bbc3b5dbb26be73432bb845df5e76c52/src/Core/include/Core/world.h#L130-L135){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Core/include/Core/world.h#L130-L135){ .excerpt-source }
 
 `scene_` goes first: it borrows the player, the sound and the arena. Then
 the player, which borrows the sound; then the arena; then the sound
@@ -129,9 +129,23 @@ The comment on `World::NewGame` states the contract: "The previous level
 and player are gone afterwards: views borrowing them must be pointed at
 the new level before they draw again."
 
-!!! todo "Bilal: explain why"
-    Why views hold a raw `Scene*` that must be re-pointed rather than, say,
-    looking the level up through the `World` each frame. A guess: every
-    view already had a `SetScene` from the 2024 code, and a raw pointer
-    set once per level costs nothing per frame; the price is the rule
-    above, which lives in one function (`Game::ShowLevel`).
+### Why a pointer, re-pointed, rather than asking the World
+
+The views keep a plain `Scene*`, set once per level, rather than asking the
+`World` for the current level every frame. No reason is recorded: the
+`SetScene` calls date from the menus and results of December 2024
+(`4da74d4`), long before there was a `World` (`3ff2a23`, September 2026).
+What the choice gives and costs today:
+
+- **Nothing per frame**, and the renderers and the camera depend on
+  `Scene` alone, not on the `World` and everything it owns.
+- **A step per level is needed anyway.** `Camera2D::SetScene` sizes the
+  camera's table of per-object views for the new level's objects, which a
+  lookup each frame would not do.
+- **The price is one rule:** whatever replaces the level must call
+  `Game::ShowLevel` before the next frame is drawn. All three paths that
+  replace it (a new game, a saved game continued, the next level) do,
+  right after the `World` has built the new level. A path that forgot
+  would leave the views pointing at a destroyed level; under
+  AddressSanitizer, the soak session, which starts new games and goes on
+  to next levels, would show it as a use after free.
