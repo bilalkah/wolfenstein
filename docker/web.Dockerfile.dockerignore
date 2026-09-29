@@ -1,0 +1,10 @@
+# Only what the web build needs: no build trees, history or notes
+*
+!CMakeLists.txt
+!CMakePresets.json
+!cmake
+!app
+!src
+!assets
+!web
+!scripts/serve_web.py

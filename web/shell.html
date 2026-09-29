@@ -458,7 +458,25 @@
     // motion not offered here), the plain lock instead, still in the click
     return request?.catch?.(() => lockPointer(options)) ?? request;
   };
+
+  // index.js holds the layout of index.data (where each file lies in it)
+  // and the glue to index.wasm, so it must come from the same build as they
+  // do. Those two are checked with the server on every visit; a plain
+  // <script src="index.js"> would be taken from the browser's cache instead,
+  // for as long as the server allows (GitHub Pages: ten minutes), and after
+  // a new build is published it would run against the new files. So it is
+  // asked for by its version, as they are: the browser still keeps it, under
+  // a name that changes when it does.
+  remoteFile('index.js').then((remote) => {
+    const script = document.createElement('script');
+    script.src = `index.js?v=${encodeURIComponent(remote?.version ?? Date.now())}`;
+    script.onerror = () => recover('Could not load the game, see the browser console.');
+    document.body.append(script);
+  });
 </script>
+<!-- Emscripten requires its script tag in the page; it is kept inert here,
+     since the page loads index.js itself (above)
 {{{ SCRIPT }}}
+-->
 </body>
 </html>

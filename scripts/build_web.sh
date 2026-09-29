@@ -1,6 +1,7 @@
 #!/bin/bash
 # Builds the WebAssembly version into build/web-release/bin. Uses a local Emscripten
-# SDK when emcmake is on PATH, otherwise the emscripten/emsdk Docker image.
+# SDK when emcmake is on PATH, otherwise the emscripten/emsdk Docker image at the
+# version CI pins.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -22,7 +23,7 @@ else
 	docker run --rm \
 		-v "$PWD":/src -w /src \
 		-v wolfenstein-emcache:/emsdk/upstream/emscripten/cache \
-		emscripten/emsdk:latest \
+		emscripten/emsdk:6.0.10 \
 		bash -c "cmake --preset web-release \
 			&& cmake --build --preset web-release \
 			&& chown -R $(id -u):$(id -g) $BUILD_DIR"

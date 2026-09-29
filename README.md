@@ -58,16 +58,20 @@ cd wolfenstein
 
 ### Play in the Browser (WebAssembly)
 
-The game compiles to WebAssembly with [Emscripten](https://emscripten.org) and runs in any desktop browser.
+The game compiles to WebAssembly with [Emscripten](https://emscripten.org) and runs in any desktop browser. Docker is all it takes to build and play it:
 
-1. Build it. This uses your local Emscripten SDK if `emcmake` is on your `PATH`, otherwise the `emscripten/emsdk` Docker image:
-   ```bash
-   ./scripts/build_web.sh
-   ```
-2. Serve it and open http://localhost:8000:
-   ```bash
-   ./scripts/run_web.sh
-   ```
+```bash
+docker build -f docker/web.Dockerfile -t wolfenstein-web .
+docker run --rm -p 8000:8000 wolfenstein-web
+```
+
+Then open http://localhost:8000. The image builds the game with the Emscripten SDK that CI pins (6.0.10) and serves it.
+
+While changing the code, the scripts build incrementally into `build/web-release` (with Emscripten in the same Docker image, or your local SDK if `emcmake` is on your `PATH`) and serve it with Python:
+```bash
+./scripts/build_web.sh   # build only
+./scripts/run_web.sh     # build, then serve on http://localhost:8000
+```
 
 The output in `build/web-release/bin` is a static site (`index.html`, `.js`, `.wasm`, `.data`), so it can also be hosted as is, for example on GitHub Pages.
 
