@@ -57,6 +57,63 @@ TEST(Sky, StartsAtOrLeftOfTheEdge) {
 	}
 }
 
+const SDL_Rect kScreen{0, 0, 1200, 900};
+
+// A picture wholly on the screen is drawn as it is
+TEST(ClipToScreen, LeavesAPictureOnTheScreenAlone) {
+	SDL_Rect src{0, 0, 64, 64};
+	SDL_Rect dest{100, 200, 320, 320};
+	ASSERT_TRUE(ClipToScreen(src, dest, kScreen, false));
+	EXPECT_EQ(src.x, 0);
+	EXPECT_EQ(src.w, 64);
+	EXPECT_EQ(dest.x, 100);
+	EXPECT_EQ(dest.w, 320);
+}
+
+// Half off the left edge: the picture's right half, where it was and at its
+// scale (10 pixels a texel)
+TEST(ClipToScreen, KeepsThePartOnTheScreenAtItsScale) {
+	SDL_Rect src{0, 0, 64, 64};
+	SDL_Rect dest{-320, 0, 640, 640};
+	ASSERT_TRUE(ClipToScreen(src, dest, kScreen, false));
+	EXPECT_EQ(src.x, 32);
+	EXPECT_EQ(src.w, 32);
+	EXPECT_EQ(dest.x, 0);
+	EXPECT_EQ(dest.w, 320);
+}
+
+// Mirrored, the screen's left shows the picture's right: half off the left
+// edge, it is the picture's left half that shows
+TEST(ClipToScreen, CountsAMirroredPictureFromTheOtherSide) {
+	SDL_Rect src{0, 0, 64, 64};
+	SDL_Rect dest{-320, 0, 640, 640};
+	ASSERT_TRUE(ClipToScreen(src, dest, kScreen, true));
+	EXPECT_EQ(src.x, 0);
+	EXPECT_EQ(src.w, 32);
+	EXPECT_EQ(dest.x, 0);
+	EXPECT_EQ(dest.w, 320);
+}
+
+// A sprite right beside the eye reaches a million pixels across: what is
+// drawn stays near the screen's size (uncut, a renderer drawing in software
+// made an image that size, and ran out of memory)
+TEST(ClipToScreen, KeepsAHugePictureNearTheScreensSize) {
+	SDL_Rect src{0, 0, 64, 64};
+	SDL_Rect dest{-500000, -14000, 1000000, 28800};
+	ASSERT_TRUE(ClipToScreen(src, dest, kScreen, false));
+	EXPECT_LE(dest.w, kScreen.w + 128);
+	EXPECT_LE(dest.h, kScreen.h + 128);
+	EXPECT_GE(src.w, 1);
+	EXPECT_LE(src.w, 2);
+}
+
+// Wholly off the screen: nothing to draw
+TEST(ClipToScreen, DropsAPictureOffTheScreen) {
+	SDL_Rect src{0, 0, 64, 64};
+	SDL_Rect dest{1300, 0, 100, 100};
+	EXPECT_FALSE(ClipToScreen(src, dest, kScreen, false));
+}
+
 // The mouse turns the view at once, and the command carries the view, the
 // motion spent
 TEST(ViewAngles, TheMouseTurnsTheViewAtOnce) {

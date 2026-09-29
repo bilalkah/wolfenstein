@@ -63,6 +63,50 @@ inline double PixelsPerRadian(const RenderConfig& config, double fov) {
 	return config.width / (2 * std::tan(fov / 2));
 }
 
+// Cuts a picture drawn over `dest` down to the part inside `screen`: `dest`
+// becomes that part and `src` the part of the picture it shows (counted from
+// the other side if the picture is drawn mirrored). False if none of it
+// shows. A sprite beside the eye can reach far past the screen's sides, and
+// a renderer that draws in software (as the tests' does) first makes an
+// image the size of the whole rectangle: uncut, one ran out of memory.
+inline bool ClipToScreen(SDL_Rect& src, SDL_Rect& dest, const SDL_Rect& screen,
+						 bool mirrored) {
+	SDL_Rect visible;
+	if (src.w <= 0 || src.h <= 0 ||
+		SDL_IntersectRect(&dest, &screen, &visible) == SDL_FALSE) {
+		return false;
+	}
+	// Cut at whole texels, so the picture keeps its scale: the rectangle
+	// ends at most a texel past the screen's edge
+	const double across = static_cast<double>(dest.w) / src.w;
+	const double up = static_cast<double>(dest.h) / src.h;
+	const int cut_left = visible.x - dest.x;
+	const int cut_right = dest.x + dest.w - visible.x - visible.w;
+	const int cut_top = visible.y - dest.y;
+	const int cut_bottom = dest.y + dest.h - visible.y - visible.h;
+	const int first =
+		static_cast<int>((mirrored ? cut_right : cut_left) / across);
+	const int last =
+		src.w - static_cast<int>((mirrored ? cut_left : cut_right) / across);
+	const int top = static_cast<int>(cut_top / up);
+	const int bottom = src.h - static_cast<int>(cut_bottom / up);
+	const double left = dest.x + (mirrored ? src.w - last : first) * across;
+	const double upper = dest.y + top * up;
+	const SDL_Rect whole{static_cast<int>(std::floor(left)),
+						 static_cast<int>(std::floor(upper)),
+						 static_cast<int>(std::ceil((last - first) * across)),
+						 static_cast<int>(std::ceil((bottom - top) * up))};
+	// A texel wider than the margin (a sprite right beside the eye) is drawn
+	// over the screen and the margin only: there the picture is a patch or
+	// two of one colour
+	constexpr int kMargin = 64;
+	const SDL_Rect bound{screen.x - kMargin, screen.y - kMargin,
+						 screen.w + 2 * kMargin, screen.h + 2 * kMargin};
+	SDL_IntersectRect(&whole, &bound, &dest);
+	src = {src.x + first, src.y + top, last - first, bottom - top};
+	return true;
+}
+
 // How the sky's picture goes round the view: `width` pixels a repeat, a
 // whole number of repeats a full turn, so it joins up wherever the player
 // looks (with a part of a repeat left over, it jumped where the view's

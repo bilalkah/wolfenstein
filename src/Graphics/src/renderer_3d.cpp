@@ -481,6 +481,12 @@ void Renderer3D::RenderObjects() {
 
 		SDL_Rect dest_rect = {first_slice, draw_start, last_slice - first_slice,
 							  line_height};
+		// Only the part on the screen is drawn (see ClipToScreen)
+		const SDL_Rect screen{0, 0, context_->GetConfig().width,
+							  context_->GetConfig().height};
+		if (!ClipToScreen(src_rect, dest_rect, screen, sight->mirrored)) {
+			continue;
+		}
 
 		Enqueue(first.wall_id, src_rect, dest_rect, sight->distance,
 				sight->mirrored);

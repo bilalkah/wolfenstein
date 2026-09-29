@@ -305,6 +305,12 @@ would allocate inside SDL and stutter.
   too tall, and a step closer (about 0.42 units, straight ahead) it
   vanished: its left edge seemed nearer than 0.25 units, where a sprite
   the viewer stands in is dropped.
+- **A sprite beside the eye reaches far off the screen.** One edge can lie
+  almost at a right angle to the view, hundreds of thousands of pixels out,
+  and a renderer that draws in software builds an image the size of the
+  whole rectangle first: in CI's benchmark that ran out of memory.
+  `ClipToScreen` cuts each sprite to the part on the screen, at whole
+  texels so the picture keeps its scale, before it is queued.
 - **A sprite is sorted by one distance.** `RenderObjects` queues the whole
   sprite at its centre's distance. Against wall columns
   that is right almost always, since each column sorts on its own; but a
