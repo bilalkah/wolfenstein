@@ -1,6 +1,7 @@
 {
   "name": "THE SANCTUM",
   "briefing": "The sanctum is where it began. Two cyber demons guard the arena at its heart, behind gold-locked gates. Take the silver key from the west wing, the gold one from the reliquary, and end this.",
+  "debrief": "The ring of gate stones is cold. Whatever was coming through will have to find another door.",
   "music": "level7",
   "map": "level7.txt",
   "player": {
@@ -417,6 +418,16 @@
       "y": 4,
       "dx": 1,
       "dy": 0
+    }
+  ],
+  "intel": [
+    {
+      "x": 11,
+      "y": 22,
+      "dx": 0,
+      "dy": 1,
+      "title": "A PAGE IN ANOTHER HAND",
+      "text": "Eleven digits, the castle's own numbers, written in a hand that is not quite a hand. Under them one word, in the Directorate's cipher, which the clerks who broke it did not believe: WELCOME."
     }
   ],
   "staticObjects": []

@@ -1,0 +1,362 @@
+{
+  "name": "THE DEPOT",
+  "briefing": "The checkpoint's trucks were supplied from a depot down the road. Its sheds are still guarded, and some of the guards are no longer quite soldiers. The gate out is in the quartermaster's office, locked with a gold key; the drivers kept theirs in the garage.",
+  "debrief": "Every truck in the depot went one way: up. Not one crate ever came back down the valley. The last convoy is still out somewhere, on the road to the barracks.",
+  "music": "level2",
+  "map": "depot.txt",
+  "player": {
+    "position": {
+      "x": 2.5,
+      "y": 2.5,
+      "theta": 1.57
+    }
+  },
+  "enemies": [
+    {
+      "type": "soldier",
+      "position": {
+        "x": 4.5,
+        "y": 14.5,
+        "theta": -2.03
+      },
+      "patrol_radius": 2.5
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 3.5,
+        "y": 23.5,
+        "theta": 1.57
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 2.5,
+        "y": 20.5,
+        "theta": 1.33
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 10.5,
+        "y": 9.5,
+        "theta": 1.03
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 12.5,
+        "y": 20.5,
+        "theta": -1.63
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 13.5,
+        "y": 18.5,
+        "theta": -1.8
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 12.5,
+        "y": 29.5,
+        "theta": -1.89
+      },
+      "patrol_radius": 3.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 19.5,
+        "y": 6.5,
+        "theta": -0.46
+      },
+      "patrol_radius": 4.0
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 20.5,
+        "y": 8.5,
+        "theta": -1.57
+      },
+      "patrol_radius": 4.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 19.5,
+        "y": 23.5,
+        "theta": -0.79
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 21.5,
+        "y": 18.5,
+        "theta": 1.82
+      },
+      "patrol_radius": 5.0
+    }
+  ],
+  "dynamicObjects": [
+    {
+      "type": "green_light",
+      "position": {
+        "x": 4.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 3.5,
+        "y": 6.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 4.5,
+        "y": 9.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 1.5,
+        "y": 10.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 5.5,
+        "y": 19.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 5.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 1.5,
+        "y": 22.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 10.5,
+        "y": 13.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 14.5,
+        "y": 22.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 9.5,
+        "y": 6.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 11.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 9.5,
+        "y": 30.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 9.5,
+        "y": 25.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 19.5,
+        "y": 10.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 20.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 22.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 22.5,
+        "y": 27.5
+      }
+    }
+  ],
+  "pickups": [
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 1.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 5.5,
+        "y": 13.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 5.5,
+        "y": 29.5
+      }
+    },
+    {
+      "type": "shotgun",
+      "position": {
+        "x": 1.5,
+        "y": 20.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 15.5,
+        "y": 19.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 9.5,
+        "y": 22.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 15.5,
+        "y": 26.5
+      }
+    },
+    {
+      "type": "gold_key",
+      "position": {
+        "x": 18.5,
+        "y": 10.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 18.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 18.5,
+        "y": 24.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 18.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 12.5,
+        "y": 33.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 14.5,
+        "y": 33.5
+      }
+    }
+  ],
+  "objectives": [
+    {
+      "type": "kill_all",
+      "text": "Clear the depot of its guards"
+    }
+  ],
+  "secrets": [
+    {
+      "x": 13,
+      "y": 31,
+      "dx": 0,
+      "dy": 1
+    }
+  ],
+  "intel": [
+    {
+      "x": 0,
+      "y": 26,
+      "dx": 1,
+      "dy": 0,
+      "title": "A FIELD PACK",
+      "text": "The second team's, left in a locker as if its owner meant to come back for it. A camera with no film. A map of the valley with the castle ringed twice. A note in pencil: Hale says we go in by the railway. Nobody comes out by the road."
+    },
+    {
+      "x": 21,
+      "y": 31,
+      "dx": 0,
+      "dy": -1,
+      "title": "A MANIFEST",
+      "text": "Night convoy 41. Twelve crates, marked: fragile, keep cold, do not open. For the works, lower gate. Escort of six. The quartermaster adds: double the escort. The drivers of convoy 39 never came back, and their truck came in by itself, in the right gear, with its lamps off."
+    }
+  ],
+  "staticObjects": []
+}

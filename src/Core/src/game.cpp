@@ -45,6 +45,8 @@ constexpr double kFadeOutSeconds = 0.8;
 // not skip it; scripted runs move on by themselves after a second
 constexpr double kStatsInputDelay = 0.6;
 constexpr double kScriptedStatsSeconds = 1.0;
+// A scripted run turns each page of story quickly: it only needs them drawn
+constexpr double kScriptedStoryPageSeconds = 0.1;
 constexpr double kFadeInSeconds = 1.0;
 // The level's title stays up a little longer than the fade, then fades too
 constexpr double kBannerSeconds = 2.4;
@@ -195,6 +197,12 @@ void Game::BeginGame(bool brief) {
 	fade_ = IsBenchmark() ? Fade::None : brief ? Fade::Briefing : Fade::In;
 	fade_banner_ = true;
 	fade_time_ = 0.0;
+	// A new campaign opens with its story, before the first briefing
+	if (brief && !IsBenchmark() && world_->InCampaign()) {
+		TellStory(StoryBefore(world_->Config().campaign, world_->LevelIndex(),
+							  /*new_game=*/true, story_),
+				  /*ends_campaign=*/false);
+	}
 	SaveProgress();
 }
 
@@ -402,6 +410,7 @@ void Game::SoakStep() {
 	soak_saw_result_ = soak_saw_result_ || state_ == GameState::Result;
 	soak_saw_stats_ = soak_saw_stats_ || fade_ == Fade::Stats;
 	soak_saw_briefing_ = soak_saw_briefing_ || fade_ == Fade::Briefing;
+	soak_saw_story_ = soak_saw_story_ || fade_ == Fade::Story;
 	for (std::size_t i = 0; i < kPhases.size(); ++i) {
 		if (frame == kPhases[i].start) {
 			soak_phase_ = i;
@@ -510,6 +519,7 @@ void Game::SoakStep() {
 			<< ",\"saw_stats\":" << (soak_saw_stats_ ? "true" : "false")
 			<< ",\"found_secret\":" << (soak_found_secret_ ? "true" : "false")
 			<< ",\"saw_briefing\":" << (soak_saw_briefing_ ? "true" : "false")
+			<< ",\"saw_story\":" << (soak_saw_story_ ? "true" : "false")
 			<< ",\"first_allocating_frame\":" << soak_first_allocation_
 			<< ",\"allocations\":" << AllocationStats::count - soak_allocations_
 			<< ",\"bytes\":" << AllocationStats::bytes - soak_bytes_
@@ -734,7 +744,8 @@ void Game::UpdateAndRender() {
 	// it. Not for a dead player, nor while the level waits behind its
 	// results or briefing.
 	if (!IsScripted() && world_->GetPlayer().IsAlive() &&
-		fade_ != Fade::Stats && fade_ != Fade::Briefing) {
+		fade_ != Fade::Stats && fade_ != Fade::Story &&
+		fade_ != Fade::Briefing) {
 		command = view_.Apply(command, clock_.DeltaTime());
 	}
 
@@ -750,7 +761,8 @@ void Game::UpdateAndRender() {
 	}
 	for (; ticks > 0; --ticks) {
 		// The level waits behind its results screen and the next briefing
-		if (fade_ != Fade::Stats && fade_ != Fade::Briefing) {
+		if (fade_ != Fade::Stats && fade_ != Fade::Story &&
+			fade_ != Fade::Briefing) {
 			world_->CurrentLevel().Update(step_.TickSeconds());
 		}
 	}
@@ -843,6 +855,15 @@ void Game::RenderView(const Position2D& eye) {
 		if (fade_ == Fade::None) {
 			menu_->DrawObjective(CurrentObjective());
 		}
+		// A page of intel just read, over the view, fading at the end
+		if (const int document = world_->CurrentLevel().ShownDocument();
+			document >= 0) {
+			const IntelSpawn& page =
+				world_->LevelIntel()[static_cast<std::size_t>(document)];
+			const double left =
+				Scene::kDocumentSeconds - world_->CurrentLevel().DocumentAge();
+			menu_->DrawDocument(page.title, page.text, std::min(left, 1.0));
+		}
 	}
 }
 
@@ -861,8 +882,10 @@ void Game::CheckGameEvent() {
 			Pause();
 			return;
 		}
-		// Any of these goes on from a level's results or briefing
-		if ((fade_ == Fade::Stats || fade_ == Fade::Briefing) &&
+		// Any of these goes on from a level's results, a page of story or
+		// a briefing
+		if ((fade_ == Fade::Stats || fade_ == Fade::Story ||
+			 fade_ == Fade::Briefing) &&
 			fade_time_ >= kStatsInputDelay &&
 			(event.type == SDL_MOUSEBUTTONDOWN ||
 			 (event.type == SDL_KEYDOWN &&
@@ -872,6 +895,9 @@ void Game::CheckGameEvent() {
 			   event.key.keysym.sym == SDLK_e)))) {
 			if (fade_ == Fade::Stats) {
 				ContinueFromStats();
+			}
+			else if (fade_ == Fade::Story) {
+				NextStoryPage();
 			}
 			else {
 				StartFromBriefing();
@@ -977,6 +1003,10 @@ void Game::AdvanceTransition(double delta_time) {
 			 fade_time_ >= kScriptedStatsSeconds) {
 		ContinueFromStats();
 	}
+	else if (fade_ == Fade::Story && IsScripted() &&
+			 fade_time_ >= kScriptedStoryPageSeconds) {
+		NextStoryPage();
+	}
 	else if (fade_ == Fade::Briefing && IsScripted() &&
 			 fade_time_ >= kScriptedStatsSeconds) {
 		StartFromBriefing();
@@ -993,16 +1023,18 @@ void Game::ContinueFromStats() {
 	cleared_time_ = 0.0;
 	fade_time_ = 0.0;
 	if (!world_->HasNextLevel()) {
-		// The campaign is won: nothing is left to go on with
+		// The campaign is won: nothing is left to go on with, but how it
+		// ended
 		if (!IsScripted()) {
 			SavedGame::Clear();
 			saved_game_.reset();
 			DescribeSavedGame();
 		}
-		fade_ = Fade::None;
-		renderer_result_.emplace(
-			*renderer_context_,
-			renderer_context_->Textures().GetTextureId("win"));
+		TellStory(StoryAtTheEnd(world_->Config().campaign, story_),
+				  /*ends_campaign=*/true);
+		if (fade_ != Fade::Story) {
+			ShowVictory();
+		}
 		return;
 	}
 	if (auto next = world_->NextLevel(); !next) {
@@ -1011,7 +1043,42 @@ void Game::ContinueFromStats() {
 	}
 	ShowLevel();
 	fade_ = Fade::Briefing;
+	// A level that opens a chapter is told by its card first
+	TellStory(StoryBefore(world_->Config().campaign, world_->LevelIndex(),
+						  /*new_game=*/false, story_),
+			  /*ends_campaign=*/false);
 	SaveProgress();
+}
+
+void Game::TellStory(std::size_t count, bool ends_campaign) {
+	if (count == 0) {
+		return;
+	}
+	story_count_ = count;
+	story_page_ = 0;
+	story_ends_campaign_ = ends_campaign;
+	fade_ = Fade::Story;
+	fade_time_ = 0.0;
+}
+
+void Game::NextStoryPage() {
+	fade_time_ = 0.0;
+	if (++story_page_ < story_count_) {
+		return;
+	}
+	story_count_ = 0;
+	if (story_ends_campaign_) {
+		ShowVictory();
+	}
+	else {
+		fade_ = Fade::Briefing;
+	}
+}
+
+void Game::ShowVictory() {
+	fade_ = Fade::None;
+	renderer_result_.emplace(*renderer_context_,
+							 renderer_context_->Textures().GetTextureId("win"));
 }
 
 void Game::StartFromBriefing() {
@@ -1032,7 +1099,8 @@ void Game::DrawTransition() {
 	if (fade_ == Fade::Out) {
 		black = std::min(fade_time_ / kFadeOutSeconds, 1.0);
 	}
-	else if (fade_ == Fade::Stats || fade_ == Fade::Briefing) {
+	else if (fade_ == Fade::Stats || fade_ == Fade::Story ||
+			 fade_ == Fade::Briefing) {
 		black = 1.0;
 	}
 	else {
@@ -1048,8 +1116,14 @@ void Game::DrawTransition() {
 	if (fade_ == Fade::Stats) {
 		const ui::FixedText<64> heading("LEVEL {} · {}", world_->LevelNumber(),
 										world_->LevelName());
-		menu_->DrawLevelStats(heading, cleared_stats_,
+		menu_->DrawLevelStats(heading, cleared_stats_, world_->LevelDebrief(),
 							  !IsScripted() && fade_time_ >= kStatsInputDelay);
+	}
+	if (fade_ == Fade::Story && story_page_ < story_count_) {
+		const StoryPage& page = story_[story_page_];
+		menu_->DrawStoryPage(page.heading, page.title, page.text, story_page_,
+							 story_count_,
+							 !IsScripted() && fade_time_ >= kStatsInputDelay);
 	}
 	if (fade_ == Fade::Briefing) {
 		const ui::FixedText<64> heading("LEVEL {} · {}", world_->LevelNumber(),

@@ -1,6 +1,7 @@
 {
   "name": "THE BARRACKS",
-  "briefing": "Past the checkpoint lie the barracks. Something has come up from under the chapel: the soldiers are not alone any more. Wipe out the garrison and take the stairs at the back of the quarters.",
+  "briefing": "The last convoy got as far as the barracks. Something has come up from under the chapel there: the soldiers are not alone any more. Wipe out the garrison and take the stairs at the back of the quarters.",
+  "debrief": "The chapel floor was broken open from below. What came up did not come to fight the garrison. It came for them, and the ones it took got up again.",
   "music": "level2",
   "map": "level2.txt",
   "player": {
@@ -295,13 +296,6 @@
       }
     },
     {
-      "type": "shotgun",
-      "position": {
-        "x": 8.5,
-        "y": 26.5
-      }
-    },
-    {
       "type": "large_medkit",
       "position": {
         "x": 21.5,
@@ -328,6 +322,24 @@
       "y": 9,
       "dx": 1,
       "dy": 0
+    }
+  ],
+  "intel": [
+    {
+      "x": 0,
+      "y": 14,
+      "dx": 1,
+      "dy": 0,
+      "title": "THE CHAPLAIN'S DIARY",
+      "text": "Tuesday. The men will not come to the chapel since the floor began to crack. I told them it was the frost. Tonight I put my ear to the stones and heard something under them knocking, patient, as if it knew that someone would come and open the door. God forgive me, I almost did."
+    },
+    {
+      "x": 25,
+      "y": 15,
+      "dx": -1,
+      "dy": 0,
+      "title": "SICK LIST",
+      "text": "Week three: fourteen men sick. Cold hands, no appetite, no sleep. Four men reported dead at reveille have since returned to duty. The medical officer declines to explain this, and has asked to be sent to the front."
     }
   ],
   "staticObjects": []

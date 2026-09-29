@@ -1,0 +1,419 @@
+{
+  "name": "THE RELAY",
+  "briefing": "On the ridge above the barracks stands the relay that repeats the castle's numbers to the world. Its operators have not left their posts in three weeks. Silence the relay and take the cable stair down; the transmitter room's gold key opens it.",
+  "debrief": "The relay's cable does not run out of the valley. It runs down, into the rock under the barracks, towards the old catacombs.",
+  "music": "level1",
+  "map": "radio_station.txt",
+  "player": {
+    "position": {
+      "x": 24.5,
+      "y": 2.5,
+      "theta": 3.14
+    }
+  },
+  "enemies": [
+    {
+      "type": "soldier",
+      "position": {
+        "x": 25.5,
+        "y": 11.5,
+        "theta": 2.16
+      },
+      "patrol_radius": 3.0
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 23.5,
+        "y": 13.5,
+        "theta": -0.46
+      },
+      "patrol_radius": 3.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 11.5,
+        "y": 6.5,
+        "theta": 0.62
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 17.5,
+        "y": 14.5,
+        "theta": -2.0
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 14.5,
+        "y": 4.5,
+        "theta": 1.46
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 4.5,
+        "y": 5.5,
+        "theta": -1.57
+      },
+      "patrol_radius": 3.0
+    },
+    {
+      "type": "demon",
+      "position": {
+        "x": 2.5,
+        "y": 3.5,
+        "theta": 0.64
+      },
+      "patrol_radius": 3.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 3.5,
+        "y": 13.5,
+        "theta": 1.19
+      },
+      "patrol_radius": 4.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 2.5,
+        "y": 15.5,
+        "theta": 0.24
+      },
+      "patrol_radius": 4.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 12.5,
+        "y": 20.5,
+        "theta": 1.29
+      },
+      "patrol_radius": 4.0
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 13.5,
+        "y": 22.5,
+        "theta": 1.57
+      },
+      "patrol_radius": 4.0
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 2.5,
+        "y": 25.5,
+        "theta": 0.24
+      },
+      "patrol_radius": 2.5
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 3.5,
+        "y": 27.5,
+        "theta": -0.98
+      },
+      "patrol_radius": 2.5
+    },
+    {
+      "type": "demon",
+      "position": {
+        "x": 24.5,
+        "y": 21.5,
+        "theta": 2.11
+      },
+      "patrol_radius": 4.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 22.5,
+        "y": 21.5,
+        "theta": 1.37
+      },
+      "patrol_radius": 4.0
+    }
+  ],
+  "dynamicObjects": [
+    {
+      "type": "green_light",
+      "position": {
+        "x": 26.5,
+        "y": 6.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 22.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 25.5,
+        "y": 9.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 26.5,
+        "y": 15.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 10.5,
+        "y": 13.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 16.5,
+        "y": 7.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 10.5,
+        "y": 9.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 10.5,
+        "y": 3.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 7.5,
+        "y": 3.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 6.5,
+        "y": 8.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 5.5,
+        "y": 20.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 7.5,
+        "y": 16.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 16.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 12.5,
+        "y": 28.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 7.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 7.5,
+        "y": 27.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 23.5,
+        "y": 19.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 19.5,
+        "y": 28.5
+      }
+    }
+  ],
+  "pickups": [
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 26.5,
+        "y": 4.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 26.5,
+        "y": 12.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 10.5,
+        "y": 2.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 12.5,
+        "y": 6.5
+      }
+    },
+    {
+      "type": "super_shotgun",
+      "position": {
+        "x": 6.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 4.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "silver_key",
+      "position": {
+        "x": 2.5,
+        "y": 20.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 7.5,
+        "y": 18.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 16.5,
+        "y": 25.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 16.5,
+        "y": 20.5
+      }
+    },
+    {
+      "type": "gold_key",
+      "position": {
+        "x": 2.5,
+        "y": 28.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 1.5,
+        "y": 28.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 21.5,
+        "y": 19.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 13.5,
+        "y": 31.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 15.5,
+        "y": 31.5
+      }
+    }
+  ],
+  "objectives": [
+    {
+      "type": "kill_all",
+      "text": "Silence the relay: kill its operators"
+    }
+  ],
+  "secrets": [
+    {
+      "x": 14,
+      "y": 29,
+      "dx": 0,
+      "dy": 1
+    }
+  ],
+  "intel": [
+    {
+      "x": 2,
+      "y": 21,
+      "dx": 0,
+      "dy": -1,
+      "title": "THE OPERATORS' ORDERS",
+      "text": "Repeat the castle's numbers on every band, every hour, without a break. Do not answer any station that answers. Do not write down anything that comes back."
+    },
+    {
+      "x": 0,
+      "y": 27,
+      "dx": 1,
+      "dy": 0,
+      "title": "WHAT CAME BACK",
+      "text": "I wrote it down anyway. Every hour, after we send the castle's eleven digits, eleven more come in on the dead band. Ours go down by one each night. Theirs go up. The officer says that when the two are the same, the gate opens. I asked him from which side. He did not answer."
+    }
+  ],
+  "staticObjects": []
+}

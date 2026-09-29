@@ -40,6 +40,7 @@ TEST(SavedGame, CarriesASnapshotOfTheLevel) {
 	snapshot.seconds = 87.25;
 	snapshot.killed = 0b1011;
 	snapshot.taken = 0b100;
+	snapshot.intel = 0b10;
 	snapshot.explored_cells = 20;
 	snapshot.explored[0] = 0xA5;
 	snapshot.explored[2] = 0x0F;
@@ -53,7 +54,7 @@ TEST(SavedGame, CarriesASnapshotOfTheLevel) {
 
 TEST(SavedGame, APositionIsAllThreeOrNone) {
 	const std::string_view base =
-		"format=2\nlevel=1\nweapon=0\ndifficulty=1\nhealth=100\n";
+		"format=4\nlevel=1\nweapon=0\ndifficulty=1\nhealth=100\n";
 	EXPECT_FALSE(SavedGame::Parse(std::string(base) + "x=1.5\ny=2.5\n"));
 	const auto whole =
 		SavedGame::Parse(std::string(base) + "x=1.5\ny=2.5\ntheta=0\n");
@@ -67,34 +68,37 @@ TEST(SavedGame, AnIncompleteOrBrokenRecordIsNoSave) {
 	EXPECT_FALSE(SavedGame::Parse(""));
 	EXPECT_FALSE(SavedGame::Parse("level=2\nweapon=1\n"));
 	EXPECT_FALSE(SavedGame::Parse(
-		"format=2\nlevel=two\nweapon=1\ndifficulty=1\nhealth=100\n"));
+		"format=4\nlevel=two\nweapon=1\ndifficulty=1\nhealth=100\n"));
 	// A dead player is not a game to go on with
 	EXPECT_FALSE(SavedGame::Parse(
-		"format=2\nlevel=2\nweapon=1\ndifficulty=1\nhealth=0\n"));
+		"format=4\nlevel=2\nweapon=1\ndifficulty=1\nhealth=0\n"));
 }
 
-// Weapons are saved by slot: a save from before the arsenal changed (no
-// format, or another one) would hand back the wrong weapons, so it is none
 // A save from before games had a seed rolls its drops as seed 0
 TEST(SavedGame, ASaveWithoutASeedRollsAsZero) {
 	const auto parsed = SavedGame::Parse(
-		"format=2\nlevel=1\nweapon=0\ndifficulty=1\nhealth=100\n");
+		"format=4\nlevel=1\nweapon=0\ndifficulty=1\nhealth=100\n");
 	ASSERT_TRUE(parsed);
 	EXPECT_EQ(parsed.value_or(SavedGame{.seed = 9}).seed, 0u);
 }
 
+// Weapons and pickups are saved by index: a save from before the arsenal
+// or the levels changed (no format, or another one) would hand back the
+// wrong ones, so it is none
 TEST(SavedGame, ASaveOfAnotherFormatIsNoSave) {
 	const std::string_view fields =
 		"level=2\nweapon=1\ndifficulty=1\nhealth=100\n";
-	EXPECT_TRUE(SavedGame::Parse(std::string("format=2\n") + fields.data()));
+	EXPECT_TRUE(SavedGame::Parse(std::string("format=4\n") + fields.data()));
 	EXPECT_FALSE(SavedGame::Parse(fields));
 	EXPECT_FALSE(SavedGame::Parse(std::string("format=1\n") + fields.data()));
+	EXPECT_FALSE(SavedGame::Parse(std::string("format=2\n") + fields.data()));
+	EXPECT_FALSE(SavedGame::Parse(std::string("format=3\n") + fields.data()));
 }
 
 // A newer version's extra keys do not stop an older one reading the rest
 TEST(SavedGame, UnknownKeysAreSkipped) {
 	const auto parsed = SavedGame::Parse(
-		"format=2\nlevel=1\nweapon=0\nsecrets=3\ndifficulty=1\nhealth=100\n"
+		"format=4\nlevel=1\nweapon=0\nsecrets=3\ndifficulty=1\nhealth=100\n"
 		"armour=50\nlaser=on\n");
 	ASSERT_TRUE(parsed);
 	EXPECT_EQ(parsed.value_or(SavedGame{}).level, 1u);

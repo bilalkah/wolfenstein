@@ -97,6 +97,13 @@ class World
 	}
 	// The current level's briefing from its file; empty if it has none
 	std::string_view LevelBriefing() const { return level_->data.briefing; }
+	std::string_view LevelDebrief() const { return level_->data.debrief; }
+	// The level's pages of intel, as its file writes them
+	std::span<const IntelSpawn> LevelIntel() const {
+		return level_->data.intel;
+	}
+	// The level's place in the campaign, from 0
+	std::size_t LevelIndex() const { return level_index_; }
 	// The current level's name from its file; empty if it has none
 	std::string_view LevelName() const { return level_->data.name; }
 

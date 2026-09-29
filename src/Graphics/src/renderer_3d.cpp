@@ -39,8 +39,9 @@ void Renderer3D::TextureDeleter::operator()(
 }
 
 Renderer3D::Renderer3D(RendererContext& context) : IRenderer(context) {
-	static_assert(kDecals >= Scene::kWallMarks + 4,
-				  "room for every bullet mark and a few secret walls");
+	static_assert(kDecals >= Scene::kWallMarks + 4 + Scene::kIntel,
+				  "room for every bullet mark, a few secret walls and every "
+				  "page of intel");
 	// A command per wall column (2 px wide), one a decal, and the weapon,
 	// crosshair and overlays. The level's objects are added by
 	// ReserveObjects.
@@ -55,6 +56,7 @@ Renderer3D::Renderer3D(RendererContext& context) : IRenderer(context) {
 	damage_texture_ = context_->Textures().GetTextureId("damage_taken");
 	mark_texture_ = context_->Textures().GetTextureId("secret_mark");
 	bullet_mark_texture_ = context_->Textures().GetTextureId("bullet_mark");
+	intel_texture_ = context_->Textures().GetTextureId("intel");
 	door_textures_ = {context_->Textures().GetTextureId("door"),
 					  context_->Textures().GetTextureId("door_gold"),
 					  context_->Textures().GetTextureId("door_silver")};
@@ -253,6 +255,8 @@ void Renderer3D::RenderIfRayHit(const int& horizontal_slice, const Ray& ray) {
 
 	RenderWallMarks(horizontal_slice, ray, hit_point, draw_start, line_height,
 					distance);
+	RenderIntel(horizontal_slice, ray, hit_point, draw_start, line_height,
+				distance);
 
 	// A secret wall not yet pushed gives itself away to a careful eye: a
 	// faint crack over the lower middle of its face
@@ -320,9 +324,49 @@ void Renderer3D::RenderWallMarks(int horizontal_slice, const Ray& ray,
 	}
 }
 
+void Renderer3D::RenderIntel(int horizontal_slice, const Ray& ray,
+							 double across, int draw_start, int line_height,
+							 double distance) {
+	const auto pages = scene_->GetIntel();
+	if (pages.empty()) {
+		return;
+	}
+	// Where on its face a page hangs: across the middle, at eye height, as
+	// wide for its height as its picture
+	constexpr double kLeft = 0.29;
+	constexpr double kWidth = 0.42;
+	constexpr double kTop = 0.32;
+	constexpr double kHeight = 0.365;
+	// Read, it hangs there still, dimmer
+	constexpr std::uint8_t kReadShade = 150;
+	const auto [x, y] = HitCell(ray);
+	const std::uint8_t face = HitFace(ray);
+	for (std::size_t i = 0; i < pages.size(); ++i) {
+		const Scene::WallIntel& page = pages[i];
+		if (page.x != x || page.y != y || page.face != face) {
+			continue;
+		}
+		double part = (across - kLeft) / kWidth;
+		if (part < 0.0 || part >= 1.0) {
+			continue;
+		}
+		// Seen from the east or the north a wall's texture runs right to
+		// left: the page is turned to read left to right all the same
+		if (face == 1 || face == 2) {
+			part = 1.0 - part;
+		}
+		AddDecalColumn(intel_texture_,
+					   kIntelKeys + static_cast<std::uint32_t>(i),
+					   horizontal_slice, part,
+					   draw_start + static_cast<int>(kTop * line_height),
+					   std::max(1, static_cast<int>(kHeight * line_height)),
+					   distance, page.read ? kReadShade : 255);
+	}
+}
+
 void Renderer3D::AddDecalColumn(int texture_id, std::uint32_t key, int x,
-								double u, int top, int height,
-								double distance) {
+								double u, int top, int height, double distance,
+								std::uint8_t shade) {
 	// A frame shows few: the search is short
 	const auto end =
 		decals_.begin() + static_cast<std::ptrdiff_t>(decal_count_);
@@ -345,7 +389,8 @@ void Renderer3D::AddDecalColumn(int texture_id, std::uint32_t key, int x,
 				  .first_height = height,
 				  .last_top = top,
 				  .last_height = height,
-				  .distance = distance};
+				  .distance = distance,
+				  .shade = shade};
 	}
 	++decal->columns;
 	decal->before_last_u = decal->last_u;
@@ -368,10 +413,11 @@ void Renderer3D::EnqueueDecals() {
 			static_cast<float>(std::clamp(decal.last_u + step, 0.0, 1.0));
 		const auto left = static_cast<float>(decal.first_x);
 		const auto right = static_cast<float>(decal.last_x + 2);
-		const auto corner = [](float x, int y, float u, float v) {
-			return SDL_Vertex{.position = {x, static_cast<float>(y)},
-							  .color = {255, 255, 255, 255},
-							  .tex_coord = {u, v}};
+		const auto corner = [&](float x, int y, float u, float v) {
+			return SDL_Vertex{
+				.position = {x, static_cast<float>(y)},
+				.color = {decal.shade, decal.shade, decal.shade, 255},
+				.tex_coord = {u, v}};
 		};
 		decal_quads_[i] = {
 			corner(left, decal.first_top, first_u, 0.0F),

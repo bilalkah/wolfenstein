@@ -467,6 +467,11 @@ def main():
         for entry in entries:
             if entry in pickups:
                 pickups[entry].update(texture=texture, width=size[0], height=size[1])
+    # A page of intel pinned to a wall: the computer map, a tablet of green
+    # lines, cut to its edges (it hangs on the wall, not stands on the floor)
+    tablet, _ = wad.sprite("PMAP", "A", 0)
+    textures["intel"] = save(tablet.crop(tablet.getbbox()),
+                             ASSETS / "textures" / "intel.png")
 
     # Walls, doors and the exit: Freedoom's stand-ins for Wolfenstein's
     for i, name in enumerate(("ZZWOLF1", "ZZWOLF11", "ZZWOLF9", "STONGARG", "ZZWOLF12"), 1):

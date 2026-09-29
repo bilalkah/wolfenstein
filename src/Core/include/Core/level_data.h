@@ -63,6 +63,36 @@ struct DifficultyConfig
 	int attackers = 3;	// enemies shooting at once, at most
 };
 
+// A page of the campaign's story, told between its levels
+struct StoryText
+{
+	std::string title;
+	std::string text;
+};
+
+// A part of the campaign, told on a card before its first level
+struct Chapter
+{
+	std::string title;	// "CHAPTER I"
+	std::string name;	// "THE VALLEY"
+	std::string text;	// a few lines on its card
+	// Its levels: from this one in the campaign's order, this many
+	std::size_t first_level = 0;
+	std::size_t level_count = 0;
+};
+
+// The story told round the campaign's levels: the opening, before the first
+// level of a new game; the chapters' cards; the ending, after the last level
+struct Campaign
+{
+	std::vector<StoryText> opening;
+	std::vector<Chapter> chapters;
+	std::vector<StoryText> ending;
+
+	// The chapter that opens with campaign level `level`, or nullptr
+	const Chapter* ChapterOpenedBy(std::size_t level) const;
+};
+
 // config.json: the game's content shared by every level. A new enemy type
 // or weapon is added there, with its art in textures.json, not in code.
 struct GameConfig
@@ -73,8 +103,10 @@ struct GameConfig
 	std::vector<WeaponConfig> weapons;
 	// By pickup type ("medkit")
 	std::map<std::string, PickupConfig, std::less<>> pickups;
-	// The campaign: level files in the order they are played
+	// The campaign: level files in the order they are played, its chapters
+	// in turn ("campaign"), or a plain list ("levels")
 	std::vector<std::string> levels;
+	Campaign campaign;
 	// The level the benchmark plays; not part of the campaign
 	std::string benchmark_level;
 	// The track the menu plays (assets/music/<name>.mp3); optional
@@ -130,12 +162,27 @@ struct ObjectSpawn
 	vector2d position;
 };
 
+// A page of intel pinned to a wall: on the face of wall cell (x, y) that
+// looks along (dx, dy), to the open cell it is read from; what it is, and
+// what it says
+struct IntelSpawn
+{
+	int x = 0;
+	int y = 0;
+	int dx = 0;
+	int dy = 0;
+	std::string title;
+	std::string text;
+};
+
 // levelN.json
 struct LevelData
 {
 	std::string name;  // shown when the level starts; optional
 	// A few lines of story shown before the level starts; optional
 	std::string briefing;
+	// A few more under its results, once cleared: what was learnt; optional
+	std::string debrief;
 	// The track played through it (assets/music/<music>.mp3); optional,
 	// silence without
 	std::string music;
@@ -150,6 +197,8 @@ struct LevelData
 	std::vector<Objective> objectives;
 	// Optional
 	std::vector<SecretSpawn> secrets;
+	// Optional
+	std::vector<IntelSpawn> intel;
 };
 
 std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input);

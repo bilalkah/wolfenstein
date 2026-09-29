@@ -1,0 +1,437 @@
+{
+  "name": "THE MINE",
+  "briefing": "The cart track behind the altar runs down into a mine. Its overseer has the gold key to the cart track that climbs to the forge, and keeps to the seam at the bottom, behind a silver lock. Find the silver key in the gallery, go down and kill the overseer.",
+  "debrief": "At the bottom of the mine the seam runs on, deeper than any lamp reaches, beating slowly in time with the numbers. The cart track climbs from here to the forge.",
+  "music": "level3",
+  "map": "mine.txt",
+  "player": {
+    "position": {
+      "x": 2.5,
+      "y": 2.5,
+      "theta": 0.0
+    }
+  },
+  "enemies": [
+    {
+      "type": "soldier",
+      "position": {
+        "x": 4.5,
+        "y": 18.5,
+        "theta": -1.57
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 5.5,
+        "y": 14.5,
+        "theta": -2.68
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 2.5,
+        "y": 14.5,
+        "theta": -0.24
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "demon",
+      "position": {
+        "x": 2.5,
+        "y": 25.5,
+        "theta": 1.33
+      },
+      "patrol_radius": 4.5
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 14.5,
+        "y": 3.5,
+        "theta": 1.57
+      },
+      "patrol_radius": 4.0
+    },
+    {
+      "type": "demon",
+      "position": {
+        "x": 16.5,
+        "y": 9.5,
+        "theta": -2.09
+      },
+      "patrol_radius": 4.0
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 12.5,
+        "y": 2.5,
+        "theta": 1.05
+      },
+      "patrol_radius": 4.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 11.5,
+        "y": 16.5,
+        "theta": 0.64
+      },
+      "patrol_radius": 4.0
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 12.5,
+        "y": 21.5,
+        "theta": -1.29
+      },
+      "patrol_radius": 4.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 9.5,
+        "y": 31.5,
+        "theta": -1.03
+      },
+      "patrol_radius": 3.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 11.5,
+        "y": 31.5,
+        "theta": -1.77
+      },
+      "patrol_radius": 3.0
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 10.5,
+        "y": 26.5,
+        "theta": 1.37
+      },
+      "patrol_radius": 3.0
+    },
+    {
+      "type": "minigun_zombie",
+      "position": {
+        "x": 23.5,
+        "y": 13.5,
+        "theta": -1.3
+      },
+      "target": true
+    },
+    {
+      "type": "demon",
+      "position": {
+        "x": 24.5,
+        "y": 7.5,
+        "theta": 0.79
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 20.5,
+        "y": 22.5,
+        "theta": 0.71
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 21.5,
+        "y": 30.5,
+        "theta": -1.11
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 26.5,
+        "y": 26.5,
+        "theta": -2.76
+      },
+      "patrol_radius": 5.0
+    }
+  ],
+  "dynamicObjects": [
+    {
+      "type": "green_light",
+      "position": {
+        "x": 4.5,
+        "y": 4.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 1.5,
+        "y": 11.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 1.5,
+        "y": 18.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 1.5,
+        "y": 9.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 4.5,
+        "y": 26.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 4.5,
+        "y": 22.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 10.5,
+        "y": 8.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 18.5,
+        "y": 9.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 10.5,
+        "y": 4.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 10.5,
+        "y": 13.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 16.5,
+        "y": 20.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 7.5,
+        "y": 30.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 14.5,
+        "y": 29.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 21.5,
+        "y": 2.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 27.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 27.5,
+        "y": 14.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 28.5,
+        "y": 30.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 27.5,
+        "y": 32.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 22.5,
+        "y": 18.5
+      }
+    }
+  ],
+  "pickups": [
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 1.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 7.5,
+        "y": 11.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 1.5,
+        "y": 32.5
+      }
+    },
+    {
+      "type": "silver_key",
+      "position": {
+        "x": 11.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 15.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 10.5,
+        "y": 21.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 9.5,
+        "y": 32.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 10.5,
+        "y": 32.5
+      }
+    },
+    {
+      "type": "gold_key",
+      "position": {
+        "x": 26.5,
+        "y": 14.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 28.5,
+        "y": 6.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 28.5,
+        "y": 18.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 19.5,
+        "y": 30.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 7.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 7.5,
+        "y": 21.5
+      }
+    }
+  ],
+  "objectives": [
+    {
+      "type": "kill_targets",
+      "text": "Kill the overseer at the seam"
+    }
+  ],
+  "secrets": [
+    {
+      "x": 9,
+      "y": 22,
+      "dx": -1,
+      "dy": 0
+    }
+  ],
+  "intel": [
+    {
+      "x": 18,
+      "y": 0,
+      "dx": 0,
+      "dy": 1,
+      "title": "A SHIFT REPORT",
+      "text": "Third shift. Forty blocks of red stone cut from the new face. The stone is warm when it comes out, and colder every hour after. Two men put their hands on it to warm them and would not take them off again. They were sent up to the castle with the blocks."
+    },
+    {
+      "x": 20,
+      "y": 9,
+      "dx": 1,
+      "dy": 0,
+      "title": "HALE'S NOTEBOOK: DAY 6",
+      "text": "The mine goes deeper than any map of it. At the bottom a seam of the red stone runs through the rock like a vein, and it beats, slowly, about once an hour. I timed it against my watch. It beats in time with the numbers."
+    }
+  ],
+  "staticObjects": []
+}

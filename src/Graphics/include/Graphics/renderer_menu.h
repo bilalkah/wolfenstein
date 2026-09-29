@@ -98,11 +98,25 @@ class Menu
 					  std::span<const std::string_view> objectives,
 					  bool prompt);
 	// A cleared level's results under its `heading` ("LEVEL 1 · CHECKPOINT"),
-	// over black; `prompt`: whether to ask for a key to go on
+	// over black, and what was learnt there (`debrief`, optional); `prompt`:
+	// whether to ask for a key to go on
 	void DrawLevelStats(std::string_view heading, const LevelStats& stats,
-						bool prompt);
+						std::string_view debrief, bool prompt);
+	// A page of intel the player took, over the view: what it is, and what
+	// it says; `opacity` 1, fading to 0 as it goes
+	void DrawDocument(std::string_view title, std::string_view text,
+					  double opacity);
+	// A page of the story over black: a small `heading` ("CHAPTER II") over
+	// its `title`, its text, and which page of how many
+	void DrawStoryPage(std::string_view heading, std::string_view title,
+					   std::string_view text, std::size_t page,
+					   std::size_t pages, bool prompt);
 
   private:
+	// Draws `text` from (left, y), broken into lines no wider than `width`
+	// between words; returns the y below its last line
+	int DrawWrapped(std::string_view text, int left, int y, int width,
+					ui::FontStyle style, SDL_Color colour, bool draw = true);
 	MenuAction MainScreen();
 	MenuAction DifficultySelectScreen();
 	MenuAction ControlsScreen();

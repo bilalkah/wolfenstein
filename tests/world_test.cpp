@@ -66,6 +66,51 @@ TEST(World, NextLevelPlaysTheCampaignInOrder) {
 }
 
 // Each level plays its own track as it starts; the next level, the next
+// Each page of intel on a level's walls is the one its file pins there; the
+// campaign has some to read
+TEST(World, IntelHangsWhereItsLevelPinsIt) {
+	auto world = MakeWorld();
+	ASSERT_TRUE(world->NewGame("mp5"));
+	std::size_t pages = 0;
+	for (;;) {
+		const auto spawns = world->LevelIntel();
+		const auto pinned = world->CurrentLevel().GetIntel();
+		ASSERT_EQ(pinned.size(), spawns.size()) << world->LevelName();
+		for (std::size_t i = 0; i < pinned.size(); ++i) {
+			EXPECT_EQ(pinned[i].x, spawns[i].x);
+			EXPECT_EQ(pinned[i].y, spawns[i].y);
+			EXPECT_EQ(pinned[i].dx, spawns[i].dx);
+			EXPECT_EQ(pinned[i].dy, spawns[i].dy);
+			EXPECT_FALSE(pinned[i].read);
+		}
+		pages += pinned.size();
+		if (!world->HasNextLevel()) {
+			break;
+		}
+		ASSERT_TRUE(world->NextLevel());
+	}
+	EXPECT_GT(pages, 0u);
+}
+
+// A saved game remembers which pages were read
+TEST(World, AGameRemembersTheIntelRead) {
+	auto world = MakeWorld();
+	ASSERT_TRUE(world->NewGame("mp5"));
+	ASSERT_GE(world->CurrentLevel().GetIntel().size(), 2u);
+	world->CurrentLevel().RestoreRead(1);
+	const auto saved = world->Capture();
+	ASSERT_TRUE(saved);
+	const SavedGame game = saved.value_or(SavedGame{});
+	EXPECT_EQ(game.intel, 0b10u);
+
+	auto later = MakeWorld();
+	ASSERT_TRUE(later->ContinueGame(game));
+	const auto pages = later->CurrentLevel().GetIntel();
+	EXPECT_FALSE(pages[0].read);
+	EXPECT_TRUE(pages[1].read);
+	EXPECT_EQ(later->CurrentLevel().GetStats().documents_found, 1u);
+}
+
 TEST(World, EachLevelPlaysItsTrack) {
 	auto world = MakeWorld();
 	ASSERT_TRUE(world->NewGame("shotgun"));

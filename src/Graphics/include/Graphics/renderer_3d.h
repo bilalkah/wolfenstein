@@ -68,14 +68,17 @@ class Renderer3D : public IRenderer
 		int first_height = 0;
 		int last_top = 0;
 		int last_height = 0;
-		double distance = 0.0;	// its nearest column's
+		double distance = 0.0;	   // its nearest column's
+		std::uint8_t shade = 255;  // 255 as the texture is, darker below
 	};
 	// Pictures on walls one frame shows, at most: every bullet mark
-	// (Scene::kWallMarks), and a few secret walls' faces
-	static constexpr std::size_t kDecals = 40;
+	// (Scene::kWallMarks), a few secret walls' faces and every page of intel
+	// (Scene::kIntel)
+	static constexpr std::size_t kDecals = 48;
 	// Keys: a bullet mark's is its index; a secret wall's face's is past
-	// every mark's
+	// every mark's, and a page of intel's past those
 	static constexpr std::uint32_t kCrackKeys = 1U << 16;
+	static constexpr std::uint32_t kIntelKeys = 1U << 17;
 
 	struct TextureDeleter
 	{
@@ -95,10 +98,14 @@ class Renderer3D : public IRenderer
 	// The bullet marks on the wall a column shows, `across` its face
 	void RenderWallMarks(int horizontal_slice, const Ray& ray, double across,
 						 int draw_start, int line_height, double distance);
+	// The pages of intel on the wall a column shows, `across` its face
+	void RenderIntel(int horizontal_slice, const Ray& ray, double across,
+					 int draw_start, int line_height, double distance);
 	// Adds a wall column to the decal `key` (made on its first column):
 	// at `u` across its texture, from `top` down `height` pixels
 	void AddDecalColumn(int texture_id, std::uint32_t key, int x, double u,
-						int top, int height, double distance);
+						int top, int height, double distance,
+						std::uint8_t shade = 255);
 	// Queues one quad a decal, once the walls are done
 	void EnqueueDecals();
 	void RenderWeapon();
@@ -153,6 +160,7 @@ class Renderer3D : public IRenderer
 	std::array<int, 3> key_textures_{};	 // held keys on the HUD
 	int mark_texture_ = 0;				 // on secret walls
 	int bullet_mark_texture_ = 0;		 // where shots struck walls
+	int intel_texture_ = 0;				 // a page of intel on a wall
 	// How far the world is slid down the screen this frame, in pixels: the
 	// player looking up, and a shot's kick
 	int horizon_shift_ = 0;

@@ -1,0 +1,490 @@
+{
+  "name": "THE RAIL YARD",
+  "briefing": "The railway up the mountain starts in this yard. The last train stands loaded with the final gate stone, and a cyber demon guards it behind a gold lock. The gold key is in the workshop, the workshop's silver key in the signal box. Stop the train.",
+  "debrief": "The last train will not go up tonight: its stone lies cracked across the tracks. You will go up instead, the way Hale went, by the wall.",
+  "music": "level4",
+  "map": "rail_yard.txt",
+  "player": {
+    "position": {
+      "x": 27.5,
+      "y": 2.5,
+      "theta": 1.57
+    }
+  },
+  "enemies": [
+    {
+      "type": "soldier",
+      "position": {
+        "x": 21.5,
+        "y": 6.5,
+        "theta": -1.25
+      },
+      "patrol_radius": 3.0
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 21.5,
+        "y": 2.5,
+        "theta": 1.37
+      },
+      "patrol_radius": 2.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 10.5,
+        "y": 15.5,
+        "theta": 0.79
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 16.5,
+        "y": 22.5,
+        "theta": -2.23
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 13.5,
+        "y": 25.5,
+        "theta": -1.64
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 13.5,
+        "y": 27.5,
+        "theta": -1.62
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 15.5,
+        "y": 20.5,
+        "theta": -2.36
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "minigun_zombie",
+      "position": {
+        "x": 15.5,
+        "y": 33.5,
+        "theta": -1.73
+      }
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 13.5,
+        "y": 2.5,
+        "theta": 1.6
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "demon",
+      "position": {
+        "x": 25.5,
+        "y": 16.5,
+        "theta": 2.55
+      },
+      "patrol_radius": 4.5
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 25.5,
+        "y": 14.5,
+        "theta": 2.03
+      },
+      "patrol_radius": 4.5
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 26.5,
+        "y": 21.5,
+        "theta": -2.13
+      },
+      "patrol_radius": 4.5
+    },
+    {
+      "type": "demon",
+      "position": {
+        "x": 3.5,
+        "y": 9.5,
+        "theta": -1.57
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 4.5,
+        "y": 11.5,
+        "theta": -1.79
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "minigun_zombie",
+      "position": {
+        "x": 3.5,
+        "y": 20.5,
+        "theta": -1.57
+      }
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 4.5,
+        "y": 16.5,
+        "theta": 1.85
+      },
+      "patrol_radius": 4.0
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 3.5,
+        "y": 30.5,
+        "theta": 1.57
+      },
+      "patrol_radius": 3.0
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 3.5,
+        "y": 28.5,
+        "theta": 1.57
+      },
+      "patrol_radius": 3.0
+    },
+    {
+      "type": "cyber_demon",
+      "position": {
+        "x": 22.5,
+        "y": 31.5,
+        "theta": -0.46
+      },
+      "target": true
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 24.5,
+        "y": 33.5,
+        "theta": -1.57
+      },
+      "patrol_radius": 3.5
+    }
+  ],
+  "dynamicObjects": [
+    {
+      "type": "green_light",
+      "position": {
+        "x": 26.5,
+        "y": 7.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 28.5,
+        "y": 7.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 23.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 16.5,
+        "y": 5.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 8.5,
+        "y": 15.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 14.5,
+        "y": 9.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 8.5,
+        "y": 13.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 14.5,
+        "y": 13.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 8.5,
+        "y": 31.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 23.5,
+        "y": 22.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 27.5,
+        "y": 12.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 5.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 2.5,
+        "y": 12.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 4.5,
+        "y": 24.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 2.5,
+        "y": 15.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 1.5,
+        "y": 30.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 1.5,
+        "y": 34.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 28.5,
+        "y": 32.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 28.5,
+        "y": 31.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 21.5,
+        "y": 34.5
+      }
+    }
+  ],
+  "pickups": [
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 28.5,
+        "y": 3.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 28.5,
+        "y": 2.5
+      }
+    },
+    {
+      "type": "silver_key",
+      "position": {
+        "x": 22.5,
+        "y": 8.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 12.5,
+        "y": 17.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 16.5,
+        "y": 3.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 11.5,
+        "y": 4.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 24.5,
+        "y": 22.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 27.5,
+        "y": 15.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 5.5,
+        "y": 7.5
+      }
+    },
+    {
+      "type": "gold_key",
+      "position": {
+        "x": 5.5,
+        "y": 16.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 1.5,
+        "y": 18.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 4.5,
+        "y": 27.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 5.5,
+        "y": 31.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 23.5,
+        "y": 34.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 20.5,
+        "y": 27.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 16.5,
+        "y": 37.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 18.5,
+        "y": 37.5
+      }
+    }
+  ],
+  "objectives": [
+    {
+      "type": "kill_targets",
+      "text": "Destroy the cyber demon at the last train"
+    }
+  ],
+  "secrets": [
+    {
+      "x": 17,
+      "y": 35,
+      "dx": 0,
+      "dy": 1
+    }
+  ],
+  "intel": [
+    {
+      "x": 19,
+      "y": 7,
+      "dx": 1,
+      "dy": 0,
+      "title": "A TIMETABLE",
+      "text": "Up trains at 23:00, 01:00 and 03:00: gate stones and personnel. Down trains: none. From tonight no down trains will run at all. Anyone who wishes to leave the castle may apply to the Directorate in writing."
+    },
+    {
+      "x": 19,
+      "y": 12,
+      "dx": 1,
+      "dy": 0,
+      "title": "HALE'S NOTEBOOK: DAY 9",
+      "text": "Rode up on a stone train, under a tarpaulin. The guards on the wall do not sleep, do not eat and never look down the mountain. I think the Directorate came up here to build a door, and has become its lock. Going in over the wall."
+    }
+  ],
+  "staticObjects": []
+}

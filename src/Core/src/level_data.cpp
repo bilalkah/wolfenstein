@@ -135,6 +135,45 @@ std::optional<ProjectileConfig> ToProjectile(const json& weapon) {
 		.noise_range = projectile.value("noise_range", 0)};
 }
 
+// Pages of story: [{"title": ..., "text": ...}]
+std::vector<StoryText> ToStory(const json& pages) {
+	std::vector<StoryText> story;
+	for (const auto& page : pages) {
+		story.push_back({.title = page.value("title", std::string{}),
+						 .text = page.at("text").get<std::string>()});
+	}
+	return story;
+}
+
+// The campaign: its opening and ending, and its chapters, whose levels
+// are added to `levels` in turn
+Campaign ToCampaign(const json& campaign, std::vector<std::string>& levels) {
+	Campaign parsed{.opening = campaign.contains("opening")
+								   ? ToStory(campaign.at("opening"))
+								   : std::vector<StoryText>{},
+					.chapters = {},
+					.ending = campaign.contains("ending")
+								  ? ToStory(campaign.at("ending"))
+								  : std::vector<StoryText>{}};
+	for (const auto& chapter : campaign.at("chapters")) {
+		const auto& files = chapter.at("levels");
+		if (files.empty()) {
+			throw json::other_error::create(512, "a chapter with no levels",
+											&chapter);
+		}
+		parsed.chapters.push_back(
+			{.title = chapter.at("title").get<std::string>(),
+			 .name = chapter.at("name").get<std::string>(),
+			 .text = chapter.value("text", std::string{}),
+			 .first_level = levels.size(),
+			 .level_count = files.size()});
+		for (const auto& file : files) {
+			levels.push_back(file.get<std::string>());
+		}
+	}
+	return parsed;
+}
+
 WeaponConfig ToWeapon(const json& weapon) {
 	const auto& reserve = weapon.at("reserve");
 	return {.weapon_name = weapon.at("name").get<std::string>(),
@@ -306,6 +345,12 @@ auto Parse(std::istream& input, Convert convert)
 
 }  // namespace
 
+const Chapter* Campaign::ChapterOpenedBy(std::size_t level) const {
+	const auto found =
+		std::ranges::find(chapters, level, &Chapter::first_level);
+	return found == chapters.end() ? nullptr : &*found;
+}
+
 const WeaponConfig* GameConfig::FindWeapon(std::string_view name) const {
 	const auto found =
 		std::ranges::find(weapons, name, &WeaponConfig::weapon_name);
@@ -338,7 +383,13 @@ std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 		for (const auto& [type, pickup] : root.at("pickups").items()) {
 			config.pickups.emplace(type, ToPickup(pickup, config.weapons));
 		}
-		config.levels = root.at("levels").get<std::vector<std::string>>();
+		// The campaign's levels: its chapters' in turn, or a plain list
+		if (root.contains("campaign")) {
+			config.campaign = ToCampaign(root.at("campaign"), config.levels);
+		}
+		else {
+			config.levels = root.at("levels").get<std::vector<std::string>>();
+		}
 		if (config.levels.empty()) {
 			throw json::other_error::create(502, "no levels listed", &root);
 		}
@@ -385,6 +436,7 @@ class LevelReader final : public nlohmann::json_sax<json>
 		level_.pickups.reserve(32);
 		level_.objectives.reserve(4);
 		level_.secrets.reserve(4);
+		level_.intel.reserve(4);
 	}
 
 	const std::string& Error() const { return error_; }
@@ -429,6 +481,9 @@ class LevelReader final : public nlohmann::json_sax<json>
 				if (frame.key == Key::Briefing) {
 					return take(level_.briefing, 0);
 				}
+				if (frame.key == Key::Debrief) {
+					return take(level_.debrief, 0);
+				}
 				if (frame.key == Key::Music) {
 					return take(level_.music, 0);
 				}
@@ -446,6 +501,14 @@ class LevelReader final : public nlohmann::json_sax<json>
 			case Kind::Pickup:
 				if (frame.key == Key::Type) {
 					return take(level_.pickups.back().type, kType);
+				}
+				break;
+			case Kind::Intel:
+				if (frame.key == Key::Title) {
+					return take(level_.intel.back().title, kTitle);
+				}
+				if (frame.key == Key::Text) {
+					return take(level_.intel.back().text, kText);
 				}
 				break;
 			case Kind::Objective:
@@ -512,6 +575,9 @@ class LevelReader final : public nlohmann::json_sax<json>
 			case Kind::Secrets:
 				level_.secrets.emplace_back();
 				return Push(Kind::Secret);
+			case Kind::Pages:
+				level_.intel.emplace_back();
+				return Push(Kind::Intel);
 			default:
 				break;
 		}
@@ -535,6 +601,9 @@ class LevelReader final : public nlohmann::json_sax<json>
 		}
 		if (frame.kind == Kind::Root && frame.key == Key::Secrets) {
 			return Push(Kind::Secrets);
+		}
+		if (frame.kind == Kind::Root && frame.key == Key::Intel) {
+			return Push(Kind::Pages);
 		}
 		if (frame.kind == Kind::Skip || frame.key == Key::Other) {
 			return Push(Kind::Skip);
@@ -578,6 +647,14 @@ class LevelReader final : public nlohmann::json_sax<json>
 				}
 				return Require(frame, kX | kY, "secret x and y");
 			}
+			case Kind::Intel: {
+				const IntelSpawn& page = level_.intel.back();
+				if (std::abs(page.dx) + std::abs(page.dy) != 1) {
+					return Fail("a page of intel faces along x or y");
+				}
+				return Require(frame, kX | kY, "intel x and y") &&
+					   Require(frame, kTitle | kText, "intel title and text");
+			}
 			case Kind::Position:
 				Top().seen |= kPosition;
 				return Require(frame, frame.required, "x, y and theta");
@@ -617,6 +694,8 @@ class LevelReader final : public nlohmann::json_sax<json>
 		Objective,
 		Secrets,
 		Secret,
+		Pages,	// the intel list
+		Intel,
 		Position,
 		Skip,  // a value the game does not read
 	};
@@ -625,6 +704,7 @@ class LevelReader final : public nlohmann::json_sax<json>
 		Map,
 		Name,
 		Briefing,
+		Debrief,
 		Music,
 		Player,
 		Enemies,
@@ -632,7 +712,9 @@ class LevelReader final : public nlohmann::json_sax<json>
 		Pickups,
 		Objectives,
 		Secrets,
+		Intel,
 		Type,
+		Title,
 		Text,
 		Target,
 		PatrolRadius,
@@ -647,7 +729,8 @@ class LevelReader final : public nlohmann::json_sax<json>
 	// Fields seen in an object, as bits
 	static constexpr std::uint8_t kMap = 1, kPlayer = 2, kEnemies = 4,
 								  kObjects = 8, kType = 16, kPosition = 32,
-								  kText = 64, kX = 1, kY = 2, kTheta = 4;
+								  kText = 64, kTitle = 128, kX = 1, kY = 2,
+								  kTheta = 4;
 
 	struct Frame
 	{
@@ -669,6 +752,8 @@ class LevelReader final : public nlohmann::json_sax<json>
 					return Key::Name;
 				if (name == "briefing")
 					return Key::Briefing;
+				if (name == "debrief")
+					return Key::Debrief;
 				if (name == "music")
 					return Key::Music;
 				if (name == "player")
@@ -683,11 +768,19 @@ class LevelReader final : public nlohmann::json_sax<json>
 					return Key::Objectives;
 				if (name == "secrets")
 					return Key::Secrets;
+				if (name == "intel")
+					return Key::Intel;
 				break;
 			case Kind::Player:
 				if (name == "position")
 					return Key::Position;
 				break;
+			case Kind::Intel:
+				if (name == "title")
+					return Key::Title;
+				if (name == "text")
+					return Key::Text;
+				[[fallthrough]];
 			case Kind::Secret:
 				if (name == "x")
 					return Key::X;
@@ -769,24 +862,15 @@ class LevelReader final : public nlohmann::json_sax<json>
 		}
 		if (frame.kind == Kind::Secret) {
 			SecretSpawn& secret = level_.secrets.back();
-			const int number = static_cast<int>(value);
-			switch (frame.key) {
-				case Key::X:
-					secret.x = number;
-					frame.seen |= kX;
-					return true;
-				case Key::Y:
-					secret.y = number;
-					frame.seen |= kY;
-					return true;
-				case Key::Dx:
-					secret.dx = number;
-					return true;
-				case Key::Dy:
-					secret.dy = number;
-					return true;
-				default:
-					break;
+			if (TakeCell(frame, value, secret.x, secret.y, secret.dx,
+						 secret.dy)) {
+				return true;
+			}
+		}
+		if (frame.kind == Kind::Intel) {
+			IntelSpawn& page = level_.intel.back();
+			if (TakeCell(frame, value, page.x, page.y, page.dx, page.dy)) {
+				return true;
 			}
 		}
 		if (frame.kind == Kind::Position) {
@@ -807,6 +891,31 @@ class LevelReader final : public nlohmann::json_sax<json>
 			}
 		}
 		return Fail("unexpected number");
+	}
+
+	// A wall cell and a way along x or y (a secret's, a page of intel's):
+	// the field the frame's key names, if it is one of them
+	static bool TakeCell(Frame& frame, double value, int& x, int& y, int& dx,
+						 int& dy) {
+		const int number = static_cast<int>(value);
+		switch (frame.key) {
+			case Key::X:
+				x = number;
+				frame.seen |= kX;
+				return true;
+			case Key::Y:
+				y = number;
+				frame.seen |= kY;
+				return true;
+			case Key::Dx:
+				dx = number;
+				return true;
+			case Key::Dy:
+				dy = number;
+				return true;
+			default:
+				return false;
+		}
 	}
 
 	bool Scalar(const char* what) {

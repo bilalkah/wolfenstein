@@ -1,6 +1,7 @@
 {
   "name": "CHECKPOINT",
   "briefing": "A checkpoint guards the only road into the valley. Its garrison is small but alert. The way on is through the officer's office, and the gold key to it is kept in the armory. Clear the checkpoint and get out through the office.",
+  "debrief": "The checkpoint's radio log copies the castle's numbers hour by hour. They are not the same every hour, as the reports said: the last digit falls by one each night.",
   "music": "level1",
   "map": "level1.txt",
   "player": {
@@ -252,6 +253,24 @@
       "y": 25,
       "dx": 0,
       "dy": 1
+    }
+  ],
+  "intel": [
+    {
+      "x": 5,
+      "y": 25,
+      "dx": 0,
+      "dy": -1,
+      "title": "A LETTER HOME",
+      "text": "Dear Mother, they have moved the whole company up to the castle except for us twelve, and nobody says why. At night the trucks go up the road with their lamps off, and the mountain hums. I sleep badly. The sergeant says it is the generators. Your loving son, Paul."
+    },
+    {
+      "x": 18,
+      "y": 25,
+      "dx": 0,
+      "dy": -1,
+      "title": "STANDING ORDERS",
+      "text": "No vehicle goes up the road without a Directorate pass. No vehicle comes down it at all. Anyone coming down from the castle on foot is to be turned back, by force if need be, and is not to be spoken to. For the Directorate: Reiss, Commandant."
     }
   ],
   "staticObjects": []

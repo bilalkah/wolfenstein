@@ -16,6 +16,7 @@
 #include "Characters/player.h"
 #include "Characters/view_angles.h"
 #include "Core/scene.h"
+#include "Core/story.h"
 #include "Core/world.h"
 #include "GameMap/map.h"
 #include "Graphics/minimap.h"
@@ -145,6 +146,13 @@ class Game
 	void ContinueFromStats();
 	// From a level's briefing into the level
 	void StartFromBriefing();
+	// Tells the first `count` pages of story_ (none: nothing happens); at
+	// the end of the campaign, the victory follows
+	void TellStory(std::size_t count, bool ends_campaign);
+	// On to the next page, or past the story
+	void NextStoryPage();
+	// The campaign won: its screen
+	void ShowVictory();
 	void DrawTransition();
 	// The level as the player sees it from `eye` (3D, or the debug view)
 	// with the map over it
@@ -207,12 +215,20 @@ class Game
 	// Out: to black after a cleared level; Stats: its results over black,
 	// until the player goes on; Briefing: the next level's, likewise; In:
 	// the level from black
-	enum class Fade : std::uint8_t { None, Out, Stats, Briefing, In };
+	// Between levels: the story (the opening, a chapter's card, the
+	// ending) comes before a level's briefing, and after its results
+	enum class Fade : std::uint8_t { None, Out, Stats, Story, Briefing, In };
 	Fade fade_ = Fade::None;
 	double fade_time_ = 0.0;
 	double cleared_time_ = 0.0;	 // since the level's last enemy died
 	// The cleared level's results, taken as it fades out
 	LevelStats cleared_stats_;
+	// The pages of story being told, and the one showing; told at the end
+	// of the campaign, the victory follows them
+	std::array<StoryPage, kStoryPages> story_{};
+	std::size_t story_count_ = 0;
+	std::size_t story_page_ = 0;
+	bool story_ends_campaign_ = false;
 	// Web: set once the browser grants pointer lock, so losing it pauses
 	bool had_pointer_lock_ = false;
 	// The mouse is captured for play: pointer lock on the web, relative
@@ -231,6 +247,7 @@ class Game
 	std::size_t soak_phase_ = 0;
 	std::size_t soak_max_level_ = 0;
 	bool soak_saw_result_ = false;
+	bool soak_saw_story_ = false;
 	bool soak_took_pickup_ = false;
 	bool soak_opened_door_ = false;
 	bool soak_saw_stats_ = false;

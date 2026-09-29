@@ -1,6 +1,7 @@
 {
   "name": "THE CATACOMBS",
-  "briefing": "Under the barracks the old catacombs open into a burial hall where a cyber demon keeps watch over an altar. The way down is sealed with two locks. Find the keys, destroy the demon and throw the switch behind the altar.",
+  "briefing": "The relay's cable leads into the old catacombs under the barracks, and on to a burial hall where a cyber demon keeps watch over an altar. The way down is sealed with two locks. Find the keys, destroy the demon and throw the switch behind the altar.",
+  "debrief": "Behind the altar a cart track runs down into the rock, worn smooth by heavy loads. Crates of red stone lie spilled along it, still warm to the touch.",
   "music": "level3",
   "map": "level3.txt",
   "player": {
@@ -248,7 +249,7 @@
       }
     },
     {
-      "type": "super_shotgun",
+      "type": "ammo_box",
       "position": {
         "x": 11.5,
         "y": 7.5
@@ -350,6 +351,24 @@
       "y": 27,
       "dx": -1,
       "dy": 0
+    }
+  ],
+  "intel": [
+    {
+      "x": 6,
+      "y": 18,
+      "dx": 0,
+      "dy": -1,
+      "title": "BURIAL REGISTER",
+      "text": "The castle chapel's register of burials. The last entry is two hundred years old. Under it, in fresh ink and a shaking hand: They are not staying buried. We are moving them lower."
+    },
+    {
+      "x": 25,
+      "y": 13,
+      "dx": 0,
+      "dy": -1,
+      "title": "HALE'S NOTEBOOK: DAY 4",
+      "text": "Lost Moreau and Okafor in the tunnels. The things down here do not bleed like men. The cart track runs down to the works, and the works go up to the castle. If I am right, it is all one machine. Day 5: going down."
     }
   ],
   "staticObjects": []

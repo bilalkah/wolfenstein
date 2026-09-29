@@ -136,6 +136,11 @@ std::expected<void, std::string> World::ContinueGame(const SavedGame& saved) {
 			scene.RestoreSecret(i);
 		}
 	}
+	for (std::size_t i = 0; i < scene.GetIntel().size(); ++i) {
+		if ((saved.intel >> i & 1U) != 0) {
+			scene.RestoreRead(i);
+		}
+	}
 	player.SetKeys(static_cast<std::uint8_t>(saved.keys));
 	return {};
 }
@@ -185,6 +190,12 @@ std::optional<SavedGame> World::Capture() const {
 	for (std::size_t i = 0; i < walls.size() && i < 64; ++i) {
 		if (walls[i].pushed) {
 			saved.secrets |= std::uint64_t{1} << i;
+		}
+	}
+	const auto pages = scene.GetIntel();
+	for (std::size_t i = 0; i < pages.size(); ++i) {
+		if (pages[i].read) {
+			saved.intel |= std::uint64_t{1} << i;
 		}
 	}
 	const int size_x = scene.GetMap().GetSizeX();

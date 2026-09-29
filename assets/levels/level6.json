@@ -1,6 +1,7 @@
 {
   "name": "THE KEEP",
-  "briefing": "The keep stands between you and the sanctum. Its great hall is shut with gold locks, and the gold key is in the armory behind a silver one; the guards at the gate carry that. Take the keep and go through the great hall.",
+  "briefing": "The keep stands between the dungeons and the bell tower. Its great hall is shut with gold locks, and the gold key is in the armory behind a silver one; the guards at the gate carry that. Take the keep and go through the great hall.",
+  "debrief": "The keep's garrison was never guarding the castle from the valley. It was guarding the valley from what the sanctum lets through.",
   "music": "level6",
   "map": "level6.txt",
   "player": {
@@ -437,6 +438,16 @@
       "y": 27,
       "dx": 1,
       "dy": 0
+    }
+  ],
+  "intel": [
+    {
+      "x": 29,
+      "y": 8,
+      "dx": -1,
+      "dy": 0,
+      "title": "THE COMMANDANT'S LAST ORDER",
+      "text": "To all who remain. The count will end on time. Those still able to choose may leave by the north stair. Those who cannot choose any more will hold the keep. I will be in the bell tower, keeping the numbers going to the end. Reiss."
     }
   ],
   "staticObjects": []

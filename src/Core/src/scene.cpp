@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstdlib>
 #include <utility>
 namespace wolfenstein {
 
@@ -384,7 +385,9 @@ void Scene::Update(double delta_time) {
 	player_->Update(delta_time);
 	FlyProjectiles(delta_time);
 	CollectPickups();
+	ReadIntel();
 	notice_time_ += delta_time;
+	since_document_ += delta_time;
 	HandleUse();
 	// Secrets sliding back: where one stops, the enemies' ways change
 	const auto walls = map_.GetPushWalls();
@@ -480,6 +483,10 @@ void Scene::HandleUse() {
 			return;
 		}
 		if (map_.IsWall(x, y)) {
+			// A page of intel on it is read again
+			if (const WallIntel* page = FindIntel(x, y)) {
+				ShowIntel(static_cast<std::size_t>(page - intel_.data()));
+			}
 			return;	 // nothing to use through a wall
 		}
 	}
@@ -621,6 +628,73 @@ void Scene::CollectPickups() {
 	}
 }
 
+namespace {
+
+// The middle of a page of intel: the middle of its wall face
+vector2d IntelAt(const Scene::WallIntel& page) {
+	return {page.x + 0.5 + page.dx * 0.5, page.y + 0.5 + page.dy * 0.5};
+}
+
+// Whether `from` is on the open side of the page's face
+bool InFrontOf(const Scene::WallIntel& page, const vector2d& from) {
+	const vector2d out = from - IntelAt(page);
+	return out.x * page.dx + out.y * page.dy > 0.0;
+}
+
+}  // namespace
+
+bool Scene::AddIntel(int x, int y, int dx, int dy) {
+	if (intel_count_ == kIntel || std::abs(dx) + std::abs(dy) != 1) {
+		return false;
+	}
+	// The face a ray from the open cell strikes: HitFace's numbering
+	const std::uint8_t face = dx < 0 ? 0 : dx > 0 ? 1 : dy < 0 ? 2 : 3;
+	intel_[intel_count_++] = {
+		.x = x, .y = y, .dx = dx, .dy = dy, .face = face, .read = false};
+	return true;
+}
+
+void Scene::RestoreRead(std::size_t index) {
+	if (index < intel_count_) {
+		intel_[index].read = true;
+	}
+}
+
+void Scene::ReadIntel() {
+	if (!player_->IsAlive()) {
+		return;
+	}
+	// Looking no further than this from it (the cosine of the angle)
+	constexpr double kLooking = 0.7;
+	const Position2D& eye = player_->GetPosition();
+	const vector2d facing{std::cos(eye.theta), std::sin(eye.theta)};
+	for (std::size_t i = 0; i < intel_count_; ++i) {
+		const WallIntel& page = intel_[i];
+		const vector2d to = IntelAt(page) - eye.pose;
+		const double distance = to.Magnitude();
+		if (!page.read && distance <= kReadReach && InFrontOf(page, eye.pose) &&
+			(to.x * facing.x + to.y * facing.y) >= kLooking * distance) {
+			ShowIntel(i);
+			return;
+		}
+	}
+}
+
+Scene::WallIntel* Scene::FindIntel(int x, int y) {
+	const auto pages = std::span(intel_).first(intel_count_);
+	const auto page = std::ranges::find_if(pages, [&](const WallIntel& p) {
+		return p.x == x && p.y == y && InFrontOf(p, player_->GetPose());
+	});
+	return page != pages.end() ? &*page : nullptr;
+}
+
+void Scene::ShowIntel(std::size_t index) {
+	intel_[index].read = true;
+	document_ = static_cast<int>(index);
+	since_document_ = 0.0;
+	PlaySoundAt(SoundEffect::KeyPickup, player_->GetPose());
+}
+
 void Scene::Explore(int x, int y) {
 	const int size_x = map_.GetSizeX();
 	const int size_y = map_.GetSizeY();
@@ -687,6 +761,8 @@ LevelStats Scene::GetStats() const {
 		std::ranges::count_if(pickup_list_, [](const Pickup* pickup) {
 			return !pickup->IsDrop() && pickup->IsTaken();
 		}));
+	const auto read = static_cast<std::size_t>(
+		std::ranges::count_if(GetIntel(), &WallIntel::read));
 	const auto secrets = map_.GetPushWalls();
 	return {.kills = enemy_list_.size() - number_of_alive_enemies,
 			.enemies = enemy_list_.size(),
@@ -695,6 +771,8 @@ LevelStats Scene::GetStats() const {
 			.secrets_found = static_cast<std::size_t>(
 				std::ranges::count_if(secrets, &PushWall::pushed)),
 			.secrets = secrets.size(),
+			.documents_found = read,
+			.documents = intel_count_,
 			.explored_percent =
 				open_cells_ == 0 ? 0
 								 : static_cast<int>(100 * explored_open_cells_ /

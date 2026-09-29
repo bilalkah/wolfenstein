@@ -28,6 +28,7 @@ add_executable(unit_tests
     fixed_step_test.cpp
     aim_test.cpp
     pickup_test.cpp
+    intel_test.cpp
     exploration_test.cpp
     door_test.cpp
     level_stats_test.cpp
@@ -47,6 +48,7 @@ add_executable(unit_tests
     tactics_test.cpp
     view_test.cpp
     spatial_sound_test.cpp
+    story_test.cpp
     projectile_test.cpp
     saved_game_test.cpp
     settings_test.cpp

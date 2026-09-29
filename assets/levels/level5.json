@@ -1,6 +1,7 @@
 {
   "name": "THE ARCHIVES",
-  "briefing": "The orders for the forge came from the archives, and so does something else: a cyber demon they call the archivist sits in the vault among the records. The vault takes a gold key from the map room, and the map room a silver one from the stacks. Destroy the archivist.",
+  "briefing": "Dr. Maren's note points to the archives, where the orders for the forge and the laboratory were written. A cyber demon they call the archivist sits in the vault among the records. The vault takes a gold key from the map room, and the map room a silver one from the stacks. Destroy the archivist.",
+  "debrief": "In the archivist's vault, the ledger that explains the numbers: a count of the nights until the gate is finished. By the ledger, three are left.",
   "music": "level5",
   "map": "level5.txt",
   "player": {
@@ -302,13 +303,6 @@
       }
     },
     {
-      "type": "plasma_rifle",
-      "position": {
-        "x": 22.5,
-        "y": 5.5
-      }
-    },
-    {
       "type": "medkit",
       "position": {
         "x": 17.5,
@@ -384,6 +378,24 @@
       "y": 14,
       "dx": 1,
       "dy": 0
+    }
+  ],
+  "intel": [
+    {
+      "x": 15,
+      "y": 14,
+      "dx": 1,
+      "dy": 0,
+      "title": "A MEMO",
+      "text": "To all departments. From tonight the archives will keep the count and nothing else. All other records are to be burned. The Directorate thanks you for your years of careful work, which will not now be needed."
+    },
+    {
+      "x": 0,
+      "y": 3,
+      "dx": 1,
+      "dy": 0,
+      "title": "A PERSONNEL FILE",
+      "text": "Voss, E., archivist. Moved into the vault at his own request forty days ago, and has not come out since. Meals left at the door are not taken. The door is warm to the touch. Staff are not to knock."
     }
   ],
   "staticObjects": []

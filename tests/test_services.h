@@ -53,7 +53,7 @@ inline void DefineTestTextures(TextureManager& textures) {
 	for (const char* pickup :
 		 {"medkit", "large_medkit", "ammo_box", "clip", "mp5_pickup",
 		  "shotgun_pickup", "super_shotgun_pickup", "chainsaw_pickup",
-		  "rocket_launcher_pickup", "plasma_rifle_pickup"}) {
+		  "rocket_launcher_pickup", "plasma_rifle_pickup", "intel"}) {
 		textures.DefineTexture(pickup, next++);
 	}
 	for (const char* name : {"door", "door_gold", "door_silver", "gold_key",

@@ -1,0 +1,377 @@
+{
+  "name": "THE BELL TOWER",
+  "briefing": "The numbers go out from the belfry of the bell tower, and Commandant Reiss keeps them going. The belfry is gold-locked; the ringing chamber holds the key, behind a silver lock opened from the clock room. Kill the commandant and stop the count.",
+  "debrief": "The transmitter is wrecked and the bell has fallen through the floor. For a moment the valley is silent. Then, from under the castle, the count goes on without it. One night is left.",
+  "music": "level5",
+  "map": "bell_tower.txt",
+  "player": {
+    "position": {
+      "x": 27.5,
+      "y": 14.5,
+      "theta": 3.14
+    }
+  },
+  "enemies": [
+    {
+      "type": "soldier",
+      "position": {
+        "x": 22.5,
+        "y": 10.5,
+        "theta": 1.89
+      },
+      "patrol_radius": 2.4
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 22.5,
+        "y": 20.5,
+        "theta": -1.84
+      },
+      "patrol_radius": 3.8
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 19.5,
+        "y": 14.5,
+        "theta": 0.32
+      },
+      "patrol_radius": 4.0
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 21.5,
+        "y": 17.5,
+        "theta": -1.77
+      },
+      "patrol_radius": 2.7
+    },
+    {
+      "type": "demon",
+      "position": {
+        "x": 14.5,
+        "y": 2.5,
+        "theta": 0.0
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 12.5,
+        "y": 27.5,
+        "theta": 0.0
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "minigun_zombie",
+      "position": {
+        "x": 12.5,
+        "y": 16.5,
+        "theta": -1.57
+      }
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 10.5,
+        "y": 21.5,
+        "theta": -1.27
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "demon",
+      "position": {
+        "x": 13.5,
+        "y": 14.5,
+        "theta": 2.68
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 4.5,
+        "y": 11.5,
+        "theta": -1.79
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 2.5,
+        "y": 7.5,
+        "theta": -0.46
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "minigun_zombie",
+      "position": {
+        "x": 2.5,
+        "y": 26.5,
+        "theta": -1.29
+      },
+      "target": true
+    },
+    {
+      "type": "cyber_demon",
+      "position": {
+        "x": 4.5,
+        "y": 20.5,
+        "theta": 1.95
+      }
+    }
+  ],
+  "dynamicObjects": [
+    {
+      "type": "green_light",
+      "position": {
+        "x": 26.5,
+        "y": 16.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 28.5,
+        "y": 17.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 18.5,
+        "y": 10.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 18.5,
+        "y": 21.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 19.5,
+        "y": 10.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 18.5,
+        "y": 9.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 17.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 18.5,
+        "y": 3.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 16.5,
+        "y": 28.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 15.5,
+        "y": 26.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 9.5,
+        "y": 15.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 15.5,
+        "y": 15.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 15.5,
+        "y": 11.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 5.5,
+        "y": 7.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 5.5,
+        "y": 5.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 1.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 1.5,
+        "y": 21.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 3.5,
+        "y": 17.5
+      }
+    }
+  ],
+  "pickups": [
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 28.5,
+        "y": 14.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 23.5,
+        "y": 10.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 21.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 14.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 12.5,
+        "y": 28.5
+      }
+    },
+    {
+      "type": "silver_key",
+      "position": {
+        "x": 12.5,
+        "y": 22.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 14.5,
+        "y": 11.5
+      }
+    },
+    {
+      "type": "gold_key",
+      "position": {
+        "x": 5.5,
+        "y": 9.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 3.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 5.5,
+        "y": 17.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 5.5,
+        "y": 28.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 24.5,
+        "y": 2.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 24.5,
+        "y": 4.5
+      }
+    }
+  ],
+  "objectives": [
+    {
+      "type": "kill_targets",
+      "text": "Kill Commandant Reiss in the belfry"
+    }
+  ],
+  "secrets": [
+    {
+      "x": 22,
+      "y": 3,
+      "dx": 1,
+      "dy": 0
+    }
+  ],
+  "intel": [
+    {
+      "x": 1,
+      "y": 29,
+      "dx": 0,
+      "dy": -1,
+      "title": "THE TRANSMITTER LOG",
+      "text": "The numbers are not ours. The transmitter only repeats what the stone tells it, and the stone counts down by itself. We were never building the gate. We were only keeping it company while it built itself. Reiss."
+    }
+  ],
+  "staticObjects": []
+}

@@ -2,6 +2,7 @@
 // (scripts/make_levels.py, or a hand edit), a level must be playable.
 
 #include "Core/level_data.h"
+#include "Core/scene.h"
 #include "GameMap/map.h"
 #include "test_services.h"
 #include <algorithm>
@@ -14,6 +15,7 @@
 #include <gtest/gtest.h>
 #include <set>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace wolfenstein {
@@ -21,6 +23,8 @@ namespace {
 
 // How far from the start no enemy may stand, in map units
 constexpr double kSafeRadius = 5.0;
+// The most a page of intel says: about eight lines over the view
+constexpr std::size_t kIntelLength = 480;
 
 using Cell = std::pair<int, int>;
 
@@ -185,10 +189,35 @@ TEST_P(LevelDesign, IsPlayable) {
 		EXPECT_TRUE(reachable.contains(cell))
 			<< file << ": a " << pickup.type << " at " << cell.first << ","
 			<< cell.second << " is in a wall or cut off";
+
 		EXPECT_GE(std::hypot(pickup.position.x - level->player.pose.x,
 							 pickup.position.y - level->player.pose.y),
 				  1.0)
 			<< file << ": a " << pickup.type << " lies at the start";
+	}
+	// Intel: on a plain wall's face (not a door, the exit or a secret), read
+	// from a cell the player can reach; saying something, short enough to
+	// read in passing
+	EXPECT_LE(level->intel.size(), Scene::kIntel) << file;
+	for (const IntelSpawn& page : level->intel) {
+		const Cell front{page.x + page.dx, page.y + page.dy};
+		EXPECT_TRUE(map->IsWall(page.x, page.y) &&
+					map->FindDoor(page.x, page.y) == nullptr &&
+					!map->IsExit(page.x, page.y) &&
+					std::ranges::none_of(level->secrets,
+										 [&](const SecretSpawn& secret) {
+											 return secret.x == page.x &&
+													secret.y == page.y;
+										 }))
+			<< file << ": the intel at " << page.x << "," << page.y
+			<< " is not on a plain wall";
+		EXPECT_TRUE(reachable.contains(front))
+			<< file << ": the intel at " << page.x << "," << page.y
+			<< " cannot be read";
+		EXPECT_FALSE(page.title.empty()) << file << ": untitled intel";
+		EXPECT_FALSE(page.text.empty()) << file << ": blank intel";
+		EXPECT_LE(page.text.size(), kIntelLength)
+			<< file << ": intel too long to read: " << page.title;
 	}
 	// Secrets: a wall with room behind it for the wall to slide into, reached
 	// from the level
@@ -228,6 +257,60 @@ TEST_P(LevelDesign, IsPlayable) {
 
 	EXPECT_TRUE(health) << file << " has no health to pick up";
 	EXPECT_TRUE(ammo) << file << " has no ammunition to pick up";
+}
+
+// Whether the game's fonts draw every character of `text`: printable ASCII,
+// and the middle dot and the degree sign (UTF-8), rasterised at startup
+bool Drawable(std::string_view text) {
+	for (std::size_t i = 0; i < text.size(); ++i) {
+		const auto c = static_cast<unsigned char>(text[i]);
+		if (c >= 0x20 && c <= 0x7E) {
+			continue;
+		}
+		const bool dot_or_degree =
+			c == 0xC2 && i + 1 < text.size() &&
+			(static_cast<unsigned char>(text[i + 1]) == 0xB7 ||
+			 static_cast<unsigned char>(text[i + 1]) == 0xB0);
+		if (!dot_or_degree) {
+			return false;
+		}
+		++i;
+	}
+	return true;
+}
+
+// Every word of the story the game tells can be drawn: no curly quotes or
+// long dashes, which the fonts were not asked for
+TEST(Story, EveryWordCanBeDrawn) {
+	const Campaign& campaign = testing::GameData().campaign;
+	for (const auto& pages : {campaign.opening, campaign.ending}) {
+		for (const StoryText& page : pages) {
+			EXPECT_TRUE(Drawable(page.title)) << page.title;
+			EXPECT_TRUE(Drawable(page.text)) << page.text;
+		}
+	}
+	for (const Chapter& chapter : campaign.chapters) {
+		for (const std::string& text :
+			 {chapter.title, chapter.name, chapter.text}) {
+			EXPECT_TRUE(Drawable(text)) << text;
+		}
+	}
+	for (const std::string& file : testing::GameData().levels) {
+		std::ifstream input(std::string(RESOURCE_DIR) + "levels/" + file);
+		const auto level = ParseLevel(input);
+		ASSERT_TRUE(level) << file;
+		for (const std::string& text :
+			 {level->name, level->briefing, level->debrief}) {
+			EXPECT_TRUE(Drawable(text)) << file << ": " << text;
+		}
+		for (const Objective& objective : level->objectives) {
+			EXPECT_TRUE(Drawable(objective.text)) << file;
+		}
+		for (const IntelSpawn& page : level->intel) {
+			EXPECT_TRUE(Drawable(page.title)) << file << ": " << page.title;
+			EXPECT_TRUE(Drawable(page.text)) << file << ": " << page.text;
+		}
+	}
 }
 
 // The menu's track is there to play

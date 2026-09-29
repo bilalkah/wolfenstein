@@ -1,0 +1,440 @@
+{
+  "name": "THE LABORATORY",
+  "briefing": "The forge's blocks were shaped to drawings from the laboratory, where Dr. Maren studied the red stone. The way on is through the observation room, gold-locked; her office holds the key. Something was left in the test chamber, behind a silver lock. Clear the laboratory.",
+  "debrief": "Dr. Maren's office is empty and her last pages are torn out. Scratched into her desk: the archivist knows the date. Ask the archivist.",
+  "music": "level5",
+  "map": "laboratory.txt",
+  "player": {
+    "position": {
+      "x": 27.5,
+      "y": 15.5,
+      "theta": 3.14
+    }
+  },
+  "enemies": [
+    {
+      "type": "soldier",
+      "position": {
+        "x": 21.5,
+        "y": 13.5,
+        "theta": 1.37
+      },
+      "patrol_radius": 2.3
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 21.5,
+        "y": 25.5,
+        "theta": -1.52
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 22.5,
+        "y": 19.5,
+        "theta": -1.71
+      },
+      "patrol_radius": 2.4
+    },
+    {
+      "type": "demon",
+      "position": {
+        "x": 16.5,
+        "y": 5.5,
+        "theta": 3.14
+      },
+      "patrol_radius": 3.5
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 14.5,
+        "y": 8.5,
+        "theta": -1.41
+      },
+      "patrol_radius": 3.5
+    },
+    {
+      "type": "minigun_zombie",
+      "position": {
+        "x": 16.5,
+        "y": 16.5,
+        "theta": 3.14
+      }
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 14.5,
+        "y": 16.5,
+        "theta": 3.14
+      },
+      "patrol_radius": 3.5
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 15.5,
+        "y": 27.5,
+        "theta": -2.36
+      },
+      "patrol_radius": 3.0
+    },
+    {
+      "type": "demon",
+      "position": {
+        "x": 16.5,
+        "y": 29.5,
+        "theta": -2.11
+      },
+      "patrol_radius": 3.0
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 3.5,
+        "y": 2.5,
+        "theta": 1.11
+      },
+      "patrol_radius": 3.5
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 3.5,
+        "y": 6.5,
+        "theta": -0.59
+      },
+      "patrol_radius": 3.5
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 3.5,
+        "y": 19.5,
+        "theta": -1.25
+      },
+      "patrol_radius": 3.5
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 6.5,
+        "y": 18.5,
+        "theta": -2.36
+      },
+      "patrol_radius": 3.5
+    },
+    {
+      "type": "minigun_zombie",
+      "position": {
+        "x": 3.5,
+        "y": 25.5,
+        "theta": 0.79
+      }
+    },
+    {
+      "type": "demon",
+      "position": {
+        "x": 6.5,
+        "y": 29.5,
+        "theta": -2.11
+      },
+      "patrol_radius": 3.0
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 7.5,
+        "y": 24.5,
+        "theta": 2.36
+      },
+      "patrol_radius": 3.0
+    }
+  ],
+  "dynamicObjects": [
+    {
+      "type": "green_light",
+      "position": {
+        "x": 27.5,
+        "y": 18.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 26.5,
+        "y": 18.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 20.5,
+        "y": 20.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 23.5,
+        "y": 14.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 23.5,
+        "y": 26.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 23.5,
+        "y": 5.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 14.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 15.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 17.5,
+        "y": 19.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 17.5,
+        "y": 14.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 16.5,
+        "y": 14.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 17.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 16.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 8.5,
+        "y": 4.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 1.5,
+        "y": 3.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 1.5,
+        "y": 20.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 1.5,
+        "y": 14.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 8.5,
+        "y": 28.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 1.5,
+        "y": 28.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 3.5,
+        "y": 23.5
+      }
+    }
+  ],
+  "pickups": [
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 28.5,
+        "y": 16.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 20.5,
+        "y": 13.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 12.5,
+        "y": 6.5
+      }
+    },
+    {
+      "type": "silver_key",
+      "position": {
+        "x": 13.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 10.5,
+        "y": 13.5
+      }
+    },
+    {
+      "type": "plasma_rifle",
+      "position": {
+        "x": 13.5,
+        "y": 14.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 17.5,
+        "y": 29.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 14.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 8.5,
+        "y": 2.5
+      }
+    },
+    {
+      "type": "gold_key",
+      "position": {
+        "x": 7.5,
+        "y": 17.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 6.5,
+        "y": 12.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 8.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 6.5,
+        "y": 30.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 26.5,
+        "y": 22.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 26.5,
+        "y": 24.5
+      }
+    }
+  ],
+  "objectives": [
+    {
+      "type": "kill_all",
+      "text": "Clear the laboratory"
+    }
+  ],
+  "secrets": [
+    {
+      "x": 24,
+      "y": 23,
+      "dx": 1,
+      "dy": 0
+    }
+  ],
+  "intel": [
+    {
+      "x": 18,
+      "y": 24,
+      "dx": -1,
+      "dy": 0,
+      "title": "DR. MAREN'S NOTES",
+      "text": "The stone is not a mineral. Cut thin, it is a lens. Through it the room behind looks the same, but something stands in it that is not in the room. It is always standing a little nearer than the last time you looked."
+    },
+    {
+      "x": 2,
+      "y": 21,
+      "dx": 0,
+      "dy": -1,
+      "title": "DR. MAREN'S LAST NOTE",
+      "text": "The Directorate wants a ring of the stone, twenty metres across, in the sanctum. I have told them that a lens that size will not show us the other side. It will show the other side us. They said that was the point."
+    }
+  ],
+  "staticObjects": []
+}

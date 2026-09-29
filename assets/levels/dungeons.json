@@ -1,0 +1,396 @@
+{
+  "name": "THE DUNGEONS",
+  "briefing": "Under the wall lie the castle's dungeons, where the second team was taken. Look for what is left of Hale. The drain out of the dungeons is gold-locked; the key went down the oubliette. Clear the cells.",
+  "debrief": "Hale's cell is empty and the count on its wall stops at eleven days. What is left of his work is yours now: the bell tower, and the transmitter in it.",
+  "music": "level3",
+  "map": "dungeons.txt",
+  "player": {
+    "position": {
+      "x": 2.5,
+      "y": 15.5,
+      "theta": 0.0
+    }
+  },
+  "enemies": [
+    {
+      "type": "soldier",
+      "position": {
+        "x": 5.5,
+        "y": 5.5,
+        "theta": 3.14
+      },
+      "patrol_radius": 3.5
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 3.5,
+        "y": 6.5,
+        "theta": -1.11
+      },
+      "patrol_radius": 3.5
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 4.5,
+        "y": 29.5,
+        "theta": -1.89
+      },
+      "patrol_radius": 3.5
+    },
+    {
+      "type": "minigun_zombie",
+      "position": {
+        "x": 3.5,
+        "y": 26.5,
+        "theta": 0.0
+      }
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 20.5,
+        "y": 18.5,
+        "theta": -2.63
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 9.5,
+        "y": 15.5,
+        "theta": 0.08
+      },
+      "patrol_radius": 3.0
+    },
+    {
+      "type": "demon",
+      "position": {
+        "x": 13.5,
+        "y": 17.5,
+        "theta": -0.54
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "soldier",
+      "position": {
+        "x": 11.5,
+        "y": 15.5,
+        "theta": 0.11
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "demon",
+      "position": {
+        "x": 9.5,
+        "y": 8.5,
+        "theta": 0.0
+      }
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 19.5,
+        "y": 8.5,
+        "theta": 0.0
+      }
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 9.5,
+        "y": 23.5,
+        "theta": 0.0
+      }
+    },
+    {
+      "type": "demon",
+      "position": {
+        "x": 25.5,
+        "y": 7.5,
+        "theta": -1.33
+      },
+      "patrol_radius": 3.5
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 25.5,
+        "y": 4.5,
+        "theta": 1.11
+      },
+      "patrol_radius": 3.5
+    },
+    {
+      "type": "caco_demon",
+      "position": {
+        "x": 27.5,
+        "y": 27.5,
+        "theta": -1.57
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "demon",
+      "position": {
+        "x": 27.5,
+        "y": 15.5,
+        "theta": 1.57
+      },
+      "patrol_radius": 5.0
+    },
+    {
+      "type": "shotgun_zombie",
+      "position": {
+        "x": 27.5,
+        "y": 17.5,
+        "theta": 1.57
+      },
+      "patrol_radius": 5.0
+    }
+  ],
+  "dynamicObjects": [
+    {
+      "type": "green_light",
+      "position": {
+        "x": 1.5,
+        "y": 17.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 4.5,
+        "y": 17.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 1.5,
+        "y": 2.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 5.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 1.5,
+        "y": 30.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 1.5,
+        "y": 24.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 24.5,
+        "y": 13.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 24.5,
+        "y": 12.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 18.5,
+        "y": 19.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 18.5,
+        "y": 12.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 23.5,
+        "y": 3.5
+      }
+    },
+    {
+      "type": "red_light",
+      "position": {
+        "x": 28.5,
+        "y": 9.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 28.5,
+        "y": 21.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 26.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "green_light",
+      "position": {
+        "x": 28.5,
+        "y": 22.5
+      }
+    }
+  ],
+  "pickups": [
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 1.5,
+        "y": 15.5
+      }
+    },
+    {
+      "type": "silver_key",
+      "position": {
+        "x": 6.5,
+        "y": 9.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 1.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 4.5,
+        "y": 30.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 23.5,
+        "y": 19.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 7.5,
+        "y": 16.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 14.5,
+        "y": 7.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 13.5,
+        "y": 23.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 19.5,
+        "y": 24.5
+      }
+    },
+    {
+      "type": "gold_key",
+      "position": {
+        "x": 25.5,
+        "y": 1.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 23.5,
+        "y": 5.5
+      }
+    },
+    {
+      "type": "medkit",
+      "position": {
+        "x": 26.5,
+        "y": 26.5
+      }
+    },
+    {
+      "type": "large_medkit",
+      "position": {
+        "x": 23.5,
+        "y": 28.5
+      }
+    },
+    {
+      "type": "ammo_box",
+      "position": {
+        "x": 23.5,
+        "y": 26.5
+      }
+    }
+  ],
+  "objectives": [
+    {
+      "type": "kill_all",
+      "text": "Clear the dungeons"
+    }
+  ],
+  "secrets": [
+    {
+      "x": 25,
+      "y": 27,
+      "dx": -1,
+      "dy": 0
+    }
+  ],
+  "intel": [
+    {
+      "x": 0,
+      "y": 27,
+      "dx": 1,
+      "dy": 0,
+      "title": "AN INTERROGATION",
+      "text": "The prisoner will not give his name or his unit. He asks only what the date is, and when he is told, he laughs. He says we are counting the wrong way."
+    },
+    {
+      "x": 21,
+      "y": 22,
+      "dx": -1,
+      "dy": 0,
+      "title": "SCRATCHED ON A CELL WALL",
+      "text": "Tally marks, hundreds of them, then: HALE. ELEVEN DAYS. THEY TAKE ONE OF US EACH NIGHT TO THE SANCTUM. THEY DO NOT COME BACK DEAD. THE BELL TOWER SENDS THE NUMBERS. STOP THE BELL AND THE COUNT STOPS. I COULD NOT."
+    }
+  ],
+  "staticObjects": []
+}

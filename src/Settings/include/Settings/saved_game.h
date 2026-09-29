@@ -22,9 +22,11 @@ namespace wolfenstein {
 struct SavedGame
 {
 	// Written into every save and required back: weapons are saved by their
-	// index in the configuration, so a save from before the arsenal changed
-	// (format 1 had a knife in the first slot) would give the wrong ones
-	static constexpr unsigned kFormat = 2;
+	// index in the configuration, and levels and pickups by theirs in the
+	// campaign, so a save from before either changed would give the wrong
+	// ones (format 1 had a knife in the first slot; format 2, levels
+	// without intel; format 3, intel lying among the pickups)
+	static constexpr unsigned kFormat = 4;
 	// The most weapons a save keeps (as many as a player carries)
 	static constexpr std::size_t kMaxWeapons = 8;
 	// The most map cells whose exploration a save keeps (bits of `explored`)
@@ -56,6 +58,7 @@ struct SavedGame
 	std::uint64_t taken = 0;
 	std::uint32_t keys = 0;			 // held, as the game's key bits
 	std::uint64_t secrets = 0;		 // bit i: the level's secret i was pushed
+	std::uint64_t intel = 0;		 // bit i: its page of intel i was read
 	std::size_t explored_cells = 0;	 // how many cells `explored` covers
 	std::array<std::uint8_t, kMaxExploredCells / 8> explored{};
 

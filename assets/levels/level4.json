@@ -1,6 +1,7 @@
 {
   "name": "THE FORGE",
-  "briefing": "Below the catacombs the enemy has built a forge, and what it makes is going up to the sanctum. The foreman keeps the silver key to his office by the furnaces. Kill every hand in the works and leave through the office.",
+  "briefing": "At the top of the cart track from the mine the enemy has built a forge, and what it makes is going up to the sanctum. The foreman keeps the silver key to his office by the furnaces. Kill every hand in the works and leave through the office.",
+  "debrief": "The forge's order book is exact: so many tons of red stone, cut into so many blocks, shipped up to the sanctum by night. The book calls the blocks gate stones.",
   "music": "level4",
   "map": "level4.txt",
   "player": {
@@ -378,6 +379,16 @@
       "y": 31,
       "dx": 0,
       "dy": 1
+    }
+  ],
+  "intel": [
+    {
+      "x": 0,
+      "y": 17,
+      "dx": 1,
+      "dy": 0,
+      "title": "THE FOREMAN'S ORDERS",
+      "text": "Blocks are cut to the drawings and to nothing else. A block that cracks is not thrown away: it goes back down the mine it came from. No talking near the furnaces after dark. The men say the stone listens. I say that is enough talk."
     }
   ],
   "staticObjects": []

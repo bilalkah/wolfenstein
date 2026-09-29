@@ -4,6 +4,7 @@
 #include <numbers>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace wolfenstein {
 namespace {
@@ -35,6 +36,20 @@ TEST(LevelData, ParsesTheGameConfig) {
 	EXPECT_GE(soldier.width, 2 * soldier.radius);
 	EXPECT_EQ(soldier.weapon.weapon_name, "rifle");
 	EXPECT_EQ(config->menu_music, "menu");
+	// The campaign: its chapters' levels in turn, told round with a story
+	const Campaign& campaign = config->campaign;
+	ASSERT_EQ(campaign.chapters.size(), 3u);
+	EXPECT_FALSE(campaign.opening.empty());
+	EXPECT_FALSE(campaign.ending.empty());
+	std::size_t in_chapters = 0;
+	for (const Chapter& chapter : campaign.chapters) {
+		EXPECT_EQ(chapter.first_level, in_chapters) << chapter.name;
+		in_chapters += chapter.level_count;
+	}
+	EXPECT_EQ(in_chapters, config->levels.size());
+	EXPECT_EQ(config->levels.front(), "level1.json");
+	EXPECT_EQ(campaign.ChapterOpenedBy(0), &campaign.chapters.front());
+	EXPECT_EQ(campaign.ChapterOpenedBy(1), nullptr) << "mid-chapter";
 	EXPECT_DOUBLE_EQ(soldier.behaviour.follow_range, 5.0);
 	// Each fights at its own range: a soldier across a room, a demon up
 	// close; every one from where its weapon reaches
@@ -230,6 +245,42 @@ TEST(LevelData, RejectsAnImpossibleChance) {
 		<< parsed.error();
 }
 
+// A campaign lists its levels by chapter; a chapter with none is a mistake
+TEST(LevelData, ReadsTheCampaignByChapter) {
+	const std::string head = R"({
+		"player_config": {"t_speed": 2, "r_speed": 0.4, "width": 0.4, "height": 1},
+		"weapons": [{"name": "x", "label": "X", "start": true, "ammo": 1,
+					 "reserve": {"start": 0, "max": 1, "box": 1},
+					 "damage": [1, 1], "range": 1, "attack_speed": 1,
+					 "reload_speed": 1, "falloff": "linear"}],
+		"config_enemy": {}, "pickups": {}, "benchmark_level": "b.json",
+		"difficulties": [{"name": "normal", "label": "Normal",
+						  "description": "", "enemy_damage": 1,
+						  "enemy_health": 1, "supplies": 1}],
+		"hit_zones": {},
+		"config_dynamic": {"light": {"animation_speed": 1, "width": 1,
+									 "height": 1, "radius": 0.1}},
+		"campaign": {"opening": [{"title": "A", "text": "Once."}],
+					 "chapters": [)";
+	std::istringstream config(head + R"(
+		{"title": "I", "name": "One", "levels": ["a.json", "b.json"]},
+		{"title": "II", "name": "Two", "text": "On.", "levels": ["c.json"]}],
+		"ending": [{"text": "Done."}]}})");
+	const auto parsed = ParseGameConfig(config);
+	ASSERT_TRUE(parsed) << parsed.error();
+	const GameConfig& game = parsed.value();
+	EXPECT_EQ(game.levels,
+			  (std::vector<std::string>{"a.json", "b.json", "c.json"}));
+	ASSERT_EQ(game.campaign.chapters.size(), 2u);
+	EXPECT_EQ(game.campaign.chapters[1].first_level, 2u);
+	EXPECT_EQ(game.campaign.chapters[1].text, "On.");
+	EXPECT_EQ(game.campaign.ending.front().title, "");
+
+	std::istringstream empty(head + R"(
+		{"title": "I", "name": "One", "levels": []}]}})");
+	EXPECT_FALSE(ParseGameConfig(empty));
+}
+
 // An enemy's range is [near, far]: nearer than far
 TEST(LevelData, RejectsABackwardsRange) {
 	std::istringstream config(R"({
@@ -285,6 +336,18 @@ TEST(LevelData, IgnoresUnknownFields) {
 	EXPECT_EQ(level->dynamic_objects[0].type, "red_light");
 }
 
+// A level's story: a briefing before it, a word on what was learnt after
+TEST(LevelData, ReadsTheBriefingAndDebrief) {
+	std::istringstream input(R"({
+		"map": "m.txt", "player": {"position": {"x": 1, "y": 2, "theta": 0}},
+		"briefing": "Go in.", "debrief": "It was a trap.",
+		"enemies": [], "dynamicObjects": []})");
+	const auto level = ParseLevel(input);
+	ASSERT_TRUE(level) << level.error();
+	EXPECT_EQ(level->briefing, "Go in.");
+	EXPECT_EQ(level->debrief, "It was a trap.");
+}
+
 // Pickups are optional in a level; each has a type and a place
 TEST(LevelData, ParsesPickups) {
 	std::istringstream input(R"({
@@ -307,6 +370,36 @@ TEST(LevelData, ParsesPickups) {
 	ASSERT_FALSE(missing);
 	EXPECT_NE(missing.error().find("pickup position"), std::string::npos)
 		<< missing.error();
+}
+
+// A page of intel is pinned to the face of a wall cell that looks along x
+// or y, and says what it is and what it says; a level need have none
+TEST(LevelData, ParsesIntel) {
+	std::istringstream input(R"({
+		"map": "m.txt", "player": {"position": {"x": 1, "y": 2, "theta": 0}},
+		"enemies": [], "dynamicObjects": [],
+		"intel": [{"x": 3, "y": 4, "dx": 0, "dy": -1,
+				   "title": "A LETTER", "text": "Burn this."}]})");
+	const auto level = ParseLevel(input);
+	ASSERT_TRUE(level) << level.error();
+	ASSERT_EQ(level->intel.size(), 1u);
+	const IntelSpawn& page = level->intel.front();
+	EXPECT_EQ(page.x, 3);
+	EXPECT_EQ(page.y, 4);
+	EXPECT_EQ(page.dy, -1);
+	EXPECT_EQ(page.title, "A LETTER");
+	EXPECT_EQ(page.text, "Burn this.");
+
+	for (const char* wrong :
+		 {R"({"x": 3, "y": 4, "dx": 1, "dy": 1, "title": "T", "text": "t"})",
+		  R"({"x": 3, "y": 4, "dx": 1, "dy": 0, "text": "t"})"}) {
+		std::istringstream bad(std::string(R"({
+			"map": "m.txt",
+			"player": {"position": {"x": 1, "y": 2, "theta": 0}},
+			"enemies": [], "dynamicObjects": [], "intel": [)") +
+							   wrong + "]}");
+		EXPECT_FALSE(ParseLevel(bad)) << wrong;
+	}
 }
 
 // An enemy's patrol: how far from its post it walks about; one without

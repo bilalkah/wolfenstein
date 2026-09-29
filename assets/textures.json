@@ -11,6 +11,7 @@
     "door_silver": "textures/door_silver.png",
     "game_over": "textures/game_over.png",
     "gold_key": "sprites/pickups/gold_key.png",
+    "intel": "textures/intel.png",
     "large_medkit": "sprites/pickups/large_medkit.png",
     "medkit": "sprites/pickups/medkit.png",
     "menu_background": "textures/menu_background.png",

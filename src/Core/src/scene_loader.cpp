@@ -124,6 +124,17 @@ std::expected<void, std::string> SceneLoader::Prepare(const std::string& file) {
 								   " is not a wall with room behind it");
 		}
 	}
+	if (data->intel.size() > Scene::kIntel) {
+		return std::unexpected(file + ": more intel than a level holds");
+	}
+	for (const IntelSpawn& page : data->intel) {
+		if (!map->IsWall(page.x, page.y) ||
+			map->IsBlocked(page.x + page.dx, page.y + page.dy)) {
+			return std::unexpected(
+				file + ": the intel at " + std::to_string(page.x) + "," +
+				std::to_string(page.y) + " is not on a wall's open face");
+		}
+	}
 	largest_memory_ =
 		std::max(largest_memory_, Scene::MemoryFor(*map, capacity));
 	largest_objects_ = std::max(
@@ -222,6 +233,10 @@ std::expected<void, std::string> SceneLoader::Populate(
 										secret.dy)) {
 			return std::unexpected("a secret the map cannot hold");
 		}
+	}
+	// Checked when the level was prepared
+	for (const IntelSpawn& page : level.data.intel) {
+		scene.AddIntel(page.x, page.y, page.dx, page.dy);
 	}
 	scene.SetGoals(std::ranges::any_of(level.data.objectives,
 									   [](const Objective& objective) {

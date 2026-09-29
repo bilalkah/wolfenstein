@@ -69,7 +69,14 @@ TEST(Menu, NoFrameAllocates) {
 	const auto hud = AllocationStats::count;
 	for (int i = 0; i < 60; ++i) {
 		menu.DrawEnemyCounter(static_cast<std::size_t>(i % 11), 10);
-		menu.DrawLevelStats("LEVEL 1 · CHECKPOINT", stats, i % 2 == 0);
+		menu.DrawLevelStats("LEVEL 1 · CHECKPOINT", stats,
+							"The garrison was waiting for something to come "
+							"down the road from the castle.",
+							i % 2 == 0);
+		menu.DrawStoryPage("CHAPTER I", "THE VALLEY",
+						   "The listening posts went silent three weeks "
+						   "ago. Since then the castle sends only numbers.",
+						   static_cast<std::size_t>(i % 3), 3, i % 2 == 0);
 		menu.DrawBriefing(
 			"LEVEL 1 · CHECKPOINT",
 			"A checkpoint guards the only road into the valley. Its garrison "
@@ -78,7 +85,7 @@ TEST(Menu, NoFrameAllocates) {
 			i % 2 == 0);
 	}
 	EXPECT_EQ(AllocationStats::count - hud, 0u)
-		<< "the counter, results and briefing";
+		<< "the counter, results, story and briefing";
 }
 #endif
 

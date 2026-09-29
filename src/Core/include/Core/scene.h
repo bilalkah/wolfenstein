@@ -55,6 +55,8 @@ struct LevelStats
 	std::size_t pickups = 0;
 	std::size_t secrets_found = 0;
 	std::size_t secrets = 0;
+	std::size_t documents_found = 0;  // intel read
+	std::size_t documents = 0;
 	int explored_percent = 0;  // of the cells the player can stand in
 	double seconds = 0.0;	   // until the last enemy fell
 };
@@ -177,6 +179,31 @@ class Scene
 		return std::span(wall_marks_).first(wall_mark_count_);
 	}
 
+	// Pages of intel a level pins to its walls, at most
+	static constexpr std::size_t kIntel = 8;
+	// A page of intel on the face of wall cell (x, y) that looks along
+	// (dx, dy), to the open cell it is read from
+	struct WallIntel
+	{
+		int x = 0;
+		int y = 0;
+		int dx = 0;
+		int dy = 0;
+		std::uint8_t face = 0;	// as HitFace() tells it
+		bool read = false;
+	};
+	// Pins the level's next page of intel to a wall; false if it has its
+	// most already, or (dx, dy) is not one step along x or y
+	bool AddIntel(int x, int y, int dx, int dy);
+	std::span<const WallIntel> GetIntel() const {
+		return std::span(intel_).first(intel_count_);
+	}
+	// The player reads a page by coming this near the middle of its face,
+	// in front of it and looking at it; or by using it, again and again
+	static constexpr double kReadReach = 1.3;
+	// A page read before, as a saved game recorded it
+	void RestoreRead(std::size_t index);
+
 	// Projectiles in flight at once, at most: a new one takes the oldest's
 	// place
 	static constexpr std::size_t kProjectiles = 16;
@@ -225,6 +252,14 @@ class Scene
 	LevelStats GetStats() const;
 	// Whether no living enemy is engaged with the player
 	bool IsQuiet() const;
+	// A page of intel the player just read, showing: its index (in the
+	// level file) for kDocumentSeconds after, else -1; and how long it has
+	// been showing
+	static constexpr double kDocumentSeconds = 9.0;
+	int ShownDocument() const {
+		return since_document_ < kDocumentSeconds ? document_ : -1;
+	}
+	double DocumentAge() const { return since_document_; }
 	// Putting back what a saved game recorded: the level's enemy `index`
 	// (in level file order) lying dead, and the level's clock
 	void RestoreKilled(std::size_t index);
@@ -238,6 +273,14 @@ class Scene
   private:
 	// The player takes every pickup it stands on and has a use for
 	void CollectPickups();
+	// The player reads the first page of intel not yet read that it stands
+	// in front of and looks at
+	void ReadIntel();
+	// The page on the face of wall cell (x, y) the player is in front of, if
+	// any
+	WallIntel* FindIntel(int x, int y);
+	// Shows page `index`, read
+	void ShowIntel(std::size_t index);
 	void HandleUse();
 	void ShowNotice(Notice notice);
 	// Opens doors the player uses or an enemy reaches, and moves every door
@@ -294,6 +337,8 @@ class Scene
 	std::pmr::vector<DoorMotion> doors_;
 	Notice notice_ = Notice::None;
 	double notice_time_ = 1e9;	// since it was shown
+	int document_ = -1;
+	double since_document_ = 1e9;
 	bool kill_all_ = false;
 	bool kill_targets_ = false;
 	bool completed_ = false;
@@ -306,6 +351,8 @@ class Scene
 	std::array<WallMark, kWallMarks> wall_marks_{};
 	std::size_t wall_mark_count_ = 0;
 	std::size_t next_wall_mark_ = 0;
+	std::array<WallIntel, kIntel> intel_{};
+	std::size_t intel_count_ = 0;
 	// Kept for the level's life like the effects
 	std::array<Projectile, kProjectiles> projectiles_{};
 	std::size_t next_projectile_ = 0;

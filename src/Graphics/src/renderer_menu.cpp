@@ -5,8 +5,10 @@
 #include <SDL2/SDL.h>
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <format>
 #include <string>
+#include <utility>
 
 namespace wolfenstein {
 
@@ -129,31 +131,9 @@ void Menu::DrawBriefing(std::string_view heading, std::string_view story,
 			  ui::color::kAccentBright, ui::Align::Center);
 	y += 110;
 
-	// The story, a word at a time: a line ends before the word that would
-	// not fit. Each line is a view into the story, so nothing is copied.
+	y = DrawWrapped(story, left, y, kTextWidth, ui::FontStyle::Body,
+					ui::color::kText);
 	const int line_height = ui_->MeasureText("A", ui::FontStyle::Body).y + 8;
-	std::size_t line_start = 0;
-	std::size_t line_end = 0;  // after the last word that fits
-	std::size_t at = 0;
-	while (at <= story.size()) {
-		const std::size_t space = std::min(story.find(' ', at), story.size());
-		const std::string_view candidate =
-			story.substr(line_start, space - line_start);
-		if (line_end > line_start &&
-			ui_->MeasureText(candidate, ui::FontStyle::Body).x > kTextWidth) {
-			ui_->Text(story.substr(line_start, line_end - line_start), left, y,
-					  ui::FontStyle::Body, ui::color::kText);
-			y += line_height;
-			line_start = at;
-		}
-		line_end = space;
-		at = space + 1;
-	}
-	if (line_end > line_start) {
-		ui_->Text(story.substr(line_start, line_end - line_start), left, y,
-				  ui::FontStyle::Body, ui::color::kText);
-		y += line_height;
-	}
 
 	y += 40;
 	ui_->Text("OBJECTIVES", left, y, ui::FontStyle::Small, ui::color::kMuted);
@@ -174,17 +154,116 @@ void Menu::DrawBriefing(std::string_view heading, std::string_view story,
 	}
 }
 
-void Menu::DrawLevelStats(std::string_view heading, const LevelStats& stats,
-						  bool prompt) {
+int Menu::DrawWrapped(std::string_view text, int left, int y, int width,
+					  ui::FontStyle style, SDL_Color colour, bool draw) {
+	// A word at a time: a line ends before the word that would not fit.
+	// Each line is a view into the text, so nothing is copied.
+	const int line_height = ui_->MeasureText("A", style).y + 8;
+	std::size_t line_start = 0;
+	std::size_t line_end = 0;  // after the last word that fits
+	std::size_t at = 0;
+	while (at <= text.size()) {
+		const std::size_t space = std::min(text.find(' ', at), text.size());
+		const std::string_view candidate =
+			text.substr(line_start, space - line_start);
+		if (line_end > line_start &&
+			ui_->MeasureText(candidate, style).x > width) {
+			if (draw) {
+				ui_->Text(text.substr(line_start, line_end - line_start), left,
+						  y, style, colour);
+			}
+			y += line_height;
+			line_start = at;
+		}
+		line_end = space;
+		at = space + 1;
+	}
+	if (line_end > line_start) {
+		if (draw) {
+			ui_->Text(text.substr(line_start, line_end - line_start), left, y,
+					  style, colour);
+		}
+		y += line_height;
+	}
+	return y;
+}
+
+void Menu::DrawDocument(std::string_view title, std::string_view text,
+						double opacity) {
+	const auto& config = context_->GetConfig();
+	constexpr int kWidth = 760;
+	constexpr int kMargin = 26;
+	const auto faded = [&](SDL_Color colour) {
+		colour.a = static_cast<Uint8>(
+			std::lround(colour.a * std::clamp(opacity, 0.0, 1.0)));
+		return colour;
+	};
+	// As tall as its text, its foot above the HUD
+	const int text_height =
+		DrawWrapped(text, 0, 0, kWidth - 2 * kMargin, ui::FontStyle::Small,
+					ui::color::kText, /*draw=*/false);
+	const int height = kMargin + 40 + text_height + kMargin;
+	const SDL_Rect panel{(config.width - kWidth) / 2,
+						 config.height - 130 - height, kWidth, height};
+	ui_->FillRect(panel, faded(ui::color::kPanel));
+	ui_->DrawRect(panel, faded(ui::color::kBorder));
+	ui_->Text(title, panel.x + kMargin, panel.y + kMargin, ui::FontStyle::Small,
+			  faded(ui::color::kAccentBright));
+	DrawWrapped(text, panel.x + kMargin, panel.y + kMargin + 40,
+				kWidth - 2 * kMargin, ui::FontStyle::Small,
+				faded(ui::color::kText));
+}
+
+void Menu::DrawStoryPage(std::string_view heading, std::string_view title,
+						 std::string_view text, std::size_t page,
+						 std::size_t pages, bool prompt) {
 	const auto& config = context_->GetConfig();
 	const int centre_x = config.width / 2;
-	int y = config.height / 2 - 260;
+	constexpr int kTextWidth = 780;
+	int y = 150;
+	if (!heading.empty()) {
+		ui_->Text(heading, centre_x, y, ui::FontStyle::Small,
+				  ui::color::kAccentBright, ui::Align::Center);
+		y += 44;
+	}
+	if (!title.empty()) {
+		ui_->Text(title, centre_x, y, ui::FontStyle::Heading, ui::color::kText,
+				  ui::Align::Center);
+		y += 110;
+	}
+	DrawWrapped(text, centre_x - kTextWidth / 2, y, kTextWidth,
+				ui::FontStyle::Body, ui::color::kText);
+	// Where it is in the story: a mark for each page, the one showing lit
+	if (pages > 1) {
+		constexpr int kMark = 10;
+		constexpr int kPitch = 22;
+		const int left = centre_x - static_cast<int>(pages) * kPitch / 2;
+		for (std::size_t i = 0; i < pages; ++i) {
+			ui_->FillRect({left + static_cast<int>(i) * kPitch,
+						   config.height - 160, kMark, kMark},
+						  i == page ? ui::color::kAccent : ui::color::kBorder);
+		}
+	}
+	if (prompt) {
+		ui_->Text("Press Enter to go on", centre_x, config.height - 110,
+				  ui::FontStyle::Small, ui::color::kMuted, ui::Align::Center);
+	}
+}
+
+void Menu::DrawLevelStats(std::string_view heading, const LevelStats& stats,
+						  std::string_view debrief, bool prompt) {
+	const auto& config = context_->GetConfig();
+	const int centre_x = config.width / 2;
+	// Higher up when there is a word on what was learnt, below the results
+	int y = debrief.empty() ? config.height / 2 - 260 : 60;
 	ui_->Text("CLEARED", centre_x, y, ui::FontStyle::Title, ui::color::kText,
 			  ui::Align::Center);
 	ui_->Text(heading, centre_x, y + 118, ui::FontStyle::Heading,
 			  ui::color::kAccentBright, ui::Align::Center);
 
-	const SDL_Rect panel{centre_x - 300, y + 190, 600, 336};
+	// A row for intel where the level has some
+	const int rows = stats.documents > 0 ? 6 : 5;
+	const SDL_Rect panel{centre_x - 300, y + 190, 600, 56 + rows * 56};
 	ui_->FillRect(panel, ui::color::kPanel);
 	ui_->DrawRect(panel, ui::color::kBorder);
 	const auto minutes = static_cast<int>(stats.seconds) / 60;
@@ -194,23 +273,39 @@ void Menu::DrawLevelStats(std::string_view heading, const LevelStats& stats,
 									stats.pickups);
 	const ui::FixedText<32> secrets("{} / {}", stats.secrets_found,
 									stats.secrets);
+	const ui::FixedText<32> intel("{} / {}", stats.documents_found,
+								  stats.documents);
 	const ui::FixedText<16> explored("{}%", stats.explored_percent);
 	const ui::FixedText<16> time("{}:{:02}", minutes, seconds);
 	y = panel.y + 34;
-	for (const auto& [label, value] :
-		 {std::pair<std::string_view, std::string_view>{"Enemies", enemies},
-		  {"Supplies", pickups},
-		  {"Secrets", secrets},
-		  {"Explored", explored},
-		  {"Time", time}}) {
+	const std::array<std::pair<std::string_view, std::string_view>, 6> lines{{
+		{"Enemies", enemies},
+		{"Supplies", pickups},
+		{"Intel", intel},
+		{"Secrets", secrets},
+		{"Explored", explored},
+		{"Time", time},
+	}};
+	for (const auto& [label, value] : lines) {
+		if (label == "Intel" && stats.documents == 0) {
+			continue;
+		}
 		ui_->Text(label, panel.x + 48, y, ui::FontStyle::Body,
 				  ui::color::kMuted);
 		ui_->Text(value, panel.x + panel.w - 48, y, ui::FontStyle::Body,
 				  ui::color::kText, ui::Align::Right);
 		y += 56;
 	}
+	int below = panel.y + panel.h + 30;
+	if (!debrief.empty()) {
+		constexpr int kTextWidth = 760;
+		below =
+			DrawWrapped(debrief, centre_x - kTextWidth / 2, below, kTextWidth,
+						ui::FontStyle::Small, ui::color::kText) +
+			10;
+	}
 	if (prompt) {
-		ui_->Text("Press Enter to continue", centre_x, panel.y + panel.h + 40,
+		ui_->Text("Press Enter to continue", centre_x, below + 10,
 				  ui::FontStyle::Small, ui::color::kMuted, ui::Align::Center);
 	}
 }
