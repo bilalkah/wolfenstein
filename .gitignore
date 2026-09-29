@@ -5,3 +5,7 @@ benchmarks/node_modules/
 benchmarks/package-lock.json
 # Local documents and records (plans, benchmark results); never committed
 docs/
+
+# The documentation site: built pages, and the game copied in by CI
+/site/
+/docs-site/play/

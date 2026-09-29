@@ -1,0 +1,105 @@
+/* "Bilal: explain why" boxes (!!! todo): questions for the author, in a
+   colour of their own, with a question mark */
+:root {
+  --md-admonition-icon--todo: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11 18h2v-2h-2v2m1-16A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m0-14a4 4 0 0 0-4 4h2a2 2 0 0 1 2-2 2 2 0 0 1 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5a4 4 0 0 0-4-4Z"/></svg>');
+}
+.md-typeset .admonition.todo,
+.md-typeset details.todo {
+  border-color: rgb(124, 77, 255);
+}
+.md-typeset .todo > .admonition-title,
+.md-typeset .todo > summary {
+  background-color: rgba(124, 77, 255, 0.1);
+}
+.md-typeset .todo > .admonition-title::before,
+.md-typeset .todo > summary::before {
+  background-color: rgb(124, 77, 255);
+  -webkit-mask-image: var(--md-admonition-icon--todo);
+  mask-image: var(--md-admonition-icon--todo);
+}
+
+/* The permalink under a code excerpt sits close to it */
+.md-typeset .excerpt-source {
+  margin-top: -0.6em;
+  font-size: 0.75rem;
+}
+
+/* Diagrams open full-screen on a click (javascripts/diagram-viewer.js) */
+.md-typeset div.mermaid {
+  cursor: zoom-in;
+}
+.md-typeset div.mermaid:focus-visible {
+  outline: 0.1rem solid var(--md-accent-fg-color);
+  outline-offset: 0.2rem;
+}
+.diagram-viewer {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  background-color: var(--md-default-bg-color);
+  color: var(--md-default-fg-color);
+}
+.diagram-viewer::backdrop {
+  background-color: var(--md-default-bg-color);
+}
+.diagram-viewer__stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.diagram-viewer__stage:focus {
+  outline: none;
+}
+.diagram-viewer__stage.is-dragging {
+  cursor: grabbing;
+}
+.diagram-viewer__content {
+  position: absolute;
+}
+.diagram-viewer__tools {
+  position: absolute;
+  z-index: 1;
+  top: 0.8rem;
+  right: 0.8rem;
+  display: flex;
+  gap: 0.4rem;
+}
+.diagram-viewer__tools button {
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.6rem;
+  border: 0.05rem solid var(--md-default-fg-color--lighter);
+  border-radius: 0.2rem;
+  background-color: var(--md-default-bg-color);
+  color: var(--md-default-fg-color);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.diagram-viewer__tools button:hover,
+.diagram-viewer__tools button:focus-visible {
+  background-color: var(--md-accent-fg-color);
+  color: var(--md-accent-bg-color);
+}
+.diagram-viewer__hint {
+  position: absolute;
+  z-index: 1;
+  bottom: 0.8rem;
+  left: 50%;
+  margin: 0;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.2rem;
+  background-color: var(--md-default-bg-color);
+  transform: translateX(-50%);
+  color: var(--md-default-fg-color--light);
+  font-size: 0.7rem;
+  pointer-events: none;
+}

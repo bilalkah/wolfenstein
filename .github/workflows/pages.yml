@@ -1,0 +1,83 @@
+name: Pages
+
+# Builds the documentation site with the game's WebAssembly build in play/,
+# and publishes it on GitHub Pages. The repository's Pages source must be
+# set to GitHub Actions.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time: a newer push replaces a run still in progress
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  # Keep in step with the emsdk image in ci.yml
+  EM_VERSION: 6.0.10
+
+jobs:
+  build:
+    name: Build the site and the game
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The assets are in Git LFS. Keeping its objects in the Actions cache
+      # spares the repository's LFS bandwidth, which every run would use
+      - name: List the LFS objects
+        run: git lfs ls-files --long | cut -d ' ' -f1 | sort > .lfs-objects
+      - name: Restore the LFS objects
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .git/lfs
+          key: lfs-${{ hashFiles('.lfs-objects') }}
+          restore-keys: lfs-
+      - name: Check out the LFS files
+        run: git lfs pull
+
+      # The SDK is cached as installed; the SDL ports are built into it on
+      # each run (about a minute)
+      - name: Set up Emscripten
+        uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
+        with:
+          version: ${{ env.EM_VERSION }}
+          actions-cache-folder: emsdk-cache
+      - name: Build the game
+        run: |
+          cmake --preset web-release
+          cmake --build --preset web-release
+      - name: Put the game in the site
+        run: |
+          mkdir -p docs-site/play
+          cp build/web-release/bin/* docs-site/play/
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements-docs.txt
+      - name: Install MkDocs
+        run: pip install -r requirements-docs.txt
+      - name: Build the site
+        run: mkdocs build --strict
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
