@@ -19,10 +19,13 @@ jobs:
       matrix:
         preset: [native-debug, native-asan]
     env:
-      # Headless SDL for the benchmark scenario
+      # Headless SDL for the benchmark scenario. SDL 3 on Linux draws even a
+      # software renderer's window through OpenGL unless told not to, which
+      # loads Mesa (whose shader compiler crashes under AddressSanitizer)
       SDL_VIDEODRIVER: offscreen
       SDL_AUDIODRIVER: dummy
       SDL_RENDER_DRIVER: software
+      SDL_FRAMEBUFFER_ACCELERATION: "0"
     steps:
       - name: Install git (checkout needs it for LFS)
         run: apt-get update && apt-get install -y --no-install-recommends ca-certificates git git-lfs

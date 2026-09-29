@@ -20,10 +20,10 @@ if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
 fi
 
 # Headless SDL so the game and tests run without a display or sound card; the
-# software renderer avoids Mesa's GL stack
+# software renderer, drawing the window without OpenGL, avoids Mesa's GL stack
 exec docker run --rm \
 	-v "$PWD":/src -w /src \
 	-e SDL_VIDEODRIVER=offscreen -e SDL_AUDIODRIVER=dummy \
-	-e SDL_RENDER_DRIVER=software \
+	-e SDL_RENDER_DRIVER=software -e SDL_FRAMEBUFFER_ACCELERATION=0 \
 	-u "$(id -u):$(id -g)" -e HOME=/tmp \
 	"$IMAGE" "$@"
