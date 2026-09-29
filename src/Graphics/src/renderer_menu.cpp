@@ -119,6 +119,104 @@ void Menu::DrawEnemyCounter(std::size_t kills, std::size_t enemies) {
 			  ui::color::kMuted, ui::Align::Right);
 }
 
+void Menu::DrawMatchStanding(std::string_view count, std::string_view label,
+							 std::string_view clock) {
+	const auto& config = context_->GetConfig();
+	// Under the corner map, as the enemy counter is
+	const int top = std::min(config.width, config.height) * 3 / 10 + 22;
+	const int right = config.width - 14;
+	ui_->Text(count, right, top, ui::FontStyle::Heading, ui::color::kText,
+			  ui::Align::Right);
+	ui_->Text(label, right, top + 44, ui::FontStyle::Small, ui::color::kMuted,
+			  ui::Align::Right);
+	ui_->Text(clock, right, top + 76, ui::FontStyle::Body, ui::color::kText,
+			  ui::Align::Right);
+}
+
+void Menu::DrawKillFeed(std::span<const KillLine> kills) {
+	constexpr int kLeft = 16;
+	constexpr int kTop = 56;
+	constexpr int kPadding = 10;
+	const int line = ui_->MeasureText("A", ui::FontStyle::Small).y + 12;
+	int y = kTop;
+	for (const KillLine& kill : kills) {
+		const auto alpha =
+			static_cast<Uint8>(std::clamp(kill.opacity, 0.0, 1.0) * 255.0);
+		const auto faded = [alpha](SDL_Color colour) {
+			colour.a = static_cast<Uint8>(colour.a * alpha / 255);
+			return colour;
+		};
+		const ui::FixedText<48> with(" {} ", kill.weapon);
+		const int killer =
+			ui_->MeasureText(kill.killer, ui::FontStyle::Small).x;
+		const int weapon = ui_->MeasureText(with, ui::FontStyle::Small).x;
+		const int victim =
+			ui_->MeasureText(kill.victim, ui::FontStyle::Small).x;
+		ui_->FillRect(
+			{kLeft, y, killer + weapon + victim + 2 * kPadding, line - 4},
+			faded(ui::color::kPanel));
+		int x = kLeft + kPadding;
+		ui_->Text(kill.killer, x, y + 4, ui::FontStyle::Small,
+				  faded(kill.killer_colour));
+		x += killer;
+		ui_->Text(with, x, y + 4, ui::FontStyle::Small,
+				  faded(ui::color::kMuted));
+		x += weapon;
+		ui_->Text(kill.victim, x, y + 4, ui::FontStyle::Small,
+				  faded(kill.victim_colour));
+		y += line;
+	}
+}
+
+void Menu::DrawScoreboard(std::string_view heading,
+						  std::span<const ScoreLine> lines, bool race,
+						  std::string_view footer) {
+	const auto& config = context_->GetConfig();
+	constexpr int kWidth = 760;
+	const int left = (config.width - kWidth) / 2;
+	const int row = ui_->MeasureText("A", ui::FontStyle::Body).y + 18;
+	const int height = 170 + row * static_cast<int>(lines.size()) + 70;
+	const int top = std::max((config.height - height) / 2, 20);
+	ui_->FillRect({left, top, kWidth, height}, ui::color::kPanel);
+	ui_->FillRect({left, top, kWidth, 4}, ui::color::kAccent);
+	ui_->Text(heading, config.width / 2, top + 26, ui::FontStyle::Heading,
+			  ui::color::kAccentBright, ui::Align::Center);
+	// The columns: the name, then the frags (a gun race: the weapon), then
+	// the deaths, right-aligned
+	const int name_x = left + 70;
+	const int first_x = left + kWidth - 200;
+	const int second_x = left + kWidth - 50;
+	int y = top + 110;
+	ui_->Text("PLAYER", name_x, y, ui::FontStyle::Small, ui::color::kMuted);
+	ui_->Text(race ? "WEAPON" : "FRAGS", first_x, y, ui::FontStyle::Small,
+			  ui::color::kMuted, ui::Align::Right);
+	ui_->Text(race ? "FRAGS" : "DEATHS", second_x, y, ui::FontStyle::Small,
+			  ui::color::kMuted, ui::Align::Right);
+	y += 50;
+	for (std::size_t i = 0; i < lines.size(); ++i) {
+		const ScoreLine& line = lines[i];
+		if (line.local) {
+			ui_->FillRect({left + 20, y - 8, kWidth - 40, row},
+						  ui::color::kPanelFocused);
+		}
+		const ui::FixedText<8> place("{}", i + 1);
+		ui_->Text(place, left + 50, y, ui::FontStyle::Body, ui::color::kMuted,
+				  ui::Align::Right);
+		ui_->FillRect({name_x, y + 6, 12, 12}, line.colour);
+		ui_->Text(line.name, name_x + 24, y, ui::FontStyle::Body,
+				  ui::color::kText);
+		const ui::FixedText<16> first("{}", race ? line.step : line.frags);
+		const ui::FixedText<16> second("{}", race ? line.frags : line.deaths);
+		ui_->Text(first, first_x, y, ui::FontStyle::Body, ui::color::kText,
+				  ui::Align::Right);
+		ui_->Text(second, second_x, y, ui::FontStyle::Body, ui::color::kText,
+				  ui::Align::Right);
+		y += row;
+	}
+	ui_->Text(footer, config.width / 2, top + height - 50, ui::FontStyle::Small,
+			  ui::color::kMuted, ui::Align::Center);
+}
+
 void Menu::DrawBriefing(std::string_view heading, std::string_view story,
 						std::span<const std::string_view> objectives,
 						bool prompt) {

@@ -83,12 +83,24 @@ TEST(Protocol, AnInputCarriesItsCommandsInOrder) {
 	}
 }
 
-// Every player of a full game, in a message about a hundred bytes long
+// Every player of a full game, what the receiver carries and which of a
+// level's pickups are gone, in a message under 140 bytes long
 TEST(Protocol, ASnapshotCarriesEveryPlayer) {
-	Snapshot snapshot{.tick = 9000, .ack = 77, .count = kMaxPlayers};
+	Snapshot snapshot{.tick = 9000,
+					  .ack = 77,
+					  .count = kMaxPlayers,
+					  .own = {.owned = 0b1011, .count = kMaxWeapons},
+					  .pickups = kMaxPickups,
+					  .taken = (std::uint64_t{1} << 63U) | 5U};
+	for (std::size_t i = 0; i < kMaxWeapons; ++i) {
+		snapshot.own.rounds[i] = {
+			.ammo = static_cast<std::uint8_t>(i),
+			.reserve = static_cast<std::uint16_t>(300 + i)};
+	}
 	for (std::size_t i = 0; i < kMaxPlayers; ++i) {
 		snapshot.players[i] = {.slot = static_cast<std::uint8_t>(i),
 							   .alive = i % 3 != 0,
+							   .shielded = i % 2 == 0,
 							   .pose = {1.5 + static_cast<double>(i), 37.123},
 							   .theta = -2.0 + static_cast<double>(i),
 							   .pitch = 0.1,
@@ -97,15 +109,19 @@ TEST(Protocol, ASnapshotCarriesEveryPlayer) {
 	}
 	std::size_t size = 0;
 	const Snapshot back = RoundTrip(snapshot, &size);
-	EXPECT_LE(size, 100u);
+	EXPECT_LE(size, 140u);
 	EXPECT_EQ(back.tick, 9000u);
 	EXPECT_EQ(back.ack, 77u);
+	EXPECT_EQ(back.own, snapshot.own);
+	EXPECT_EQ(back.pickups, kMaxPickups);
+	EXPECT_EQ(back.taken, snapshot.taken);
 	ASSERT_EQ(back.count, kMaxPlayers);
 	for (std::size_t i = 0; i < kMaxPlayers; ++i) {
 		const PlayerState& sent = snapshot.players[i];
 		const PlayerState& got = back.players[i];
 		EXPECT_EQ(got.slot, sent.slot);
 		EXPECT_EQ(got.alive, sent.alive);
+		EXPECT_EQ(got.shielded, sent.shielded);
 		EXPECT_EQ(got.pose.x, QuantisePosition(sent.pose.x));
 		EXPECT_EQ(got.pose.y, QuantisePosition(sent.pose.y));
 		EXPECT_EQ(got.theta, QuantiseAngle(sent.theta));
@@ -113,6 +129,56 @@ TEST(Protocol, ASnapshotCarriesEveryPlayer) {
 		EXPECT_EQ(got.health, sent.health);
 		EXPECT_EQ(got.weapon, sent.weapon);
 	}
+}
+
+// A tick's events in order, each as it happened, positions and angles
+// within a packing step
+TEST(Protocol, EventsComeBackInOrder) {
+	Events events{.tick = 321, .count = kMaxEvents};
+	for (std::size_t i = 0; i < kMaxEvents; ++i) {
+		events.events[i] = {.type = static_cast<EventType>(i % 5),
+							.slot = static_cast<std::uint8_t>(i % kMaxPlayers),
+							.other = static_cast<std::uint8_t>((i + 1) % 8),
+							.weapon = static_cast<std::uint8_t>(i % 7),
+							.pose = {2.0 + static_cast<double>(i) * 0.3, 5.25},
+							.theta = 0.1 * static_cast<double>(i)};
+	}
+	std::size_t size = 0;
+	const Events back = RoundTrip(events, &size);
+	EXPECT_LE(size, kMaxMessage);
+	EXPECT_EQ(back.tick, 321u);
+	ASSERT_EQ(back.count, kMaxEvents);
+	for (std::size_t i = 0; i < kMaxEvents; ++i) {
+		const Event& sent = events.events[i];
+		const Event& got = back.events[i];
+		EXPECT_EQ(got.type, sent.type);
+		EXPECT_EQ(got.slot, sent.slot);
+		EXPECT_EQ(got.other, sent.other);
+		EXPECT_EQ(got.weapon, sent.weapon);
+		EXPECT_EQ(got.pose.x, QuantisePosition(sent.pose.x));
+		EXPECT_EQ(got.pose.y, QuantisePosition(sent.pose.y));
+		EXPECT_EQ(got.theta, QuantiseAngle(sent.theta));
+	}
+}
+
+TEST(Protocol, ScoresComeBackAsSent) {
+	Scores scores{.mode = MatchMode::GunRace,
+				  .phase = MatchPhase::Intermission,
+				  .frag_limit = 25,
+				  .seconds_left = 599,
+				  .winner = 3,
+				  .count = kMaxPlayers};
+	for (std::size_t i = 0; i < kMaxPlayers; ++i) {
+		scores.players[i] = {
+			.slot = static_cast<std::uint8_t>(i),
+			.name = PlayerName("sixteen letters!"),
+			.frags = static_cast<std::int16_t>(static_cast<int>(i) - 2),
+			.deaths = static_cast<std::uint16_t>(i * 3),
+			.step = static_cast<std::uint8_t>(i)};
+	}
+	std::size_t size = 0;
+	EXPECT_EQ(RoundTrip(scores, &size), scores);
+	EXPECT_LE(size, 200u);
 }
 
 // Within half a packing step: a 512th of a cell, a 131072nd of a turn; an
@@ -175,6 +241,17 @@ TEST(Protocol, WhatCannotBeRightIsRefused) {
 	// No such reason
 	size = Encode(Reject{}, buffer);
 	buffer[1] = 0;
+	EXPECT_FALSE(Decode(std::span(buffer).first(size)));
+	// No such event, or one by a slot past the last
+	size = Encode(Events{.count = 1}, buffer);
+	buffer[6] = 99;	 // after type, tick and count: the event's type
+	EXPECT_FALSE(Decode(std::span(buffer).first(size)));
+	buffer[6] = 0;
+	buffer[7] = kMaxPlayers;
+	EXPECT_FALSE(Decode(std::span(buffer).first(size)));
+	// A winner past the last slot
+	size = Encode(Scores{}, buffer);
+	buffer[6] = kMaxPlayers;  // after type, mode, phase, limit and clock
 	EXPECT_FALSE(Decode(std::span(buffer).first(size)));
 }
 

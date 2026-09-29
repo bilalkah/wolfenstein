@@ -57,9 +57,14 @@ class Player : public ICharacter, public IGameObject
 
 	void Update(double delta_time) override;
 
-	// The player outlives levels; each level's scene hands itself over here
-	// and stays valid until the next one does
-	void EnterScene(Scene& scene) { scene_ = &scene; }
+	// The player outlives levels; each level's scene hands itself over here,
+	// with the player's slot in it, and stays valid until the next one does
+	void EnterScene(Scene& scene, std::size_t slot = 0) {
+		scene_ = &scene;
+		slot_ = slot;
+	}
+	// Its slot in the level: 0 alone, the server's in a match
+	std::size_t Slot() const { return slot_; }
 	// What to do from the next update on; the player reads no input device
 	void SetCommand(const PlayerCommand& command);
 	// Driven from outside (another player in a networked game, placed where
@@ -79,6 +84,20 @@ class Player : public ICharacter, public IGameObject
 	// Puts it where the server has it, without drawing it there as a jump
 	// from where it was: as far as the next update, it is drawn moving
 	void Correct(const Position2D& position);
+	// Health and life as the server has them, for the local player of a
+	// match: a drop hurts as a hit does (the flash, a cry), and down, it
+	// falls; back up, it is whole where Revive (or the caller) puts it
+	void TakeVitals(double health, bool alive);
+	// Back in the game after falling (a match's respawn): at `position`,
+	// whole, carrying only what a game starts with, rounds full
+	void Revive(const Position2D& position);
+	// Carries only the weapon `index`, coming up into hand, its magazine
+	// full and its reserve at its most (a gun race's next weapon)
+	void Arm(std::size_t index);
+	// Shots and blasts leave it unhurt for `seconds` (a match's spawn
+	// protection), or until it fires
+	void Protect(double seconds) { protection_ = seconds; }
+	bool IsProtected() const { return protection_ > 0.0; }
 	// Whether the player is trying to open what is in front of them
 	bool IsUsing() const { return command_.use; }
 	void SetPose(const vector2d& pose) override;
@@ -96,6 +115,9 @@ class Player : public ICharacter, public IGameObject
 	// false, leaving it lying, if the player has no use for it (full health,
 	// a full reserve)
 	bool TryPickUp(const PickupEffect& effect, double supplies = 1.0);
+	// Shows and sounds taking what a pickup gives, as TryPickUp does (a
+	// match's server says it was taken)
+	void ShowPickup(const PickupEffect& effect);
 	// Health and the weapon in hand's rounds as a saved game left them,
 	// within their limits
 	void Restore(double health, std::size_t ammo, std::size_t reserve);
@@ -175,6 +197,7 @@ class Player : public ICharacter, public IGameObject
 	void ShootOrReload();
 
 	Scene* scene_ = nullptr;
+	std::size_t slot_ = 0;
 	PlayerCommand command_;
 	bool puppet_ = false;
 	bool replaying_ = false;  // quiet: no footsteps
@@ -189,6 +212,7 @@ class Player : public ICharacter, public IGameObject
 	double previous_kick_{};
 	double pitch_{};
 	double since_death_{};
+	double protection_{};	 // seconds of spawn protection left
 	double since_hit_{1e9};	 // since a shot of theirs last hit
 	bool headshot_ = false;
 	std::uint8_t keys_{};
@@ -203,6 +227,7 @@ class Player : public ICharacter, public IGameObject
 	std::size_t weapon_count_ = 0;
 	std::uint8_t owned_ = 0;
 	std::size_t held_ = 0;
+	std::size_t first_ = 0;	 // in hand as a game starts
 	std::optional<std::size_t> coming_;
 	TriggeredSingleAnimation damage_animation_;
 	bool picked_up_{false};

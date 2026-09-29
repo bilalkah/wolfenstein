@@ -9,6 +9,8 @@ namespace {
 
 // A stride of the walk, all its frames, as fast as a player runs
 constexpr double kWalkCycleSeconds = 0.45;
+// A shot, aimed and fired
+constexpr double kFireSeconds = 0.25;
 // Moving less than this in a tick is standing still
 constexpr double kStill = 1e-4;
 
@@ -19,6 +21,7 @@ void PlayerFigure::SetLook(const TextureManager& textures,
 						   double height) {
 	idle_ = LoopedAnimation(textures, clips, "idle", kWalkCycleSeconds);
 	walk_ = LoopedAnimation(textures, clips, "walk", kWalkCycleSeconds);
+	attack_ = LoopedAnimation(textures, clips, "attack", kFireSeconds);
 	death_ = LoopedAnimation::Clip(textures, clips, "death");
 	width_ = width;
 	height_ = height;
@@ -34,9 +37,18 @@ void PlayerFigure::Show(const Player* player, bool viewer) {
 	viewer_ = viewer;
 }
 
+void PlayerFigure::Fire() {
+	firing_ = kFireSeconds;
+	attack_.Reset();
+}
+
 void PlayerFigure::Update(double delta_time) {
 	if (player_ == nullptr || !has_look_) {
 		return;	 // nothing to show, or nothing to show it with
+	}
+	if (firing_ > 0.0) {
+		firing_ = std::max(firing_ - delta_time, 0.0);
+		attack_.Update(delta_time);
 	}
 	const vector2d pose = player_->GetPose();
 	walking_ = player_->IsAlive() && pose.Distance(last_pose_) > kStill;
@@ -73,7 +85,9 @@ int PlayerFigure::GetTextureId() const {
 IGameObject::Appearance PlayerFigure::SeenFrom(const vector2d& viewer) const {
 	const Position2D& at = player_->GetPosition();
 	if (player_->IsAlive()) {
-		const LoopedAnimation& shown = walking_ ? walk_ : idle_;
+		const LoopedAnimation& shown = firing_ > 0.0 ? attack_
+									   : walking_	 ? walk_
+													 : idle_;
 		return {
 			.texture_id = shown.GetFrame(SideSeen(at.pose, at.theta, viewer)),
 			.width = width_,

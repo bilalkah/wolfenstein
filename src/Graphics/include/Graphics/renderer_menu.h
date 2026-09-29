@@ -57,6 +57,28 @@ struct DifficultyChoice
 	std::string description;
 };
 
+// A player's line on a match's scoreboard
+struct ScoreLine
+{
+	std::string_view name;
+	SDL_Color colour{};	 // its slot's
+	int frags = 0;
+	int deaths = 0;
+	int step = 0;		 // a gun race's weapon, from 1
+	bool local = false;	 // the player this game is played from
+};
+
+// A kill, as the feed tells it: who, with what, whom
+struct KillLine
+{
+	std::string_view killer;
+	SDL_Color killer_colour{};
+	std::string_view weapon;
+	std::string_view victim;
+	SDL_Color victim_colour{};
+	double opacity = 1.0;
+};
+
 class Menu
 {
   public:
@@ -92,6 +114,18 @@ class Menu
 						 std::size_t held);
 	// The enemies killed of the level's total, below the corner map
 	void DrawEnemyCounter(std::size_t kills, std::size_t enemies);
+	// A match's standing below the corner map: a big `count` (the frags, a
+	// gun race's weapon), what it is and the place (`label`), and the
+	// match's clock
+	void DrawMatchStanding(std::string_view count, std::string_view label,
+						   std::string_view clock);
+	// The latest kills at the top left, the newest last
+	void DrawKillFeed(std::span<const KillLine> kills);
+	// The scoreboard over the view: its `heading`, the players in order
+	// (a gun race's by weapon), and a `footer` under them
+	void DrawScoreboard(std::string_view heading,
+						std::span<const ScoreLine> lines, bool race,
+						std::string_view footer);
 	// A level's briefing over black: its `heading`, the story wrapped to the
 	// screen, and its objectives; `prompt`: whether to ask for a key to start
 	void DrawBriefing(std::string_view heading, std::string_view story,

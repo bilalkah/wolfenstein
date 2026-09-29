@@ -3,15 +3,20 @@
 // asks. Welcomed, each player walks its own player at once, where the
 // server agrees it goes, and sees the other where the server had it a
 // moment ago; bumping into the other, what it foresaw differently is put
-// right; a player leaving is gone from the other's game.
+// right; a player leaving is gone from the other's game. A kill is seen in
+// both games, the fallen player down in its own and back where the server
+// brings it; what a player carries agrees with the server's; a pickup
+// taken is gone in every game.
 
 #include "Client/match_client.h"
 #include "Server/game_server.h"
 #include "test_services.h"
+#include <bit>
 #include <deque>
 #include <gtest/gtest.h>
 #include <map>
 #include <memory>
+#include <numbers>
 #include <vector>
 
 namespace wolfenstein {
@@ -121,13 +126,34 @@ struct PlayerGame
 class MatchTest : public ::testing::Test
 {
   protected:
-	MatchTest() {
-		auto created = GameServer::Create(RESOURCE_DIR, "bazaar.json", loop_);
+	MatchTest() { Play({}); }
+
+	// A server afresh, playing by `settings`; before anyone joins
+	void Play(const MatchSettings& settings) {
+		server_.reset();
+		auto created =
+			GameServer::Create(RESOURCE_DIR, "bazaar.json", loop_, settings);
 		EXPECT_TRUE(created) << (created ? "" : created.error());
 		if (created) {
 			server_ = std::move(*created);
 		}
 		loop_.server = server_.get();
+	}
+	// The player in `slot` stands at `at`, on the server and in its own game
+	void Place(std::size_t slot, PlayerGame& game, const Position2D& at) {
+		server_->GetWorld().FindPlayer(slot)->SetPosition(at);
+		game.Me().SetPosition(at);
+	}
+	// Ticks until `done`, at most `most`; whether it came
+	template <typename Done>
+	bool TicksUntil(Done done, int most) {
+		for (int i = 0; i < most; ++i) {
+			if (done()) {
+				return true;
+			}
+			Ticks(1);
+		}
+		return done();
 	}
 
 	PlayerGame& Join(ClientId id) {
@@ -243,6 +269,90 @@ TEST_F(MatchTest, BumpingIntoAnotherEndsWhereTheServerSays) {
 	const double apart = OnServer(0).GetPose().Distance(OnServer(1).GetPose());
 	EXPECT_GE(apart, OnServer(0).GetWidth() - 1e-6) << "not walked through";
 	EXPECT_LT(a.Me().GetPose().Distance(OnServer(0).GetPose()), 0.01);
+}
+
+// a shoots b down: b falls in its own game, both are told of the kill and
+// the scores, and b comes back where the server brings it in; a's rounds
+// in its own game are the server's
+TEST_F(MatchTest, AKillIsSeenInBothGames) {
+	loop_.delay = 3;
+	PlayerGame& a = Join(ClientId{1});
+	PlayerGame& b = Join(ClientId{2});
+	Settle();
+	Ticks(120);	 // past the shield
+	constexpr double kAlongY = std::numbers::pi / 2;
+	Place(0, a, Position2D({1.5, 10.5}, kAlongY));
+	Place(1, b, Position2D({1.5, 13.5}, -kAlongY));
+	b.command = Walking(-kAlongY, 0);
+	a.command = Walking(kAlongY, 0);
+	Ticks(2 * loop_.delay + 4);
+	a.command.fire = true;
+	ASSERT_TRUE(TicksUntil([&] { return !OnServer(1).IsAlive(); }, 600));
+	a.command.fire = false;
+	Ticks(2 * loop_.delay + 4);
+	EXPECT_FALSE(b.Me().IsAlive()) << "down in its own game";
+	ASSERT_FALSE(a.match->KillFeed().empty());
+	EXPECT_EQ(a.match->KillFeed().back().killer, 0u);
+	EXPECT_EQ(a.match->KillFeed().back().victim, 1u);
+	EXPECT_FALSE(b.match->KillFeed().empty());
+	const net::Scores& scores = b.match->GetScores();
+	ASSERT_EQ(scores.count, 2u);
+	EXPECT_EQ(scores.players[0].frags, 1);
+	EXPECT_EQ(scores.players[1].deaths, 1u);
+	EXPECT_EQ(a.match->NameOf(1), "p");
+	// a's rounds as the server has them
+	const std::size_t held = a.Me().HeldWeapon();
+	EXPECT_EQ(a.Me().GetWeapon(held).GetAmmo(),
+			  OnServer(0).GetWeapon(held).GetAmmo());
+	EXPECT_EQ(a.Me().GetWeapon(held).GetReserve(),
+			  OnServer(0).GetWeapon(held).GetReserve());
+
+	ASSERT_TRUE(TicksUntil([&] { return OnServer(1).IsAlive(); }, 400));
+	Ticks(2 * loop_.delay + 4);
+	EXPECT_TRUE(b.Me().IsAlive()) << "back in its own game";
+	EXPECT_EQ(b.Me().GetHealth(), 100.0);
+	EXPECT_LT(b.Me().GetPose().Distance(OnServer(1).GetPose()), 0.01);
+	EXPECT_TRUE(b.match->TakeRevived());
+	EXPECT_FALSE(b.match->TakeRevived()) << "told once";
+}
+
+// Walking onto a gun: the server gives it, the player's own game carries
+// it, and the gun is gone from the other's game
+TEST_F(MatchTest, APickupTakenIsGoneInEveryGame) {
+	loop_.delay = 2;
+	PlayerGame& a = Join(ClientId{1});
+	PlayerGame& b = Join(ClientId{2});
+	Settle();
+	const Pickup& gun = *server_->GetWorld().CurrentLevel().GetPickups()[0];
+	ASSERT_NE(gun.GetEffect().weapons, 0);
+	const auto weapon =
+		static_cast<std::size_t>(std::countr_zero(gun.GetEffect().weapons));
+	ASSERT_FALSE(a.Me().Owns(weapon));
+	Place(0, a, Position2D(gun.GetPose(), 0.0));
+	Ticks(2 * loop_.delay + 6);
+	EXPECT_TRUE(gun.IsTaken());
+	EXPECT_TRUE(OnServer(0).Owns(weapon));
+	EXPECT_TRUE(a.Me().Owns(weapon)) << "given in its own game";
+	EXPECT_TRUE(b.world->CurrentLevel().GetPickups()[0]->IsTaken());
+	EXPECT_TRUE(a.world->CurrentLevel().GetPickups()[0]->IsTaken());
+}
+
+// A gun race: the kill gives the killer its next weapon, in its own game
+TEST_F(MatchTest, AGunRaceKillArmsTheKillerInItsGame) {
+	Play({.mode = net::MatchMode::GunRace});
+	loop_.delay = 2;
+	PlayerGame& a = Join(ClientId{1});
+	Join(ClientId{2});
+	Settle();
+	const auto& ladder = server_->GetWorld().Config().gun_race;
+	EXPECT_EQ(a.Me().HeldWeapon(), ladder[0]);
+	Player& b_there = *server_->GetWorld().FindPlayer(1);
+	b_there.Protect(0.0);
+	server_->GetWorld().CurrentLevel().HurtPlayer(b_there, 1000.0, 0, 0);
+	Ticks(2 * loop_.delay + 6);
+	EXPECT_EQ(a.Me().HeldWeapon(), ladder[1]);
+	EXPECT_EQ(a.Me().GetOwnedWeapons(), 1U << ladder[1]);
+	EXPECT_EQ(a.match->GetScores().players[0].step, 1u);
 }
 
 TEST_F(MatchTest, APlayerLeavingIsGoneFromTheOthersGame) {

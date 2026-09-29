@@ -673,6 +673,11 @@ void Game::TickMatch(const PlayerCommand& command, int ticks) {
 		world_->CurrentLevel().Update(step_.TickSeconds());
 		match_->AfterTick(*world_);
 	}
+	// Back in the game: looking where the server brought it in looking
+	if (match_->GetState() == MatchClient::State::Playing &&
+		match_->TakeRevived()) {
+		view_.Reset(world_->GetPlayer().GetPosition().theta, 0.0);
+	}
 	// The server gone: why, on the joining screen
 	if (match_->GetState() != MatchClient::State::Playing) {
 		CaptureMouse(false);
@@ -923,6 +928,113 @@ double Game::ViewPitch(double alpha) const {
 		   player.GetRenderKick(alpha);
 }
 
+namespace {
+
+std::string_view Ordinal(std::size_t place) {
+	constexpr std::array<std::string_view, net::kMaxPlayers> kPlaces{
+		"1ST", "2ND", "3RD", "4TH", "5TH", "6TH", "7TH", "8TH"};
+	return kPlaces[std::min(place, kPlaces.size()) - 1];
+}
+
+SDL_Color ColourOf(std::size_t slot) {
+	const IGameObject::Tint tint = Scene::SlotTint(slot);
+	return {tint.r, tint.g, tint.b, 255};
+}
+
+}  // namespace
+
+void Game::DrawMatchHud() {
+	const net::Scores& scores = match_->GetScores();
+	const std::size_t local = world_->LocalSlot().value_or(0);
+	const bool race = scores.mode == net::MatchMode::GunRace;
+	const auto& ladder = world_->Config().gun_race;
+	const auto& arsenal = world_->Config().weapons;
+	// A player the server named nothing is its colour's number
+	std::array<std::optional<ui::FixedText<24>>, net::kMaxPlayers> unnamed{};
+	const auto name_of = [&](std::size_t slot) -> std::string_view {
+		const std::string_view name = match_->NameOf(slot);
+		if (!name.empty() || slot >= unnamed.size()) {
+			return name;
+		}
+		unnamed[slot] = ui::FixedText<24>("PLAYER {}", slot + 1);
+		return unnamed[slot]->View();
+	};
+	// Everyone, the best first
+	std::array<ScoreLine, net::kMaxPlayers> lines{};
+	std::size_t count = 0;
+	for (const net::Score& score :
+		 std::span(scores.players).first(scores.count)) {
+		lines[count++] = {.name = name_of(score.slot),
+						  .colour = ColourOf(score.slot),
+						  .frags = score.frags,
+						  .deaths = score.deaths,
+						  .step = score.step + 1,
+						  .local = score.slot == local};
+	}
+	const auto shown = std::span(lines).first(count);
+	std::ranges::stable_sort(shown,
+							 [race](const ScoreLine& a, const ScoreLine& b) {
+								 if (race && a.step != b.step) {
+									 return a.step > b.step;
+								 }
+								 if (a.frags != b.frags) {
+									 return a.frags > b.frags;
+								 }
+								 return a.deaths < b.deaths;
+							 });
+	const auto mine = std::ranges::find_if(shown, &ScoreLine::local);
+	const std::size_t place =
+		static_cast<std::size_t>(mine - shown.begin()) + 1;
+	const int seconds = scores.seconds_left;
+	const ui::FixedText<16> clock("{}:{:02}", seconds / 60, seconds % 60);
+	if (mine != shown.end()) {
+		const Player& me = world_->GetPlayer();
+		const std::size_t held = me.HeldWeapon();
+		const ui::FixedText<16> big =
+			race ? ui::FixedText<16>("{}/{}", mine->step, ladder.size())
+				 : ui::FixedText<16>("{}", mine->frags);
+		const ui::FixedText<48> label =
+			race ? ui::FixedText<48>("{} · {}", arsenal[held].label,
+									 Ordinal(place))
+				 : ui::FixedText<48>("FRAGS · {}", Ordinal(place));
+		menu_->DrawMatchStanding(big, label, clock);
+	}
+	// The latest kills, fading out in their last second
+	std::array<KillLine, MatchClient::kKillFeed> kills{};
+	std::size_t kill_count = 0;
+	for (const MatchClient::Kill& kill : match_->KillFeed()) {
+		kills[kill_count++] = {
+			.killer = name_of(kill.killer),
+			.killer_colour = ColourOf(kill.killer),
+			.weapon = kill.killer == kill.victim ? std::string_view("·")
+					  : kill.weapon < arsenal.size()
+						  ? std::string_view(arsenal[kill.weapon].label)
+						  : std::string_view(),
+			.victim = name_of(kill.victim),
+			.victim_colour = ColourOf(kill.victim),
+			.opacity = MatchClient::kKillSeconds - kill.age};
+	}
+	menu_->DrawKillFeed(std::span(kills).first(kill_count));
+	// The scoreboard while Tab is held, and while the result shows
+	const bool over = scores.phase == net::MatchPhase::Intermission;
+	if (over || SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_TAB]) {
+		const ui::FixedText<48> heading =
+			over   ? (scores.winner == net::kNoWinner
+						  ? ui::FixedText<48>("A DRAW")
+						  : ui::FixedText<48>("{} WINS", name_of(scores.winner)))
+			: race ? ui::FixedText<48>("GUN RACE")
+				   : ui::FixedText<48>("DEATHMATCH · FIRST TO {}",
+									   scores.frag_limit);
+		const ui::FixedText<48> footer =
+			over ? ui::FixedText<48>("The next match in {}", seconds)
+				 : ui::FixedText<48>("{} left", clock.View());
+		menu_->DrawScoreboard(heading, shown, race, footer);
+	}
+	else if (!world_->GetPlayer().IsAlive() && captured_) {
+		menu_->DrawNotice("Click to come back");
+	}
+}
+
 void Game::RenderView(const Position2D& eye) {
 	renderer_->RenderScene(clock_.DeltaTime());
 	if (render_type_ == RenderType::TEXTURE) {
@@ -960,6 +1072,9 @@ void Game::RenderView(const Position2D& eye) {
 		}
 		if (fade_ == Fade::None && !InMatch()) {
 			menu_->DrawObjective(CurrentObjective());
+		}
+		if (InMatch()) {
+			DrawMatchHud();
 		}
 		// A page of intel just read, over the view, fading at the end
 		if (const int document = world_->CurrentLevel().ShownDocument();

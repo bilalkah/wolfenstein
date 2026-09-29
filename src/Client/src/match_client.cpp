@@ -39,6 +39,14 @@ void MatchClient::Poll(World& world) {
 				 snapshot != nullptr && state_ == State::Playing) {
 			OnSnapshot(world, *snapshot);
 		}
+		else if (const auto* events = std::get_if<net::Events>(&*message);
+				 events != nullptr && state_ == State::Playing) {
+			OnEvents(world, *events);
+		}
+		else if (const auto* scores = std::get_if<net::Scores>(&*message);
+				 scores != nullptr && state_ == State::Playing) {
+			scores_ = *scores;
+		}
 	}
 	if (connection_->GetState() == net::Connection::State::Closed &&
 		state_ != State::Rejected) {
@@ -53,6 +61,8 @@ void MatchClient::OnWelcome(World& world, const net::Welcome& welcome) {
 		state_ = State::Closed;
 		return;
 	}
+	// The server judges what happens to the players here
+	world.CurrentLevel().SetJudging(false);
 	slot_ = welcome.slot;
 	sequence_ = 0;
 	history_ = {};
@@ -60,7 +70,18 @@ void MatchClient::OnWelcome(World& world, const net::Welcome& welcome) {
 	snapshot_next_ = 0;
 	latest_tick_ = welcome.tick;
 	ticks_since_ = 0;
+	shown_tick_ = welcome.tick;
+	scores_ = {};
+	kill_count_ = 0;
+	revived_ = false;
 	state_ = State::Playing;
+}
+
+std::string_view MatchClient::NameOf(std::size_t slot) const {
+	const auto players = std::span(scores_.players).first(scores_.count);
+	const auto found = std::ranges::find(
+		players, static_cast<std::uint8_t>(slot), &net::Score::slot);
+	return found != players.end() ? found->name.View() : std::string_view();
 }
 
 void MatchClient::BeforeTick(World& world, const PlayerCommand& command) {
@@ -68,11 +89,15 @@ void MatchClient::BeforeTick(World& world, const PlayerCommand& command) {
 		return;
 	}
 	++sequence_;
-	history_[sequence_ % kHistory] = {
-		.sequence = sequence_, .command = command, .reached = {}};
-	// The newest command and the three before it, oldest first
+	history_[sequence_ % kHistory] = {.sequence = sequence_,
+									  .command = command,
+									  .reached = {},
+									  .carried = {}};
+	// The newest command and the three before it, oldest first, and when
+	// the others were as the player saw them
 	net::Input input{.count = static_cast<std::uint8_t>(std::min<std::uint32_t>(
-						 net::kInputCommands, sequence_))};
+						 net::kInputCommands, sequence_)),
+					 .seen = shown_tick_};
 	const std::uint32_t first = sequence_ - input.count + 1;
 	for (std::uint8_t i = 0; i < input.count; ++i) {
 		const Sent& sent = history_[(first + i) % kHistory];
@@ -86,13 +111,25 @@ void MatchClient::AfterTick(World& world) {
 	if (state_ != State::Playing) {
 		return;
 	}
-	history_[sequence_ % kHistory].reached = world.GetPlayer().GetPosition();
+	Sent& sent = history_[sequence_ % kHistory];
+	sent.reached = world.GetPlayer().GetPosition();
+	sent.carried = CarriedBy(world.GetPlayer());
 	++ticks_since_;
+	// Each kill in the feed a tick older; the oldest gone once old enough
+	for (Kill& kill : std::span(kills_).first(kill_count_)) {
+		kill.age += net::kTickSeconds;
+	}
+	while (kill_count_ > 0 && kills_[0].age >= kKillSeconds) {
+		std::ranges::copy(std::span(kills_).subspan(1, kill_count_ - 1),
+						  kills_.begin());
+		--kill_count_;
+	}
 	if (snapshot_count_ == 0) {
 		return;
 	}
 	const double tick = static_cast<double>(latest_tick_) + ticks_since_ -
 						static_cast<double>(kInterpolationTicks);
+	shown_tick_ = static_cast<std::uint32_t>(std::max(std::lround(tick), 0L));
 	for (std::size_t slot = 0; slot < Scene::kMaxPlayers; ++slot) {
 		Player* player = world.FindPlayer(slot);
 		if (slot == slot_ || player == nullptr || !player->IsPuppet()) {
@@ -101,8 +138,25 @@ void MatchClient::AfterTick(World& world) {
 		if (const auto state = Interpolate(slot, tick)) {
 			player->Follow(Position2D(state->pose, state->theta), state->pitch,
 						   state->health, state->alive);
+			// Shielded until the next placing, a tick on
+			player->Protect(state->shielded ? 2 * net::kTickSeconds : 0.0);
 		}
 	}
+}
+
+MatchClient::Carried MatchClient::CarriedBy(const Player& player) {
+	Carried carried{.owned = player.GetOwnedWeapons(),
+					.held = static_cast<std::uint8_t>(player.HeldWeapon())};
+	for (std::size_t i = 0;
+		 i < std::min(player.WeaponCount(), net::kMaxWeapons); ++i) {
+		const Weapon& weapon = player.GetWeapon(i);
+		carried.rounds[i] = {
+			.ammo = static_cast<std::uint8_t>(
+				std::min<std::size_t>(weapon.GetAmmo(), 0xFF)),
+			.reserve = static_cast<std::uint16_t>(
+				std::min<std::size_t>(weapon.GetReserve(), 0xFFFF))};
+	}
+	return carried;
 }
 
 void MatchClient::OnSnapshot(World& world, const net::Snapshot& snapshot) {
@@ -116,10 +170,171 @@ void MatchClient::OnSnapshot(World& world, const net::Snapshot& snapshot) {
 	ticks_since_ = 0;
 	Attend(world, snapshot);
 	for (std::size_t i = 0; i < snapshot.count; ++i) {
-		if (snapshot.players[i].slot == slot_) {
-			Reconcile(world, snapshot.players[i], snapshot.ack);
+		const net::PlayerState& state = snapshot.players[i];
+		if (state.slot == slot_) {
+			Revive(world, state);
+			Reconcile(world, state, snapshot.ack);
+			Restock(world, snapshot.own, state.weapon, snapshot.ack);
 		}
 	}
+	ShowPickups(world, snapshot);
+}
+
+void MatchClient::Revive(World& world, const net::PlayerState& state) {
+	Player& player = world.GetPlayer();
+	const bool back = state.alive && !player.IsAlive();
+	player.TakeVitals(state.health, state.alive);
+	player.Protect(state.shielded ? 2 * net::kTickSeconds : 0.0);
+	if (back) {
+		// Where the server brought it in, looking where it looks there: not
+		// drawn sliding across the level to it
+		player.SetPosition(Position2D(state.pose, state.theta));
+		revived_ = true;
+	}
+}
+
+void MatchClient::Restock(World& world, const net::Inventory& own,
+						  std::uint8_t held, std::uint32_t ack) {
+	Player& player = world.GetPlayer();
+	const auto weapons = std::min<std::size_t>(
+		{own.count, player.WeaponCount(), net::kMaxWeapons});
+	const Sent& at = history_[ack % kHistory];
+	// Nothing foreseen to compare with: the server's, as it is
+	const bool compare = ack != 0 && at.sequence == ack;
+	const Carried foreseen = compare ? at.carried : CarriedBy(player);
+	// The weapons the server's differ in, taken or given now
+	const auto differ = static_cast<std::uint8_t>(foreseen.owned ^ own.owned);
+	const auto fix_owned = [&](std::uint8_t owned) {
+		return static_cast<std::uint8_t>((owned & ~differ) |
+										 (own.owned & differ));
+	};
+	if (differ != 0) {
+		player.SetOwnedWeapons(fix_owned(player.GetOwnedWeapons()));
+	}
+	// Each weapon's rounds, by how far the server's are from the foreseen
+	std::array<int, net::kMaxWeapons> ammo_off{};
+	std::array<int, net::kMaxWeapons> reserve_off{};
+	for (std::size_t i = 0; i < weapons; ++i) {
+		ammo_off[i] = own.rounds[i].ammo - foreseen.rounds[i].ammo;
+		reserve_off[i] = own.rounds[i].reserve - foreseen.rounds[i].reserve;
+		if (ammo_off[i] != 0 || reserve_off[i] != 0) {
+			Weapon& weapon = player.GetWeapon(i);
+			weapon.SetRounds(
+				static_cast<std::size_t>(std::max(
+					static_cast<int>(weapon.GetAmmo()) + ammo_off[i], 0)),
+				static_cast<std::size_t>(std::max(
+					static_cast<int>(weapon.GetReserve()) + reserve_off[i],
+					0)));
+		}
+	}
+	// Another weapon in hand than foreseen: the server's (a new one given)
+	const bool swapped = held != foreseen.held && held < player.WeaponCount();
+	if (swapped) {
+		player.TakeInHand(held);
+	}
+	if (!compare) {
+		return;
+	}
+	// What the commands since foresaw, made good the same way, so the next
+	// snapshot is not put right twice
+	for (std::uint32_t sequence = ack + 1; sequence <= sequence_; ++sequence) {
+		Carried& later = history_[sequence % kHistory].carried;
+		later.owned = fix_owned(later.owned);
+		for (std::size_t i = 0; i < weapons; ++i) {
+			later.rounds[i].ammo = static_cast<std::uint8_t>(
+				std::clamp(later.rounds[i].ammo + ammo_off[i], 0, 0xFF));
+			later.rounds[i].reserve = static_cast<std::uint16_t>(std::clamp(
+				later.rounds[i].reserve + reserve_off[i], 0, 0xFFFF));
+		}
+		if (swapped) {
+			later.held = held;
+		}
+	}
+}
+
+void MatchClient::ShowPickups(World& world, const net::Snapshot& snapshot) {
+	const auto pickups = world.CurrentLevel().GetPickups();
+	for (std::size_t i = 0;
+		 i < std::min<std::size_t>(snapshot.pickups, pickups.size()); ++i) {
+		const bool taken = (snapshot.taken >> i & 1U) != 0;
+		if (taken && !pickups[i]->IsTaken()) {
+			pickups[i]->Take();
+		}
+		else if (!taken && pickups[i]->IsTaken()) {
+			pickups[i]->Restore();
+		}
+	}
+}
+
+void MatchClient::OnEvents(World& world, const net::Events& events) {
+	Scene& scene = world.CurrentLevel();
+	const auto& arsenal = world.Config().weapons;
+	// A shot's sound, one at a time for each player
+	constexpr std::uint32_t kShotSources = 0x20000;
+	for (const net::Event& event :
+		 std::span(events.events).first(events.count)) {
+		const bool mine = event.slot == slot_;
+		Player* player = world.FindPlayer(event.slot);
+		const WeaponConfig* weapon =
+			event.weapon < arsenal.size() ? &arsenal[event.weapon] : nullptr;
+		switch (event.type) {
+			case net::EventType::Shot:
+			case net::EventType::Launch:
+				// The local player's own shots were seen and heard at once
+				if (mine || player == nullptr || weapon == nullptr) {
+					break;
+				}
+				scene.FigureFired(event.slot);
+				if (weapon->shot_sound) {
+					scene.PlaySoundAt(*weapon->shot_sound, player->GetPose(),
+									  kShotSources + event.slot);
+				}
+				// Its rocket flies from where the player is seen, harmless
+				// here: the server judges where it bursts
+				if (event.type == net::EventType::Launch &&
+					weapon->projectile) {
+					scene.Launch(*weapon->projectile, player->GetPose(),
+								 event.theta, 0.0, event.slot, event.weapon);
+				}
+				break;
+			case net::EventType::Hurt: {
+				// Blood where the one struck is seen, unless the local player
+				// struck it (it saw that already) or is it
+				const Player* struck = world.FindPlayer(event.other);
+				if (!mine && event.other != slot_ && struck != nullptr) {
+					constexpr double kChest = 0.45;
+					scene.ShowImpact(Scene::Impact::Blood, struck->GetPose(),
+									 kChest);
+				}
+				break;
+			}
+			case net::EventType::Kill:
+				NoteKill(event);
+				break;
+			case net::EventType::Pickup: {
+				const auto pickups = scene.GetPickups();
+				if (event.other < pickups.size()) {
+					pickups[event.other]->Take();
+					if (mine) {
+						world.GetPlayer().ShowPickup(
+							pickups[event.other]->GetEffect());
+					}
+				}
+				break;
+			}
+		}
+	}
+}
+
+void MatchClient::NoteKill(const net::Event& event) {
+	if (kill_count_ == kKillFeed) {
+		std::ranges::copy(std::span(kills_).subspan(1), kills_.begin());
+		--kill_count_;
+	}
+	kills_[kill_count_++] = {.killer = event.slot,
+							 .victim = event.other,
+							 .weapon = event.weapon,
+							 .age = 0.0};
 }
 
 void MatchClient::Attend(World& world, const net::Snapshot& snapshot) {
@@ -160,7 +375,7 @@ void MatchClient::Reconcile(World& world, const net::PlayerState& state,
 		return;	 // predicted right
 	}
 	++corrections_;
-	player.Correct(Position2D(state.pose, at.reached.theta));
+	player.Correct(Position2D(state.pose, state.theta));
 	for (std::uint32_t sequence = ack + 1; sequence <= sequence_; ++sequence) {
 		Sent& sent = history_[sequence % kHistory];
 		player.Replay(sent.command, net::kTickSeconds);

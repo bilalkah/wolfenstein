@@ -36,6 +36,7 @@ Player::Player(CharacterConfig& config, std::span<const WeaponConfig> arsenal,
 		}
 	}
 	held_ = std::min(first, weapon_count_ - 1);
+	first_ = held_;
 	owned_ |= static_cast<std::uint8_t>(1U << held_);
 }
 
@@ -112,6 +113,7 @@ void Player::Update(double delta_time) {
 	pickup_animation_.Update(delta_time);
 	since_hurt_ += delta_time;
 	since_hit_ += delta_time;
+	protection_ = std::max(protection_ - delta_time, 0.0);
 	if (puppet_) {
 		since_death_ += is_alive_ ? 0.0 : delta_time;
 		return;	 // placed from outside (Follow), after this
@@ -233,19 +235,22 @@ bool Player::TryPickUp(const PickupEffect& effect, double supplies) {
 		taken = true;
 	}
 	if (taken) {
-		// What it sounds like, by the most it gave: a gun, a key, rounds,
-		// else health
-		const SoundEffect sound =
-			effect.weapons != 0 ? SoundEffect::WeaponPickup
-			: effect.keys != 0	? SoundEffect::KeyPickup
-			: effect.ammo_boxes > 0 && effect.health <= 0.0
-				? SoundEffect::AmmoPickup
-				: SoundEffect::Pickup;
-		sound_.PlayEffect(sound_channel_, sound);
-		picked_up_ = true;
-		pickup_animation_.Reset();
+		ShowPickup(effect);
 	}
 	return taken;
+}
+
+void Player::ShowPickup(const PickupEffect& effect) {
+	// What it sounds like, by the most it gave: a gun, a key, rounds, else
+	// health
+	const SoundEffect sound = effect.weapons != 0 ? SoundEffect::WeaponPickup
+							  : effect.keys != 0  ? SoundEffect::KeyPickup
+							  : effect.ammo_boxes > 0 && effect.health <= 0.0
+								  ? SoundEffect::AmmoPickup
+								  : SoundEffect::Pickup;
+	sound_.PlayEffect(sound_channel_, sound);
+	picked_up_ = true;
+	pickup_animation_.Reset();
 }
 
 void Player::Restore(double health, std::size_t ammo, std::size_t reserve) {
@@ -306,7 +311,65 @@ void Player::Follow(const Position2D& position, double pitch, double health,
 	health_ = health;
 }
 
+void Player::TakeVitals(double health, bool alive) {
+	if (alive && is_alive_ && health < health_) {
+		sound_.PlayEffect(sound_channel_, SoundEffect::PlayerPain);
+		since_hurt_ = 0.0;
+		damaged_ = true;
+		damage_animation_.Reset();
+	}
+	if (!alive && is_alive_) {
+		sound_.PlayEffect(sound_channel_, SoundEffect::PlayerPain);
+		damage_animation_.Reset();
+		since_death_ = 0.0;
+	}
+	else if (alive && !is_alive_) {
+		since_death_ = 0.0;
+		damaged_ = false;
+	}
+	is_alive_ = alive;
+	health_ = health;
+}
+
+void Player::Revive(const Position2D& position) {
+	is_alive_ = true;
+	health_ = 100.0;
+	since_death_ = 0.0;
+	since_hurt_ = 0.0;
+	damaged_ = false;
+	kick_ = 0.0;
+	previous_kick_ = 0.0;
+	keys_ = 0;
+	SetPosition(position);
+	for (std::size_t i = 0; i < weapon_count_; ++i) {
+		GetWeapon(i).Rearm();
+	}
+	owned_ = static_cast<std::uint8_t>(1U << first_);
+	for (std::size_t i = 0; i < weapon_count_; ++i) {
+		if (GetWeapon(i).GetConfig().start) {
+			owned_ |= static_cast<std::uint8_t>(1U << i);
+		}
+	}
+	TakeInHand(first_);
+}
+
+void Player::Arm(std::size_t index) {
+	if (index >= weapon_count_) {
+		return;
+	}
+	owned_ = static_cast<std::uint8_t>(1U << index);
+	Weapon& weapon = GetWeapon(index);
+	weapon.SetRounds(weapon.GetConfig().ammo_capacity,
+					 weapon.GetConfig().reserve_max);
+	coming_.reset();
+	held_ = index;
+	weapon.TransitionTo(WeaponStateType::Raising);
+}
+
 void Player::Replay(const PlayerCommand& command, double delta_time) {
+	if (!is_alive_) {
+		return;	 // down: it goes nowhere
+	}
 	command_ = command;
 	replaying_ = true;
 	Move(delta_time);
@@ -413,16 +476,21 @@ void Player::ShootOrReload() {
 		weapon.Reload();
 	}
 	if (command_.fire && weapon.Attack()) {
+		protection_ = 0.0;	// firing, it is in the fight
 		kick_ = std::max(kick_, weapon.GetKick());
 		scene_->MakeNoise(position_.pose, weapon.GetNoiseRange());
 		// A rocket or a bolt flies, and bursts on what it meets later
 		if (const ProjectileConfig* projectile = weapon.GetProjectile()) {
 			scene_->Launch(*projectile, position_.pose, position_.theta,
-						   weapon.GetAttackDamage().first);
+						   weapon.GetAttackDamage().first, slot_, held_);
 			return;
 		}
+		scene_->Record({.type = MatchEvent::Type::Shot,
+						.slot = static_cast<std::uint8_t>(slot_),
+						.weapon = static_cast<std::uint8_t>(held_),
+						.at = position_.pose});
 		const ShotResult result =
-			ResolvePlayerShot(*scene_, weapon, position_, pitch_);
+			ResolvePlayerShot(*scene_, weapon, position_, pitch_, this);
 		if (result.hit) {
 			NoteHit(result.head);
 			weapon.PlaySound(weapon.GetHitSound());

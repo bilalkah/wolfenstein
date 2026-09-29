@@ -49,6 +49,8 @@ class Pickup : public IGameObject
 	const PickupEffect& GetEffect() const { return effect_; }
 	bool IsTaken() const { return taken_; }
 	void Take() { taken_ = true; }
+	// Lying where it lay again (a match's pickups come back)
+	void Restore() { taken_ = false; }
 	// What an enemy carries, and drops where it dies: out of the level
 	// (taken, as it were) until then
 	void MakeDrop() {

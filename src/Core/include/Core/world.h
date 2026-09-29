@@ -140,6 +140,8 @@ class World
 	// Where the level brings the player in `slot` in: its spawn points
 	// in turn, or where the player starts if it has none
 	Position2D SpawnFor(std::size_t slot) const;
+	// The level's spawn points, for players coming back in a match
+	std::span<const Position2D> Spawns() const { return level_->data.spawns; }
 	SoundManager& Sound() { return *sound_; }
 	const GameConfig& Config() const { return loader_.Config(); }
 	// The most objects any level has: what per-object views are sized for

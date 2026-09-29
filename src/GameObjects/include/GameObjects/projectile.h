@@ -12,6 +12,7 @@
 #include "SoundManager/sound_manager.h"
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <utility>
@@ -51,15 +52,19 @@ class Projectile : public IGameObject
 	static constexpr double kFlightHeight = 0.4;
 
 	// Sets it flying from `from` along `theta`, doing `damage` to what it
-	// strikes; `config` outlives the flight, and `flight` plays its clip
+	// strikes, fired by the player in slot `owner` with its weapon
+	// `weapon`; `config` outlives the flight, and `flight` plays its clip
 	void Launch(const ProjectileConfig& config, const LoopedAnimation& flight,
-				const vector2d& from, double theta, double damage) {
+				const vector2d& from, double theta, double damage,
+				std::size_t owner = 0, std::size_t weapon = 0) {
 		config_ = &config;
 		flight_ = flight;
 		pose_ = from;
 		previous_ = from;
 		theta_ = theta;
 		damage_ = damage;
+		owner_ = owner;
+		weapon_ = weapon;
 		flying_ = true;
 	}
 	// Burst: it is gone until launched again
@@ -73,6 +78,8 @@ class Projectile : public IGameObject
 	const ProjectileConfig& GetConfig() const { return *config_; }
 	double GetTheta() const { return theta_; }
 	double GetDamage() const { return damage_; }
+	std::size_t Owner() const { return owner_; }
+	std::size_t WeaponIndex() const { return weapon_; }
 	vector2d GetDirection() const {
 		return {std::cos(theta_), std::sin(theta_)};
 	}
@@ -112,6 +119,8 @@ class Projectile : public IGameObject
 	vector2d previous_{};
 	double theta_ = 0.0;
 	double damage_ = 0.0;
+	std::size_t owner_ = 0;
+	std::size_t weapon_ = 0;
 	bool flying_ = false;
 };
 

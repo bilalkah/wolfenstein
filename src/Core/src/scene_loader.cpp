@@ -174,7 +174,8 @@ const PreparedLevel* SceneLoader::FindLevel(std::string_view name) const {
 std::expected<void, std::string> SceneLoader::Populate(
 	Scene& scene, const PreparedLevel& level, std::uint64_t seed) const {
 	const FigureStats& figure = config_.player_figure;
-	scene.SetPlayerLook(figure.clips, figure.width, figure.height);
+	scene.SetPlayerLook(figure.clips, figure.width, figure.height,
+						figure.zones);
 	for (const EnemySpawn& spawn : level.data.enemies) {
 		// Checked when the level was prepared
 		const EnemyConfig& enemy = config_.enemies.find(spawn.type)->second;

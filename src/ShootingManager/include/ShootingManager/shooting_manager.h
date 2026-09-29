@@ -14,6 +14,9 @@
 
 #include "Camera/ray.h"
 #include "Characters/character.h"
+#include "Characters/enemy.h"
+#include "Math/vector.h"
+#include <cstddef>
 #include <optional>
 
 namespace wolfenstein {
@@ -51,6 +54,21 @@ struct Crossing
 std::optional<Crossing> Cross(const Scene& scene, const Position2D& eye,
 							  double pitch, const Enemy& enemy);
 
+// A shot at the other players: the nearest it meets short of `reach`,
+// where the scene's hindsight has them (Scene::SetHindsight), as the
+// player in slot `shooter` fires. Its slot, how far the shot flew, where
+// the player stood, and the zone struck.
+struct PlayerStrike
+{
+	std::size_t slot = 0;
+	double distance = 0.0;
+	vector2d at{};
+	HitZones::Zone zone = HitZones::Zone::Body;
+};
+std::optional<PlayerStrike> AimAtPlayers(const Scene& scene,
+										 const Position2D& eye, double pitch,
+										 std::size_t shooter, double reach);
+
 // A shot that met no enemy strikes the wall `aim` hit, if within reach: a
 // puff of dust there and a mark on it. The shot climbs `pitch` a unit
 // flown, as Aim's does.
@@ -65,9 +83,12 @@ struct ShotResult
 };
 
 // The player fired from `eye`: damages the enemy it hits, if any, and counts
-// it in the scene if the shot kills it
+// it in the scene if the shot kills it. Fired by `shooter` (one of the
+// scene's players), it strikes the other players too, each hurt once for
+// all the pellets that found it.
 ShotResult ResolvePlayerShot(Scene& scene, const Weapon& weapon,
-							 const Position2D& eye, double pitch = 0.0);
+							 const Position2D& eye, double pitch = 0.0,
+							 const Player* shooter = nullptr);
 
 // An enemy fired at the player; the difficulty scales the damage by
 // `damage_scale`

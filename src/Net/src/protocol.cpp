@@ -37,8 +37,11 @@ double UnpackPitch(std::int16_t packed) {
 	return packed / 32767.0 * kPitchRange;
 }
 
-// A player in a snapshot is alive: the top bit of its slot's byte
+// A player in a snapshot is alive, and shielded: the top bits of its slot's
+// byte
 constexpr std::uint8_t kAliveBit = 0x80;
+constexpr std::uint8_t kShieldedBit = 0x40;
+constexpr std::uint8_t kSlotBits = 0x3F;
 
 // A command's buttons, a bit each
 enum Button : std::uint8_t {
@@ -96,6 +99,7 @@ void Write(ByteWriter& out, const Input& input) {
 		std::min<std::uint8_t>(input.count, kInputCommands);
 	out.U8(count);
 	out.U32(count > 0 ? input.commands[0].sequence : 0);
+	out.U32(input.seen);
 	for (std::size_t i = 0; i < count; ++i) {
 		WriteCommand(out, input.commands[i].command);
 	}
@@ -108,15 +112,64 @@ void Write(ByteWriter& out, const Snapshot& snapshot) {
 	out.U8(count);
 	for (std::size_t i = 0; i < count; ++i) {
 		const PlayerState& player = snapshot.players[i];
-		// The slot, and whether alive in the top bit
-		out.U8(static_cast<std::uint8_t>(player.slot |
-										 (player.alive ? kAliveBit : 0U)));
+		// The slot, and whether alive and shielded in the top bits
+		out.U8(static_cast<std::uint8_t>(
+			player.slot | (player.alive ? kAliveBit : 0U) |
+			(player.shielded ? kShieldedBit : 0U)));
 		out.U16(PackPosition(player.pose.x));
 		out.U16(PackPosition(player.pose.y));
 		out.U16(PackAngle(player.theta));
 		out.I16(PackPitch(player.pitch));
 		out.U8(player.health);
 		out.U8(player.weapon);
+	}
+	const Inventory& own = snapshot.own;
+	const std::uint8_t weapons = std::min<std::uint8_t>(own.count, kMaxWeapons);
+	out.U8(own.owned);
+	out.U8(weapons);
+	for (std::size_t i = 0; i < weapons; ++i) {
+		out.U8(own.rounds[i].ammo);
+		out.U16(own.rounds[i].reserve);
+	}
+	// A bit per pickup, eight to a byte
+	const std::uint8_t pickups =
+		std::min<std::uint8_t>(snapshot.pickups, kMaxPickups);
+	out.U8(pickups);
+	for (std::size_t byte = 0; byte * 8 < pickups; ++byte) {
+		out.U8(static_cast<std::uint8_t>(snapshot.taken >> (byte * 8)));
+	}
+}
+void Write(ByteWriter& out, const Events& events) {
+	const std::uint8_t count = std::min<std::uint8_t>(events.count, kMaxEvents);
+	out.U32(events.tick);
+	out.U8(count);
+	for (std::size_t i = 0; i < count; ++i) {
+		const Event& event = events.events[i];
+		out.U8(std::to_underlying(event.type));
+		out.U8(event.slot);
+		out.U8(event.other);
+		out.U8(event.weapon);
+		out.U16(PackPosition(event.pose.x));
+		out.U16(PackPosition(event.pose.y));
+		out.U16(PackAngle(event.theta));
+	}
+}
+void Write(ByteWriter& out, const Scores& scores) {
+	const std::uint8_t count =
+		std::min<std::uint8_t>(scores.count, kMaxPlayers);
+	out.U8(std::to_underlying(scores.mode));
+	out.U8(std::to_underlying(scores.phase));
+	out.U8(scores.frag_limit);
+	out.U16(scores.seconds_left);
+	out.U8(scores.winner);
+	out.U8(count);
+	for (std::size_t i = 0; i < count; ++i) {
+		const Score& score = scores.players[i];
+		out.U8(score.slot);
+		score.name.Write(out);
+		out.I16(score.frags);
+		out.U16(score.deaths);
+		out.U8(score.step);
 	}
 }
 
@@ -155,6 +208,7 @@ std::optional<Message> ReadBody(MessageType type, ByteReader& in) {
 				return input;
 			}
 			const std::uint32_t first = in.U32();
+			input.seen = in.U32();
 			for (std::size_t i = 0; i < input.count; ++i) {
 				input.commands[i] = {
 					.sequence = first + static_cast<std::uint32_t>(i),
@@ -174,8 +228,9 @@ std::optional<Message> ReadBody(MessageType type, ByteReader& in) {
 			for (std::size_t i = 0; i < snapshot.count; ++i) {
 				PlayerState& player = snapshot.players[i];
 				const std::uint8_t slot = in.U8();
-				player.slot = slot & static_cast<std::uint8_t>(~kAliveBit);
+				player.slot = slot & kSlotBits;
 				player.alive = (slot & kAliveBit) != 0;
+				player.shielded = (slot & kShieldedBit) != 0;
 				player.pose.x = UnpackPosition(in.U16());
 				player.pose.y = UnpackPosition(in.U16());
 				player.theta = UnpackAngle(in.U16());
@@ -186,7 +241,84 @@ std::optional<Message> ReadBody(MessageType type, ByteReader& in) {
 					in.Fail();
 				}
 			}
+			Inventory& own = snapshot.own;
+			own.owned = in.U8();
+			own.count = in.U8();
+			if (own.count > kMaxWeapons) {
+				in.Fail();
+				return snapshot;
+			}
+			for (std::size_t i = 0; i < own.count; ++i) {
+				own.rounds[i].ammo = in.U8();
+				own.rounds[i].reserve = in.U16();
+			}
+			snapshot.pickups = in.U8();
+			if (snapshot.pickups > kMaxPickups) {
+				in.Fail();
+				return snapshot;
+			}
+			for (std::size_t byte = 0; byte * 8 < snapshot.pickups; ++byte) {
+				snapshot.taken |= std::uint64_t{in.U8()} << (byte * 8);
+			}
 			return snapshot;
+		}
+		case MessageType::Events: {
+			Events events;
+			events.tick = in.U32();
+			events.count = in.U8();
+			if (events.count > kMaxEvents) {
+				in.Fail();
+				return events;
+			}
+			for (std::size_t i = 0; i < events.count; ++i) {
+				Event& event = events.events[i];
+				const std::uint8_t kind = in.U8();
+				event.type = static_cast<EventType>(kind);
+				event.slot = in.U8();
+				event.other = in.U8();
+				event.weapon = in.U8();
+				event.pose.x = UnpackPosition(in.U16());
+				event.pose.y = UnpackPosition(in.U16());
+				event.theta = UnpackAngle(in.U16());
+				const bool other_is_slot = event.type != EventType::Pickup;
+				if (kind > std::to_underlying(EventType::Pickup) ||
+					event.slot >= kMaxPlayers ||
+					(other_is_slot && event.other >= kMaxPlayers) ||
+					event.weapon >= kMaxWeapons) {
+					in.Fail();
+				}
+			}
+			return events;
+		}
+		case MessageType::Scores: {
+			Scores scores;
+			const std::uint8_t mode = in.U8();
+			const std::uint8_t phase = in.U8();
+			scores.mode = static_cast<MatchMode>(mode);
+			scores.phase = static_cast<MatchPhase>(phase);
+			scores.frag_limit = in.U8();
+			scores.seconds_left = in.U16();
+			scores.winner = in.U8();
+			scores.count = in.U8();
+			if (mode > std::to_underlying(MatchMode::GunRace) ||
+				phase > std::to_underlying(MatchPhase::Intermission) ||
+				(scores.winner != kNoWinner && scores.winner >= kMaxPlayers) ||
+				scores.count > kMaxPlayers) {
+				in.Fail();
+				return scores;
+			}
+			for (std::size_t i = 0; i < scores.count; ++i) {
+				Score& score = scores.players[i];
+				score.slot = in.U8();
+				score.name = PlayerName::Read(in);
+				score.frags = in.I16();
+				score.deaths = in.U16();
+				score.step = in.U8();
+				if (score.slot >= kMaxPlayers) {
+					in.Fail();
+				}
+			}
+			return scores;
 		}
 	}
 	return std::nullopt;
@@ -212,6 +344,12 @@ std::size_t Encode(const Message& message, std::span<std::uint8_t> out) {
 			else if constexpr (std::is_same_v<Body, Snapshot>) {
 				type = MessageType::Snapshot;
 			}
+			else if constexpr (std::is_same_v<Body, Events>) {
+				type = MessageType::Events;
+			}
+			else if constexpr (std::is_same_v<Body, Scores>) {
+				type = MessageType::Scores;
+			}
 			writer.U8(std::to_underlying(type));
 			Write(writer, body);
 		},
@@ -223,7 +361,7 @@ std::optional<Message> Decode(std::span<const std::uint8_t> data) {
 	ByteReader reader(data);
 	const std::uint8_t type = reader.U8();
 	if (!reader.Ok() || type < std::to_underlying(MessageType::Hello) ||
-		type > std::to_underlying(MessageType::Snapshot)) {
+		type > std::to_underlying(MessageType::Scores)) {
 		return std::nullopt;
 	}
 	auto message = ReadBody(static_cast<MessageType>(type), reader);

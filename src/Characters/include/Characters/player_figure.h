@@ -29,9 +29,9 @@ class PlayerFigure : public IGameObject
 	// Shows no one until it has a look and a player
 	PlayerFigure() = default;
 
-	// Its pictures: the clips "<clips>_idle", "<clips>_walk" (seen from 8
-	// sides) and "<clips>_death", drawn `width` across and `height` tall (a
-	// wall is 1)
+	// Its pictures: the clips "<clips>_idle", "<clips>_walk", "<clips>_attack"
+	// (seen from 8 sides) and "<clips>_death", drawn `width` across and
+	// `height` tall (a wall is 1)
 	void SetLook(const TextureManager& textures, std::string_view clips,
 				 double width, double height);
 	// The player it shows (nullptr: none), and whether that player is the
@@ -40,6 +40,9 @@ class PlayerFigure : public IGameObject
 	void SetTint(Tint tint) { tint_ = tint; }
 	const Player* Shown() const { return player_; }
 	bool IsWalking() const { return walking_; }
+	// Its player fired: it shows shooting for a moment
+	void Fire();
+	bool IsFiring() const { return firing_ > 0.0; }
 
 	// Walks while its player moves, from one tick to the next
 	void Update(double delta_time) override;
@@ -62,6 +65,8 @@ class PlayerFigure : public IGameObject
 	double height_ = 0.0;
 	LoopedAnimation idle_;
 	LoopedAnimation walk_;
+	LoopedAnimation attack_;
+	double firing_ = 0.0;  // seconds of shooting left to show
 	std::span<const std::uint16_t> death_;
 	// Where its player stood at the last update: moving since, it walks
 	vector2d last_pose_{};

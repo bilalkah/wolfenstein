@@ -35,12 +35,14 @@ struct CharacterStats
 };
 
 // How the other players see a player: the pictures of `clips` ("soldier"),
-// drawn `width` across and `height` tall (a wall is 1)
+// drawn `width` across and `height` tall (a wall is 1); and where their
+// shots strike it, as the enemies are struck (the configuration's zones)
 struct FigureStats
 {
 	std::string clips;
 	double width{};
 	double height{};
+	HitZones zones{};
 };
 
 struct DynamicObjectStats
@@ -121,6 +123,9 @@ struct GameConfig
 	// The levels multiplayer games are played on (deathmatch arenas); not
 	// part of the campaign; optional
 	std::vector<std::string> arenas;
+	// The weapons a gun race climbs through, by index, in order: a kill
+	// moves the killer up one, and a kill with the last wins
+	std::vector<std::size_t> gun_race;
 	// The track the menu plays (assets/music/<name>.mp3); optional
 	std::string menu_music;
 	// From easiest to hardest, as a new game offers them

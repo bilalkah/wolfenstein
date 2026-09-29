@@ -147,6 +147,9 @@ class Game
 	// command sent and played (the first `command`, the rest it repeated)
 	void TickMatch(const PlayerCommand& command, int ticks);
 	bool InMatch() const { return match_ != nullptr; }
+	// A match's standing, clock, kills and (Tab, or the match over) its
+	// scoreboard, over the view
+	void DrawMatchHud();
 	void GameTick();
 	void PausedTick();
 	void ResultTick();

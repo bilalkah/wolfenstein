@@ -83,6 +83,7 @@ class Weapon
 	Weapon(const WeaponConfig& config, const TextureManager& textures,
 		   SoundManager& sound);
 	const TextureManager& GetTextures() const { return textures_; }
+	const WeaponConfig& GetConfig() const { return config_; }
 
 	// Needs no ammunition and reaches only as far as its range (a blade)
 	bool IsMelee() const { return config_.ammo_capacity == 0; }
@@ -125,6 +126,8 @@ class Weapon
 	void DecreaseAmmo();
 	// The magazine and reserve as given, within the weapon's limits
 	void SetRounds(size_t ammo, size_t reserve);
+	// The rounds a game starts with: a full magazine and the reserve's start
+	void Rearm() { SetRounds(config_.ammo_capacity, config_.reserve_start); }
 	// Adds the rounds of `boxes` ammo boxes, times `scale`, to the reserve,
 	// up to its most; false (nothing taken) if the reserve is already full
 	bool AddAmmoBoxes(size_t boxes, double scale = 1.0);

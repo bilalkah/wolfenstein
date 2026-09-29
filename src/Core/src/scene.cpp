@@ -74,8 +74,13 @@ Scene::Scene(const TextureManager& textures, SoundManager& sound,
 	}
 	enemy_list_.reserve(capacity.enemies);
 	pickup_list_.reserve(capacity.pickups);
-	// A colour for each slot's figure, told apart at a glance; the last
-	// one's own
+	for (std::size_t slot = 0; slot < kMaxPlayers; ++slot) {
+		figures_[slot].SetTint(SlotTint(slot));
+	}
+}
+
+IGameObject::Tint Scene::SlotTint(std::size_t slot) {
+	// Told apart at a glance; the last one's own
 	constexpr std::array<IGameObject::Tint, kMaxPlayers> kTints{{
 		{.r = 255, .g = 96, .b = 96},
 		{.r = 110, .g = 150, .b = 255},
@@ -86,9 +91,7 @@ Scene::Scene(const TextureManager& textures, SoundManager& sound,
 		{.r = 255, .g = 165, .b = 70},
 		{.r = 255, .g = 255, .b = 255},
 	}};
-	for (std::size_t slot = 0; slot < kMaxPlayers; ++slot) {
-		figures_[slot].SetTint(kTints[slot]);
-	}
+	return kTints[slot % kMaxPlayers];
 }
 
 std::expected<memory::Handle<Enemy>, memory::PoolError> Scene::AddEnemy(
@@ -133,7 +136,7 @@ std::expected<memory::Handle<Pickup>, memory::PoolError> Scene::AddPickup(
 void Scene::SetPlayer(Player& player, std::size_t slot) {
 	assert(slot < kMaxPlayers && "no such player slot");
 	players_[slot] = &player;
-	player.EnterScene(*this);
+	player.EnterScene(*this, slot);
 	ShowFigures();
 }
 
@@ -149,9 +152,50 @@ void Scene::SetViewer(std::size_t slot) {
 	ShowFigures();
 }
 
-void Scene::SetPlayerLook(std::string_view clips, double width, double height) {
+void Scene::SetPlayerLook(std::string_view clips, double width, double height,
+						  const HitZones& zones) {
 	for (PlayerFigure& figure : figures_) {
 		figure.SetLook(textures_, clips, width, height);
+	}
+	// Shots find a player where its picture, standing, is solid
+	const auto frames = LoopedAnimation::FindClip(textures_, clips, "idle");
+	const auto [top, bottom] = frames.empty()
+								   ? std::pair{0.0, 1.0}
+								   : textures_.SolidRows(frames.front());
+	player_target_.top = height * (1.0 - top);
+	player_target_.bottom = height * (1.0 - bottom);
+	player_target_.zones = zones;
+}
+
+bool Scene::HurtPlayer(Player& victim, double damage, std::size_t by,
+					   std::size_t weapon) {
+	if (!victim.IsAlive() || victim.IsProtected() || damage <= 0.0) {
+		return false;
+	}
+	if (!judging_) {
+		return true;  // the server judges: only the marker shows, at once
+	}
+	victim.DecreaseHealth(damage);
+	const auto slot = static_cast<std::uint8_t>(by);
+	const auto other = static_cast<std::uint8_t>(victim.Slot());
+	Record({.type = MatchEvent::Type::Hurt,
+			.slot = slot,
+			.other = other,
+			.weapon = static_cast<std::uint8_t>(weapon),
+			.at = victim.GetPose()});
+	if (!victim.IsAlive()) {
+		Record({.type = MatchEvent::Type::Kill,
+				.slot = slot,
+				.other = other,
+				.weapon = static_cast<std::uint8_t>(weapon),
+				.at = victim.GetPose()});
+	}
+	return true;
+}
+
+void Scene::Record(const MatchEvent& event) {
+	if (recording_ && event_count_ < kMatchEvents) {
+		events_[event_count_++] = event;
 	}
 }
 
@@ -289,14 +333,20 @@ bool Scene::MayAttack(const Enemy& enemy) const {
 }
 
 void Scene::Launch(const ProjectileConfig& config, const vector2d& from,
-				   double theta, double damage) {
+				   double theta, double damage, std::size_t owner,
+				   std::size_t weapon) {
 	constexpr double kFlightCycleSeconds = 0.2;
 	Projectile& projectile = projectiles_[next_projectile_];
 	next_projectile_ = (next_projectile_ + 1) % kProjectiles;
 	projectile.Launch(
 		config,
 		LoopedAnimation(textures_, config.name, "flight", kFlightCycleSeconds),
-		from, theta, damage);
+		from, theta, damage, owner, weapon);
+	Record({.type = MatchEvent::Type::Launch,
+			.slot = static_cast<std::uint8_t>(owner),
+			.weapon = static_cast<std::uint8_t>(weapon),
+			.at = from,
+			.theta = theta});
 	// Out of the muzzle, a little ahead of the one firing: fired into a
 	// wall (or an enemy) at arm's length, it bursts there
 	constexpr double kMuzzle = 0.3;
@@ -336,6 +386,16 @@ bool Scene::Fly(Projectile& projectile, double distance) {
 				return false;
 			}
 		}
+		for (std::size_t slot = 0; slot < kMaxPlayers; ++slot) {
+			Player* player = players_[slot];
+			if (player != nullptr && slot != projectile.Owner() &&
+				player->IsAlive() &&
+				player->GetPose().Distance(to) <
+					player->GetWidth() / 2 + radius) {
+				Burst(projectile, to, nullptr, player);
+				return false;
+			}
+		}
 		// A lamp in its way: it bursts short of it
 		for (const IGameObject* object : objects_) {
 			if (object->GetObjectType() == ObjectType::DYNAMIC_OBJECT &&
@@ -351,10 +411,17 @@ bool Scene::Fly(Projectile& projectile, double distance) {
 	return true;
 }
 
-void Scene::Burst(Projectile& projectile, const vector2d& at, Enemy* struck) {
+void Scene::Burst(Projectile& projectile, const vector2d& at, Enemy* struck,
+				  Player* struck_player) {
 	const ProjectileConfig& config = projectile.GetConfig();
 	projectile.Stop();
+	const std::size_t owner = projectile.Owner();
 	bool hurt = struck != nullptr && Wound(*struck, projectile.GetDamage());
+	if (struck_player != nullptr) {
+		hurt = HurtPlayer(*struck_player, projectile.GetDamage(), owner,
+						  projectile.WeaponIndex()) ||
+			   hurt;
+	}
 	// Its blast, falling off from the burst to its edge, on whoever's body
 	// it reaches with nothing in between
 	if (config.splash_radius > 0.0) {
@@ -375,19 +442,28 @@ void Scene::Burst(Projectile& projectile, const vector2d& at, Enemy* struck) {
 				hurt = Wound(*enemy, *damage) || hurt;
 			}
 		}
-		// Caught in their own blast, the player takes half: enough to
-		// teach care, not to end a game at a wall
+		// Caught in their own blast, a player takes half: enough to teach
+		// care, not to end a game at a wall. Others take it all (the one
+		// struck, too).
 		constexpr double kOwnBlast = 0.5;
-		Player* player = Viewer();
-		if (player != nullptr && player->IsAlive()) {
+		for (std::size_t slot = 0; slot < kMaxPlayers; ++slot) {
+			Player* player = players_[slot];
+			if (player == nullptr || !player->IsAlive()) {
+				continue;
+			}
 			if (const auto damage =
 					blast(player->GetPose(), player->GetWidth() / 2)) {
-				player->DecreaseHealth(kOwnBlast * *damage);
+				const bool own = slot == owner;
+				const bool hit =
+					HurtPlayer(*player, (own ? kOwnBlast : 1.0) * *damage,
+							   owner, projectile.WeaponIndex());
+				hurt = (hit && !own) || hurt;
 			}
 		}
 	}
-	if (hurt && Viewer() != nullptr) {
-		Viewer()->NoteHit();
+	if (Player* shooter = owner < kMaxPlayers ? players_[owner] : nullptr;
+		hurt && shooter != nullptr) {
+		shooter->NoteHit();
 	}
 	constexpr double kBurstFrameSeconds = 0.1;
 	effects_[next_effect_].Start(
@@ -684,17 +760,23 @@ void Scene::UpdateDoors(double delta_time) {
 }
 
 void Scene::CollectPickups(Player& player) {
-	if (!player.IsAlive()) {
+	// Not judging, the server says who took what
+	if (!judging_ || !player.IsAlive()) {
 		return;
 	}
 	const vector2d position = player.GetPose();
-	for (Pickup* pickup : pickup_list_) {
+	for (std::size_t i = 0; i < pickup_list_.size(); ++i) {
+		Pickup* pickup = pickup_list_[i];
 		// Close enough that the player's body touches the item
 		const double reach = (player.GetWidth() + pickup->GetWidth()) / 2;
 		if (!pickup->IsTaken() &&
 			pickup->GetPose().Distance(position) <= reach &&
 			player.TryPickUp(pickup->GetEffect(), difficulty_.supplies)) {
 			pickup->Take();
+			Record({.type = MatchEvent::Type::Pickup,
+					.slot = static_cast<std::uint8_t>(player.Slot()),
+					.other = static_cast<std::uint8_t>(i),
+					.at = pickup->GetPose()});
 		}
 	}
 }

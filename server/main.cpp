@@ -3,6 +3,8 @@
 // plays the game.
 //
 //   wolfenstein-server [--port 8080] [--level bazaar.json] [--assets DIR]
+//                      [--mode deathmatch|gunrace] [--frags 20]
+//                      [--minutes 10]
 //
 // It speaks plain ws://: in front of it on the internet a proxy (Caddy)
 // holds the certificate and passes wss:// on. GET /health answers "ok".
@@ -16,6 +18,7 @@
 #include <cstring>
 #include <exception>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -119,24 +122,51 @@ std::string_view Option(int argc, char** argv, std::string_view name,
 	return fallback;
 }
 
+// A whole number from `lowest` to `highest`, or nothing
+std::optional<int> Number(std::string_view text, int lowest, int highest) {
+	int value = 0;
+	if (std::from_chars(text.data(), text.data() + text.size(), value).ec !=
+			std::errc{} ||
+		value < lowest || value > highest) {
+		return std::nullopt;
+	}
+	return value;
+}
+
 }  // namespace
 
 // Anything thrown ends the server with its reason
 int main(int argc, char** argv) try {
 	const std::string_view port_text = Option(argc, argv, "--port", "8080");
-	int port = 0;
-	if (std::from_chars(port_text.data(), port_text.data() + port_text.size(),
-						port)
-				.ec != std::errc{} ||
-		port <= 0 || port > 65535) {
+	const std::optional<int> port = Number(port_text, 1, 65535);
+	if (!port) {
 		std::cerr << "Not a port: " << port_text << '\n';
 		return EXIT_FAILURE;
 	}
 	const std::string level(Option(argc, argv, "--level", "bazaar.json"));
 	const std::string assets(Option(argc, argv, "--assets", RESOURCE_DIR));
+	wolfenstein::MatchSettings settings;
+	const std::string_view mode = Option(argc, argv, "--mode", "deathmatch");
+	if (mode == "gunrace") {
+		settings.mode = wolfenstein::net::MatchMode::GunRace;
+	}
+	else if (mode != "deathmatch") {
+		std::cerr << "No such mode: " << mode << " (deathmatch, gunrace)\n";
+		return EXIT_FAILURE;
+	}
+	const std::string_view frags = Option(argc, argv, "--frags", "20");
+	const std::string_view minutes = Option(argc, argv, "--minutes", "10");
+	const std::optional<int> frag_limit = Number(frags, 1, 255);
+	const std::optional<int> time_limit = Number(minutes, 1, 999);
+	if (!frag_limit || !time_limit) {
+		std::cerr << "Frags go from 1 to 255, minutes from 1 to 999\n";
+		return EXIT_FAILURE;
+	}
+	settings.frag_limit = *frag_limit;
+	settings.time_limit = *time_limit * 60.0;
 
 	Sockets sockets;
-	auto created = GameServer::Create(assets, level, sockets);
+	auto created = GameServer::Create(assets, level, sockets, settings);
 	if (!created) {
 		std::cerr << "Cannot start the game: " << created.error() << '\n';
 		return EXIT_FAILURE;
@@ -182,12 +212,13 @@ int main(int argc, char** argv) try {
 				 server.Disconnect(id);
 				 sockets.Remove(id);
 			 }});
-	app.listen(port, [port, &level](auto* listening) {
+	app.listen(*port, [port, &level, mode](auto* listening) {
 		if (listening == nullptr) {
-			std::cerr << "Cannot listen on port " << port << '\n';
+			std::cerr << "Cannot listen on port " << *port << '\n';
 			std::exit(EXIT_FAILURE);
 		}
-		std::cout << "Serving " << level << " on port " << port << '\n'
+		std::cout << "Serving " << mode << " on " << level << ", port " << *port
+				  << '\n'
 				  << std::flush;
 	});
 

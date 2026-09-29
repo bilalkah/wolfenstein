@@ -31,6 +31,7 @@
 #include <cstdint>
 #include <expected>
 #include <memory_resource>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -61,6 +62,58 @@ struct LevelStats
 	std::size_t documents = 0;
 	int explored_percent = 0;  // of the cells the player can stand in
 	double seconds = 0.0;	   // until the last enemy fell
+};
+
+// Something that happened to the players in a tick, as a server tells
+// them: a scene records them when asked to (RecordEvents), in order
+struct MatchEvent
+{
+	enum class Type : std::uint8_t {
+		Shot,	 // `slot` fired `weapon` from `at` (heard there)
+		Launch,	 // `slot` launched `weapon`'s projectile from `at`, `theta`
+		Hurt,	 // `slot` hurt `other`, standing at `at`, with `weapon`
+		Kill,	 // `slot` killed `other` with `weapon` (itself: its own blast)
+		Pickup,	 // `slot` took the level's pickup `other` (its index)
+	};
+	Type type = Type::Shot;
+	std::uint8_t slot = 0;
+	std::uint8_t other = 0;
+	std::uint8_t weapon = 0;
+	vector2d at{};
+	double theta = 0.0;
+
+	friend bool operator==(const MatchEvent&, const MatchEvent&) = default;
+};
+
+// Where a shot's judge sees the other players. A server judging a shot
+// looks where the shooter's game showed them as it fired, however late its
+// command came (lag compensation); without one, they are where they are.
+class Hindsight
+{
+  public:
+	virtual ~Hindsight() = default;
+	// Where the player in `target` stood as the one in `shooter` saw it,
+	// firing now; nothing if it was not there to hit then
+	virtual std::optional<vector2d> Seen(std::size_t shooter,
+										 std::size_t target) const = 0;
+
+  protected:
+	Hindsight() = default;
+	Hindsight(const Hindsight&) = default;
+	Hindsight& operator=(const Hindsight&) = default;
+	Hindsight(Hindsight&&) = default;
+	Hindsight& operator=(Hindsight&&) = default;
+};
+
+// A player as shots find it: a board facing the shooter, a little wider
+// than its body, solid from `bottom` to `top` above the floor, its head,
+// body and legs by `zones`
+struct PlayerTarget
+{
+	double width_scale = 1.25;	// of the player's own width
+	double top = 1.0;
+	double bottom = 0.0;
+	HitZones zones{};
 };
 
 // How many level objects a scene must hold; known when the level is loaded
@@ -131,8 +184,48 @@ class Scene
 	// Every slot, empty ones nullptr, in slot order
 	std::span<Player* const> GetPlayers() const { return players_; }
 	// How the players are drawn: the clips of `clips` ("soldier"), a picture
-	// `width` across and `height` tall (a wall is 1)
-	void SetPlayerLook(std::string_view clips, double width, double height);
+	// `width` across and `height` tall (a wall is 1); and so how shots find
+	// them, struck in the head, body or legs by `zones`
+	void SetPlayerLook(std::string_view clips, double width, double height,
+					   const HitZones& zones = {});
+	const PlayerTarget& GetPlayerTarget() const { return player_target_; }
+	const PlayerFigure& GetFigure(std::size_t slot) const {
+		return figures_[slot];
+	}
+	// The colour a slot's player is told apart by: its figure's, its name's
+	static IGameObject::Tint SlotTint(std::size_t slot);
+	// The player in `slot` fired, as another player's game is told: its
+	// figure shows shooting
+	void FigureFired(std::size_t slot) { figures_[slot].Fire(); }
+	// Whether the scene decides what happens to the players: their health,
+	// the pickups they take. A player's game in a match does not (the
+	// server does): it shows its own player's shots striking at once, but
+	// hurts no one, and takes nothing.
+	void SetJudging(bool judging) { judging_ = judging; }
+	bool IsJudging() const { return judging_; }
+	// Where shots find the other players (a server's lag compensation);
+	// nullptr: where they are. Borrowed, it outlives the scene.
+	void SetHindsight(const Hindsight* hindsight) { hindsight_ = hindsight; }
+	const Hindsight* GetHindsight() const { return hindsight_; }
+	// A shot or blast from the player in slot `by` (the victim's own: its
+	// own blast) with its weapon `weapon` hurts `victim` by `damage`:
+	// judging, it loses the health, and a fall is a kill. False if it is
+	// past hurting (down, or protected).
+	bool HurtPlayer(Player& victim, double damage, std::size_t by,
+					std::size_t weapon);
+	// What happened to the players since the events were last cleared, for
+	// a server to tell them: recorded only when asked to, at most
+	// kMatchEvents a tick (more are dropped)
+	static constexpr std::size_t kMatchEvents = 256;
+	void RecordEvents(bool record) {
+		recording_ = record;
+		event_count_ = 0;
+	}
+	void Record(const MatchEvent& event);
+	std::span<const MatchEvent> Events() const {
+		return std::span(events_).first(event_count_);
+	}
+	void ClearEvents() { event_count_ = 0; }
 	// Builds what depends on the finished level (the navigation grid): call
 	// once every object is in place
 	void FinishLoading();
@@ -231,13 +324,15 @@ class Scene
 	// projectiles and a figure for each player slot
 	static constexpr std::size_t kSceneObjects =
 		kEffects + kProjectiles + kMaxPlayers;
-	// Fires a projectile from `from` along `theta` (the player's rocket or
-	// bolt), doing `damage` to what it strikes. It bursts on the first wall,
-	// closed door or living enemy in its way, straight away if that is at
+	// Fires a projectile from `from` along `theta` (a player's rocket or
+	// bolt: the player in slot `owner`, with its weapon `weapon`), doing
+	// `damage` to what it strikes. It bursts on the first wall, closed door,
+	// living enemy or other player in its way, straight away if that is at
 	// the muzzle; its blast, if it has one, hurts whoever is in reach and in
-	// sight of the burst, the player too. `config` outlives the level.
+	// sight of the burst, its owner too. `config` outlives the level.
 	void Launch(const ProjectileConfig& config, const vector2d& from,
-				double theta, double damage);
+				double theta, double damage, std::size_t owner = 0,
+				std::size_t weapon = 0);
 	std::span<const Projectile> GetProjectiles() const { return projectiles_; }
 	// Plays a sound from `where`, as the player hears it: muffled when a
 	// wall stands between them. A `source` other than 0 (an enemy's, a
@@ -328,8 +423,10 @@ class Scene
 	// Moves a projectile `distance` on, a short step at a time so it passes
 	// through no corner or body; false if it burst on the way
 	bool Fly(Projectile& projectile, double distance);
-	// A projectile bursts at `at`, on `struck` if it hit an enemy
-	void Burst(Projectile& projectile, const vector2d& at, Enemy* struck);
+	// A projectile bursts at `at`, on `struck` if it hit an enemy, or on
+	// `struck_player` if it hit another player
+	void Burst(Projectile& projectile, const vector2d& at, Enemy* struck,
+			   Player* struck_player = nullptr);
 
 	struct DoorMotion
 	{
@@ -374,6 +471,12 @@ class Scene
 	bool completed_ = false;
 	std::array<Player*, kMaxPlayers> players_{};
 	std::size_t viewer_ = 0;
+	PlayerTarget player_target_;
+	bool judging_ = true;
+	const Hindsight* hindsight_ = nullptr;
+	bool recording_ = false;
+	std::array<MatchEvent, kMatchEvents> events_{};
+	std::size_t event_count_ = 0;
 	// Each slot's player, as the others see them: level objects from when
 	// the level has loaded, whether the slot is taken or not
 	std::array<PlayerFigure, kMaxPlayers> figures_{};

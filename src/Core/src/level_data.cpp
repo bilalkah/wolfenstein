@@ -397,6 +397,17 @@ std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 		if (root.contains("arenas")) {
 			config.arenas = root.at("arenas").get<std::vector<std::string>>();
 		}
+		for (const auto& name : root.value("gun_race", json::array())) {
+			const WeaponConfig* weapon =
+				config.FindWeapon(name.get<std::string>());
+			if (weapon == nullptr) {
+				throw json::other_error::create(
+					508, "gun_race: no weapon " + name.get<std::string>(),
+					&root);
+			}
+			config.gun_race.push_back(
+				static_cast<std::size_t>(weapon - config.weapons.data()));
+		}
 		config.menu_music = root.value("menu_music", std::string{});
 		for (const auto& difficulty : root.at("difficulties")) {
 			config.difficulties.push_back(
@@ -416,7 +427,8 @@ std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 		const auto& figure = root.at("player_config").at("figure");
 		config.player_figure = {.clips = figure.at("clips").get<std::string>(),
 								.width = figure.at("width").get<double>(),
-								.height = figure.at("height").get<double>()};
+								.height = figure.at("height").get<double>(),
+								.zones = zones};
 		const auto& light = root.at("config_dynamic").at("light");
 		config.light = {
 			.animation_speed = light.at("animation_speed").get<double>(),
