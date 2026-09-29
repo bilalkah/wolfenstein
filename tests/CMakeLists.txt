@@ -54,6 +54,7 @@ add_executable(unit_tests
     settings_test.cpp
     texture_manifest_test.cpp
     players_test.cpp
+    protocol_test.cpp
 )
 target_link_libraries(unit_tests PRIVATE
     GTest::gtest_main
@@ -79,6 +80,7 @@ target_link_libraries(unit_tests PRIVATE
     collision_manager
     texture_manager
     settings
+    net
 )
 # Counting heap allocations replaces global operator new, which clashes with
 # the sanitizers' allocator, so allocation tests run in non-sanitizer builds

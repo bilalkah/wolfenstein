@@ -1,3 +1,9 @@
+# A player's command alone, for what sends and receives them (the network)
+add_library(player_command INTERFACE)
+target_include_directories(player_command INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
 add_library(
     character
     STATIC
