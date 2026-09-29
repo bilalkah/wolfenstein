@@ -24,7 +24,9 @@ namespace wolfenstein {
 Ray CastRay(const Map& map, const Position2D& from, double theta, double depth);
 
 // Casts the camera's fan of rays through the map (DDA), one ray per screen
-// column pair
+// column pair. The rays pass through evenly spaced points on a flat camera
+// plane in front of the eye, as a flat screen shows the world: a straight
+// wall stays straight across the view, however wide the view is.
 class RayCaster
 {
   public:
@@ -32,12 +34,15 @@ class RayCaster
 
 	void Update(const Map& map, const Position2D& position,
 				RayVector& rays) const;
-	double GetDeltaTheta() const;
+	// Where a direction `camera_angle` off the view's centre (negative to
+	// the left) crosses the camera plane: -1 at the view's left edge, 1 at
+	// its right. The rays are spread by it, and sprites placed by it.
+	double Across(double camera_angle) const;
 
   private:
-	double fov_;
 	double depth_;
-	double delta_theta_;
+	int num_ray_;
+	double half_width_;	 // tan(fov / 2): the plane's half width a unit ahead
 };
 
 }  // namespace wolfenstein

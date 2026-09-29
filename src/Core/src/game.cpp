@@ -677,13 +677,14 @@ MouseLook ToMouseLook(int dx, int dy, const Settings& settings,
 	constexpr double kRadiansPerPixel = 0.005;
 	const double turn = dx * kRadiansPerPixel * settings.mouse_sensitivity;
 	// Looking up slides the view by as many screen pixels as turning the
-	// same mouse distance does. A view fov across shows width / fov pixels
-	// a radian, and a slope of 1 is height * base_fov / fov pixels up: the
-	// fov cancels, so the slope does not depend on it. The mouse pushed
-	// away looks up, unless inverted.
+	// same mouse distance does. In a view fov across, a radian of turn moves
+	// the middle of the picture width / (2 tan(fov / 2)) pixels, and a slope
+	// of 1 is height tan(base_fov / 2) / tan(fov / 2) pixels up: the fov
+	// cancels, so the slope does not depend on it. The mouse pushed away
+	// looks up, unless inverted.
 	const double up = (settings.invert_mouse_y ? dy : -dy) * kRadiansPerPixel *
 					  settings.mouse_sensitivity * view.screen_width /
-					  (view.screen_height * view.base_fov);
+					  (2 * view.screen_height * std::tan(view.base_fov / 2));
 	return {.turn = turn, .up = up};
 }
 

@@ -161,8 +161,9 @@ void Renderer3D::RenderBackground() {
 	const int sky_height =
 		config.height / 2 +
 		static_cast<int>(Player::kMaxPitch * pixels_per_unit_);
+	// Turning, it moves with the middle of the picture, where the eye is
 	const double pixels_per_radian =
-		config.width / context_->GetCamera().GetFov();
+		PixelsPerRadian(config, context_->GetCamera().GetFov());
 	const SkyLayout layout =
 		LaySky(context_->GetCamera().GetPosition().theta, pixels_per_radian,
 			   static_cast<double>(sky.width) * sky_height / sky.height);
@@ -492,13 +493,11 @@ void Renderer3D::RenderObjects() {
 }
 
 int Renderer3D::CalculateHorizontalSlice(const double& angle) {
-	const auto& camera_ptr = context_->GetCamera();
-	const auto& config_ = context_->GetConfig();
-	const auto horizontal_slice =
-		static_cast<int>(angle / camera_ptr.GetDeltaAngle()) * 2 +
-		config_.width / 2;
-
-	return horizontal_slice;
+	// Where the rays' projection puts it, on the grid of column pairs the
+	// walls are drawn on
+	const int half_width = context_->GetConfig().width / 2;
+	const double across = context_->GetCamera().Across(angle);
+	return static_cast<int>(across * half_width / 2) * 2 + half_width;
 }
 
 std::tuple<int, int, int> Renderer3D::CalculateVerticalSlice(

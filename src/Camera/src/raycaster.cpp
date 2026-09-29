@@ -3,12 +3,13 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <numbers>
 #include <utility>
 
 namespace wolfenstein {
 
 RayCaster::RayCaster(int num_ray, double fov, double depth)
-	: fov_(fov), depth_(depth), delta_theta_(fov_ / num_ray) {}
+	: depth_(depth), num_ray_(num_ray), half_width_(std::tan(fov / 2)) {}
 
 namespace {
 
@@ -182,10 +183,13 @@ void PrepareRay(const Position2D& position, const double ray_theta, Ray& ray,
 
 void RayCaster::Update(const Map& map, const Position2D& position,
 					   RayVector& rays) const {
-	double ray_theta = position.theta - (fov_ / 2);
-	for (auto& ray : rays) {
-		ray = Cast(map, position, ray_theta, depth_);
-		ray_theta += delta_theta_;
+	// Ray i crosses the plane at the left edge of its pair of columns, where
+	// Across places a sprite that starts there
+	for (std::size_t i = 0; i < rays.size(); ++i) {
+		const double across = 2.0 * static_cast<double>(i) / num_ray_ - 1.0;
+		rays[i] =
+			Cast(map, position,
+				 position.theta + std::atan(across * half_width_), depth_);
 	}
 }
 
@@ -194,8 +198,11 @@ Ray CastRay(const Map& map, const Position2D& from, double theta,
 	return Cast(map, from, theta, depth);
 }
 
-double RayCaster::GetDeltaTheta() const {
-	return delta_theta_;
+double RayCaster::Across(double camera_angle) const {
+	// A right angle off is at infinity on the plane, and beyond it behind the
+	// eye: held just short of it, such a direction lands far off that side
+	constexpr double kLimit = std::numbers::pi / 2 - 1e-3;
+	return std::tan(std::clamp(camera_angle, -kLimit, kLimit)) / half_width_;
 }
 
 }  // namespace wolfenstein

@@ -52,9 +52,15 @@ struct RenderConfig
 
 // Screen pixels something one unit tall spans one unit away, in a view
 // `fov` radians across: a wider view shrinks it up and down as it does
-// across
+// across, where a flat camera plane a unit ahead is 2 tan(fov / 2) wide
 inline double PixelsPerUnit(const RenderConfig& config, double fov) {
-	return config.height * config.base_fov / fov;
+	return config.height * std::tan(config.base_fov / 2) / std::tan(fov / 2);
+}
+
+// Screen pixels the middle of the picture moves for a radian of turn, in a
+// view `fov` radians across (towards the edges a radian spans more)
+inline double PixelsPerRadian(const RenderConfig& config, double fov) {
+	return config.width / (2 * std::tan(fov / 2));
 }
 
 // How the sky's picture goes round the view: `width` pixels a repeat, a

@@ -21,10 +21,10 @@ Settings WithSensitivity(double sensitivity) {
 	return settings;
 }
 
-// Screen pixels the picture slides, in a view `fov` across: a turn across
-// the width (width / fov pixels a radian), a look up as the slope's pixels
+// Screen pixels the picture slides, in a view `fov` across: a turn as far
+// as the middle of the picture moves, a look up as the slope's pixels
 double Across(const MouseLook& look, double fov) {
-	return look.turn * kView.screen_width / fov;
+	return look.turn * PixelsPerRadian(kRender, fov);
 }
 double Down(const MouseLook& look, double fov) {
 	return look.up * PixelsPerUnit(kRender, fov);

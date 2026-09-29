@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace wolfenstein::testing {
 
@@ -17,6 +18,19 @@ inline std::filesystem::path WriteMapFile(
 	file << "height " << rows.size() << "\n";
 	file << "width " << std::string_view(*rows.begin()).size() << "\n";
 	for (const char* row : rows) {
+		file << row << "\n";
+	}
+	return path;
+}
+
+// The same, for rows built in code
+inline std::filesystem::path WriteMapFile(
+	std::string_view name, const std::vector<std::string>& rows) {
+	const auto path = std::filesystem::temp_directory_path() / name;
+	std::ofstream file(path);
+	file << "height " << rows.size() << "\n";
+	file << "width " << rows.front().size() << "\n";
+	for (const std::string& row : rows) {
 		file << row << "\n";
 	}
 	return path;

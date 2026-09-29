@@ -73,10 +73,13 @@ class Camera2D
 	void SetPitch(double pitch) { pitch_ = pitch; }
 	double GetPitch() const { return pitch_; }
 	double GetFov() const;
-	// Widens or narrows the view to `fov` radians: as many rays, spread
-	// further apart
+	// Widens or narrows the view to `fov` radians: as many rays, spread over
+	// a wider plane
 	void SetFov(double fov);
-	double GetDeltaAngle() const;
+	// Where a direction `camera_angle` off the view's centre falls across
+	// the screen, from -1 (left edge) to 1 (right edge): the rays' own
+	// projection, so sprites line up with the walls
+	double Across(double camera_angle) const;
 
   private:
 	void InitRays();
