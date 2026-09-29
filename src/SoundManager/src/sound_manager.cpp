@@ -25,6 +25,16 @@ std::expected<std::unique_ptr<SoundManager>, std::string> SoundManager::Open(
 	auto sound = std::make_unique<SoundManager>();
 	sound->open_ = true;
 	Mix_AllocateChannels(kChannels);
+	// Sounds from places are mixed in after the channels, by the game: in
+	// the 16-bit stereo it asked the device for
+	int frequency = 0;
+	Uint16 format = 0;
+	int channels = 0;
+	if (Mix_QuerySpec(&frequency, &format, &channels) != 0 &&
+		format == AUDIO_S16SYS && channels == 2) {
+		Mix_SetPostMix(&SpatialMixer::MixHook, &sound->spatial_);
+		sound->spatial_open_ = true;
+	}
 
 	for (const auto& [effect, file, volume] :
 		 {std::tuple{SoundEffect::NpcAttack, "npc_attack.wav", 32},
@@ -109,6 +119,7 @@ SoundManager::~SoundManager() {
 	if (!open_) {
 		return;
 	}
+	Mix_SetPostMix(nullptr, nullptr);
 	Mix_HaltMusic();
 	Mix_HaltChannel(-1);
 	for (Mix_Chunk* chunk : chunks_) {
@@ -145,6 +156,8 @@ void SoundManager::SetVolume(double master, double music, double effects) {
 #else
 	Mix_Volume(-1, levels.effects);
 #endif
+	spatial_.SetVolume(static_cast<float>(levels.effects) /
+					   static_cast<float>(MIX_MAX_VOLUME));
 }
 
 SoundChannel SoundManager::AllocateChannel() {
@@ -162,6 +175,27 @@ void SoundManager::PlayEffect(SoundChannel channel, SoundEffect effect) {
 	Mix_HaltChannel(index);
 	if (Mix_PlayChannel(index, chunks_[std::to_underlying(effect)], 0) == -1) {
 		std::cerr << "Failed to play sound: " << Mix_GetError() << '\n';
+	}
+}
+
+void SoundManager::PlayAt(SoundEffect effect, const vector2d& where,
+						  bool muffled, std::uint32_t source) {
+	++play_counts_[std::to_underlying(effect)];
+	if (!open_) {
+		return;
+	}
+	Mix_Chunk* chunk = chunks_[std::to_underlying(effect)];
+	if (spatial_open_) {
+		spatial_.Play(chunk, where, muffled, source);
+	}
+	else if (Mix_PlayChannel(-1, chunk, 0) == -1) {
+		std::cerr << "Failed to play sound: " << Mix_GetError() << '\n';
+	}
+}
+
+void SoundManager::SetListener(const vector2d& ear, double theta) {
+	if (spatial_open_) {
+		spatial_.SetListener(ear, theta);
 	}
 }
 

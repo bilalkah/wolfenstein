@@ -62,6 +62,12 @@ void GridPathFinder::SetExtraCost(GridCell cell, std::uint8_t extra) {
 	}
 }
 
+void GridPathFinder::SetBlocked(GridCell cell, bool blocked) {
+	if (Contains(cell)) {
+		walls_[static_cast<std::size_t>(Index(cell))] = blocked ? 1 : 0;
+	}
+}
+
 std::size_t GridPathFinder::FreeCells() const {
 	return static_cast<std::size_t>(std::ranges::count(walls_, 0));
 }

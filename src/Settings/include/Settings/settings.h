@@ -25,7 +25,7 @@ struct Settings
 	static constexpr double kMaxMouseSensitivity = 3.0;
 	// Degrees across the screen
 	static constexpr double kMinFov = 60.0;
-	static constexpr double kMaxFov = 100.0;
+	static constexpr double kMaxFov = 80.0;
 
 	double mouse_sensitivity = 1.0;	 // multiplier on the base turn rate
 	bool invert_mouse_y = false;	 // the mouse pushed away looks down

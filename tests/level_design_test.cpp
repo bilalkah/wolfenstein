@@ -109,6 +109,15 @@ TEST_P(LevelDesign, IsPlayable) {
 			<< file << " column " << y;
 	}
 
+	// A save keeps a bit for each of its pickups, its own and all its
+	// enemies may drop, and for each enemy: 64 of each at most
+	std::size_t pickups = level->pickups.size();
+	for (const EnemySpawn& enemy : level->enemies) {
+		pickups += testing::Enemy(enemy.type).drops.size();
+	}
+	EXPECT_LE(pickups, 64u) << file;
+	EXPECT_LE(level->enemies.size(), 64u) << file;
+
 	const Cell start = CellOf(level->player.pose.x, level->player.pose.y);
 	ASSERT_FALSE(map->IsBlocked(start.first, start.second)) << file;
 	const auto reachable = ReachableWithKeys(*map, start, *level);

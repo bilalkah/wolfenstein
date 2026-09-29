@@ -45,6 +45,8 @@ add_executable(unit_tests
     enemy_view_test.cpp
     patrol_test.cpp
     tactics_test.cpp
+    view_test.cpp
+    spatial_sound_test.cpp
     projectile_test.cpp
     saved_game_test.cpp
     settings_test.cpp

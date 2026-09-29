@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <gtest/gtest.h>
 #include <initializer_list>
 #include <memory>
@@ -405,6 +406,31 @@ TEST_F(TacticsTest, TheyTakeTurnsToShoot) {
 	for (std::size_t i = 0; i < shots.size(); ++i) {
 		EXPECT_GE(shots[i], 2) << "soldier " << i;
 	}
+}
+
+// Two standing on one spot ease apart rather than stand in each other
+TEST_F(TacticsTest, TheyEaseApart) {
+	Load({6.5, 2.5}, {{"soldier", {6.5, 12.0}}, {"soldier", {6.52, 12.0}}});
+	Run(1.0);
+	const Enemy& one = *scene_->GetEnemies()[0];
+	const Enemy& other = *scene_->GetEnemies()[1];
+	EXPECT_GE(one.GetPose().Distance(other.GetPose()),
+			  one.GetRadius() + other.GetRadius() - 0.02);
+}
+
+// Once the player has fallen no one shoots the body: no more harm, no more
+// cries of pain
+TEST_F(TacticsTest, NoOneShootsTheFallen) {
+	Load({6.5, 2.5}, {{"soldier", {6.5, 6.0}}, {"soldier", {4.5, 6.0}}});
+	Run(0.5);
+	player_->DecreaseHealth(1000.0);
+	ASSERT_FALSE(player_->IsAlive());
+	const double health = player_->GetHealth();
+	const std::uint32_t cries =
+		testing::TestSound().PlayCount(SoundEffect::PlayerPain);
+	Run(4.0);
+	EXPECT_DOUBLE_EQ(player_->GetHealth(), health);
+	EXPECT_EQ(testing::TestSound().PlayCount(SoundEffect::PlayerPain), cries);
 }
 
 }  // namespace

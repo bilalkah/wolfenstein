@@ -12,6 +12,8 @@
 #ifndef SOUND_MANAGER_INCLUDE_SOUND_MANAGER_H
 #define SOUND_MANAGER_INCLUDE_SOUND_MANAGER_H
 
+#include "Math/vector.h"
+#include "SoundManager/spatial_mixer.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
 #include <array>
@@ -115,8 +117,18 @@ class SoundManager
 	SoundChannel AllocateChannel();
 	// Effects are an enum indexing an array, so playing one involves no
 	// string or lookup (a string name allocated on wasm32, whose short-string
-	// buffer holds only 10 characters)
+	// buffer holds only 10 characters). The player's own sounds (its gun,
+	// its steps) play here, as heard from nowhere in particular.
 	void PlayEffect(SoundChannel channel, SoundEffect effect);
+	// A sound from a place in the level (an enemy's, a door's): heard from
+	// that side of the listener, quieter the further off, and muffled
+	// through a wall. A `source` other than 0 is one voice: its new sound
+	// cuts off its last. Allocates nothing.
+	void PlayAt(SoundEffect effect, const vector2d& where, bool muffled,
+				std::uint32_t source = 0);
+	// Where the one hearing is, and which way they face: every sound from a
+	// place is heard afresh from there
+	void SetListener(const vector2d& ear, double theta);
 	// Plays the named track, over and over, fading in; the one playing
 	// already goes on, and an unknown name is silence. The name must outlive
 	// the manager (a level's, from its data).
@@ -135,6 +147,10 @@ class SoundManager
 											   int volume);
 
 	bool open_{false};
+	// Mixes the sounds from places; used when the device plays 16-bit
+	// stereo, as it is asked to (else those play as the others do)
+	SpatialMixer spatial_;
+	bool spatial_open_{false};
 	// Mixer channels allocated when the device is opened
 	static constexpr int kChannels = 16;
 	int next_channel_{};

@@ -216,5 +216,28 @@ TEST(WallCollision, AlongAndAwayFromAWall) {
 	EXPECT_FALSE(CheckWallCollision(map, pose, {0.05, 0})) << "away from it";
 }
 
+// Each body keeps its own size from the walls: a bigger one stops further
+// off
+TEST(WallCollision, EachBodyKeepsItsOwnSize) {
+	const Map map(testing::WriteMapFile("wolfenstein_wall_size_test.txt",
+										{"3333", "3003", "3003", "3333"})
+					  .string());
+	const vector2d pose{1.22, 1.5};	 // 0.22 from the wall's face at x = 1
+	EXPECT_FALSE(CheckWallCollision(map, pose, {-0.01, 0.0}, 0.2))
+		<< "the player's size still fits";
+	EXPECT_TRUE(CheckWallCollision(map, pose, {-0.01, 0.0}, 0.25))
+		<< "a demon's is against it already";
+}
+
+// Walking forward and sideways at once is no faster than either
+TEST_F(CollisionTest, ADiagonalIsNoFaster) {
+	const vector2d start = player_.GetPose();
+	Walk({.forward = 1, .strafe = 1}, 0.5);
+	const double diagonal = DistanceTo(start);
+	player_.SetPosition(Position2D(start, kFacingDown));
+	Walk({.forward = 1}, 0.5);
+	EXPECT_NEAR(diagonal, DistanceTo(start), 1e-9);
+}
+
 }  // namespace
 }  // namespace wolfenstein

@@ -33,6 +33,12 @@ struct PlayerCommand
 	std::int8_t weapon = -1;
 	// Steps to the next (+1) or previous (-1) weapon carried; applied once
 	std::int8_t cycle = 0;
+	// Where the player looks, set outright (ViewAngles: the game turns the
+	// view as the mouse moves, frame by frame, and the tick takes it), with
+	// look, look_up and turn already folded in
+	bool has_view = false;
+	double view_theta = 0.0;
+	double view_pitch = 0.0;
 
 	friend bool operator==(const PlayerCommand&,
 						   const PlayerCommand&) = default;
@@ -58,6 +64,12 @@ inline PlayerCommand Gather(const PlayerCommand& earlier,
 	}
 	if (later.cycle == 0) {
 		gathered.cycle = earlier.cycle;
+	}
+	// The view as it last was
+	if (!later.has_view && earlier.has_view) {
+		gathered.has_view = true;
+		gathered.view_theta = earlier.view_theta;
+		gathered.view_pitch = earlier.view_pitch;
 	}
 	return gathered;
 }

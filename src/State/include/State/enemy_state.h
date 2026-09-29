@@ -104,7 +104,6 @@ class WalkState : public EnemyState
 
   private:
 	double animation_speed_{1.2};
-	double range_max_{5.0};
 	double attack_range_{5.0};
 	double attack_rate_{1.0};
 	double attack_counter_{0.0};

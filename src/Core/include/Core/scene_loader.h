@@ -16,6 +16,7 @@
 #include "Core/scene.h"
 #include "GameMap/map.h"
 #include <cstddef>
+#include <cstdint>
 #include <expected>
 #include <functional>
 #include <map>
@@ -55,11 +56,13 @@ class SceneLoader
 	std::size_t LargestLevelObjects() const { return largest_objects_; }
 
 	// Fills a scene built for `level` with its enemies and objects, places the
-	// player in it and builds its navigation. The error says what the level
-	// asks for that the configuration lacks.
+	// player in it and builds its navigation. What each enemy carries to
+	// drop is rolled from `seed` (a game's): the same seed, the same drops.
+	// The error says what the level asks for that the configuration lacks.
 	std::expected<void, std::string> Populate(Scene& scene,
 											  const PreparedLevel& level,
-											  Player& player) const;
+											  Player& player,
+											  std::uint64_t seed = 0) const;
 
   private:
 	SceneLoader(std::string asset_dir, GameConfig config);

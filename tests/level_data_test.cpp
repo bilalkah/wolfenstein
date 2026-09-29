@@ -45,6 +45,18 @@ TEST(LevelData, ParsesTheGameConfig) {
 	EXPECT_GT(soldier.behaviour.sidestep, 0.0);
 	EXPECT_DOUBLE_EQ(config->enemies.at("minigun_zombie").behaviour.sidestep,
 					 0.0);
+	// Each may drop ammunition or health, by chance; a boss always drops
+	ASSERT_FALSE(soldier.drops.empty());
+	EXPECT_EQ(soldier.drops.front().pickup, "clip");
+	EXPECT_LT(soldier.drops.front().chance, 1.0);
+	for (const EnemyDrop& drop : config->enemies.at("cyber_demon").drops) {
+		EXPECT_DOUBLE_EQ(drop.chance, 1.0) << drop.pickup;
+	}
+	for (const auto& [type, enemy] : config->enemies) {
+		for (const EnemyDrop& drop : enemy.drops) {
+			EXPECT_TRUE(config->pickups.contains(drop.pickup)) << type;
+		}
+	}
 	// Badly hurt, a soldier breaks off for cover; the demons and the bosses
 	// fight to the end
 	EXPECT_GT(soldier.behaviour.retreat_below, 0.0);
@@ -197,6 +209,25 @@ TEST(LevelData, RejectsAnUnknownEnemySound) {
 	const auto parsed = ParseGameConfig(config);
 	ASSERT_FALSE(parsed);
 	EXPECT_NE(parsed.error().find("moo"), std::string::npos) << parsed.error();
+}
+
+// A drop's chance is from 0 to 1
+TEST(LevelData, RejectsAnImpossibleChance) {
+	std::istringstream config(R"({
+		"player_config": {"t_speed": 2, "r_speed": 0.4, "width": 0.4, "height": 1},
+		"weapons": [],
+		"config_enemy": {"x": {"t_speed": 1, "r_speed": 1, "width": 1,
+							   "height": 1, "health": 1,
+							   "ai": {"idle_frame_seconds": 1, "follow_range": 1},
+							   "drops": [{"pickup": "clip", "chance": 1.5}],
+							   "weapon": {"name": "x", "damage": [1, 1],
+										  "range": 1, "attack_speed": 1,
+										  "attack_rate": 1}}},
+		"config_dynamic": {"light": {"animation_speed": 1, "width": 1, "height": 1}}})");
+	const auto parsed = ParseGameConfig(config);
+	ASSERT_FALSE(parsed);
+	EXPECT_NE(parsed.error().find("chance"), std::string::npos)
+		<< parsed.error();
 }
 
 // An enemy's range is [near, far]: nearer than far

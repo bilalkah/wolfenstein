@@ -385,7 +385,7 @@ MenuAction Menu::ControlsScreen() {
 	constexpr std::array<Binding, 9> kBindings = {{
 		{"Move", "W  A  S  D"},
 		{"Turn", "Mouse, or Left / Right arrows"},
-		{"Fire", "Left click, or Left Ctrl"},
+		{"Fire", "Left click"},
 		{"Reload", "R"},
 		{"Weapons", "Number keys, or the mouse wheel"},
 		{"Open door", "E, or Space"},

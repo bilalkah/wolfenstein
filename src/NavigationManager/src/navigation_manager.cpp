@@ -91,6 +91,20 @@ void NavigationManager::Build() {
 	routes_.assign(scene_.GetObjects().size(), Route{});
 }
 
+void NavigationManager::RefreshCell(int x, int y) {
+	const Map& map = scene_.GetMap();
+	// Blocked for good (a wall, a locked door) or for now (a secret sliding
+	// through); a door that opens is a way through
+	const bool blocked = map.IsWall(x, y) || map.IsLockedDoor(x, y) ||
+						 (map.IsBlocked(x, y) && map.FindDoor(x, y) == nullptr);
+	for (int dx = 0; dx < kCellsPerSide; ++dx) {
+		for (int dy = 0; dy < kCellsPerSide; ++dy) {
+			path_finder_.SetBlocked(
+				{x * kCellsPerSide + dx, y * kCellsPerSide + dy}, blocked);
+		}
+	}
+}
+
 GridCell NavigationManager::ToCell(const vector2d& position) {
 	return {static_cast<int>(std::floor(position.x / kCellSize)),
 			static_cast<int>(std::floor(position.y / kCellSize))};

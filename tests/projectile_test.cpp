@@ -39,7 +39,8 @@ const ProjectileConfig& Rocket() {
 class ProjectileTest : public ::testing::Test
 {
   protected:
-	static constexpr SceneCapacity kCapacity{.enemies = 3};
+	static constexpr SceneCapacity kCapacity{.enemies = 3,
+											 .dynamic_objects = 1};
 
 	ProjectileTest() { scene_.SetPlayer(player_); }
 
@@ -48,6 +49,15 @@ class ProjectileTest : public ::testing::Test
 		EXPECT_TRUE(
 			scene_.AddEnemy(testing::Enemy("soldier"), Position2D(at, -kDown)));
 		return *scene_.GetEnemies().back();
+	}
+	// A lamp standing at `where`
+	void AddLamp(vector2d where) {
+		const DynamicObjectStats& light = testing::GameData().light;
+		ASSERT_TRUE(scene_.AddDynamicObject(
+			where,
+			LoopedAnimation(testing::TestTextures(), "green_light",
+							light.animation_speed),
+			light.width, light.height, light.radius));
 	}
 	// Fires the weapon's projectile from where the player stands, as the
 	// player looks
@@ -235,6 +245,22 @@ TEST_F(ProjectileTest, FiringAllocatesNothing) {
 	EXPECT_EQ(AllocationStats::count - before, 0u);
 }
 #endif
+
+// A lamp in its way stops it: it bursts short of it
+TEST_F(ProjectileTest, ALampStopsIt) {
+	AddLamp({1.5, 8.5});
+	scene_.FinishLoading();
+	Fire("rocket_launcher");
+	RunWhileFlying();
+	const auto objects = scene_.GetObjects();
+	const auto shown =
+		std::ranges::find_if(objects, [](const IGameObject* object) {
+			return object->GetObjectType() == ObjectType::EFFECT &&
+				   object->IsVisible();
+		});
+	ASSERT_NE(shown, objects.end());
+	EXPECT_LT((*shown)->GetPose().y, 8.5 - testing::GameData().light.radius);
+}
 
 }  // namespace
 }  // namespace wolfenstein

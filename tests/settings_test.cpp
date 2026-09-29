@@ -15,7 +15,7 @@ Settings Changed() {
 	Settings settings;
 	settings.mouse_sensitivity = 1.35;
 	settings.invert_mouse_y = true;
-	settings.fov = 85.0;
+	settings.fov = 75.0;
 	settings.volume = 0.6;
 	settings.music_volume = 0.25;
 	settings.effects_volume = 0.9;

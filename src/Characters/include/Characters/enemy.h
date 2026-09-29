@@ -20,9 +20,12 @@
 #include "SoundManager/sound_manager.h"
 #include "State/enemy_state.h"
 #include "Strike/simple_weapon.h"
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
+#include <vector>
 namespace wolfenstein {
 
 class Scene;
@@ -97,6 +100,15 @@ struct EnemySounds
 	SoundEffect death = SoundEffect::NpcDeath;
 };
 
+// Something an enemy type may carry, and drop where it dies: a pickup, and
+// the chance one of its kind carries it (before the difficulty's supplies
+// scale it)
+struct EnemyDrop
+{
+	std::string pickup;	 // "clip"
+	double chance = 1.0;
+};
+
 // An enemy type as config.json describes it
 struct EnemyConfig
 {
@@ -111,8 +123,8 @@ struct EnemyConfig
 	double health = 100.0;	// before the difficulty scales it
 	StateConfig behaviour;
 	HitZones hit_zones;
-	// The pickup it drops where it dies ("clip"), if any
-	std::string drop;
+	// What it may drop where it dies, each with its own chance
+	std::vector<EnemyDrop> drops;
 	SimpleWeaponConfig weapon;
 	EnemySounds sounds;
 };
@@ -146,15 +158,23 @@ class Enemy : public ICharacter, public IGameObject
 	// Heard the player (a shot): it hunts them for alert_seconds, whether
 	// or not it sees them
 	void Alert();
-	// The pickup it drops where it dies, if it carries one: hidden until
-	// then (Pickup::MakeDrop)
-	void SetDrop(Pickup& drop) { drop_ = &drop; }
+	// The most pickups one enemy carries
+	static constexpr std::size_t kMaxDrops = 4;
+	// Gives it a pickup to carry, dropped where it dies: hidden until then
+	// (Pickup::MakeDrop). False, and not carried, past kMaxDrops.
+	bool AddDrop(Pickup& drop);
+	std::span<Pickup* const> GetDrops() const {
+		return std::span(drops_).first(drop_count_);
+	}
 	bool IsAlerted() const { return alerted_for_ > 0.0; }
 	// Forgets what it heard: it found no way to it
 	void LoseTrail() { alerted_for_ = 0.0; }
 	// Whether, not yet hunting, it becomes aware of the player: it heard
 	// gunfire, or it sees them near, on any side
 	bool NoticesPlayer() const;
+	// How near it notices a player it sees, and how far it hunts one it has
+	// lost sight of: a little past its follow range
+	double SightRange() const { return config_.behaviour.follow_range + 2.0; }
 	// While it knows of no player it wanders within `radius` of where it
 	// stands now (its post), to spots it sees from there: never through a
 	// wall into the next room. 0 stands guard.
@@ -264,6 +284,10 @@ class Enemy : public ICharacter, public IGameObject
 
   private:
 	void Move(double delta_time);
+	// Moves it by `step` as far as the walls let it, sliding along them
+	void Slide(const vector2d& step);
+	// Eases it out of any other living enemy it stands in
+	void KeepApart(double delta_time);
 	// Open floor, off the walls by more than a body's width
 	bool IsOpenFloor(const vector2d& at) const;
 	// Its own generator's next number, in [0, 1): the same run after run
@@ -274,7 +298,8 @@ class Enemy : public ICharacter, public IGameObject
 	bool retaliating_{};
 	double since_flinch_{1e9};	// seconds since it last flinched
 	double alerted_for_{};		// seconds still to hunt what it heard
-	Pickup* drop_ = nullptr;
+	std::array<Pickup*, kMaxDrops> drops_{};
+	std::size_t drop_count_{};
 	bool is_alive_{};
 	bool silent_{};	 // while being restored
 	bool target_{};
@@ -304,7 +329,6 @@ class Enemy : public ICharacter, public IGameObject
 	vector2d previous_pose_;
 	// Borrowed from the game config, which outlives every enemy
 	const EnemyConfig& config_;
-	SoundChannel sound_channel_;
 	Ray crosshair_ray;
 	EnemyState& StateFor(EnemyStateType type);
 	// The direction to `viewer`, turned from the way it faces: 0 straight

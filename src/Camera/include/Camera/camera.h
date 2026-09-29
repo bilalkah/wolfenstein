@@ -68,6 +68,10 @@ class Camera2D
 	// not in view
 	const Sight* FindObject(ObjectId id) const;
 	const Position2D& GetPosition() const { return eye_; }
+	// How far the view is tipped up (+) or down: the player's look and a
+	// shot's kick, as a share of the screen's height (Player::GetPitch)
+	void SetPitch(double pitch) { pitch_ = pitch; }
+	double GetPitch() const { return pitch_; }
 	double GetFov() const;
 	// Widens or narrows the view to `fov` radians: as many rays, spread
 	// further apart
@@ -82,6 +86,7 @@ class Camera2D
 	Camera2DConfig config_;
 	Scene* scene_ = nullptr;
 	Position2D eye_;
+	double pitch_ = 0.0;
 	Ray crosshair_ray_;
 	RayCaster ray_cast_;
 	RayVector rays_;

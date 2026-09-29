@@ -147,7 +147,7 @@ void WalkState::Update(const double& delta_time) {
 	// Out of sight and far, it gives up, unless it is still hunting what
 	// it heard: back to walking about, straight on, or to standing guard
 	if (!context_->IsPlayerInShootingRange() && !context_->IsAlerted()) {
-		if (distance > range_max_) {
+		if (distance > context_->SightRange()) {
 			context_->GetScene().GetNavigation().ResetPath(context_->GetId());
 			context_->TransitionTo(context_->Patrols() ? EnemyStateType::Patrol
 													   : EnemyStateType::Idle);

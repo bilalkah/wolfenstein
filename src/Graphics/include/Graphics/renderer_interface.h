@@ -17,7 +17,10 @@
 #include "TextureManager/texture_manager.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <algorithm>
+#include <cmath>
 #include <memory>
+#include <numbers>
 #include <optional>
 
 namespace wolfenstein {
@@ -52,6 +55,28 @@ struct RenderConfig
 // across
 inline double PixelsPerUnit(const RenderConfig& config, double fov) {
 	return config.height * config.base_fov / fov;
+}
+
+// How the sky's picture goes round the view: `width` pixels a repeat, a
+// whole number of repeats a full turn, so it joins up wherever the player
+// looks (with a part of a repeat left over, it jumped where the view's
+// angle wraps round, looking one way); and where the first repeat starts,
+// `offset` pixels left of the screen's edge, for a view turned `theta`
+struct SkyLayout
+{
+	double width = 0.0;
+	double offset = 0.0;
+};
+inline SkyLayout LaySky(double theta, double pixels_per_radian,
+						double natural_width) {
+	const double turn = 2.0 * std::numbers::pi * pixels_per_radian;
+	const double repeats = std::max(1.0, std::round(turn / natural_width));
+	const double width = turn / repeats;
+	double offset = std::fmod(theta * pixels_per_radian, width);
+	if (offset < 0.0) {
+		offset += width;
+	}
+	return {.width = width, .offset = offset};
 }
 
 class RendererContext

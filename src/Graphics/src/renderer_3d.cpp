@@ -111,8 +111,8 @@ void Renderer3D::RenderScene(double delta_time) {
 	const Player& player = scene_->GetPlayer();
 	pixels_per_unit_ =
 		PixelsPerUnit(context_->GetConfig(), context_->GetCamera().GetFov());
-	horizon_shift_ = static_cast<int>((player.GetPitch() + player.GetKick()) *
-									  pixels_per_unit_);
+	horizon_shift_ =
+		static_cast<int>(context_->GetCamera().GetPitch() * pixels_per_unit_);
 	eye_height_ = player.GetEyeHeight();
 	// Falling dead, the world is drawn aside to be rolled over
 	const double fall = player.GetDeathFall();
@@ -153,23 +153,23 @@ void Renderer3D::RenderBackground() {
 
 	// The sky reaches from the horizon to the top of the view looking as
 	// far up as the player can: looking up shows more of it, never past it.
-	// Its size stays the same whichever way the player looks (its
-	// proportions kept); it turns with the view, a panorama repeating every
-	// sky width.
+	// It turns with the view, a panorama repeating a whole number of times
+	// a turn, each repeat about as wide as the picture's proportions make
+	// it at that height.
 	const int sky_height =
 		config.height / 2 +
 		static_cast<int>(Player::kMaxPitch * pixels_per_unit_);
-	const int sky_width = sky.width * sky_height / sky.height;
 	const double pixels_per_radian =
 		config.width / context_->GetCamera().GetFov();
-	const double turned =
-		context_->GetCamera().GetPosition().theta * pixels_per_radian;
-	const int offset =
-		static_cast<int>(std::fmod(turned, sky_width) + sky_width) % sky_width;
+	const SkyLayout layout =
+		LaySky(context_->GetCamera().GetPosition().theta, pixels_per_radian,
+			   static_cast<double>(sky.width) * sky_height / sky.height);
 	const int sky_top = horizon - sky_height;
-	for (int x = -offset; x < config.width; x += sky_width) {
-		const SDL_Rect band{x, sky_top, sky_width, sky_height};
-		SDL_RenderCopy(renderer, sky.texture, nullptr, &band);
+	for (double x = -layout.offset; x < config.width; x += layout.width) {
+		const SDL_FRect band{static_cast<float>(x), static_cast<float>(sky_top),
+							 static_cast<float>(layout.width),
+							 static_cast<float>(sky_height)};
+		SDL_RenderCopyF(renderer, sky.texture, nullptr, &band);
 	}
 	// Higher still (a shot's kick on top of looking fully up): the colour
 	// of its top edge, into which the edge fades

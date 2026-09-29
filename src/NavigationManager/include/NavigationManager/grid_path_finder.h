@@ -66,6 +66,8 @@ class GridPathFinder
 	// Makes a step into `cell` cost 1 + `extra`: a way to take only when
 	// the others are much longer. SetGrid resets every cell to no extra.
 	void SetExtraCost(GridCell cell, std::uint8_t extra);
+	// Makes `cell` a wall, or open floor, from now on
+	void SetBlocked(GridCell cell, bool blocked);
 	// Cells that are not walls: no path is longer than this
 	std::size_t FreeCells() const;
 

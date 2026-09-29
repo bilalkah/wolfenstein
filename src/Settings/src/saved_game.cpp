@@ -115,6 +115,9 @@ std::optional<SavedGame> SavedGame::Parse(std::string_view text) {
 		else if (key == "seconds") {
 			read = ParseNumber(value, game.seconds);
 		}
+		else if (key == "seed") {
+			read = ParseNumber(value, game.seed);
+		}
 		else if (key == "killed") {
 			read = ParseNumber(value, game.killed);
 		}
@@ -160,6 +163,7 @@ std::size_t SavedGame::Format(std::span<char> out) const {
 		.Line("level", level)
 		.Line("weapon", weapon)
 		.Line("difficulty", difficulty)
+		.Line("seed", seed)
 		.Line("health", health)
 		.Line("weapons", weapons);
 	constexpr std::array<std::string_view, kMaxWeapons> kAmmoKeys{

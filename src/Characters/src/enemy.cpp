@@ -30,7 +30,6 @@ Enemy::Enemy(Scene& scene, const EnemyConfig& config,
 	  next_pose(position_.pose),
 	  previous_pose_(position_.pose),
 	  config_(config),
-	  sound_channel_(scene.Sound().AllocateChannel()),
 	  crosshair_ray(Ray{}),
 	  weapon_(config.weapon) {
 	for (const auto type :
@@ -86,7 +85,10 @@ bool Enemy::IsAlive() const {
 
 void Enemy::PlaySound(SoundEffect effect) {
 	if (!silent_) {
-		scene_.Sound().PlayEffect(sound_channel_, effect);
+		// Heard from where it stands; one sound at a time, each cutting off
+		// its last
+		scene_.PlaySoundAt(effect, position_.pose,
+						   static_cast<std::uint32_t>(ToIndex(GetId())) + 1);
 	}
 }
 
@@ -105,15 +107,23 @@ void Enemy::Update(double delta_time) {
 	since_flinch_ += delta_time;
 	alerted_for_ = std::max(alerted_for_ - delta_time, 0.0);
 	sidestep_left_ = std::max(sidestep_left_ - delta_time, 0.0);
-	{
+	if (scene_.GetPlayer().IsAlive()) {
 		ScopedTimer timer(ProfileSection::LineOfSight);
 		crosshair_ray = CastLineOfSight(scene_.GetMap(), position_.pose,
 										scene_.GetPlayer().GetPosition().pose);
+	}
+	else {
+		// The player fallen: no one to see, to hunt or to shoot
+		crosshair_ray = Ray{};
+		alerted_for_ = 0.0;
 	}
 	weapon_.SetCrosshairRay(crosshair_ray);
 	state_machine_.Update(delta_time);
 	if (!(next_pose == position_.pose)) {
 		Move(delta_time);
+	}
+	if (health_ > 0.0) {
+		KeepApart(delta_time);
 	}
 }
 
@@ -168,7 +178,6 @@ void Enemy::Move(double delta_time) {
 		direction * translation_speed_ * pace_ * delta_time;
 	// As far as it can go: round lamps and the player (other enemies do not
 	// stop it, or they would jam in doorways), then along the walls
-	const Map& map = scene_.GetMap();
 	const Player& player = scene_.GetPlayer();
 	vector2d reached = ResolveObjectCollisions(
 		scene_.GetObjects(), this, position_.pose,
@@ -177,12 +186,49 @@ void Enemy::Move(double delta_time) {
 		reached = PushOutOf(player.GetPose(), player.GetWidth() / 2,
 							position_.pose, reached, radius_);
 	}
-	const vector2d step = reached - position_.pose;
-	if (!CheckWallCollision(map, position_.pose, {step.x, 0})) {
+	Slide(reached - position_.pose);
+}
+
+void Enemy::Slide(const vector2d& step) {
+	// An axis at a time, so it slides along a wall it meets
+	const Map& map = scene_.GetMap();
+	if (!CheckWallCollision(map, position_.pose, {step.x, 0}, radius_)) {
 		position_.pose.x += step.x;
 	}
-	if (!CheckWallCollision(map, position_.pose, {0, step.y})) {
+	if (!CheckWallCollision(map, position_.pose, {0, step.y}, radius_)) {
 		position_.pose.y += step.y;
+	}
+}
+
+void Enemy::KeepApart(double delta_time) {
+	// Standing in another, it eases out of it, a little each tick: a group
+	// does not stand on one spot, and two can still squeeze past each other
+	// in a doorway (a wall stops the easing, not them)
+	constexpr double kEasePerSecond = 4.0;
+	vector2d apart{0.0, 0.0};
+	for (const Enemy* other : scene_.GetEnemies()) {
+		if (other == this || other->GetCollisionRadius() <= 0.0) {
+			continue;
+		}
+		const vector2d gap = position_.pose - other->GetPose();
+		const double distance = gap.Magnitude();
+		const double overlap = radius_ + other->GetRadius() - distance;
+		if (overlap > 0.0) {
+			// Exactly on it: out along the way each faces, so they part
+			const vector2d away = distance > 1e-6
+									  ? gap / distance
+									  : vector2d{std::cos(position_.theta),
+												 std::sin(position_.theta)};
+			apart = apart + away * (overlap / 2);
+		}
+	}
+	if (apart.x != 0.0 || apart.y != 0.0) {
+		// Standing, it stands where it was eased to; walking, it goes on
+		const bool standing = next_pose == position_.pose;
+		Slide(apart * std::min(kEasePerSecond * delta_time, 1.0));
+		if (standing) {
+			next_pose = position_.pose;
+		}
 	}
 }
 
@@ -216,11 +262,9 @@ bool Enemy::NoticesPlayer() const {
 	// Heard, or seen near: nothing stands between them. It looks all round
 	// (seeing only ahead left guards standing blind while the player walked
 	// in behind them), whichever way it faces.
-	constexpr double kFurther = 2.0;  // looking out past its follow range
 	return IsAlerted() ||
-		   (IsPlayerInShootingRange() &&
-			scene_.GetPlayer().GetPose().Distance(position_.pose) <=
-				config_.behaviour.follow_range + kFurther);
+		   (IsPlayerInShootingRange() && scene_.GetPlayer().GetPose().Distance(
+											 position_.pose) <= SightRange());
 }
 
 void Enemy::LookAround() {
@@ -486,13 +530,30 @@ bool Enemy::IsCalm() const {
 							 GetStateType() == EnemyStateType::Patrol);
 }
 
+bool Enemy::AddDrop(Pickup& drop) {
+	if (drop_count_ == kMaxDrops) {
+		return false;
+	}
+	drops_[drop_count_++] = &drop;
+	return true;
+}
+
 void Enemy::SetDeath() {
 	crosshair_ray = Ray{};
 	is_alive_ = false;
-	if (drop_ != nullptr) {
-		drop_->DropAt(position_.pose);
-		drop_ = nullptr;
+	// What it carried, where it fell: side by side across the way it faced,
+	// where the floor is open, else at its feet
+	constexpr double kApart = 0.3;
+	const vector2d across{-std::sin(position_.theta),
+						  std::cos(position_.theta)};
+	for (std::size_t i = 0; i < drop_count_; ++i) {
+		const double off = (static_cast<double>(i) -
+							static_cast<double>(drop_count_ - 1) / 2) *
+						   kApart;
+		const vector2d at = position_.pose + across * off;
+		drops_[i]->DropAt(scene_.GetMap().IsBlocked(at) ? position_.pose : at);
 	}
+	drop_count_ = 0;
 }
 
 int Enemy::GetTextureId() const {

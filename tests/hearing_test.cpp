@@ -195,14 +195,18 @@ TEST(EnemyCry, BringsThoseNearTheOneHit) {
 // straight from the hunt, never standing in between
 TEST(PatrolHunt, GivenUpItWalksAboutAgain) {
 	constexpr SceneCapacity kCapacity{.enemies = 1};
-	const Map map(
-		testing::WriteMapFile("wolfenstein_patrol_hunt_test.txt", kBend)
-			.string());
+	// Two corridors joined at their far end, long enough that when what it
+	// heard is forgotten it is still round the bend, further than it sees
+	const Map map(testing::WriteMapFile("wolfenstein_patrol_hunt_test.txt",
+										{"3333333333333333", "3000000000000003",
+										 "3333333333333303", "3000000000000003",
+										 "3333333333333333"})
+					  .string());
 	memory::MonotonicArena arena(Scene::MemoryFor(map, kCapacity));
 	Scene scene(testing::TestTextures(), testing::TestSound(), map, kCapacity,
 				arena);
 	// The player at the far end of their corridor, the patroller at the
-	// far end of the other: 12 cells round the bend, out of sight
+	// far end of the other: 26 cells round the bend, out of sight
 	CharacterConfig config{Position2D({1.5, 1.5}, 0.0), 2.0, 0.4, 0.4, 1.0};
 	Player player(config, testing::GameData().weapons, 0,
 				  testing::TestTextures(), testing::TestSound());

@@ -7,8 +7,10 @@
 #include <nlohmann/json.hpp>
 #include <numbers>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace wolfenstein {
 
@@ -218,6 +220,33 @@ HitZones ToHitZones(const json& zones, HitZones defaults) {
 			.leg_damage = zones.value("leg_damage", defaults.leg_damage)};
 }
 
+// What an enemy type may drop ("drops": [{"pickup": "clip", "chance":
+// 0.7}]), each with a chance from 0 to 1 (1 if it names none)
+std::vector<EnemyDrop> ToDrops(const json& enemy) {
+	std::vector<EnemyDrop> drops;
+	if (!enemy.contains("drops")) {
+		return drops;
+	}
+	const auto& listed = enemy.at("drops");
+	for (const auto& drop : listed) {
+		EnemyDrop parsed{.pickup = drop.at("pickup").get<std::string>(),
+						 .chance = drop.value("chance", 1.0)};
+		if (parsed.chance < 0.0 || parsed.chance > 1.0) {
+			throw json::other_error::create(
+				510, "a drop's chance is from 0 to 1", &drop);
+		}
+		drops.push_back(std::move(parsed));
+	}
+	if (drops.size() > Enemy::kMaxDrops) {
+		throw json::other_error::create(511,
+										"an enemy drops at most " +
+											std::to_string(Enemy::kMaxDrops) +
+											" things",
+										&listed);
+	}
+	return drops;
+}
+
 EnemyConfig ToEnemy(const std::string& type, const json& enemy,
 					const HitZones& zones) {
 	const auto& weapon = enemy.at("weapon");
@@ -252,7 +281,7 @@ EnemyConfig ToEnemy(const std::string& type, const json& enemy,
 			.hit_zones = enemy.contains("hit_zones")
 							 ? ToHitZones(enemy.at("hit_zones"), zones)
 							 : zones,
-			.drop = enemy.value("drop", std::string{}),
+			.drops = ToDrops(enemy),
 			.weapon = {.weapon_name = weapon.at("name").get<std::string>(),
 					   .attack_damage = ToPair(weapon.at("damage")),
 					   .attack_range = weapon.at("range").get<double>(),

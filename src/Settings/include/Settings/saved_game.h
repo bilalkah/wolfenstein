@@ -33,6 +33,9 @@ struct SavedGame
 	std::size_t level = 0;		 // in the campaign, from 0
 	std::size_t weapon = 0;		 // the one in hand
 	std::size_t difficulty = 1;	 // index into its difficulties
+	// The game's roll for what its enemies carry: kept, so the game goes on
+	// with the same drops (a save without one rolls as 0)
+	std::uint64_t seed = 0;
 	double health = 100.0;
 	// The weapons carried, a bit per index into the configuration's; and
 	// each weapon's rounds, in its magazine and besides it

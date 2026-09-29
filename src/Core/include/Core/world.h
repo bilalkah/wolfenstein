@@ -13,6 +13,7 @@
 #include "SoundManager/sound_manager.h"
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <expected>
 #include <memory>
 #include <optional>
@@ -60,9 +61,11 @@ class World
 	// (or in `level`, e.g. the benchmark's), at the named difficulty. The
 	// previous level and player are gone afterwards: views borrowing them
 	// must be pointed at the new level before they draw again.
+	// `seed` rolls what its enemies carry to drop: the same seed, the same
+	// drops.
 	std::expected<void, std::string> NewGame(
 		std::string_view weapon_name, std::string_view level = {},
-		std::string_view difficulty = "normal");
+		std::string_view difficulty = "normal", std::uint64_t seed = 0);
 	// Goes on with a saved game: its level, with the player where it stood
 	// and carrying what it carried, and the level as it was left (enemies
 	// killed, pickups taken, the map explored, the clock)
@@ -127,6 +130,7 @@ class World
 	const PreparedLevel* level_ = nullptr;
 	std::size_t level_index_ = 0;
 	bool in_campaign_ = true;
+	std::uint64_t seed_ = 0;
 };
 
 }  // namespace wolfenstein

@@ -14,6 +14,7 @@
 
 #include "Camera/camera.h"
 #include "Characters/player.h"
+#include "Characters/view_angles.h"
 #include "Core/scene.h"
 #include "Core/world.h"
 #include "GameMap/map.h"
@@ -134,7 +135,7 @@ class Game
 	// Feeds the frame's events to the menu; returns false on window close
 	bool PollMenuEvents();
 
-	PlayerCommand SampleCommand() const;
+	PlayerCommand SampleCommand();
 	void UpdateAndRender();
 	void CheckGameEvent();
 	void CheckGameOver();
@@ -145,9 +146,15 @@ class Game
 	// From a level's briefing into the level
 	void StartFromBriefing();
 	void DrawTransition();
-	// The level as the player sees it (3D, or the debug view) with the map
-	// over it
-	void RenderView(double alpha);
+	// The level as the player sees it from `eye` (3D, or the debug view)
+	// with the map over it
+	void RenderView(const Position2D& eye);
+	// Where the view is drawn from, and how far it is tipped, `alpha` of the
+	// way from the last tick to the next
+	Position2D ViewPosition(double alpha) const;
+	double ViewPitch(double alpha) const;
+	// How much SDL's web backend has scaled the mouse's motion (1 natively)
+	double CanvasStretch() const;
 	std::string_view CurrentObjective() const;
 	void BenchmarkStep();
 	void SoakStep();
@@ -188,6 +195,9 @@ class Game
 	FixedStep step_{1.0 / 60.0, 0.25};
 	// The input of the frames since the last tick, for the next
 	PlayerCommand pending_;
+	// Where the player looks, turned by the input frame by frame and drawn
+	// at once; each tick's command carries it
+	ViewAngles view_;
 	GeneralConfig config_;
 	GameState state_ = GameState::Menu;
 	bool running_ = true;
@@ -205,6 +215,14 @@ class Game
 	LevelStats cleared_stats_;
 	// Web: set once the browser grants pointer lock, so losing it pauses
 	bool had_pointer_lock_ = false;
+	// The mouse is captured for play: pointer lock on the web, relative
+	// mouse mode natively
+	bool captured_ = false;
+	// Firing is armed once the button is up with the mouse captured, so the
+	// click that captures it (or picks a menu item) is not a shot
+	bool fire_armed_ = false;
+	// A click since the last frame, however short
+	bool clicked_ = false;
 	int benchmark_frames_ = 0;
 	int soak_frames_ = 0;
 	int soak_frame_ = 0;

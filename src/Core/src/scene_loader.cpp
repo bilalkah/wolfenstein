@@ -2,14 +2,36 @@
 #include "GameObjects/dynamic_object.h"
 #include "TextureManager/texture_manager.h"
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <fstream>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace wolfenstein {
 
 namespace {
+
+// A number from 0 up to 1 for drop `entry` of the level's enemy `enemy`:
+// the same for the same game (its seed) every time, and unrelated from one
+// enemy, drop, level or game to the next. The level's map name is hashed
+// (FNV-1a) in, and SplitMix64 mixes the lot.
+double DropRoll(std::uint64_t seed, std::string_view level, std::size_t enemy,
+				std::size_t entry) {
+	std::uint64_t hash = 14695981039346656037ULL;
+	for (const char c : level) {
+		hash = (hash ^ static_cast<unsigned char>(c)) * 1099511628211ULL;
+	}
+	std::uint64_t x = seed ^ hash ^ (enemy * 0x9E3779B97F4A7C15ULL) ^
+					  ((entry + 1) * 0xBF58476D1CE4E5B9ULL);
+	x += 0x9E3779B97F4A7C15ULL;
+	x = (x ^ (x >> 30)) * 0xBF58476D1CE4E5B9ULL;
+	x = (x ^ (x >> 27)) * 0x94D049BB133111EBULL;
+	x ^= x >> 31;
+	// The top 53 bits, as a double's fraction
+	return static_cast<double>(x >> 11) * 0x1.0p-53;
+}
 
 // Opens and parses a file, naming the file in any error
 template <typename Parse>
@@ -62,18 +84,18 @@ std::expected<void, std::string> SceneLoader::Prepare(const std::string& file) {
 	if (!map) {
 		return std::unexpected(map.error());
 	}
-	// What the enemies drop comes in as hidden pickups, after the level's
+	// What the enemies may drop comes in as hidden pickups, after the
+	// level's: one for everything each may drop, carried or not
 	std::uint32_t drops = 0;
 	for (const EnemySpawn& spawn : data->enemies) {
 		const auto enemy = config_.enemies.find(spawn.type);
 		if (enemy == config_.enemies.end()) {
 			return std::unexpected(file + ": unknown enemy type " + spawn.type);
 		}
-		if (!enemy->second.drop.empty()) {
-			if (!config_.pickups.contains(enemy->second.drop)) {
-				return std::unexpected(spawn.type +
-									   " drops an unknown pickup " +
-									   enemy->second.drop);
+		for (const EnemyDrop& drop : enemy->second.drops) {
+			if (!config_.pickups.contains(drop.pickup)) {
+				return std::unexpected(
+					spawn.type + " drops an unknown pickup " + drop.pickup);
 			}
 			++drops;
 		}
@@ -133,7 +155,8 @@ const PreparedLevel* SceneLoader::FindLevel(std::string_view name) const {
 }
 
 std::expected<void, std::string> SceneLoader::Populate(
-	Scene& scene, const PreparedLevel& level, Player& player) const {
+	Scene& scene, const PreparedLevel& level, Player& player,
+	std::uint64_t seed) const {
 	player.SetPosition(level.data.player);
 	player.IncreaseHealth(100);
 	player.SetKeys(0);	// the last level's keys open nothing here
@@ -167,23 +190,32 @@ std::expected<void, std::string> SceneLoader::Populate(
 			return std::unexpected("more pickups than the scene can hold");
 		}
 	}
-	// What each enemy carries, after the level's own pickups (a saved game
-	// counts them in this order), hidden until it drops them
-	for (Enemy* enemy : scene.GetEnemies()) {
-		const std::string& drop =
-			config_.enemies.find(enemy->GetBotName())->second.drop;
-		if (drop.empty()) {
-			continue;
+	// What each enemy may drop, after the level's own pickups (a saved game
+	// counts them in this order), hidden: everything it may drop is made,
+	// so the pickups are the same whatever it turns out to carry. Which it
+	// does carry is the game's roll (its seed), the same each time the
+	// level is loaded, and more likely the more supplies the difficulty
+	// gives.
+	const auto enemies = scene.GetEnemies();
+	for (std::size_t i = 0; i < enemies.size(); ++i) {
+		const auto& drops =
+			config_.enemies.find(enemies[i]->GetBotName())->second.drops;
+		for (std::size_t j = 0; j < drops.size(); ++j) {
+			const PickupConfig& pickup =
+				config_.pickups.find(drops[j].pickup)->second;
+			if (!scene.AddPickup(enemies[i]->GetPose(),
+								 scene.Textures().GetTextureId(pickup.texture),
+								 pickup.width, pickup.height, pickup.effect)) {
+				return std::unexpected("more pickups than the scene can hold");
+			}
+			Pickup* made = scene.GetPickups().back();
+			made->MakeDrop();
+			const double chance =
+				std::min(drops[j].chance * scene.GetDifficulty().supplies, 1.0);
+			if (DropRoll(seed, level.data.map, i, j) < chance) {
+				enemies[i]->AddDrop(*made);
+			}
 		}
-		const PickupConfig& pickup = config_.pickups.find(drop)->second;
-		if (!scene.AddPickup(enemy->GetPose(),
-							 scene.Textures().GetTextureId(pickup.texture),
-							 pickup.width, pickup.height, pickup.effect)) {
-			return std::unexpected("more pickups than the scene can hold");
-		}
-		Pickup* carried = scene.GetPickups().back();
-		carried->MakeDrop();
-		enemy->SetDrop(*carried);
 	}
 	for (const SecretSpawn& secret : level.data.secrets) {
 		if (!scene.GetMap().AddPushWall(secret.x, secret.y, secret.dx,

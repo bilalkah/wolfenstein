@@ -410,6 +410,22 @@
     document.addEventListener(type, resumeAudio);
   }
   canvas.addEventListener('mousedown', () => canvas.focus());
+
+  // Raw mouse motion, free of the system's pointer acceleration, where the
+  // browser offers it (unadjustedMovement); elsewhere the plain lock. The
+  // game asks for the lock through SDL, which cannot pass the option.
+  const lockPointer = canvas.requestPointerLock.bind(canvas);
+  canvas.requestPointerLock = (options) => {
+    let request;
+    try {
+      request = lockPointer({ ...options, unadjustedMovement: true });
+    } catch {
+      return lockPointer(options);
+    }
+    // Browsers that take options answer with a promise: turned down (raw
+    // motion not offered here), the plain lock instead, still in the click
+    return request?.catch?.(() => lockPointer(options)) ?? request;
+  };
 </script>
 {{{ SCRIPT }}}
 </body>

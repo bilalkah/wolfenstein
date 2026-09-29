@@ -55,6 +55,9 @@ class NavigationManager
 	// Builds the pathfinding grid from the scene's map and sizes the per-enemy
 	// routes; call once the level's map, objects and enemies are in place
 	void Build();
+	// Reads the map cell (x, y) afresh into the grid, after it changed (a
+	// secret sliding into it, or out of it)
+	void RefreshCell(int x, int y);
 	// Plans a path for the enemy with the given id and returns the point it
 	// should head for next: along the path, and round any lamp in the way
 	vector2d FindPath(Position2D start, Position2D end, ObjectId id);

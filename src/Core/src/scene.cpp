@@ -61,9 +61,7 @@ Scene::Scene(const TextureManager& textures, SoundManager& sound,
 	  noise_distance_(std::size_t{map.GetSizeX()} * map.GetSizeY(), kUnheard,
 					  &arena_),
 	  noise_queue_(std::size_t{map.GetSizeX()} * map.GetSizeY(), 0, &arena_),
-	  doors_(map.GetDoors().size(), DoorMotion{}, &arena_),
-	  door_channel_(sound.AllocateChannel()),
-	  burst_channel_(sound.AllocateChannel()) {
+	  doors_(map.GetDoors().size(), DoorMotion{}, &arena_) {
 	map_.ReservePushWalls(capacity.secrets);
 	objects_.reserve(capacity.enemies + capacity.dynamic_objects +
 					 capacity.pickups + kEffects + kProjectiles);
@@ -201,6 +199,24 @@ void Scene::ShowImpact(Impact impact, const vector2d& pose, double height,
 	next_effect_ = (next_effect_ + 1) % kEffects;
 }
 
+void Scene::PlaySoundAt(SoundEffect effect, const vector2d& where,
+						std::uint32_t source) {
+	// Through a wall it is heard, but dull; a sound in a wall's own cell (a
+	// door sliding in its frame) is not behind it
+	const bool muffled =
+		player_ != nullptr && !map_.IsBlocked(where) &&
+		!CastLineOfSight(map_, player_->GetPose(), where).is_hit;
+	sound_.PlayAt(effect, where, muffled, source);
+}
+
+void Scene::PlayDoorSound(std::size_t door) {
+	// Each door one sound at a time, apart from the enemies' voices
+	constexpr std::uint32_t kDoorSources = 0x10000;
+	const Door& at = map_.GetDoors()[door];
+	PlaySoundAt(SoundEffect::DoorMove, {at.x + 0.5, at.y + 0.5},
+				kDoorSources + static_cast<std::uint32_t>(door));
+}
+
 bool Scene::Wound(Enemy& enemy, double damage) {
 	if (!enemy.IsAlive() || enemy.GetHealth() <= 0.0) {
 		return false;
@@ -274,6 +290,16 @@ bool Scene::Fly(Projectile& projectile, double distance) {
 				return false;
 			}
 		}
+		// A lamp in its way: it bursts short of it
+		for (const IGameObject* object : objects_) {
+			if (object->GetObjectType() == ObjectType::DYNAMIC_OBJECT &&
+				object->GetCollisionRadius() > 0.0 &&
+				object->GetPose().Distance(to) <
+					object->GetCollisionRadius() + radius) {
+				Burst(projectile, from, nullptr);
+				return false;
+			}
+		}
 		projectile.MoveTo(to);
 	}
 	return true;
@@ -323,7 +349,7 @@ void Scene::Burst(Projectile& projectile, const vector2d& at, Enemy* struck) {
 		std::max(Projectile::kFlightHeight - config.burst_height / 2, 0.0));
 	next_effect_ = (next_effect_ + 1) % kEffects;
 	if (config.burst_sound) {
-		sound_.PlayEffect(burst_channel_, *config.burst_sound);
+		PlaySoundAt(*config.burst_sound, at);
 	}
 	MakeNoise(at, config.noise_range);
 }
@@ -360,7 +386,18 @@ void Scene::Update(double delta_time) {
 	CollectPickups();
 	notice_time_ += delta_time;
 	HandleUse();
+	// Secrets sliding back: where one stops, the enemies' ways change
+	const auto walls = map_.GetPushWalls();
+	std::uint64_t moving = 0;
+	for (std::size_t i = 0; i < walls.size() && i < 64; ++i) {
+		moving |= walls[i].moving ? std::uint64_t{1} << i : 0;
+	}
 	map_.AdvancePushWalls(PushWall::kDistance * delta_time / kPushSeconds);
+	for (std::size_t i = 0; i < walls.size() && i < 64; ++i) {
+		if ((moving >> i & 1U) != 0 && !walls[i].moving) {
+			RefreshSecretWay(i);
+		}
+	}
 	UpdateDoors(delta_time);
 }
 
@@ -424,9 +461,10 @@ void Scene::HandleUse() {
 			return;
 		}
 		if (const PushWall* wall = map_.FindPushWall(x, y)) {
-			map_.Push(
-				static_cast<std::size_t>(wall - map_.GetPushWalls().data()));
-			ShowNotice(Notice::Secret);
+			if (PushSecret(static_cast<std::size_t>(
+					wall - map_.GetPushWalls().data()))) {
+				ShowNotice(Notice::Secret);
+			}
 			return;
 		}
 		if (const Door* door = map_.FindDoor(x, y)) {
@@ -447,10 +485,46 @@ void Scene::HandleUse() {
 	}
 }
 
+bool Scene::PushSecret(std::size_t index) {
+	const PushWall& wall = map_.GetPushWalls()[index];
+	// Not onto anyone: an enemy in its way keeps it where it is
+	for (int step = 1; step <= PushWall::kDistance; ++step) {
+		const int x = wall.x + step * wall.dx;
+		const int y = wall.y + step * wall.dy;
+		const bool blocked =
+			std::ranges::any_of(enemy_list_, [&](const Enemy* enemy) {
+				const double reach = enemy->GetCollisionRadius();
+				const vector2d at = enemy->GetPose();
+				return reach > 0.0 && at.x + reach > x &&
+					   at.x - reach < x + 1 && at.y + reach > y &&
+					   at.y - reach < y + 1;
+			});
+		if (blocked) {
+			return false;
+		}
+	}
+	map_.Push(index);
+	RefreshSecretWay(index);
+	return true;
+}
+
+void Scene::RestoreSecret(std::size_t index) {
+	map_.Push(index, /*finish=*/true);
+	RefreshSecretWay(index);
+}
+
+void Scene::RefreshSecretWay(std::size_t index) {
+	const PushWall& wall = map_.GetPushWalls()[index];
+	for (int step = 0; step <= PushWall::kDistance; ++step) {
+		navigation_.RefreshCell(wall.x + step * wall.dx,
+								wall.y + step * wall.dy);
+	}
+}
+
 void Scene::OpenDoor(std::size_t door) {
 	DoorMotion& motion = doors_[door];
 	if (motion.phase == DoorMotion::Phase::Closed) {
-		sound_.PlayEffect(door_channel_, SoundEffect::DoorMove);
+		PlayDoorSound(door);
 	}
 	if (motion.phase == DoorMotion::Phase::Closed ||
 		motion.phase == DoorMotion::Phase::Closing) {
@@ -513,7 +587,7 @@ void Scene::UpdateDoors(double delta_time) {
 				if (motion.open_time >= kDoorOpenSeconds &&
 					!IsDoorwayOccupied(doors[i])) {
 					motion.phase = DoorMotion::Phase::Closing;
-					sound_.PlayEffect(door_channel_, SoundEffect::DoorMove);
+					PlayDoorSound(i);
 				}
 				break;
 			case DoorMotion::Phase::Closing:

@@ -14,6 +14,7 @@ namespace {
 constexpr SavedGame kSaved{.level = 2,
 						   .weapon = 1,
 						   .difficulty = 2,
+						   .seed = 0xDEADBEEFCAFEF00DULL,
 						   .health = 72.5,
 						   .weapons = 0b1011,
 						   .ammo = {0, 1, 0, 2},
@@ -74,6 +75,14 @@ TEST(SavedGame, AnIncompleteOrBrokenRecordIsNoSave) {
 
 // Weapons are saved by slot: a save from before the arsenal changed (no
 // format, or another one) would hand back the wrong weapons, so it is none
+// A save from before games had a seed rolls its drops as seed 0
+TEST(SavedGame, ASaveWithoutASeedRollsAsZero) {
+	const auto parsed = SavedGame::Parse(
+		"format=2\nlevel=1\nweapon=0\ndifficulty=1\nhealth=100\n");
+	ASSERT_TRUE(parsed);
+	EXPECT_EQ(parsed.value_or(SavedGame{.seed = 9}).seed, 0u);
+}
+
 TEST(SavedGame, ASaveOfAnotherFormatIsNoSave) {
 	const std::string_view fields =
 		"level=2\nweapon=1\ndifficulty=1\nhealth=100\n";

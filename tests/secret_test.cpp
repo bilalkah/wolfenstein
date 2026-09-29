@@ -135,5 +135,63 @@ TEST_F(SecretSceneTest, DrawingItsMarkAllocatesNothing) {
 }
 #endif
 
+// The secret's scene with a soldier standing at `enemy`
+class SecretWayTest : public ::testing::Test
+{
+  protected:
+	static constexpr SceneCapacity kCapacity{.enemies = 1, .secrets = 1};
+
+	void Load(vector2d enemy) {
+		scene_.SetPlayer(player_);
+		ASSERT_TRUE(scene_.GetMap().AddPushWall(2, 3, 0, 1));
+		ASSERT_TRUE(
+			scene_.AddEnemy(testing::Enemy("soldier"), Position2D(enemy, 0.0)));
+		scene_.FinishLoading();
+	}
+	void Use() {
+		player_.SetCommand(PlayerCommand{.use = true});
+		scene_.Update(kTick);
+		player_.SetCommand(PlayerCommand{});
+	}
+	// Where a way from `from` into the hidden room (the part the wall slides
+	// out of) leads first; `from` if there is none
+	vector2d WayIn(vector2d from) {
+		const Enemy& enemy = *scene_.GetEnemies().front();
+		return scene_.GetNavigation().FindPath(
+			Position2D(from, 0.0), Position2D({2.5, 4.5}, 0.0), enemy.GetId());
+	}
+
+	CharacterConfig config_{Position2D({2.5, 2.2}, kFacingDown), 2.0, 0.4, 0.4,
+							1.0};
+	Map map_{WithSecret("wolfenstein_secret_way_test.txt")};
+	memory::MonotonicArena arena_{Scene::MemoryFor(map_, kCapacity)};
+	Scene scene_{testing::TestTextures(), testing::TestSound(), map_, kCapacity,
+				 arena_};
+	Player player_{config_, testing::Weapon("mp5"), testing::TestTextures(),
+				   testing::TestSound()};
+};
+
+// Pushed, it opens the hidden room to the enemies' ways too
+TEST_F(SecretWayTest, PushedItOpensTheWayForEnemies) {
+	Load({1.5, 1.5});
+	const vector2d from{1.5, 1.5};
+	EXPECT_EQ(WayIn(from), from) << "sealed";
+	Use();
+	ASSERT_TRUE(scene_.GetMap().GetPushWalls()[0].pushed);
+	EXPECT_EQ(WayIn(from), from) << "not through it while it slides";
+	for (double t = 0.0; t < Scene::kPushSeconds + 0.1; t += kTick) {
+		scene_.Update(kTick);
+	}
+	EXPECT_NE(WayIn(from), from) << "open once it stops";
+}
+
+// An enemy standing in its way keeps it shut
+TEST_F(SecretWayTest, AnEnemyInTheWayKeepsItShut) {
+	Load({2.5, 4.5});
+	Use();
+	EXPECT_FALSE(scene_.GetMap().GetPushWalls()[0].pushed);
+	EXPECT_NE(scene_.GetNotice(), Scene::Notice::Secret);
+}
+
 }  // namespace
 }  // namespace wolfenstein

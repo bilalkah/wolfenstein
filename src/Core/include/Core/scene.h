@@ -117,6 +117,11 @@ class Scene
 	void DecreaseAliveEnemies();
 	// Starts opening the door with this index in the map (if not open)
 	void OpenDoor(std::size_t door);
+	// Starts sliding the secret with this index in the map back, unless an
+	// enemy stands in its way (false)
+	bool PushSecret(std::size_t index);
+	// The secret already slid all the way back, as a saved game left it
+	void RestoreSecret(std::size_t index);
 	// A message for the player, for a moment after what caused it
 	enum class Notice : std::uint8_t {
 		None,
@@ -183,6 +188,11 @@ class Scene
 	void Launch(const ProjectileConfig& config, const vector2d& from,
 				double theta, double damage);
 	std::span<const Projectile> GetProjectiles() const { return projectiles_; }
+	// Plays a sound from `where`, as the player hears it: muffled when a
+	// wall stands between them. A `source` other than 0 (an enemy's, a
+	// door's) sounds one thing at a time.
+	void PlaySoundAt(SoundEffect effect, const vector2d& where,
+					 std::uint32_t source = 0);
 	// Hurts a living enemy: it feels it, cries out to those near it, and a
 	// killing blow is counted, once. False, and nothing done, for one
 	// already down.
@@ -235,6 +245,11 @@ class Scene
 	void UpdateDoors(double delta_time);
 	// Whether a living character stands in or at the door's cell
 	bool IsDoorwayOccupied(const Door& door) const;
+	// A door sliding, heard from where it is
+	void PlayDoorSound(std::size_t door);
+	// The enemies' ways through the cells a secret slides through, as they
+	// are now
+	void RefreshSecretWay(std::size_t index);
 	// Moves each projectile in flight on by its speed
 	void FlyProjectiles(double delta_time);
 	// Moves a projectile `distance` on, a short step at a time so it passes
@@ -283,7 +298,6 @@ class Scene
 	bool kill_targets_ = false;
 	bool completed_ = false;
 	Player* player_ = nullptr;
-	SoundChannel door_channel_;	 // doors sliding
 	// Kept for the level's life, joining the objects when it is loaded
 	std::array<Effect, kEffects> effects_{};
 	std::size_t next_effect_ = 0;
@@ -295,7 +309,6 @@ class Scene
 	// Kept for the level's life like the effects
 	std::array<Projectile, kProjectiles> projectiles_{};
 	std::size_t next_projectile_ = 0;
-	SoundChannel burst_channel_;
 	NavigationManager navigation_{*this, &arena_};
 	size_t number_of_alive_enemies{};
 };

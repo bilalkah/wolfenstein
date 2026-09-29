@@ -114,14 +114,20 @@ class Player : public ICharacter, public IGameObject
 	// Where to draw the view `alpha` of the way from the previous tick
 	Position2D GetRenderPosition(double alpha) const;
 	// How far the last shot's kick still jolts the view, a share of the
-	// screen's height easing back to 0
+	// screen's height easing back to 0; and as drawn `alpha` of the way
+	// from the previous tick
 	double GetKick() const { return kick_; }
+	double GetRenderKick(double alpha) const {
+		return previous_kick_ + (kick_ - previous_kick_) * alpha;
+	}
 	// How far up (+) or down the player looks: the view slides by this share
 	// of the screen's height, and a shot `d` away flies at 0.5 + pitch * d
 	// (a wall is 1 high, the eye half way up it)
 	double GetPitch() const { return pitch_; }
 	// The furthest the player looks up or down
 	static constexpr double kMaxPitch = 0.4;
+	// How fast the turning keys turn the player, radians a second
+	static constexpr double kKeyboardTurnSpeed = 2.5;
 	// The hit marker round the crosshair after a shot hit: how strongly it
 	// shows (1 as it hits, fading to 0), and whether it was a headshot
 	double GetHitMarker() const;
@@ -161,6 +167,7 @@ class Player : public ICharacter, public IGameObject
 	double health_{};
 	double since_hurt_{};
 	double kick_{};
+	double previous_kick_{};
 	double pitch_{};
 	double since_death_{};
 	double since_hit_{1e9};	 // since a shot of theirs last hit

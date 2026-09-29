@@ -269,8 +269,17 @@
                 "sidestep": 1.0,
                 "retreat_below": 0.3
             },
-            "drop": "clip",
-            "radius": 0.165
+            "radius": 0.165,
+            "drops": [
+                {
+                    "pickup": "clip",
+                    "chance": 0.75
+                },
+                {
+                    "pickup": "medkit",
+                    "chance": 0.15
+                }
+            ]
         },
         "caco_demon": {
             "t_speed": 0.8,
@@ -301,7 +310,13 @@
                 "alert": "caco_alert",
                 "pain": "demon_pain",
                 "death": "caco_death"
-            }
+            },
+            "drops": [
+                {
+                    "pickup": "medkit",
+                    "chance": 0.35
+                }
+            ]
         },
         "cyber_demon": {
             "t_speed": 0.8,
@@ -328,13 +343,22 @@
                 ],
                 "sidestep": 0.8
             },
-            "drop": "large_medkit",
             "radius": 0.25,
             "sounds": {
                 "alert": "cyber_alert",
                 "pain": "demon_pain",
                 "death": "cyber_death"
-            }
+            },
+            "drops": [
+                {
+                    "pickup": "large_medkit",
+                    "chance": 1.0
+                },
+                {
+                    "pickup": "ammo_box",
+                    "chance": 1.0
+                }
+            ]
         },
         "shotgun_zombie": {
             "t_speed": 0.8,
@@ -362,13 +386,22 @@
                 "sidestep": 0.8,
                 "retreat_below": 0.25
             },
-            "drop": "clip",
             "radius": 0.17,
             "sounds": {
                 "attack": "shotgun",
                 "alert": "zombie_alert",
                 "death": "zombie_death"
-            }
+            },
+            "drops": [
+                {
+                    "pickup": "clip",
+                    "chance": 0.75
+                },
+                {
+                    "pickup": "medkit",
+                    "chance": 0.2
+                }
+            ]
         },
         "minigun_zombie": {
             "t_speed": 0.7,
@@ -394,13 +427,22 @@
                     6.0
                 ]
             },
-            "drop": "clip",
             "radius": 0.22,
             "sounds": {
                 "attack": "mp5",
                 "alert": "zombie_alert",
                 "death": "zombie_death"
-            }
+            },
+            "drops": [
+                {
+                    "pickup": "ammo_box",
+                    "chance": 0.9
+                },
+                {
+                    "pickup": "medkit",
+                    "chance": 0.5
+                }
+            ]
         },
         "demon": {
             "t_speed": 1.6,
@@ -432,7 +474,13 @@
                 "alert": "demon_alert",
                 "pain": "demon_pain",
                 "death": "demon_death"
-            }
+            },
+            "drops": [
+                {
+                    "pickup": "medkit",
+                    "chance": 0.3
+                }
+            ]
         }
     },
     "pickups": {

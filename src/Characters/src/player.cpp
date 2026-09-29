@@ -105,6 +105,7 @@ void Player::TakeInHand(std::size_t index) {
 
 void Player::Update(double delta_time) {
 	previous_position_ = position_;
+	previous_kick_ = kick_;
 	// The view settles back after a shot's kick within a tenth of a second
 	constexpr double kKickSettling = 30.0;	// per second
 	kick_ *= std::exp(-kKickSettling * delta_time);
@@ -160,6 +161,9 @@ void Player::IncreaseHealth(double amount) {
 }
 
 void Player::DecreaseHealth(double amount) {
+	if (!is_alive_) {
+		return;	 // fallen: nothing more hurts it
+	}
 	health_ -= amount;
 	if (health_ <= 0.0) {
 		is_alive_ = false;
@@ -285,8 +289,13 @@ void Player::Move(double delta_time) {
 	const double speed = translation_speed_ * delta_time;
 	const vector2d facing{std::cos(position_.theta), std::sin(position_.theta)};
 	const vector2d right{-facing.y, facing.x};
-	const vector2d delta_movement =
-		facing * (command_.forward * speed) + right * (command_.strafe * speed);
+	// Forward and sideways at once, no faster than either alone
+	vector2d wish = facing * command_.forward + right * command_.strafe;
+	const double length = wish.Magnitude();
+	if (length > 1.0) {
+		wish = wish / length;
+	}
+	const vector2d delta_movement = wish * speed;
 	// As far as it can go: out of the living enemies and lamps it meets
 	// (sliding round them), then an axis at a time against the walls
 	// (sliding along them)
@@ -296,10 +305,10 @@ void Player::Move(double delta_time) {
 								position_.pose + delta_movement, width_ / 2);
 	const vector2d step = reached - position_.pose;
 	const vector2d before = position_.pose;
-	if (!CheckWallCollision(map, position_.pose, {step.x, 0})) {
+	if (!CheckWallCollision(map, position_.pose, {step.x, 0}, width_ / 2)) {
 		position_.pose.x += step.x;
 	}
-	if (!CheckWallCollision(map, position_.pose, {0, step.y})) {
+	if (!CheckWallCollision(map, position_.pose, {0, step.y}, width_ / 2)) {
 		position_.pose.y += step.y;
 	}
 	// A footstep every stride walked, one foot then the other
@@ -314,7 +323,12 @@ void Player::Move(double delta_time) {
 }
 
 void Player::Rotate(double delta_time) {
-	constexpr double kKeyboardTurnSpeed = 2.5;	// rad/s
+	// Where to look, set outright: the game turned the view with the input
+	if (command_.has_view) {
+		position_.theta = command_.view_theta;
+		pitch_ = std::clamp(command_.view_pitch, -kMaxPitch, kMaxPitch);
+		return;
+	}
 	// Mouse motion is already a distance, so it is not scaled by the time
 	// step, and it is spent by the first tick that applies it
 	const double turn =

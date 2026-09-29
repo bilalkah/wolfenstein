@@ -140,6 +140,9 @@ void Game::ShowLevel() {
 	clock_.Restart();
 	step_.Reset();
 	pending_ = {};
+	// Looking where the level (or the saved game) put the player
+	const Player& player = world_->GetPlayer();
+	view_.Reset(player.GetPosition().theta, player.GetPitch());
 }
 
 void Game::NewGame(std::string_view weapon_name, std::string_view level,
@@ -150,7 +153,13 @@ void Game::NewGame(std::string_view weapon_name, std::string_view level,
 		IsScripted() || difficulty_index >= difficulties.size()
 			? std::string_view("normal")
 			: std::string_view(difficulties[difficulty_index].name);
-	if (auto started = world_->NewGame(weapon_name, level, difficulty);
+	// Each game played rolls its own drops; a scripted run always the same
+	const auto seed =
+		IsScripted()
+			? std::uint64_t{0}
+			: static_cast<std::uint64_t>(
+				  std::chrono::system_clock::now().time_since_epoch().count());
+	if (auto started = world_->NewGame(weapon_name, level, difficulty, seed);
 		!started) {
 		std::cerr << "Cannot start a game: " << started.error() << '\n';
 		std::exit(EXIT_FAILURE);
@@ -236,6 +245,8 @@ void Game::DescribeSavedGame() {
 void Game::EnterPlaying() {
 	state_ = GameState::Playing;
 	had_pointer_lock_ = false;
+	fire_armed_ = false;
+	clicked_ = false;
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 	// Drop mouse motion that happened in the menu
 	SDL_GetRelativeMouseState(nullptr, nullptr);
@@ -592,7 +603,7 @@ void Game::PausedTick() {
 		return;
 	}
 	clock_.Tick();
-	RenderView(1.0);
+	RenderView(ViewPosition(1.0));
 	const auto action = menu_->Update(clock_.DeltaTime());
 	Present();
 	HandleMenuAction(action);
@@ -636,6 +647,21 @@ void Game::GameTick() {
 #endif
 }
 
+// How much SDL's web backend has scaled the mouse's motion: the canvas's
+// pixels over its size on the page (1 natively)
+double Game::CanvasStretch() const {
+#ifdef __EMSCRIPTEN__
+	double width = 0.0;
+	double height = 0.0;
+	if (emscripten_get_element_css_size("#canvas", &width, &height) ==
+			EMSCRIPTEN_RESULT_SUCCESS &&
+		width > 0.0) {
+		return width / config_.screen_width;
+	}
+#endif
+	return 1.0;
+}
+
 MouseLook ToMouseLook(int dx, int dy, const Settings& settings,
 					  const GeneralConfig& view) {
 	constexpr double kRadiansPerPixel = 0.005;
@@ -652,7 +678,7 @@ MouseLook ToMouseLook(int dx, int dy, const Settings& settings,
 }
 
 // Reads this frame's player input from the keyboard and mouse
-PlayerCommand Game::SampleCommand() const {
+PlayerCommand Game::SampleCommand() {
 	const Uint8* keys = SDL_GetKeyboardState(nullptr);
 	const auto axis = [keys](SDL_Scancode positive, SDL_Scancode negative) {
 		return static_cast<std::int8_t>(keys[positive] - keys[negative]);
@@ -667,15 +693,23 @@ PlayerCommand Game::SampleCommand() const {
 	int dx = 0;
 	int dy = 0;
 	SDL_GetRelativeMouseState(&dx, &dy);
-	if (SDL_GetRelativeMouseMode()) {
+	if (captured_) {
+		// SDL's web backend scales the motion by how far the canvas is
+		// stretched, which would make the mouse faster in a smaller
+		// window: undone here, so a hand's movement turns as far anywhere
+		const double stretch = CanvasStretch();
 		const MouseLook look = ToMouseLook(dx, dy, Settings::Get(), config_);
-		command.look = look.turn;
-		command.look_up = look.up;
+		command.look = look.turn * stretch;
+		command.look_up = look.up * stretch;
 	}
 
-	command.fire =
-		(SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON_LMASK) != 0 ||
-		keys[SDL_SCANCODE_LCTRL] != 0;
+	// Firing waits for the button to come up once the mouse is captured;
+	// a click shorter than a frame still fires
+	const bool held =
+		(SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON_LMASK) != 0;
+	fire_armed_ = captured_ && (fire_armed_ || !held);
+	command.fire = fire_armed_ && (held || clicked_);
+	clicked_ = false;
 	command.reload = keys[SDL_SCANCODE_R] != 0;
 	command.use = keys[SDL_SCANCODE_E] != 0 || keys[SDL_SCANCODE_SPACE] != 0;
 	return command;
@@ -696,6 +730,13 @@ void Game::UpdateAndRender() {
 	// A number key pressed since: that weapon in hand
 	command.weapon = static_cast<std::int8_t>(weapon_key_);
 	weapon_key_ = -1;
+	// The view turns with the hand at once, this frame; the next tick takes
+	// it. Not for a dead player, nor while the level waits behind its
+	// results or briefing.
+	if (!IsScripted() && world_->GetPlayer().IsAlive() &&
+		fade_ != Fade::Stats && fade_ != Fade::Briefing) {
+		command = view_.Apply(command, clock_.DeltaTime());
+	}
 
 	// The simulation advances in fixed ticks, whatever the frame rate, so
 	// the same commands always play out the same way. A long stall (a
@@ -716,13 +757,17 @@ void Game::UpdateAndRender() {
 	// Frames fall between ticks: the view is drawn this far from the last
 	// tick towards the next, so motion stays smooth at any frame rate
 	const double alpha = step_.Alpha();
+	const Position2D eye = ViewPosition(alpha);
+	// Sounds from places are heard from where the view is
+	world_->Sound().SetListener(eye.pose, eye.theta);
 	{
 		ScopedTimer timer(ProfileSection::Camera);
-		camera_->Update(world_->GetPlayer().GetRenderPosition(alpha), alpha);
+		camera_->SetPitch(ViewPitch(alpha));
+		camera_->Update(eye, alpha);
 		camera_->ExploreView();
 	}
 	AutoSave(clock_.DeltaTime());
-	RenderView(alpha);
+	RenderView(eye);
 	DrawTransition();
 	ScopedTimer timer(ProfileSection::Present);
 	Present();
@@ -744,11 +789,28 @@ std::string_view Game::CurrentObjective() const {
 									: std::string_view();
 }
 
-void Game::RenderView(double alpha) {
+// Where the view is drawn from: the player's place `alpha` of the way from
+// the last tick to the next, looking where the input has turned the view
+// (a scripted run's player is steered by the script, not the view)
+Position2D Game::ViewPosition(double alpha) const {
+	Position2D eye = world_->GetPlayer().GetRenderPosition(alpha);
+	if (!IsScripted()) {
+		eye.theta = view_.Theta();
+	}
+	return eye;
+}
+
+// How far the view is tipped: where the input looks, and a shot's kick
+double Game::ViewPitch(double alpha) const {
+	const Player& player = world_->GetPlayer();
+	return (IsScripted() ? player.GetPitch() : view_.Pitch()) +
+		   player.GetRenderKick(alpha);
+}
+
+void Game::RenderView(const Position2D& eye) {
 	renderer_->RenderScene(clock_.DeltaTime());
 	if (render_type_ == RenderType::TEXTURE) {
-		minimap_->Render(world_->GetPlayer().GetRenderPosition(alpha),
-						 map_expanded_);
+		minimap_->Render(eye, map_expanded_);
 		const LevelStats stats = world_->CurrentLevel().GetStats();
 		menu_->DrawEnemyCounter(stats.kills, stats.enemies);
 		const Player& player = world_->GetPlayer();
@@ -770,6 +832,12 @@ void Game::RenderView(double alpha) {
 				menu_->DrawNotice("You found a secret");
 				break;
 			case Scene::Notice::None:
+				// The mouse not captured yet (after a pause, on the web): a
+				// click takes it, and is not a shot
+				if (!captured_ && !IsScripted() &&
+					state_ == GameState::Playing && fade_ == Fade::None) {
+					menu_->DrawNotice("Click to play");
+				}
 				break;
 		}
 		if (fade_ == Fade::None) {
@@ -814,6 +882,10 @@ void Game::CheckGameEvent() {
 			// Down the wheel is on to the next weapon
 			wheel_ -= event.wheel.y;
 		}
+		if (event.type == SDL_MOUSEBUTTONDOWN &&
+			event.button.button == SDL_BUTTON_LEFT) {
+			clicked_ = true;
+		}
 		if (event.type == SDL_KEYDOWN) {
 			const SDL_Scancode key = event.key.keysym.scancode;
 			if (key >= SDL_SCANCODE_1 && key <= SDL_SCANCODE_8) {
@@ -839,6 +911,7 @@ void Game::CheckGameEvent() {
 		}
 	}
 
+	captured_ = SDL_GetRelativeMouseMode() == SDL_TRUE;
 #ifdef __EMSCRIPTEN__
 	// Browsers release the pointer lock on Esc without passing the key on, so
 	// losing the lock is what pauses the game there
@@ -846,6 +919,7 @@ void Game::CheckGameEvent() {
 		EmscriptenPointerlockChangeEvent status;
 		if (emscripten_get_pointerlock_status(&status) ==
 			EMSCRIPTEN_RESULT_SUCCESS) {
+			captured_ = status.isActive != 0;
 			if (status.isActive) {
 				had_pointer_lock_ = true;
 			}

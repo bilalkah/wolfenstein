@@ -32,7 +32,8 @@ World::World(const TextureManager& textures, SceneLoader loader,
 
 std::expected<void, std::string> World::NewGame(std::string_view weapon_name,
 												std::string_view level,
-												std::string_view difficulty) {
+												std::string_view difficulty,
+												std::uint64_t seed) {
 	// In hand: the named weapon, or the last of those a game starts with
 	const auto& arsenal = loader_.Config().weapons;
 	std::size_t first = 0;
@@ -55,6 +56,7 @@ std::expected<void, std::string> World::NewGame(std::string_view weapon_name,
 		return std::unexpected("unknown difficulty " + std::string(difficulty));
 	}
 	difficulty_ = chosen;
+	seed_ = seed;
 	// The old level borrows the old player: it goes first
 	scene_.reset();
 	const CharacterStats& stats = loader_.Config().player;
@@ -77,8 +79,9 @@ std::expected<void, std::string> World::ContinueGame(const SavedGame& saved) {
 		return std::unexpected(
 			std::string("the saved game does not fit this game's content"));
 	}
-	if (auto started = NewGame(config.weapons[saved.weapon].weapon_name, {},
-							   config.difficulties[saved.difficulty].name);
+	if (auto started =
+			NewGame(config.weapons[saved.weapon].weapon_name, {},
+					config.difficulties[saved.difficulty].name, saved.seed);
 		!started) {
 		return started;
 	}
@@ -130,7 +133,7 @@ std::expected<void, std::string> World::ContinueGame(const SavedGame& saved) {
 	const auto walls = scene.GetMap().GetPushWalls();
 	for (std::size_t i = 0; i < walls.size() && i < 64; ++i) {
 		if ((saved.secrets >> i & 1U) != 0) {
-			scene.GetMap().Push(i, /*finish=*/true);
+			scene.RestoreSecret(i);
 		}
 	}
 	player.SetKeys(static_cast<std::uint8_t>(saved.keys));
@@ -146,6 +149,7 @@ std::optional<SavedGame> World::Capture() const {
 	const Scene& scene = *scene_;
 	SavedGame saved{.level = level_index_,
 					.weapon = player_->HeldWeapon(),
+					.seed = seed_,
 					.health = player_->GetHealth(),
 					.weapons = player_->GetOwnedWeapons(),
 					.has_position = true,
@@ -243,7 +247,7 @@ std::expected<void, std::string> World::StartLevel(
 						   .supplies = difficulty_->supplies,
 						   .attackers = difficulty_->attackers});
 	sound_->PlayMusic(level->data.music);
-	return loader_.Populate(*scene_, *level, *player_);
+	return loader_.Populate(*scene_, *level, *player_, seed_);
 }
 
 }  // namespace wolfenstein
