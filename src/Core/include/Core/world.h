@@ -67,6 +67,12 @@ class World
 	std::expected<void, std::string> NewGame(
 		std::string_view weapon_name, std::string_view level = {},
 		std::string_view difficulty = "normal", std::uint64_t seed = 0);
+	// A game of several players on the arena `level`: none of them yet, as
+	// a server starts one, or the local player in `local_slot`, as a
+	// player's game joins one. Players join and leave it with JoinPlayer
+	// and LeavePlayer.
+	std::expected<void, std::string> NewMatch(
+		std::string_view level, std::optional<std::size_t> local_slot);
 	// Goes on with a saved game: its level, with the player where it stood
 	// and carrying what it carried, and the level as it was left (enemies
 	// killed, pickups taken, the map explored, the clock)
@@ -114,18 +120,26 @@ class World
 		assert(scene_ && "no level loaded");
 		return *scene_;
 	}
-	// The local player, the one this game is played from (slot 0)
+	// The local player, the one this game is played from: slot 0 in a
+	// single player game, the one the server gave in a match
 	Player& GetPlayer() {
-		assert(player_ && "no game started");
-		return *player_;
+		Player* player = local_ ? FindPlayer(*local_) : nullptr;
+		assert(player != nullptr && "no local player");
+		return *player;
 	}
-	// Another player joins the game in `slot` (1 to Scene::kMaxPlayers - 1)
-	// carrying the weapons a game starts with, where the level starts; in
+	bool HasLocalPlayer() const { return LocalPlayer() != nullptr; }
+	std::optional<std::size_t> LocalSlot() const { return local_; }
+	// Another player joins the game in `slot`, a free one, carrying the
+	// weapons a game starts with, where the level brings the slot in; in
 	// every level after, too, until it leaves. Once a game has started.
 	std::expected<void, std::string> JoinPlayer(std::size_t slot);
 	void LeavePlayer(std::size_t slot);
 	// The player in `slot`, the local one's included, or nullptr
 	Player* FindPlayer(std::size_t slot);
+	const Player* FindPlayer(std::size_t slot) const;
+	// Where the level brings the player in `slot` in: its spawn points
+	// in turn, or where the player starts if it has none
+	Position2D SpawnFor(std::size_t slot) const;
 	SoundManager& Sound() { return *sound_; }
 	const GameConfig& Config() const { return loader_.Config(); }
 	// The most objects any level has: what per-object views are sized for
@@ -135,14 +149,21 @@ class World
 
   private:
 	std::expected<void, std::string> StartLevel(std::string_view level_file);
+	const Player* LocalPlayer() const {
+		return local_ ? FindPlayer(*local_) : nullptr;
+	}
+	// A player in `slot`, carrying what a game starts with
+	Player& MakePlayer(std::size_t slot);
+	// Puts the player in `slot` into the level, where it comes in, whole
+	void Admit(Scene& scene, Player& player, std::size_t slot) const;
 
 	const TextureManager& textures_;
 	SceneLoader loader_;
 	std::unique_ptr<SoundManager> sound_;
 	memory::MonotonicArena level_memory_;
-	std::optional<Player> player_;
-	// The other players, by slot (the local player's slot, 0, stays empty)
-	std::array<std::optional<Player>, Scene::kMaxPlayers> others_;
+	// The players, by slot; one of them may be the local one
+	std::array<std::optional<Player>, Scene::kMaxPlayers> players_;
+	std::optional<std::size_t> local_;
 	// What a player starts a game with: the weapon in hand
 	std::size_t first_weapon_ = 0;
 	std::optional<Scene> scene_;

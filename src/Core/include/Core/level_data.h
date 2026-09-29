@@ -118,6 +118,9 @@ struct GameConfig
 	Campaign campaign;
 	// The level the benchmark plays; not part of the campaign
 	std::string benchmark_level;
+	// The levels multiplayer games are played on (deathmatch arenas); not
+	// part of the campaign; optional
+	std::vector<std::string> arenas;
 	// The track the menu plays (assets/music/<name>.mp3); optional
 	std::string menu_music;
 	// From easiest to hardest, as a new game offers them
@@ -198,6 +201,9 @@ struct LevelData
 	std::string music;
 	std::string map;
 	Position2D player;
+	// Where players of a multiplayer game come in, as many as the level
+	// likes; optional: without, they all start where the player does
+	std::vector<Position2D> spawns;
 	std::vector<EnemySpawn> enemies;
 	std::vector<ObjectSpawn> dynamic_objects;
 	// Optional in the file

@@ -59,15 +59,12 @@ std::expected<void, std::string> World::NewGame(std::string_view weapon_name,
 	seed_ = seed;
 	// The old level borrows the old players: it goes first
 	scene_.reset();
-	for (std::optional<Player>& other : others_) {
-		other.reset();
+	for (std::optional<Player>& player : players_) {
+		player.reset();
 	}
 	first_weapon_ = first;
-	const CharacterStats& stats = loader_.Config().player;
-	// The level sets the start position
-	CharacterConfig config(Position2D(), stats.translation_speed,
-						   stats.rotation_speed, stats.width, stats.height);
-	player_.emplace(config, std::span(arsenal), first, textures_, *sound_);
+	local_ = 0;
+	MakePlayer(0);
 	level_index_ = 0;
 	in_campaign_ = level.empty();
 	return StartLevel(in_campaign_
@@ -149,28 +146,56 @@ std::expected<void, std::string> World::ContinueGame(const SavedGame& saved) {
 	return {};
 }
 
+std::expected<void, std::string> World::NewMatch(
+	std::string_view level, std::optional<std::size_t> local_slot) {
+	if (local_slot && *local_slot >= players_.size()) {
+		return std::unexpected("no player slot " + std::to_string(*local_slot));
+	}
+	// Everyone starts with the last of the weapons a game starts with
+	const auto& arsenal = loader_.Config().weapons;
+	std::size_t first = 0;
+	for (std::size_t i = 0; i < arsenal.size(); ++i) {
+		first = arsenal[i].start ? i : first;
+	}
+	difficulty_ = loader_.Config().FindDifficulty("normal");
+	seed_ = 0;
+	scene_.reset();
+	for (std::optional<Player>& player : players_) {
+		player.reset();
+	}
+	first_weapon_ = first;
+	local_ = local_slot;
+	if (local_) {
+		MakePlayer(*local_);
+	}
+	level_index_ = 0;
+	in_campaign_ = false;
+	return StartLevel(level);
+}
+
 std::optional<SavedGame> World::Capture() const {
-	if (!in_campaign_ || !scene_ || !player_) {
+	const Player* player = LocalPlayer();
+	if (!in_campaign_ || !scene_ || player == nullptr) {
 		return std::nullopt;
 	}
 	const GameConfig& config = loader_.Config();
-	const Position2D& position = player_->GetPosition();
+	const Position2D& position = player->GetPosition();
 	const Scene& scene = *scene_;
 	SavedGame saved{.level = level_index_,
-					.weapon = player_->HeldWeapon(),
+					.weapon = player->HeldWeapon(),
 					.seed = seed_,
-					.health = player_->GetHealth(),
-					.weapons = player_->GetOwnedWeapons(),
+					.health = player->GetHealth(),
+					.weapons = player->GetOwnedWeapons(),
 					.has_position = true,
 					.x = position.pose.x,
 					.y = position.pose.y,
 					.theta = position.theta,
 					.seconds = scene.GetStats().seconds,
-					.keys = player_->GetKeys()};
+					.keys = player->GetKeys()};
 	for (std::size_t i = 0;
-		 i < player_->WeaponCount() && i < SavedGame::kMaxWeapons; ++i) {
-		saved.ammo[i] = player_->GetWeapon(i).GetAmmo();
-		saved.reserve[i] = player_->GetWeapon(i).GetReserve();
+		 i < player->WeaponCount() && i < SavedGame::kMaxWeapons; ++i) {
+		saved.ammo[i] = player->GetWeapon(i).GetAmmo();
+		saved.reserve[i] = player->GetWeapon(i).GetReserve();
 	}
 	for (std::size_t i = 0; i < config.difficulties.size(); ++i) {
 		if (&config.difficulties[i] == difficulty_) {
@@ -225,8 +250,9 @@ std::optional<SavedGame> World::Capture() const {
 
 bool World::IsQuiet() const {
 	constexpr double kCalmSeconds = 3.0;
-	return scene_ && player_ && player_->IsAlive() &&
-		   player_->SecondsSinceHurt() >= kCalmSeconds && scene_->IsQuiet();
+	const Player* player = LocalPlayer();
+	return scene_ && player != nullptr && player->IsAlive() &&
+		   player->SecondsSinceHurt() >= kCalmSeconds && scene_->IsQuiet();
 }
 
 std::expected<void, std::string> World::NextLevel() {
@@ -243,7 +269,7 @@ bool World::HasNextLevel() const {
 
 std::expected<void, std::string> World::StartLevel(
 	std::string_view level_file) {
-	if (!player_) {
+	if (difficulty_ == nullptr) {
 		return std::unexpected("no game started");
 	}
 	const PreparedLevel* level = loader_.FindLevel(level_file);
@@ -262,57 +288,74 @@ std::expected<void, std::string> World::StartLevel(
 						 .supplies = difficulty_->supplies,
 						 .attackers = difficulty_->attackers});
 	sound_->PlayMusic(level->data.music);
-	if (auto populated = loader_.Populate(scene, *level, *player_, seed_);
-		!populated) {
-		return populated;
-	}
-	// The others come along, starting where the level does
-	for (std::size_t slot = 1; slot < others_.size(); ++slot) {
-		if (Player* other = FindPlayer(slot)) {
-			other->SetPosition(level->data.player);
-			scene.SetPlayer(*other, slot);
+	// Every player comes in where the level brings their slot in, before
+	// the level's objects, and the local one's view is the level's
+	for (std::size_t slot = 0; slot < players_.size(); ++slot) {
+		if (Player* player = FindPlayer(slot)) {
+			Admit(scene, *player, slot);
 		}
 	}
-	return {};
+	scene.SetViewer(local_.value_or(0));
+	return loader_.Populate(scene, *level, seed_);
+}
+
+Player& World::MakePlayer(std::size_t slot) {
+	const CharacterStats& stats = loader_.Config().player;
+	// The level sets where it stands
+	CharacterConfig config(Position2D(), stats.translation_speed,
+						   stats.rotation_speed, stats.width, stats.height);
+	return players_[slot].emplace(config, std::span(loader_.Config().weapons),
+								  first_weapon_, textures_, *sound_);
+}
+
+void World::Admit(Scene& scene, Player& player, std::size_t slot) const {
+	player.SetPosition(SpawnFor(slot));
+	player.IncreaseHealth(100);
+	player.SetKeys(0);	// the last level's keys open nothing here
+	scene.SetPlayer(player, slot);
+}
+
+Position2D World::SpawnFor(std::size_t slot) const {
+	const std::vector<Position2D>& spawns = level_->data.spawns;
+	return spawns.empty() ? level_->data.player : spawns[slot % spawns.size()];
 }
 
 std::expected<void, std::string> World::JoinPlayer(std::size_t slot) {
-	if (!player_ || !scene_) {
+	if (!scene_) {
 		return std::unexpected("no game started");
 	}
-	if (slot == 0 || slot >= others_.size()) {
-		return std::unexpected("no player slot " + std::to_string(slot));
+	if (slot >= players_.size() || players_[slot].has_value()) {
+		return std::unexpected("no free player slot " + std::to_string(slot));
 	}
-	const CharacterStats& stats = loader_.Config().player;
-	CharacterConfig config(level_->data.player, stats.translation_speed,
-						   stats.rotation_speed, stats.width, stats.height);
-	Player& joined =
-		others_[slot].emplace(config, std::span(loader_.Config().weapons),
-							  first_weapon_, textures_, *sound_);
-	scene_->SetPlayer(joined, slot);
+	Admit(*scene_, MakePlayer(slot), slot);
 	return {};
 }
 
 void World::LeavePlayer(std::size_t slot) {
-	if (slot == 0 || slot >= others_.size() || !others_[slot]) {
+	if (slot >= players_.size() || slot == local_ || !players_[slot]) {
 		return;
 	}
 	// The level borrows it: it lets go first
 	if (scene_) {
 		scene_->RemovePlayer(slot);
 	}
-	others_[slot].reset();
+	players_[slot].reset();
 }
 
 Player* World::FindPlayer(std::size_t slot) {
-	if (slot == 0) {
-		return player_ ? &*player_ : nullptr;
-	}
-	if (slot >= others_.size()) {
+	if (slot >= players_.size()) {
 		return nullptr;
 	}
-	std::optional<Player>& other = others_[slot];
-	return other.has_value() ? &*other : nullptr;
+	std::optional<Player>& player = players_[slot];
+	return player.has_value() ? &*player : nullptr;
+}
+
+const Player* World::FindPlayer(std::size_t slot) const {
+	if (slot >= players_.size()) {
+		return nullptr;
+	}
+	const std::optional<Player>& player = players_[slot];
+	return player.has_value() ? &*player : nullptr;
 }
 
 }  // namespace wolfenstein

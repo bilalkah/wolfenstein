@@ -55,13 +55,13 @@ class SceneLoader
 	std::size_t LargestLevelMemory() const { return largest_memory_; }
 	std::size_t LargestLevelObjects() const { return largest_objects_; }
 
-	// Fills a scene built for `level` with its enemies and objects, places the
-	// player in it and builds its navigation. What each enemy carries to
-	// drop is rolled from `seed` (a game's): the same seed, the same drops.
-	// The error says what the level asks for that the configuration lacks.
+	// Fills a scene built for `level` with its enemies and objects, dresses
+	// its players' figures and builds its navigation; the players are the
+	// caller's to place. What each enemy carries to drop is rolled from
+	// `seed` (a game's): the same seed, the same drops. The error says what
+	// the level asks for that the configuration lacks.
 	std::expected<void, std::string> Populate(Scene& scene,
 											  const PreparedLevel& level,
-											  Player& player,
 											  std::uint64_t seed = 0) const;
 
   private:

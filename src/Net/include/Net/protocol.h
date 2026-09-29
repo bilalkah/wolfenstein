@@ -48,7 +48,7 @@ using LevelName = FixedString<32>;
 struct Hello
 {
 	std::uint16_t version = kProtocolVersion;
-	PlayerName name;
+	PlayerName name{};
 
 	friend bool operator==(const Hello&, const Hello&) = default;
 };
@@ -58,7 +58,7 @@ struct Welcome
 	std::uint16_t version = kProtocolVersion;
 	std::uint8_t slot = 0;	 // the player's, 0 to kMaxPlayers - 1
 	std::uint32_t tick = 0;	 // the server's, as it is now
-	LevelName level;		 // the level file to load ("arena.json")
+	LevelName level{};		 // the level file to load ("arena.json")
 
 	friend bool operator==(const Welcome&, const Welcome&) = default;
 };

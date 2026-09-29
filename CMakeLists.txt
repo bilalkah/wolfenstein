@@ -39,10 +39,18 @@ add_subdirectory(src/TextureManager)
 add_subdirectory(src/TimeManager)
 add_subdirectory(src/UI)
 
+# The tests and micro benchmarks; a build of the server alone leaves them out
+option(WOLFENSTEIN_TESTS "Build the tests and micro benchmarks" ON)
+
 if(NOT EMSCRIPTEN)
-    enable_testing()
-    add_subdirectory(tests)
-    add_subdirectory(benchmarks/micro)
+    # The multiplayer server: native only
+    add_subdirectory(src/Server)
+    add_subdirectory(server)
+    if(WOLFENSTEIN_TESTS)
+        enable_testing()
+        add_subdirectory(tests)
+        add_subdirectory(benchmarks/micro)
+    endif()
 endif()
 
 # Warnings, sanitizers and shared definitions for all first-party code

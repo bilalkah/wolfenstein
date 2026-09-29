@@ -67,7 +67,9 @@ class TextureManager
   public:
 	// No textures: for tests, which define placeholder clips instead
 	TextureManager() = default;
-	// Loads every image the manifest names; the error says which one failed
+	// Loads every image the manifest names; the error says which one failed.
+	// Without a renderer (a server, which draws nothing) it keeps each
+	// picture's size and mask but makes no texture.
 	static std::expected<std::unique_ptr<TextureManager>, std::string> Load(
 		SDL_Renderer* renderer, const TextureManifest& manifest,
 		const std::string& asset_dir);

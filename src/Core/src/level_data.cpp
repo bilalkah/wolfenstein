@@ -394,6 +394,9 @@ std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input) {
 			throw json::other_error::create(502, "no levels listed", &root);
 		}
 		config.benchmark_level = root.at("benchmark_level").get<std::string>();
+		if (root.contains("arenas")) {
+			config.arenas = root.at("arenas").get<std::vector<std::string>>();
+		}
 		config.menu_music = root.value("menu_music", std::string{});
 		for (const auto& difficulty : root.at("difficulties")) {
 			config.difficulties.push_back(
@@ -441,6 +444,7 @@ class LevelReader final : public nlohmann::json_sax<json>
 		level_.objectives.reserve(4);
 		level_.secrets.reserve(4);
 		level_.intel.reserve(4);
+		level_.spawns.reserve(16);
 	}
 
 	const std::string& Error() const { return error_; }
@@ -582,6 +586,9 @@ class LevelReader final : public nlohmann::json_sax<json>
 			case Kind::Pages:
 				level_.intel.emplace_back();
 				return Push(Kind::Intel);
+			case Kind::Spawns:
+				level_.spawns.emplace_back();
+				return PushPosition(Kind::Spawns);
 			default:
 				break;
 		}
@@ -608,6 +615,9 @@ class LevelReader final : public nlohmann::json_sax<json>
 		}
 		if (frame.kind == Kind::Root && frame.key == Key::Intel) {
 			return Push(Kind::Pages);
+		}
+		if (frame.kind == Kind::Root && frame.key == Key::Spawns) {
+			return Push(Kind::Spawns);
 		}
 		if (frame.kind == Kind::Skip || frame.key == Key::Other) {
 			return Push(Kind::Skip);
@@ -700,6 +710,7 @@ class LevelReader final : public nlohmann::json_sax<json>
 		Secret,
 		Pages,	// the intel list
 		Intel,
+		Spawns,
 		Position,
 		Skip,  // a value the game does not read
 	};
@@ -717,6 +728,7 @@ class LevelReader final : public nlohmann::json_sax<json>
 		Objectives,
 		Secrets,
 		Intel,
+		Spawns,
 		Type,
 		Title,
 		Text,
@@ -774,6 +786,8 @@ class LevelReader final : public nlohmann::json_sax<json>
 					return Key::Secrets;
 				if (name == "intel")
 					return Key::Intel;
+				if (name == "spawns")
+					return Key::Spawns;
 				break;
 			case Kind::Player:
 				if (name == "position")
@@ -830,10 +844,12 @@ class LevelReader final : public nlohmann::json_sax<json>
 
 	bool PushPosition(Kind owner) {
 		Frame frame{.kind = Kind::Position, .required = kX | kY | kTheta};
-		if (owner == Kind::Player) {
-			frame.x = &level_.player.pose.x;
-			frame.y = &level_.player.pose.y;
-			frame.theta = &level_.player.theta;
+		if (owner == Kind::Player || owner == Kind::Spawns) {
+			Position2D& position =
+				owner == Kind::Player ? level_.player : level_.spawns.back();
+			frame.x = &position.pose.x;
+			frame.y = &position.pose.y;
+			frame.theta = &position.theta;
 		}
 		else if (owner == Kind::Enemy) {
 			Position2D& position = level_.enemies.back().position;

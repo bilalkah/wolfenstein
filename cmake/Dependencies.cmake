@@ -119,6 +119,38 @@ add_library(wolfenstein::sdl3_image ALIAS wolfenstein_sdl3_image)
 add_library(wolfenstein::sdl3_ttf ALIAS wolfenstein_sdl3_ttf)
 add_library(wolfenstein::sdl3_mixer ALIAS wolfenstein_sdl3_mixer)
 
+# ---- uWebSockets: the game server's WebSockets (native only) --------------
+# Its event loop, uSockets, at the commit this release pins, built without
+# TLS (a proxy in front of the server holds the certificate) and without
+# compression (the messages are a hundred bytes)
+if(NOT EMSCRIPTEN)
+    FetchContent_Declare(usockets
+        URL https://github.com/uNetworking/uSockets/archive/86097c490263ab662d62e8e7b541390bdec7d149.tar.gz
+        URL_HASH SHA256=0d341b94157720d9081d47348a8cba87ae350b6607c2f7d2ccf102353cbda553
+    )
+    FetchContent_Declare(uwebsockets
+        URL https://github.com/uNetworking/uWebSockets/archive/refs/tags/v20.80.0.tar.gz
+        URL_HASH SHA256=561d382837f4b78da7e4fccb218f037f6fc0b4859fceff00fe7ce052e0bcb218
+    )
+    # Neither builds with CMake: fetched, then built here
+    FetchContent_MakeAvailable(usockets uwebsockets)
+    file(GLOB usockets_sources CONFIGURE_DEPENDS
+        ${usockets_SOURCE_DIR}/src/*.c
+        ${usockets_SOURCE_DIR}/src/eventing/*.c
+        ${usockets_SOURCE_DIR}/src/crypto/*.c
+        ${usockets_SOURCE_DIR}/src/crypto/*.cpp)
+    add_library(usockets STATIC ${usockets_sources})
+    target_include_directories(usockets SYSTEM PUBLIC ${usockets_SOURCE_DIR}/src)
+    target_compile_definitions(usockets PUBLIC LIBUS_NO_SSL)
+    target_compile_options(usockets PRIVATE $<$<CONFIG:Debug>:-O2>)
+    add_library(wolfenstein_uwebsockets INTERFACE)
+    target_include_directories(wolfenstein_uwebsockets SYSTEM INTERFACE
+        ${uwebsockets_SOURCE_DIR}/src)
+    target_compile_definitions(wolfenstein_uwebsockets INTERFACE UWS_NO_ZLIB)
+    target_link_libraries(wolfenstein_uwebsockets INTERFACE usockets)
+    add_library(wolfenstein::uwebsockets ALIAS wolfenstein_uwebsockets)
+endif()
+
 # ---- nlohmann/json (header only, pinned) ----------------------------------
 # SYSTEM keeps the project's strict warnings out of third-party headers
 FetchContent_Declare(nlohmann_json

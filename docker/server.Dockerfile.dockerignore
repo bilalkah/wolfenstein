@@ -1,0 +1,10 @@
+# Only what the server build needs: no build trees, history or notes
+*
+!CMakeLists.txt
+!CMakePresets.json
+!cmake
+!app
+!src
+!server
+!assets
+!scripts/install_deps.sh

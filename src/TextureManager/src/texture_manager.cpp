@@ -118,14 +118,18 @@ TextureManager::Load(SDL_Renderer* renderer, const TextureManifest& manifest,
 				SDL_DestroySurface(rgba);
 			}
 		}
-		texture.texture = SDL_CreateTextureFromSurface(renderer, image);
-		SDL_DestroySurface(image);
-		if (texture.texture == nullptr) {
-			return std::unexpected("cannot load " + full_path + ": " +
-								   SDL_GetError());
+		texture.width = image->w;
+		texture.height = image->h;
+		// Headless (a server) the picture's size and mask are enough
+		if (renderer != nullptr) {
+			texture.texture = SDL_CreateTextureFromSurface(renderer, image);
+			if (texture.texture == nullptr) {
+				SDL_DestroySurface(image);
+				return std::unexpected("cannot load " + full_path + ": " +
+									   SDL_GetError());
+			}
 		}
-		texture.width = texture.texture->w;
-		texture.height = texture.texture->h;
+		SDL_DestroySurface(image);
 		manager->textures_.push_back(texture);
 		loaded.emplace(path, id);
 		return id;

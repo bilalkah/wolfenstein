@@ -11,6 +11,7 @@
         }
     },
     "benchmark_level": "benchmark.json",
+    "arenas": ["bazaar.json"],
     "menu_music": "menu",
     "difficulties": [
         {

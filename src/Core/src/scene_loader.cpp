@@ -69,6 +69,11 @@ std::expected<SceneLoader, std::string> SceneLoader::Open(
 		!prepared) {
 		return std::unexpected(prepared.error());
 	}
+	for (const std::string& file : loader.config_.arenas) {
+		if (auto prepared = loader.Prepare(file); !prepared) {
+			return std::unexpected(prepared.error());
+		}
+	}
 	return loader;
 }
 
@@ -167,12 +172,7 @@ const PreparedLevel* SceneLoader::FindLevel(std::string_view name) const {
 }
 
 std::expected<void, std::string> SceneLoader::Populate(
-	Scene& scene, const PreparedLevel& level, Player& player,
-	std::uint64_t seed) const {
-	player.SetPosition(level.data.player);
-	player.IncreaseHealth(100);
-	player.SetKeys(0);	// the last level's keys open nothing here
-	scene.SetPlayer(player);
+	Scene& scene, const PreparedLevel& level, std::uint64_t seed) const {
 	const FigureStats& figure = config_.player_figure;
 	scene.SetPlayerLook(figure.clips, figure.width, figure.height);
 	for (const EnemySpawn& spawn : level.data.enemies) {
