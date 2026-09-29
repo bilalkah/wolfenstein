@@ -154,6 +154,41 @@ TEST_F(PickupTest, ATakenPickupIsNotDrawn) {
 	EXPECT_EQ(camera.FindObject(medkit.GetId()), nullptr);
 }
 
+// A wide picture close in front of the eye is still seen, at its centre's
+// distance. Measured at its left edge (far off to the side up close), a
+// close sprite seemed nearer than it was: drawn too tall, and a step closer
+// not drawn at all, as an enemy walked up to vanished.
+TEST_F(PickupTest, ACloseObjectIsSeenAtItsCentresDistance) {
+	Pickup& rifle = Place("mp5", {1.5, 1.8});  // 0.635 wide, 0.3 ahead
+	Camera2D camera(Camera2DConfig(320, std::numbers::pi / 3, 15.0));
+	camera.SetScene(scene_);
+	camera.Update(Position2D({1.5, 1.5}, kFacingDown), 1.0);
+	const Camera2D::Sight* sight = camera.FindObject(rifle.GetId());
+	ASSERT_NE(sight, nullptr);
+	EXPECT_NEAR(sight->distance, 0.3, 1e-9);
+}
+
+// Off to one side, the distance is still along the view, to the centre
+TEST_F(PickupTest, AnObjectAsideIsSeenAtItsDistanceAlongTheView) {
+	Pickup& medkit = Place("medkit", {1.35, 2.1});	// 14 degrees aside
+	Camera2D camera(Camera2DConfig(320, std::numbers::pi / 3, 15.0));
+	camera.SetScene(scene_);
+	camera.Update(Position2D({1.5, 1.5}, kFacingDown), 1.0);
+	const Camera2D::Sight* sight = camera.FindObject(medkit.GetId());
+	ASSERT_NE(sight, nullptr);
+	EXPECT_NEAR(sight->distance, 0.6, 1e-9);
+}
+
+// Standing in an object (a lamp does not block the way), the eye does not
+// see it: drawn, it would cover the screen
+TEST_F(PickupTest, AnObjectTheEyeStandsInIsNotSeen) {
+	Pickup& medkit = Place("medkit", {1.5, 1.6});
+	Camera2D camera(Camera2DConfig(320, std::numbers::pi / 3, 15.0));
+	camera.SetScene(scene_);
+	camera.Update(Position2D({1.5, 1.5}, kFacingDown), 1.0);
+	EXPECT_EQ(camera.FindObject(medkit.GetId()), nullptr);
+}
+
 #ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
 TEST_F(PickupTest, CollectingAllocatesNothing) {
 	Place("medkit", {1.5, 1.5});

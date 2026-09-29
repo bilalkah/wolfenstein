@@ -458,15 +458,10 @@ void Renderer3D::RenderObjects() {
 
 		const Ray& first = sight->rays.first;
 		const Ray& last = sight->rays.second;
-		// A sprite the viewer stands in (lights do not block movement) would
-		// cover the screen: it is not drawn
-		constexpr double kNearestSprite = 0.25;
-		if (first.perpendicular_distance < kNearestSprite) {
-			continue;
-		}
-
+		// Sized and sorted by how far in front of the eye its centre stands
+		// (the camera leaves out one the viewer stands in)
 		auto [line_height, draw_start, draw_end] =
-			CalculateVerticalSlice(first.perpendicular_distance);
+			CalculateVerticalSlice(sight->distance);
 		// Standing on the floor, or raised off it
 		draw_end -= static_cast<int>(line_height * object->GetElevation());
 		const auto height = object->GetHeight();
@@ -487,8 +482,8 @@ void Renderer3D::RenderObjects() {
 		SDL_Rect dest_rect = {first_slice, draw_start, last_slice - first_slice,
 							  line_height};
 
-		Enqueue(first.wall_id, src_rect, dest_rect,
-				first.perpendicular_distance, sight->mirrored);
+		Enqueue(first.wall_id, src_rect, dest_rect, sight->distance,
+				sight->mirrored);
 	}
 }
 

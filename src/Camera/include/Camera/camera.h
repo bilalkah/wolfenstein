@@ -57,11 +57,14 @@ class Camera2D
 	// The centre ray and what it points at, for drawing only: shots are
 	// resolved by the simulation (Aim), not from the view
 	const Ray& GetCrosshairRay() const { return crosshair_ray_; }
-	// An object as the eye sees it this frame: the rays bounding it, and
-	// whether its picture is mirrored (a body lying dead, seen from behind)
+	// An object as the eye sees it this frame: the rays bounding it, how far
+	// in front of the eye its centre stands (along the view: what it is drawn
+	// at), and whether its picture is mirrored (a body lying dead, seen from
+	// behind)
 	struct Sight
 	{
 		RayPair rays;
+		double distance = 0.0;
 		bool mirrored = false;
 	};
 	// How the eye sees an object in the current frame, or nullptr if it is

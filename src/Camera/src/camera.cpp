@@ -114,10 +114,26 @@ void Camera2D::Calculate(const IGameObject& object, double alpha) {
 	if (object_distance > config_.depth) {
 		return;
 	}
+	// The eye standing in it (a lamp does not block the way): drawn, it would
+	// cover the screen
+	constexpr double kNearest = 0.25;
+	if (object_distance < kNearest) {
+		return;
+	}
 
 	// Object center angle
 	const auto object_center_angle = std::atan2(
 		object_pose.y - position.pose.y, object_pose.x - position.pose.x);
+	// How far in front of the eye it stands, along the view, taken at its
+	// centre. Its edges would not do: up close they are far off to the
+	// sides, so a close enemy's seemed nearer than it was, and it was drawn
+	// too tall and then, a step closer, not at all.
+	const double distance =
+		object_distance *
+		std::cos(WorldAngleToCameraAngle(object_center_angle));
+	if (distance <= 0.0) {
+		return;	 // level with the eye or behind it: seen edge on
+	}
 
 	// Object left edge point and angle
 	auto object_left_edge_angle =
@@ -152,18 +168,16 @@ void Camera2D::Calculate(const IGameObject& object, double alpha) {
 	RayPair object_ray_pair;
 	object_ray_pair.first.Reset(position.pose, camera_angle_left);
 	object_ray_pair.first.is_hit = true;
-	object_ray_pair.first.perpendicular_distance =
-		object_distance * std::cos(camera_angle_left);
 	object_ray_pair.first.wall_id = texture_id;
 
 	object_ray_pair.second.Reset(position.pose, camera_angle_right);
 	object_ray_pair.second.is_hit = true;
-	object_ray_pair.second.perpendicular_distance =
-		object_distance * std::cos(camera_angle_right);
 	object_ray_pair.second.wall_id = texture_id;
 
 	auto& view = views_[ToIndex(object.GetId())];
-	view.sight = {.rays = object_ray_pair, .mirrored = seen.mirrored};
+	view.sight = {.rays = object_ray_pair,
+				  .distance = distance,
+				  .mirrored = seen.mirrored};
 	view.frame = frame_;
 
 	// Calculate if the object is in the crosshair
@@ -173,10 +187,7 @@ void Camera2D::Calculate(const IGameObject& object, double alpha) {
 			camera_angle_left <= 0 && camera_angle_right >= 0 &&
 			bot.IsAlive()) {
 			crosshair_ray_.is_hit = true;
-			crosshair_ray_.perpendicular_distance =
-				(object_ray_pair.first.perpendicular_distance +
-				 object_ray_pair.second.perpendicular_distance) /
-				2;
+			crosshair_ray_.perpendicular_distance = distance;
 			crosshair_ray_.distance = object_distance;
 			crosshair_ray_.object_id = bot.GetId();
 			crosshair_ray_.hit_point = object_pose;
