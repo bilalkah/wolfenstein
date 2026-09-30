@@ -5,8 +5,8 @@ Welcome to the Wolfenstein project! This README provides an overview of the game
 ## View from the game
 
 <p float="left">
-  <img src="images/game_view_with_mp5.png" width="400" />
-  <img src="images/game_view_with_shotgun.png" width="400" /> 
+  <img src="docs-site/assets/screenshots/combat-barracks.png" width="400" />
+  <img src="docs-site/assets/screenshots/combat-rail-yard.png" width="400" />
 </p>
 
 ---
@@ -184,6 +184,10 @@ The art and sounds are not all ours, and keep their own licences, in `assets/lic
 - **Roboto** (the text font): Apache License 2.0.
 
 The crosshair, the red of a hit, the blood and dust where shots land, bullet holes, the secret walls' crack, footsteps, the dry click and the thud of a fall are made by `scripts/make_art.py`, and are the project's own.
+
+The libraries built into the game and the server keep their own licences too, in `assets/licenses/code/` (shipped inside the web game and the Docker images): SDL 3, SDL_image, SDL_ttf and SDL_mixer (zlib), FreeType (FreeType License: portions of this software are copyright © The FreeType Project, www.freetype.org; all rights reserved), stb_image and dr_mp3 (public domain or MIT), nlohmann/json (MIT), uWebSockets and uSockets (Apache 2.0), and IXWebSocket (BSD 3-clause). The engine began from [DOOM-style-Game](https://github.com/StanislavPetrovV/DOOM-style-Game), whose MIT licence is kept there as well.
+
+This is an independent project, not affiliated with or endorsed by id Software, Bethesda, ZeniMax Media or Microsoft. *Wolfenstein* and *DOOM* are trademarks of ZeniMax Media Inc.; they are named here only to describe the games that inspired this one. It uses none of their art, sound or code.
 
 ---
 

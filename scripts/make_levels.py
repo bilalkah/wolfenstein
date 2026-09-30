@@ -944,7 +944,7 @@ LEVELS = [
           locks={6: "silver"},  # the gate hall
           exit=(0, 16),
           secrets=1,
-          briefing="Castle Wolfenstein. Its outer wall is manned by sentries who watch the castle, not the mountain. The way in and down is through the gate hall, silver-locked; the west tower holds the key. Take the wall.",
+          briefing="Burg Kessel. Its outer wall is manned by sentries who watch the castle, not the mountain. The way in and down is through the gate hall, silver-locked; the west tower holds the key. Take the wall.",
           debrief="From the wall you can see the sanctum's roof and the red light under it. Scratched by the gate hall's stair, an arrow and a name: HALE. It points down, into the dungeons.",
           objectives=[{"type": "kill_all",
                        "text": "Take the outer wall"}]),

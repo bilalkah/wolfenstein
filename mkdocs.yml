@@ -7,7 +7,7 @@ site_url: https://bilalkah.github.io/wolfenstein/
 repo_url: https://github.com/bilalkah/wolfenstein
 repo_name: bilalkah/wolfenstein
 edit_uri: edit/master/docs-site/
-copyright: Code under the MIT licence; art and sounds from Freedoom (BSD) and others, see the repository's assets/licenses.
+copyright: Code under the MIT licence; art and sounds from Freedoom (BSD) and others, see the repository's assets/licenses. Not affiliated with id Software or ZeniMax Media, whose trademarks Wolfenstein and DOOM are.
 
 # The site's sources live in docs-site/: docs/ is kept for local notes and
 # benchmark records, and is not in the repository
