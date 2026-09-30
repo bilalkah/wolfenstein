@@ -1,6 +1,7 @@
 #include "Net/connection.h"
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/websocket.h>
@@ -10,7 +11,7 @@
 
 namespace wolfenstein::net {
 
-bool Inbox::Put(std::span<const std::uint8_t> message) {
+bool Inbox::Put(std::span<const std::uint8_t> message, double arrived) {
 	const std::scoped_lock lock(mutex_);
 	if (message.size() > kMaxMessage || count_ == kSlots) {
 		return false;
@@ -18,11 +19,12 @@ bool Inbox::Put(std::span<const std::uint8_t> message) {
 	const std::size_t slot = (head_ + count_) % kSlots;
 	std::ranges::copy(message, slots_[slot].begin());
 	sizes_[slot] = message.size();
+	arrived_[slot] = arrived;
 	++count_;
 	return true;
 }
 
-std::optional<std::size_t> Inbox::Take(std::span<std::uint8_t> out) {
+std::optional<Received> Inbox::Take(std::span<std::uint8_t> out) {
 	const std::scoped_lock lock(mutex_);
 	if (count_ == 0) {
 		return std::nullopt;
@@ -35,7 +37,13 @@ std::optional<std::size_t> Inbox::Take(std::span<std::uint8_t> out) {
 		return std::nullopt;  // no room for it where it was asked for
 	}
 	std::copy_n(slots_[slot].begin(), size, out.begin());
-	return size;
+	return Received{.size = size, .arrived = arrived_[slot]};
+}
+
+double Connection::Now() {
+	return std::chrono::duration<double>(
+			   std::chrono::steady_clock::now().time_since_epoch())
+		.count();
 }
 
 namespace {
@@ -86,7 +94,7 @@ class BrowserConnection final : public Connection
 						  void* connection) {
 		if (!event->isText) {
 			static_cast<BrowserConnection*>(connection)
-				->inbox_.Put(std::span(event->data, event->numBytes));
+				->inbox_.Put(std::span(event->data, event->numBytes), Now());
 		}
 		return true;
 	}
@@ -126,7 +134,8 @@ class NativeConnection final : public Connection
 							inbox_.Put(
 								std::span(reinterpret_cast<const std::uint8_t*>(
 											  message->str.data()),
-										  message->str.size()));
+										  message->str.size()),
+								Now());
 						}
 						break;
 					case ix::WebSocketMessageType::Close:

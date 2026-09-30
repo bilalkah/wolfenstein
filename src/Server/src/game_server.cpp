@@ -140,6 +140,12 @@ void GameServer::Receive(ClientId id, std::span<const std::uint8_t> message) {
 	else if (const auto* input = std::get_if<net::Input>(&*decoded)) {
 		Input(*client, *input);
 	}
+	else if (const auto* ping = std::get_if<net::Ping>(&*decoded)) {
+		// Answered at once, not at the next tick: the round trip is the
+		// network's
+		client->rtt = ping->rtt;
+		Send(id, net::Pong{.stamp = ping->stamp});
+	}
 }
 
 void GameServer::Hello(Client& client, const net::Hello& hello) {
@@ -420,6 +426,16 @@ void GameServer::SendScores() {
 			.step = static_cast<std::uint8_t>(standing.step)};
 	}
 	Broadcast(scores);
+	// And how long each player's messages take, as it says
+	net::Pings pings;
+	for (const Client& client : clients_) {
+		if (client.open && client.slot) {
+			pings.players[pings.count++] = {
+				.slot = static_cast<std::uint8_t>(*client.slot),
+				.rtt = client.rtt};
+		}
+	}
+	Broadcast(pings);
 }
 
 void GameServer::Broadcast(const net::Message& message) {

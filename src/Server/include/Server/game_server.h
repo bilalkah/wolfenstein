@@ -80,7 +80,8 @@ class GameServer : private Hindsight
 	// A player not heard from this long is gone, if someone says hello
 	// under its name (it is coming back on a new connection)
 	static constexpr double kStaleSeconds = 5.0;
-	// The scores go out when they change, and this often anyway (the clock)
+	// The scores go out when they change, and this often anyway (the
+	// clock), each player's round trip with them
 	static constexpr std::uint32_t kScoresEvery = 60;
 
 	// Loads the game's content from `asset_dir`, drawing nothing, and starts
@@ -142,6 +143,7 @@ class GameServer : private Hindsight
 		PlayerCommand last{};
 		std::uint32_t seen = 0;	  // the last command's
 		std::uint32_t heard = 0;  // the tick its last message came
+		std::uint16_t rtt = 0;	  // its round trip, in ms, as it last said
 	};
 
 	// A player gone, whose score waits a while for it to come back

@@ -309,6 +309,24 @@ TEST_F(GameServerTest, APlayerDownComesBackFarFromTheOthers) {
 	EXPECT_TRUE(PlayerIn(1).IsAlive());
 }
 
+// A ping is answered at once, before any tick, with its own clock; what
+// round trip each player says it has, everyone is told with the scores
+TEST_F(GameServerTest, APingIsAnsweredAtOnceAndToldToAll) {
+	Join(ClientId{1});
+	Join(ClientId{2});
+	Ticks(1);
+	EXPECT_GE(outbox_.Count<net::Pings>(ClientId{2}), 1u)
+		<< "the server shows it answers pings";
+	Message(ClientId{1}, net::Ping{.stamp = 1234, .rtt = 57});
+	EXPECT_EQ(outbox_.Last<net::Pong>(ClientId{1}).stamp, 1234u);
+	Ticks(static_cast<int>(GameServer::kScoresEvery));
+	const auto pings = outbox_.Last<net::Pings>(ClientId{2});
+	ASSERT_EQ(pings.count, 2u);
+	EXPECT_EQ(pings.players[0].slot, 0u);
+	EXPECT_EQ(pings.players[0].rtt, 57u);
+	EXPECT_EQ(pings.players[1].rtt, 0u) << "not told yet";
+}
+
 // A player whose connection dropped, back under its name soon after, has
 // its score back; another name, or the next match, starts from none
 TEST_F(GameServerTest, APlayerBackSoonHasItsScore) {

@@ -39,7 +39,7 @@ class Loopback : public Outbox
 			return true;
 		}
 		void Deliver(std::span<const std::uint8_t> message) {
-			inbox_.Put(message);
+			inbox_.Put(message, loop_.Seconds());
 		}
 		State state = State::Open;
 
@@ -80,6 +80,9 @@ class Loopback : public Outbox
 			}
 		});
 	}
+
+	// The time the messages are carried in, in seconds
+	double Seconds() const { return now_ * net::kTickSeconds; }
 
 	GameServer* server = nullptr;
 	int delay = 0;
@@ -166,7 +169,8 @@ class MatchTest : public ::testing::Test
 			.world = std::make_unique<World>(testing::TestTextures(),
 											 std::move(*loader),
 											 std::make_unique<SoundManager>()),
-			.match = std::make_unique<MatchClient>(loop_.Connect(id), "p"),
+			.match = std::make_unique<MatchClient>(
+				loop_.Connect(id), "p", [this] { return loop_.Seconds(); }),
 			.command = {}}));
 		return *players_.back();
 	}
@@ -418,6 +422,21 @@ TEST_F(MatchTest, TheNextMatchIsOnTheNextArena) {
 	Ticks(2 * loop_.delay + 6);
 	EXPECT_LT(a.Me().GetPose().Distance(OnServer(0).GetPose()), 0.01);
 	EXPECT_EQ(a.match->Corrections(), corrections);
+}
+
+// Messages late by 5 ticks each way: a player measures its round trip as
+// 10 ticks, and the other is told of it
+TEST_F(MatchTest, APlayerKnowsItsPingAndTheOthersToo) {
+	loop_.delay = 5;
+	PlayerGame& a = Join(ClientId{1});
+	PlayerGame& b = Join(ClientId{2});
+	Settle();
+	EXPECT_FALSE(a.match->PingOf(1)) << "not measured yet";
+	Ticks(static_cast<int>(3.0 / net::kTickSeconds));
+	const double round_trip = 2 * loop_.delay * net::kTickSeconds * 1000.0;
+	EXPECT_NEAR(a.match->Ping().value_or(0), round_trip, 2.0);
+	EXPECT_NEAR(b.match->PingOf(0).value_or(0), round_trip, 2.0);
+	EXPECT_NEAR(a.match->PingOf(1).value_or(0), round_trip, 2.0);
 }
 
 TEST_F(MatchTest, APlayerLeavingIsGoneFromTheOthersGame) {

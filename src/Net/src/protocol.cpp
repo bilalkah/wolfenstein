@@ -173,6 +173,22 @@ void Write(ByteWriter& out, const Scores& scores) {
 	}
 }
 
+void Write(ByteWriter& out, const Ping& ping) {
+	out.U32(ping.stamp);
+	out.U16(ping.rtt);
+}
+void Write(ByteWriter& out, const Pong& pong) {
+	out.U32(pong.stamp);
+}
+void Write(ByteWriter& out, const Pings& pings) {
+	const std::uint8_t count = std::min<std::uint8_t>(pings.count, kMaxPlayers);
+	out.U8(count);
+	for (std::size_t i = 0; i < count; ++i) {
+		out.U8(pings.players[i].slot);
+		out.U16(pings.players[i].rtt);
+	}
+}
+
 std::optional<Message> ReadBody(MessageType type, ByteReader& in) {
 	switch (type) {
 		case MessageType::Hello: {
@@ -320,6 +336,30 @@ std::optional<Message> ReadBody(MessageType type, ByteReader& in) {
 			}
 			return scores;
 		}
+		case MessageType::Ping: {
+			Ping ping;
+			ping.stamp = in.U32();
+			ping.rtt = in.U16();
+			return ping;
+		}
+		case MessageType::Pong:
+			return Pong{.stamp = in.U32()};
+		case MessageType::Pings: {
+			Pings pings;
+			pings.count = in.U8();
+			if (pings.count > kMaxPlayers) {
+				in.Fail();
+				return pings;
+			}
+			for (std::size_t i = 0; i < pings.count; ++i) {
+				pings.players[i].slot = in.U8();
+				pings.players[i].rtt = in.U16();
+				if (pings.players[i].slot >= kMaxPlayers) {
+					in.Fail();
+				}
+			}
+			return pings;
+		}
 	}
 	return std::nullopt;
 }
@@ -350,6 +390,15 @@ std::size_t Encode(const Message& message, std::span<std::uint8_t> out) {
 			else if constexpr (std::is_same_v<Body, Scores>) {
 				type = MessageType::Scores;
 			}
+			else if constexpr (std::is_same_v<Body, Ping>) {
+				type = MessageType::Ping;
+			}
+			else if constexpr (std::is_same_v<Body, Pong>) {
+				type = MessageType::Pong;
+			}
+			else if constexpr (std::is_same_v<Body, Pings>) {
+				type = MessageType::Pings;
+			}
 			writer.U8(std::to_underlying(type));
 			Write(writer, body);
 		},
@@ -361,7 +410,7 @@ std::optional<Message> Decode(std::span<const std::uint8_t> data) {
 	ByteReader reader(data);
 	const std::uint8_t type = reader.U8();
 	if (!reader.Ok() || type < std::to_underlying(MessageType::Hello) ||
-		type > std::to_underlying(MessageType::Scores)) {
+		type > std::to_underlying(MessageType::Pings)) {
 		return std::nullopt;
 	}
 	auto message = ReadBody(static_cast<MessageType>(type), reader);

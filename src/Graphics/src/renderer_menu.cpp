@@ -192,14 +192,17 @@ void Menu::DrawScoreboard(std::string_view heading,
 	// The columns: the name, then the frags (a gun race: the weapon), then
 	// the deaths, right-aligned
 	const int name_x = left + 70;
-	const int first_x = left + kWidth - 200;
-	const int second_x = left + kWidth - 50;
+	const int first_x = left + kWidth - 310;
+	const int second_x = left + kWidth - 180;
+	const int ping_x = left + kWidth - 50;
 	int y = top + 110;
 	ui_->Text("PLAYER", name_x, y, ui::FontStyle::Small, ui::color::kMuted);
 	ui_->Text(race ? "WEAPON" : "FRAGS", first_x, y, ui::FontStyle::Small,
 			  ui::color::kMuted, ui::Align::Right);
 	ui_->Text(race ? "FRAGS" : "DEATHS", second_x, y, ui::FontStyle::Small,
 			  ui::color::kMuted, ui::Align::Right);
+	ui_->Text("PING", ping_x, y, ui::FontStyle::Small, ui::color::kMuted,
+			  ui::Align::Right);
 	y += 50;
 	for (std::size_t i = 0; i < lines.size(); ++i) {
 		const ScoreLine& line = lines[i];
@@ -218,6 +221,12 @@ void Menu::DrawScoreboard(std::string_view heading,
 		ui_->Text(first, first_x, y, ui::FontStyle::Body, ui::color::kText,
 				  ui::Align::Right);
 		ui_->Text(second, second_x, y, ui::FontStyle::Body, ui::color::kText,
+				  ui::Align::Right);
+		// Unknown (not measured yet, or the player's game does not say): -
+		const ui::FixedText<16> ping = line.ping > 0
+										   ? ui::FixedText<16>("{}", line.ping)
+										   : ui::FixedText<16>("-");
+		ui_->Text(ping, ping_x, y, ui::FontStyle::Body, ui::color::kMuted,
 				  ui::Align::Right);
 		y += row;
 	}

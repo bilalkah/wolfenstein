@@ -67,6 +67,7 @@ struct ScoreLine
 	int frags = 0;
 	int deaths = 0;
 	int step = 0;		 // a gun race's weapon, from 1
+	int ping = 0;		 // its round trip, in ms; 0 unknown
 	bool local = false;	 // the player this game is played from
 };
 

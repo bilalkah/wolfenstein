@@ -1037,11 +1037,16 @@ void Game::DrawMatchHud() {
 	std::size_t count = 0;
 	for (const net::Score& score :
 		 std::span(scores.players).first(scores.count)) {
+		// The player's own round trip as it measures it, the others' as
+		// they told the server
+		const std::optional<int> ping =
+			score.slot == local ? match_->Ping() : match_->PingOf(score.slot);
 		lines[count++] = {.name = name_of(score.slot),
 						  .colour = ColourOf(score.slot),
 						  .frags = score.frags,
 						  .deaths = score.deaths,
 						  .step = score.step + 1,
+						  .ping = ping.value_or(0),
 						  .local = score.slot == local};
 	}
 	const auto shown = std::span(lines).first(count);
@@ -1124,6 +1129,8 @@ void Game::DrawMatchHud() {
 }
 
 void Game::RenderView(const Position2D& eye) {
+	// A match's round trip, under the frame rate
+	renderer_3d_->SetPing(InMatch() ? match_->Ping().value_or(0) : 0);
 	renderer_->RenderScene(clock_.DeltaTime());
 	if (render_type_ == RenderType::TEXTURE) {
 		minimap_->Render(eye, map_expanded_);

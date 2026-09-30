@@ -30,6 +30,9 @@ class Renderer3D : public IRenderer
 	// frame never grows the queue (the largest level's count, once)
 	void ReserveObjects(std::size_t objects);
 	void RenderScene(double delta_time) override;
+	// The round trip to a match's server, in ms, shown under the frame
+	// rate; 0 shows none (not in a match, or not measured yet)
+	void SetPing(int ping) { ping_ = ping; }
 
   private:
 	// One textured rectangle to draw, or, if `quad` is set, a textured
@@ -122,6 +125,9 @@ class Renderer3D : public IRenderer
 	void RenderTextures();
 	void RenderHUD(double delta_time);
 	void RenderFps(double delta_time);
+	// `number` in the frame rate's digits, from the left edge at `y`; its
+	// height
+	int RenderCounter(int number, int y);
 
 	// Reused every frame: clear() keeps the capacity, so after the first
 	// frame queueing never allocates
@@ -178,6 +184,7 @@ class Renderer3D : public IRenderer
 	int shown_fps_ = 0;
 	double fps_elapsed_ = 0.0;
 	int fps_frames_ = 0;
+	int ping_ = 0;
 };	// class Renderer3D
 
 }  // namespace wolfenstein

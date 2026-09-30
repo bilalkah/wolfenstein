@@ -49,6 +49,11 @@ enum class MessageType : std::uint8_t {
 	Snapshot,	// server to player: the players as they stand
 	Events,		// server to player: what happened in a tick
 	Scores,		// server to player: how the match stands
+	// Added within the version: a player that does not know them passes
+	// them by, and pings only a server that sends Pings
+	Ping,	// player to server: its clock, and its last round trip
+	Pong,	// server to player: the ping's clock, at once
+	Pings,	// server to player: everyone's round trip, as they tell it
 };
 
 using PlayerName = FixedString<16>;
@@ -205,8 +210,41 @@ struct Scores
 	friend bool operator==(const Scores&, const Scores&) = default;
 };
 
-using Message =
-	std::variant<Hello, Welcome, Reject, Input, Snapshot, Events, Scores>;
+// A player asks how long its messages take: `stamp` is its own clock, in
+// milliseconds, which the server's Pong sends back at once; `rtt` is the
+// last round trip it measured (0: none yet), for the others to see
+struct Ping
+{
+	std::uint32_t stamp = 0;
+	std::uint16_t rtt = 0;
+
+	friend bool operator==(const Ping&, const Ping&) = default;
+};
+struct Pong
+{
+	std::uint32_t stamp = 0;
+
+	friend bool operator==(const Pong&, const Pong&) = default;
+};
+// Each player's round trip, in milliseconds, as it last told the server
+// (0: not yet)
+struct PlayerPing
+{
+	std::uint8_t slot = 0;
+	std::uint16_t rtt = 0;
+
+	friend bool operator==(const PlayerPing&, const PlayerPing&) = default;
+};
+struct Pings
+{
+	std::uint8_t count = 0;
+	std::array<PlayerPing, kMaxPlayers> players{};
+
+	friend bool operator==(const Pings&, const Pings&) = default;
+};
+
+using Message = std::variant<Hello, Welcome, Reject, Input, Snapshot, Events,
+							 Scores, Ping, Pong, Pings>;
 
 // Writes `message` to `out`; its length, or 0 if it does not fit
 std::size_t Encode(const Message& message, std::span<std::uint8_t> out);

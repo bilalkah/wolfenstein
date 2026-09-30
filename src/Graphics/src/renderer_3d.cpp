@@ -789,9 +789,7 @@ void Renderer3D::RenderHUD(double delta_time) {
 	// smaller digits, then those in the magazine; a blade has none
 	const Weapon& weapon = player.GetWeapon();
 	if (weapon.IsMelee()) {
-		if (Settings::Get().show_fps) {
-			RenderFps(delta_time);
-		}
+		RenderFps(delta_time);
 		return;
 	}
 	const int reserve_width = digit_width * 3 / 5;
@@ -808,13 +806,12 @@ void Renderer3D::RenderHUD(double delta_time) {
 		draw_digit(digits[i], x, digit_width);
 	}
 
-	if (Settings::Get().show_fps) {
-		RenderFps(delta_time);
-	}
+	RenderFps(delta_time);
 }
 
 // Averages the frame rate over kFpsRefreshSeconds so the number is readable,
-// and draws it from the pre-rendered digits
+// and draws it from the pre-rendered digits (if the player shows it), and a
+// match's ping under it
 void Renderer3D::RenderFps(double delta_time) {
 	fps_elapsed_ += delta_time;
 	++fps_frames_;
@@ -823,16 +820,29 @@ void Renderer3D::RenderFps(double delta_time) {
 		fps_elapsed_ = 0.0;
 		fps_frames_ = 0;
 	}
+	int y = 0;
+	if (Settings::Get().show_fps) {
+		y += RenderCounter(shown_fps_, y);
+	}
+	if (ping_ > 0) {
+		RenderCounter(ping_, y);
+	}
+}
+
+int Renderer3D::RenderCounter(int number, int y) {
 	std::array<int, 10> digits{};
-	const std::size_t count = ToDigits(shown_fps_, digits);
+	const std::size_t count = ToDigits(number, digits);
 	int x = 0;
+	int height = 0;
 	for (std::size_t i = 0; i < count; ++i) {
 		const auto& glyph = fps_digits_[static_cast<std::size_t>(digits[i])];
-		const SDL_FRect dest = ToFRect({x, 0, glyph.width, glyph.height});
+		const SDL_FRect dest = ToFRect({x, y, glyph.width, glyph.height});
 		SDL_RenderTexture(context_->GetRenderer(), glyph.texture.get(), nullptr,
 						  &dest);
 		x += glyph.width;
+		height = std::max(height, glyph.height);
 	}
+	return height;
 }
 
 }  // namespace wolfenstein

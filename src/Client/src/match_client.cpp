@@ -9,8 +9,10 @@
 namespace wolfenstein {
 
 MatchClient::MatchClient(std::unique_ptr<net::Connection> connection,
-						 std::string_view name)
-	: connection_(std::move(connection)), name_(name) {}
+						 std::string_view name, Clock clock)
+	: connection_(std::move(connection)),
+	  name_(name),
+	  clock_(std::move(clock)) {}
 
 void MatchClient::Poll(World& world) {
 	if (connection_ == nullptr) {
@@ -22,8 +24,9 @@ void MatchClient::Poll(World& world) {
 		Send(net::Hello{.name = name_});
 		state_ = State::Joining;
 	}
-	while (const auto size = connection_->Receive(buffer_)) {
-		const auto message = net::Decode(std::span(buffer_).first(*size));
+	while (const auto received = connection_->Receive(buffer_)) {
+		const auto message =
+			net::Decode(std::span(buffer_).first(received->size));
 		if (!message) {
 			continue;  // not the game's: nothing to do with it
 		}
@@ -48,6 +51,20 @@ void MatchClient::Poll(World& world) {
 				 scores != nullptr && state_ == State::Playing) {
 			scores_ = *scores;
 		}
+		else if (const auto* pong = std::get_if<net::Pong>(&*message)) {
+			OnPong(*pong, received->arrived);
+		}
+		else if (const auto* pings = std::get_if<net::Pings>(&*message)) {
+			server_pings_ = true;
+			pings_ = {};
+			for (const net::PlayerPing& ping :
+				 std::span(pings->players).first(pings->count)) {
+				pings_[ping.slot] = ping.rtt;
+			}
+		}
+	}
+	if (state_ == State::Playing) {
+		KeepTime();
 	}
 	if (connection_->GetState() == net::Connection::State::Closed &&
 		state_ != State::Rejected) {
@@ -432,6 +449,30 @@ std::optional<net::PlayerState> MatchClient::Interpolate(std::size_t slot,
 	state.theta = before->theta + turn * t;
 	state.pitch = before->pitch + (after->pitch - before->pitch) * t;
 	return state;
+}
+
+void MatchClient::KeepTime() {
+	const double now = clock_();
+	if (!server_pings_ || (pinged_ && now - last_ping_ < kPingSeconds)) {
+		return;
+	}
+	pinged_ = true;
+	last_ping_ = now;
+	constexpr double kMilliseconds = 1000.0;
+	Send(net::Ping{.stamp = static_cast<std::uint32_t>(
+					   static_cast<std::uint64_t>(now * kMilliseconds)),
+				   .rtt = rtt_});
+}
+
+void MatchClient::OnPong(const net::Pong& pong, double arrived) {
+	constexpr double kMilliseconds = 1000.0;
+	const auto now = static_cast<std::uint32_t>(
+		static_cast<std::uint64_t>(arrived * kMilliseconds));
+	// The clock's milliseconds wrap round: the difference does not
+	const std::uint32_t took = now - pong.stamp;
+	constexpr std::uint32_t kLongest = 9999;
+	rtt_ = static_cast<std::uint16_t>(
+		std::clamp<std::uint32_t>(took, 1, kLongest));
 }
 
 void MatchClient::Send(const net::Message& message) {

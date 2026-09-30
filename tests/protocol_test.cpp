@@ -181,6 +181,19 @@ TEST(Protocol, ScoresComeBackAsSent) {
 	EXPECT_LE(size, 200u);
 }
 
+TEST(Protocol, PingsComeBackAsSent) {
+	const Ping ping{.stamp = 0xFFFFFFF0, .rtt = 43};
+	EXPECT_EQ(RoundTrip(ping), ping);
+	const Pong pong{.stamp = 7};
+	EXPECT_EQ(RoundTrip(pong), pong);
+	Pings pings{.count = kMaxPlayers};
+	for (std::size_t i = 0; i < kMaxPlayers; ++i) {
+		pings.players[i] = {.slot = static_cast<std::uint8_t>(i),
+							.rtt = static_cast<std::uint16_t>(20 * i)};
+	}
+	EXPECT_EQ(RoundTrip(pings), pings);
+}
+
 // Within half a packing step: a 512th of a cell, a 131072nd of a turn; an
 // angle comes back the same way round, whatever turn it was given in
 TEST(Protocol, PackingStaysWithinAStep) {
@@ -248,6 +261,10 @@ TEST(Protocol, WhatCannotBeRightIsRefused) {
 	EXPECT_FALSE(Decode(std::span(buffer).first(size)));
 	buffer[6] = 0;
 	buffer[7] = kMaxPlayers;
+	EXPECT_FALSE(Decode(std::span(buffer).first(size)));
+	// A ping of a slot past the last
+	size = Encode(Pings{.count = 1}, buffer);
+	buffer[2] = kMaxPlayers;  // after type and count: the slot
 	EXPECT_FALSE(Decode(std::span(buffer).first(size)));
 	// A winner past the last slot
 	size = Encode(Scores{}, buffer);

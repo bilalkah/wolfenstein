@@ -13,6 +13,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <span>
@@ -70,9 +71,15 @@ class MatchClient
 		double age = 0.0;  // seconds since
 	};
 
-	// Plays over `connection`, as `name`
+	// How often the player measures how long its messages take
+	static constexpr double kPingSeconds = 1.0;
+	// Seconds, from any start: what round trips are timed with, the clock
+	// the connection stamps messages with as they come
+	using Clock = std::function<double()>;
+
+	// Plays over `connection`, as `name`, timing its pings with `clock`
 	MatchClient(std::unique_ptr<net::Connection> connection,
-				std::string_view name);
+				std::string_view name, Clock clock = net::Connection::Now);
 
 	// Reads what has come in: the welcome (starting the match in `world`),
 	// or the snapshots (correcting the local player, bringing players in
@@ -96,6 +103,18 @@ class MatchClient
 	// The latest kills, the newest last, each for kKillSeconds
 	std::span<const Kill> KillFeed() const {
 		return std::span(kills_).first(kill_count_);
+	}
+	// How long the player's messages take to the server and back, in
+	// milliseconds, as last measured; nothing before the first answer, or
+	// with a server that does not answer pings
+	std::optional<int> Ping() const {
+		return rtt_ > 0 ? std::optional<int>(rtt_) : std::nullopt;
+	}
+	// Another player's, as it told the server; nothing if not told yet
+	std::optional<int> PingOf(std::size_t slot) const {
+		return slot < pings_.size() && pings_[slot] > 0
+				   ? std::optional<int>(pings_[slot])
+				   : std::nullopt;
 	}
 	// Whether the local player has come back since last asked (the game
 	// turns its view to where it now looks)
@@ -146,6 +165,11 @@ class MatchClient
 	std::optional<net::PlayerState> Interpolate(std::size_t slot,
 												double tick) const;
 	void Send(const net::Message& message);
+	// Every kPingSeconds, once the server has shown it answers: a ping
+	void KeepTime();
+	// The answer to a ping, come at `arrived`: the round trip is from
+	// the ping to then, however late the frame that reads it
+	void OnPong(const net::Pong& pong, double arrived);
 
 	std::unique_ptr<net::Connection> connection_;
 	net::PlayerName name_;
@@ -168,6 +192,13 @@ class MatchClient
 	std::size_t kill_count_ = 0;
 	bool revived_ = false;
 	bool new_level_ = false;
+	Clock clock_;
+	// The server sends everyone's pings: it answers them too
+	bool server_pings_ = false;
+	double last_ping_ = 0.0;  // when the last ping went, by clock_
+	bool pinged_ = false;
+	std::uint16_t rtt_ = 0;	 // the last round trip, in ms
+	std::array<std::uint16_t, net::kMaxPlayers> pings_{};
 	std::array<std::uint8_t, net::kMaxMessage> buffer_{};
 };
 
