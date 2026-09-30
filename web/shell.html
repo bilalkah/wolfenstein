@@ -386,6 +386,14 @@
     benchmarkArgs.push('--connect', params.get('server'));
     if (params.has('name')) benchmarkArgs.push('--name', params.get('name'));
   }
+  // The server the multiplayer screen offers first: the one beside the page
+  // (the game's own stack serves both: wss:// on the page's host; on a LAN,
+  // plain ws:// on port 8080), except for the GitHub Pages copy, which has
+  // none beside it and keeps the game's own
+  if (!location.hostname.endsWith('github.io') && location.host) {
+    benchmarkArgs.push('--default-server', location.protocol === 'https:'
+      ? `wss://${location.host}` : `ws://${location.hostname}:8080`);
+  }
 
   var Module = {
     arguments: benchmarkArgs,

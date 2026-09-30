@@ -10,6 +10,7 @@
  */
 
 #include "Core/game.h"
+#include "Settings/settings.h"
 #include <algorithm>
 #include <cstdlib>
 #include <string>
@@ -26,15 +27,23 @@ int main(int argc, char** argv) {
 			game.EnableDebugView();
 		}
 	}
-	// --connect ws://host:port [--name NAME]: play a multiplayer game
+	// --connect ws://host:port [--name NAME]: play a multiplayer game;
+	// --default-server URL: the server the multiplayer screen offers until
+	// the player names another
 	std::string_view server;
 	std::string_view name = "player";
 	for (int i = 1; i + 1 < argc; ++i) {
-		if (std::string_view(argv[i]) == "--connect") {
+		const std::string_view option = argv[i];
+		if (option == "--connect") {
 			server = argv[i + 1];
 		}
-		if (std::string_view(argv[i]) == "--name") {
+		if (option == "--name") {
 			name = argv[i + 1];
+		}
+		if (Settings& settings = Settings::Get();
+			option == "--default-server" &&
+			settings.server.View() == Settings::kDefaultServer) {
+			settings.server.Set(argv[i + 1]);
 		}
 	}
 	// --benchmark [frames]: run the performance benchmark instead of the game
