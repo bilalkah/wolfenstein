@@ -57,6 +57,8 @@ add_executable(unit_tests
     protocol_test.cpp
     game_server_test.cpp
     match_test.cpp
+    match_url_test.cpp
+    lobby_test.cpp
 )
 target_link_libraries(unit_tests PRIVATE
     GTest::gtest_main

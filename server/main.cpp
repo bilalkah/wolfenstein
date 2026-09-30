@@ -1,6 +1,6 @@
-// The game's multiplayer server: one match on an arena, its players
-// connected by WebSocket. uWebSockets carries the messages; GameServer
-// plays the game.
+// The game's multiplayer server: its matches (the open one, and private
+// rooms, "/room/CODE"), their players connected by WebSocket. uWebSockets
+// carries the messages; the Lobby hands them to each room's GameServer.
 //
 //   wolfenstein-server [--port 8080] [--level bazaar.json,warehouse.json]
 //                      [--assets DIR]
@@ -10,7 +10,7 @@
 // It speaks plain ws://: in front of it on the internet a proxy (Caddy)
 // holds the certificate and passes wss:// on. GET /health answers "ok".
 
-#include "Server/game_server.h"
+#include "Server/lobby.h"
 #include <App.h>
 #include <array>
 #include <charconv>
@@ -29,10 +29,12 @@ namespace {
 
 using wolfenstein::ClientId;
 using wolfenstein::GameServer;
+using wolfenstein::Lobby;
 
 struct Connection
 {
 	ClientId id{};
+	std::string room;  // "" the open one
 };
 using Socket = uWS::WebSocket<false, true, Connection>;
 
@@ -89,7 +91,7 @@ class Sockets : public wolfenstein::Outbox
 // Moves the game on by as many ticks as time has passed, called often
 struct Ticker
 {
-	GameServer* server = nullptr;
+	Lobby* lobby = nullptr;
 	Sockets* sockets = nullptr;
 	std::chrono::steady_clock::time_point next;
 };
@@ -107,7 +109,7 @@ void OnTimer(us_timer_t* timer) {
 		ticker->next = now;
 	}
 	while (ticker->next <= now) {
-		ticker->server->Tick();
+		ticker->lobby->Tick();
 		ticker->next += tick;
 	}
 	ticker->sockets->CloseAsked();
@@ -175,12 +177,13 @@ int main(int argc, char** argv) try {
 	settings.time_limit = *time_limit * 60.0;
 
 	Sockets sockets;
-	auto created = GameServer::Create(assets, arenas, sockets, settings);
+	auto created = Lobby::Create(
+		[&] { return GameServer::Create(assets, arenas, sockets, settings); });
 	if (!created) {
 		std::cerr << "Cannot start the game: " << created.error() << '\n';
 		return EXIT_FAILURE;
 	}
-	GameServer& server = **created;
+	Lobby& lobby = **created;
 
 	std::uint32_t next_id = 1;
 	uWS::App app;
@@ -193,12 +196,24 @@ int main(int argc, char** argv) try {
 		 .idleTimeout = 30,
 		 .maxBackpressure = 64 * 1024,
 		 .closeOnBackpressureLimit = true,
+		 // The room the address names goes with the connection
+		 .upgrade =
+			 [&](auto* response, auto* request, auto* context) {
+				 response->template upgrade<Connection>(
+					 {.id = ClientId{next_id++},
+					  .room = Lobby::RoomOf(request->getUrl())},
+					 request->getHeader("sec-websocket-key"),
+					 request->getHeader("sec-websocket-protocol"),
+					 request->getHeader("sec-websocket-extensions"), context);
+			 },
 		 .open =
 			 [&](Socket* socket) {
-				 const ClientId id{next_id++};
-				 socket->getUserData()->id = id;
-				 sockets.Add(id, socket);
-				 server.Connect(id);
+				 const Connection& connection = *socket->getUserData();
+				 sockets.Add(connection.id, socket);
+				 // No room for another room: it goes
+				 if (!lobby.Connect(connection.id, connection.room)) {
+					 sockets.Close(connection.id);
+				 }
 				 sockets.CloseAsked();
 			 },
 		 .message =
@@ -208,7 +223,7 @@ int main(int argc, char** argv) try {
 					 sockets.Close(id);
 				 }
 				 else {
-					 server.Receive(
+					 lobby.Receive(
 						 id, std::span(reinterpret_cast<const std::uint8_t*>(
 										   message.data()),
 									   message.size()));
@@ -218,7 +233,7 @@ int main(int argc, char** argv) try {
 		 .close =
 			 [&](Socket* socket, int /*code*/, std::string_view /*reason*/) {
 				 const ClientId id = socket->getUserData()->id;
-				 server.Disconnect(id);
+				 lobby.Disconnect(id);
 				 sockets.Remove(id);
 			 }});
 	app.listen(*port, [port, mode](auto* listening) {
@@ -230,7 +245,7 @@ int main(int argc, char** argv) try {
 				  << std::flush;
 	});
 
-	Ticker ticker{.server = &server,
+	Ticker ticker{.lobby = &lobby,
 				  .sockets = &sockets,
 				  .next = std::chrono::steady_clock::now()};
 	us_timer_t* timer = us_create_timer(

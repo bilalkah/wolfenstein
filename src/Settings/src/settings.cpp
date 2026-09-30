@@ -40,12 +40,27 @@ void Settings::Parse(std::string_view text) {
 		text = end == std::string_view::npos ? std::string_view{}
 											 : text.substr(end + 1);
 		const auto separator = line.find('=');
-		double number = 0.0;
-		if (separator == std::string_view::npos ||
-			!ParseDouble(line.substr(separator + 1), number)) {
+		if (separator == std::string_view::npos) {
 			continue;
 		}
 		const std::string_view key = line.substr(0, separator);
+		const std::string_view value = line.substr(separator + 1);
+		if (key == "name") {
+			player_name.Set(value);
+			continue;
+		}
+		if (key == "server") {
+			server.Set(value);
+			continue;
+		}
+		if (key == "room") {
+			room.Set(value);
+			continue;
+		}
+		double number = 0.0;
+		if (!ParseDouble(value, number)) {
+			continue;
+		}
 		if (key == "mouse_sensitivity") {
 			mouse_sensitivity =
 				std::clamp(number, kMinMouseSensitivity, kMaxMouseSensitivity);
@@ -79,7 +94,10 @@ std::size_t Settings::Format(std::span<char> out) const {
 		.Line("volume", volume)
 		.Line("music_volume", music_volume)
 		.Line("effects_volume", effects_volume)
-		.Line("show_fps", show_fps ? 1 : 0);
+		.Line("show_fps", show_fps ? 1 : 0)
+		.LineText("name", player_name.View())
+		.LineText("server", server.View())
+		.LineText("room", room.View());
 	return writer.Text().size();
 }
 
@@ -89,7 +107,7 @@ void Settings::Load() {
 
 // Formats into a buffer on the stack: no allocation while the game runs
 void Settings::Save() const {
-	std::array<char, 256> buffer{};
+	std::array<char, 512> buffer{};
 	const std::size_t size = Format(buffer);
 	if (size > 0) {
 		WriteRecord(Record::Settings, std::string_view(buffer.data(), size));

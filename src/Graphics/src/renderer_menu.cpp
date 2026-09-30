@@ -413,6 +413,17 @@ void Menu::Open(MenuScreen screen) {
 		return_screen_ = screen_;
 	}
 	screen_ = screen;
+	// Only the multiplayer screen is typed into
+	const bool typing = screen == MenuScreen::Multiplayer;
+	if (typing != input_.text_mode) {
+		input_.text_mode = typing;
+		if (typing) {
+			SDL_StartTextInput(context_->GetWindow());
+		}
+		else {
+			SDL_StopTextInput(context_->GetWindow());
+		}
+	}
 	if (screen == MenuScreen::DifficultySelect) {
 		// On the one chosen last (at first the middle one)
 		ui_->ResetFocus(static_cast<int>(chosen_difficulty_));
@@ -461,6 +472,9 @@ MenuAction Menu::Update(double /*delta_time*/) {
 		case MenuScreen::Result:
 			action = ResultScreen();
 			break;
+		case MenuScreen::Multiplayer:
+			action = MultiplayerScreen();
+			break;
 	}
 	ui_->EndFrame();
 	input_.BeginFrame();
@@ -498,6 +512,9 @@ MenuAction Menu::MainScreen() {
 			Open(MenuScreen::DifficultySelect);
 		}
 	}
+	if (ui_->Button("MULTIPLAYER", ButtonRect(width, kTop, row++))) {
+		Open(MenuScreen::Multiplayer);
+	}
 	if (ui_->Button("CONTROLS", ButtonRect(width, kTop, row++))) {
 		Open(MenuScreen::Controls);
 	}
@@ -511,6 +528,66 @@ MenuAction Menu::MainScreen() {
 	}
 #endif
 	DrawHint("Arrow keys or mouse to choose  ·  Enter to select");
+	return action;
+}
+
+namespace {
+
+// What was typed into a text field, applied to the setting it shows
+template <std::size_t N>
+void Edit(SettingText<N>& text, const ui::TextEdits& edits) {
+	for (int i = 0; i < edits.erased; ++i) {
+		text.EraseLast();
+	}
+	for (const char c : edits.typed) {
+		text.Append(c);
+	}
+}
+
+}  // namespace
+
+// Joining a match: the name to play under, the server and the room (none:
+// the server's open game), remembered for the next time
+MenuAction Menu::MultiplayerScreen() {
+	const int width = context_->GetConfig().width;
+	MenuAction action;
+	DrawBackground();
+	DrawDimmer(190);
+	ui_->Text("MULTIPLAYER", width / 2, 70, ui::FontStyle::Heading,
+			  ui::color::kText, ui::Align::Center);
+	ui_->Text("A deathmatch for up to eight, in the browser or not.", width / 2,
+			  150, ui::FontStyle::Body, ui::color::kMuted, ui::Align::Center);
+	Settings& settings = Settings::Get();
+	constexpr int kWidth = 760;
+	constexpr int kHeight = 64;
+	constexpr int kGap = 16;
+	const int left = (width - kWidth) / 2;
+	int y = 230;
+	Edit(settings.player_name,
+		 ui_->TextField("NAME", settings.player_name.View(),
+						{left, y, kWidth, kHeight}));
+	y += kHeight + kGap;
+	Edit(settings.server, ui_->TextField("SERVER", settings.server.View(),
+										 {left, y, kWidth, kHeight}));
+	y += kHeight + kGap;
+	Edit(settings.room, ui_->TextField("ROOM", settings.room.View(),
+									   {left, y, kWidth, kHeight}));
+	y += kHeight + 12;
+	ui_->Text(
+		"No room: the server's open game. Friends in the same room "
+		"play together.",
+		width / 2, y, ui::FontStyle::Small, ui::color::kMuted,
+		ui::Align::Center);
+	const int buttons = y + 60;
+	if (ui_->Button("JOIN", ButtonRect(width, buttons, 0))) {
+		settings.Save();
+		action.type = MenuAction::Type::Join;
+	}
+	if (ui_->Button("BACK", ButtonRect(width, buttons, 1)) || input_.back) {
+		settings.Save();
+		Open(MenuScreen::Main);
+	}
+	DrawHint("Tab or arrows to move  ·  Enter to choose  ·  Esc to go back");
 	return action;
 }
 

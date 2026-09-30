@@ -92,6 +92,22 @@ class Input
 	bool right = false;
 	bool activate = false;	// Enter or Space
 	bool back = false;		// Esc or Backspace
+	// Typing into text, while a screen with text on it asks for it: the
+	// letters and Space are text then, not moves, Tab moves on, Backspace
+	// erases and only Esc goes back
+	bool text_mode = false;
+	std::array<char, 32> typed{};  // printable characters, in order
+	std::size_t typed_size = 0;
+	int erased = 0;	 // Backspaces
+	std::string_view Typed() const { return {typed.data(), typed_size}; }
+};
+
+// What was done to a text field this frame, for its owner to apply to its
+// text: characters typed at its end, and how many erased from it first
+struct TextEdits
+{
+	std::string_view typed;
+	int erased = 0;
 };
 
 class Ui
@@ -131,6 +147,10 @@ class Ui
 				const SDL_Rect& rect, double& value, double min, double max,
 				double step);
 	bool Toggle(std::string_view label, const SDL_Rect& rect, bool& value);
+	// A line of text, `value` as it stands, under its label: focused, it
+	// takes what is typed (Input::text_mode), which its owner applies
+	TextEdits TextField(std::string_view label, std::string_view value,
+						const SDL_Rect& rect);
 	// A focusable area whose contents the caller draws; `focused` reports
 	// whether it has focus this frame
 	bool Selectable(const SDL_Rect& rect, bool& focused);

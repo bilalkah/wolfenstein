@@ -31,7 +31,8 @@ enum class MenuScreen : std::uint8_t {
 	Controls,
 	Settings,
 	Pause,
-	Result
+	Result,
+	Multiplayer,  // a name, a server and a room, to join a match
 };
 
 struct MenuAction
@@ -44,6 +45,7 @@ struct MenuAction
 		Quit,			  // close the application (native only)
 		SettingsChanged,  // apply Settings::Get() (e.g. volume)
 		Continue,		  // go on with the saved game
+		Join,			  // join the match Settings::Get() names
 	};
 	Type type = Type::None;
 	// Index into the difficulties the menu was given
@@ -157,6 +159,7 @@ class Menu
 	MenuAction SettingsScreen();
 	MenuAction PauseScreen();
 	MenuAction ResultScreen();
+	MenuAction MultiplayerScreen();
 
 	void DrawBackground();
 	void DrawDimmer(Uint8 alpha);

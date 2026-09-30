@@ -6,6 +6,7 @@
 #include "Profiler/profiler.h"
 #include <array>
 #include <gtest/gtest.h>
+#include <string>
 #include <string_view>
 
 namespace wolfenstein {
@@ -20,12 +21,15 @@ Settings Changed() {
 	settings.music_volume = 0.25;
 	settings.effects_volume = 0.9;
 	settings.show_fps = false;
+	settings.player_name.Set("bilal");
+	settings.server.Set("wss://play.example.com:8443");
+	settings.room.Set("FRIDAY");
 	return settings;
 }
 
 TEST(Settings, ReadBackAsWritten) {
 	const Settings written = Changed();
-	std::array<char, 256> buffer{};
+	std::array<char, 512> buffer{};
 	const std::size_t size = written.Format(buffer);
 	ASSERT_GT(size, 0u);
 
@@ -38,6 +42,23 @@ TEST(Settings, ReadBackAsWritten) {
 	EXPECT_EQ(read.music_volume, written.music_volume);
 	EXPECT_EQ(read.effects_volume, written.effects_volume);
 	EXPECT_EQ(read.show_fps, written.show_fps);
+	EXPECT_EQ(read.player_name.View(), "bilal");
+	EXPECT_EQ(read.server.View(), "wss://play.example.com:8443");
+	EXPECT_EQ(read.room.View(), "FRIDAY");
+}
+
+// Text kept in place: cut where it is full, nothing unprintable taken
+TEST(Settings, TextIsCutAndPrintable) {
+	SettingText<4> text("ab\ncdef");
+	EXPECT_EQ(text.View(), "abcd");
+	EXPECT_FALSE(text.Append('x'));
+	text.EraseLast();
+	EXPECT_TRUE(text.Append('!'));
+	EXPECT_EQ(text.View(), "abc!");
+	Settings settings;
+	settings.Parse("name=\nserver=ws://a:1\n");
+	EXPECT_TRUE(settings.player_name.Empty());
+	EXPECT_EQ(settings.server.View(), "ws://a:1");
 }
 
 // The largest values fit the buffer Save formats into
@@ -47,7 +68,10 @@ TEST(Settings, TheLongestFit) {
 	settings.fov = 60.000000000000014;
 	settings.volume = settings.music_volume = settings.effects_volume =
 		0.30000000000000004;
-	std::array<char, 256> buffer{};
+	settings.player_name.Set(std::string(16, 'n'));
+	settings.server.Set(std::string(96, 's'));
+	settings.room.Set(std::string(12, 'r'));
+	std::array<char, 512> buffer{};
 	EXPECT_GT(settings.Format(buffer), 0u);
 }
 

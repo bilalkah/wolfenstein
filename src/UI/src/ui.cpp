@@ -64,6 +64,8 @@ void Input::BeginFrame() {
 	mouse_pressed = false;
 	mouse_released = false;
 	previous = next = left = right = activate = back = false;
+	typed_size = 0;
+	erased = 0;
 }
 
 void Input::Handle(const SDL_Event& event) {
@@ -89,14 +91,30 @@ void Input::Handle(const SDL_Event& event) {
 				mouse_down = false;
 			}
 			break;
-		case SDL_EVENT_KEY_DOWN:
-			switch (event.key.key) {
+		case SDL_EVENT_TEXT_INPUT:
+			if (text_mode && event.text.text != nullptr) {
+				for (const char* c = event.text.text; *c != '\0'; ++c) {
+					if (*c >= ' ' && *c <= '~' && typed_size < typed.size()) {
+						typed[typed_size++] = *c;
+					}
+				}
+			}
+			break;
+		case SDL_EVENT_KEY_DOWN: {
+			// Typing text, the letters and Space are the text's
+			const SDL_Keycode key = event.key.key;
+			if (text_mode && (key == SDLK_W || key == SDLK_A || key == SDLK_S ||
+							  key == SDLK_D || key == SDLK_SPACE)) {
+				break;
+			}
+			switch (key) {
 				case SDLK_UP:
 				case SDLK_W:
 					previous = true;
 					break;
 				case SDLK_DOWN:
 				case SDLK_S:
+				case SDLK_TAB:
 					next = true;
 					break;
 				case SDLK_LEFT:
@@ -112,14 +130,22 @@ void Input::Handle(const SDL_Event& event) {
 				case SDLK_SPACE:
 					activate = true;
 					break;
-				case SDLK_ESCAPE:
 				case SDLK_BACKSPACE:
+					if (text_mode) {
+						++erased;
+					}
+					else {
+						back = true;
+					}
+					break;
+				case SDLK_ESCAPE:
 					back = true;
 					break;
 				default:
 					break;
 			}
 			break;
+		}
 		default:
 			break;
 	}
@@ -398,6 +424,28 @@ bool Ui::Slider(std::string_view label, std::string_view value_text,
 		 rect.y + (rect.h - label_size.y) / 2, FontStyle::Body, color::kText,
 		 Align::Right);
 	return value != before;
+}
+
+TextEdits Ui::TextField(std::string_view label, std::string_view value,
+						const SDL_Rect& rect) {
+	const int index = NextWidget(rect);
+	const bool focused = IsFocused(index);
+	constexpr int kPadding = 24;
+	FillRect(rect, focused ? color::kPanelFocused : color::kPanel);
+	DrawRect(rect, focused ? color::kAccent : color::kBorder, focused ? 2 : 1);
+	const auto label_size = MeasureText(label, FontStyle::Body);
+	const int y = rect.y + (rect.h - label_size.y) / 2;
+	Text(label, rect.x + kPadding, y, FontStyle::Body,
+		 focused ? color::kText : color::kMuted);
+	// The text from the middle on, and where the next letter goes
+	const int left = rect.x + rect.w * 2 / 5;
+	const auto size = Text(value, left, y, FontStyle::Body, color::kText);
+	if (focused) {
+		FillRect({left + size.x + 2, y + 2, 3, label_size.y - 4},
+				 color::kAccent);
+		return {.typed = input_.Typed(), .erased = input_.erased};
+	}
+	return {};
 }
 
 bool Ui::Toggle(std::string_view label, const SDL_Rect& rect, bool& value) {

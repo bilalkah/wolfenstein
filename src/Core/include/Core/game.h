@@ -81,6 +81,11 @@ struct MouseLook
 MouseLook ToMouseLook(double dx, double dy, const Settings& settings,
 					  const GeneralConfig& view);
 
+// The address of a match: the server's ("ws://host:port"), and on it the
+// room's, if one is named ("/room/CODE", the code's letters and digits in
+// capitals)
+std::string MatchUrl(std::string_view server, std::string_view room);
+
 class Game
 {
   public:
@@ -220,6 +225,14 @@ class Game
 	// A multiplayer game's connection, and where it goes
 	std::unique_ptr<MatchClient> match_;
 	std::string server_url_;
+	std::string player_name_;
+	// The connection lost in the middle of a match: joining again, a few
+	// times, a while apart
+	static constexpr int kRejoinTries = 5;
+	static constexpr double kRejoinSeconds = 2.0;
+	bool rejoining_ = false;
+	int rejoin_tries_ = 0;
+	double rejoin_wait_ = 0.0;
 
 	FrameClock clock_;
 	// The simulation runs at 60 ticks per second whatever the frame rate

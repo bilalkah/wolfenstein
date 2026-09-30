@@ -74,6 +74,12 @@ class GameServer : private Hindsight
 	static constexpr std::size_t kMaxQueued = 8;
 	// How far back a shot may be judged: half a second
 	static constexpr std::uint32_t kRewind = 30;
+	// A player who comes back under the same name this soon after leaving,
+	// in the same match, has its score back (its connection dropped)
+	static constexpr double kComebackSeconds = 60.0;
+	// A player not heard from this long is gone, if someone says hello
+	// under its name (it is coming back on a new connection)
+	static constexpr double kStaleSeconds = 5.0;
 	// The scores go out when they change, and this often anyway (the clock)
 	static constexpr std::uint32_t kScoresEvery = 60;
 
@@ -134,7 +140,17 @@ class GameServer : private Hindsight
 		std::size_t head = 0;
 		std::size_t queued = 0;
 		PlayerCommand last{};
-		std::uint32_t seen = 0;	 // the last command's
+		std::uint32_t seen = 0;	  // the last command's
+		std::uint32_t heard = 0;  // the tick its last message came
+	};
+
+	// A player gone, whose score waits a while for it to come back
+	struct Departed
+	{
+		net::PlayerName name{};
+		Standing standing{};
+		std::size_t match = 0;	 // MatchRules::MatchNumber
+		std::uint32_t tick = 0;	 // when it left
 	};
 
 	// Where `target` stood when `shooter`'s game showed it (Hindsight)
@@ -177,6 +193,9 @@ class GameServer : private Hindsight
 	std::array<std::uint32_t, Scene::kMaxPlayers> seen_{};
 	std::array<bool, Scene::kMaxPlayers> wants_back_{};
 	bool scores_changed_ = true;
+	// The last players gone, the oldest first to make way
+	std::array<Departed, Scene::kMaxPlayers> departed_{};
+	std::size_t next_departed_ = 0;
 	std::array<std::uint8_t, net::kMaxMessage> buffer_{};
 };
 

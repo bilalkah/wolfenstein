@@ -16,6 +16,7 @@
 #include <SDL3/SDL.h>
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <chrono>
 #include <cmath>
 #include <functional>
@@ -301,7 +302,35 @@ void Game::HandleMenuAction(const MenuAction& action) {
 			ContinueSavedGame();
 			EnterPlaying();
 			break;
+		case MenuAction::Type::Join: {
+			const Settings& settings = Settings::Get();
+			const std::string_view name = settings.player_name.Empty()
+											  ? std::string_view("PLAYER")
+											  : settings.player_name.View();
+			Connect(MatchUrl(settings.server.View(), settings.room.View()),
+					name);
+			break;
+		}
 	}
+}
+
+std::string MatchUrl(std::string_view server, std::string_view room) {
+	std::string url(server);
+	while (!url.empty() && url.back() == '/') {
+		url.pop_back();
+	}
+	// A room is its code's letters and digits, in capitals
+	std::string code;
+	for (const char c : room) {
+		if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
+			code.push_back(
+				static_cast<char>(std::toupper(static_cast<unsigned char>(c))));
+		}
+	}
+	if (!code.empty()) {
+		url += "/room/" + code;
+	}
+	return url;
 }
 
 void Game::ApplySettings() {
@@ -619,15 +648,41 @@ void Game::MenuTick() {
 
 void Game::Connect(const std::string& url, std::string_view name) {
 	server_url_ = url;
+	player_name_ = name;
+	rejoining_ = false;
 	match_ = std::make_unique<MatchClient>(net::Connection::Open(url), name);
 	state_ = GameState::Joining;
 }
 
 void Game::JoiningTick() {
-	if (!PollMenuEvents()) {
+	// Esc gives up joining, back to the menu
+	bool leave = false;
+	SDL_Event event;
+	while (SDL_PollEvent(&event)) {
+		if (event.type == SDL_EVENT_QUIT) {
+			running_ = false;
+			return;
+		}
+		leave = leave || (event.type == SDL_EVENT_KEY_DOWN &&
+						  event.key.key == SDLK_ESCAPE);
+	}
+	if (leave) {
+		HandleMenuAction({.type = MenuAction::Type::QuitToMenu});
 		return;
 	}
 	clock_.Tick();
+	// Lost in the middle of a match: joining again, a while apart
+	if (rejoining_ && match_ &&
+		match_->GetState() == MatchClient::State::Closed &&
+		rejoin_tries_ < kRejoinTries) {
+		rejoin_wait_ -= clock_.DeltaTime();
+		if (rejoin_wait_ <= 0.0) {
+			++rejoin_tries_;
+			rejoin_wait_ = kRejoinSeconds;
+			match_ = std::make_unique<MatchClient>(
+				net::Connection::Open(server_url_), player_name_);
+		}
+	}
 	if (match_) {
 		match_->Poll(*world_);
 		if (match_->GetState() == MatchClient::State::Playing) {
@@ -641,11 +696,19 @@ void Game::JoiningTick() {
 		match_ ? match_->GetState() : MatchClient::State::Closed;
 	if (state == MatchClient::State::Rejected) {
 		menu_->DrawNotice(match_->Reason() == net::RejectReason::Full
-							  ? "The game is full"
-							  : "The server plays another version");
+							  ? "The game is full  ·  Esc to go back"
+							  : "The server plays another version  ·  Esc "
+								"to go back");
+	}
+	else if (rejoining_ && (state != MatchClient::State::Closed ||
+							rejoin_tries_ < kRejoinTries)) {
+		menu_->DrawNotice(
+			"The connection was lost: joining again  ·  Esc to "
+			"go back");
 	}
 	else if (state == MatchClient::State::Closed) {
-		menu_->DrawNotice(ui::FixedText<160>("Cannot reach {}", server_url_));
+		menu_->DrawNotice(ui::FixedText<192>(
+			"Cannot reach {}  ·  Esc to go back", server_url_));
 	}
 	else {
 		menu_->DrawNotice(ui::FixedText<160>("Joining {}", server_url_));
@@ -654,6 +717,7 @@ void Game::JoiningTick() {
 }
 
 void Game::BeginMatch() {
+	rejoining_ = false;
 	render_type_ = RenderType::TEXTURE;
 	renderer_ = renderer_3d_.get();
 	map_expanded_ = false;
@@ -682,10 +746,15 @@ void Game::TickMatch(const PlayerCommand& command, int ticks) {
 		match_->TakeRevived()) {
 		view_.Reset(world_->GetPlayer().GetPosition().theta, 0.0);
 	}
-	// The server gone: why, on the joining screen
+	// The server gone: why, on the joining screen; lost, it joins again
 	if (match_->GetState() != MatchClient::State::Playing) {
 		CaptureMouse(false);
 		state_ = GameState::Joining;
+		if (match_->GetState() == MatchClient::State::Closed) {
+			rejoining_ = true;
+			rejoin_tries_ = 0;
+			rejoin_wait_ = kRejoinSeconds;
+		}
 	}
 }
 

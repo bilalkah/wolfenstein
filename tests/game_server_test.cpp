@@ -14,6 +14,7 @@
 #include <memory>
 #include <numbers>
 #include <ranges>
+#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -100,10 +101,10 @@ class GameServerTest : public ::testing::Test
 		ASSERT_GT(size, 0u);
 		server_->Receive(client, std::span(buffer).first(size));
 	}
-	// A connection that says hello; its slot
-	std::size_t Join(ClientId client) {
+	// A connection that says hello (as `name`); its slot
+	std::size_t Join(ClientId client, std::string_view name = "p") {
 		server_->Connect(client);
-		Message(client, net::Hello{.name = net::PlayerName("p")});
+		Message(client, net::Hello{.name = net::PlayerName(name)});
 		return outbox_.Last<net::Welcome>(client).slot;
 	}
 	// Commands numbered from `first`, forward, facing `theta`
@@ -306,6 +307,49 @@ TEST_F(GameServerTest, APlayerDownComesBackFarFromTheOthers) {
 		std::ceil(MatchSettings{}.respawn_early / GameServer::kTickSeconds));
 	Ticks(early + 2);
 	EXPECT_TRUE(PlayerIn(1).IsAlive());
+}
+
+// A player whose connection dropped, back under its name soon after, has
+// its score back; another name, or the next match, starts from none
+TEST_F(GameServerTest, APlayerBackSoonHasItsScore) {
+	Join(ClientId{1}, "ann");
+	Join(ClientId{2}, "bob");
+	Join(ClientId{3}, "cat");
+	Kill(0, 1);
+	Ticks(1);
+	server_->Disconnect(ClientId{1});
+	Ticks(600);
+	const std::size_t slot = Join(ClientId{4}, "ann");
+	EXPECT_EQ(server_->Rules().StandingOf(slot).frags, 1);
+	server_->Disconnect(ClientId{2});
+	EXPECT_EQ(server_->Rules().StandingOf(Join(ClientId{5}, "dan")).deaths, 0)
+		<< "not bob";
+	// Too late
+	server_->Disconnect(ClientId{4});
+	Ticks(static_cast<int>(GameServer::kComebackSeconds /
+						   GameServer::kTickSeconds) +
+		  1);
+	EXPECT_EQ(server_->Rules().StandingOf(Join(ClientId{6}, "ann")).frags, 0);
+}
+
+// Coming back before the server knew the old connection was gone: the old
+// one, silent for a while, goes, and the score comes with its name
+TEST_F(GameServerTest, ANewConnectionUnderASilentPlayersNameReplacesIt) {
+	Join(ClientId{1}, "ann");
+	Join(ClientId{2}, "bob");
+	Kill(0, 1);
+	Ticks(1);
+	// Still heard from: a namesake joins beside it
+	EXPECT_EQ(Join(ClientId{3}, "bob"), 2u);
+	server_->Disconnect(ClientId{3});
+	Ticks(
+		static_cast<int>(GameServer::kStaleSeconds / GameServer::kTickSeconds) +
+		2);
+	const std::size_t slot = Join(ClientId{4}, "ann");
+	EXPECT_EQ(slot, 0u) << "the silent ann's slot, freed";
+	EXPECT_EQ(server_->Rules().StandingOf(slot).frags, 1);
+	EXPECT_NE(std::ranges::find(outbox_.closed, ClientId{1}),
+			  outbox_.closed.end());
 }
 
 // The first to the frag limit wins: the result shows, no one is hurt, and

@@ -79,6 +79,11 @@ class MatchRules
 	// Everyone's score back to none, everyone whole, the pickups back: the
 	// next match
 	void Restart();
+	// The player in `slot` has the score it had (it left, and came back):
+	// its frags, deaths and a gun race's step
+	void Restore(std::size_t slot, const Standing& standing);
+	// Counts the matches played: which one this is
+	std::size_t MatchNumber() const { return match_number_; }
 
 	const MatchSettings& Settings() const { return settings_; }
 	net::MatchPhase Phase() const { return phase_; }
@@ -120,6 +125,7 @@ class MatchRules
 	std::optional<std::size_t> winner_;
 	// Turns through the spawn points when many are as far from everyone
 	std::size_t spawn_turn_ = 0;
+	std::size_t match_number_ = 0;
 };
 
 }  // namespace wolfenstein

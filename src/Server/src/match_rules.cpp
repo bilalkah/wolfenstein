@@ -10,6 +10,7 @@ MatchRules::MatchRules(World& world, const MatchSettings& settings)
 }
 
 void MatchRules::Restart() {
+	++match_number_;
 	phase_ = net::MatchPhase::Playing;
 	elapsed_ = 0.0;
 	winner_.reset();
@@ -37,6 +38,16 @@ void MatchRules::Restart() {
 void MatchRules::Join(std::size_t slot) {
 	standings_[slot] = {.present = true};
 	Respawn(slot);
+}
+
+void MatchRules::Restore(std::size_t slot, const Standing& standing) {
+	Standing& restored = standings_[slot];
+	restored.frags = standing.frags;
+	restored.deaths = standing.deaths;
+	restored.step = standing.step;
+	if (settings_.mode == net::MatchMode::GunRace) {
+		ArmForStep(slot);
+	}
 }
 
 void MatchRules::Leave(std::size_t slot) {

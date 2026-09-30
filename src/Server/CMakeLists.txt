@@ -3,6 +3,7 @@ add_library(
     game_server
     STATIC
     src/game_server.cpp
+    src/lobby.cpp
     src/match_rules.cpp
 )
 target_include_directories(game_server PUBLIC

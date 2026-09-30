@@ -119,7 +119,7 @@ void GameServer::Connect(ClientId client) {
 		outbox_.Close(client);
 		return;
 	}
-	*free = Client{.open = true, .id = client};
+	*free = Client{.open = true, .id = client, .heard = tick_};
 }
 
 void GameServer::Receive(ClientId id, std::span<const std::uint8_t> message) {
@@ -127,6 +127,7 @@ void GameServer::Receive(ClientId id, std::span<const std::uint8_t> message) {
 	if (client == nullptr) {
 		return;
 	}
+	client->heard = tick_;
 	const auto decoded = net::Decode(message);
 	if (!decoded) {
 		// Not the game's protocol: whoever it is, they go
@@ -150,12 +151,36 @@ void GameServer::Hello(Client& client, const net::Hello& hello) {
 		outbox_.Close(client.id);
 		return;
 	}
+	// A player of this name not heard from for a while: its connection
+	// dropped, and this is it coming back; the old one goes first
+	const auto stale = static_cast<std::uint32_t>(kStaleSeconds / kTickSeconds);
+	for (const Client& other : clients_) {
+		if (&other != &client && other.open && other.slot &&
+			!hello.name.View().empty() && other.name == hello.name &&
+			tick_ - other.heard > stale) {
+			const ClientId gone = other.id;
+			outbox_.Close(gone);
+			Disconnect(gone);
+		}
+	}
 	for (std::size_t slot = 0; slot < Scene::kMaxPlayers; ++slot) {
 		if (world_->FindPlayer(slot) == nullptr && world_->JoinPlayer(slot)) {
 			client.slot = slot;
 			client.name = hello.name;
 			client.seen = tick_;
 			rules_.Join(slot);
+			// Back soon under the same name: its score is its own again
+			const auto back =
+				static_cast<std::uint32_t>(kComebackSeconds / kTickSeconds);
+			for (Departed& gone : departed_) {
+				if (!hello.name.View().empty() && gone.name == hello.name &&
+					gone.match == rules_.MatchNumber() &&
+					tick_ - gone.tick <= back) {
+					rules_.Restore(slot, gone.standing);
+					gone = {};
+					break;
+				}
+			}
 			scores_changed_ = true;
 			Send(client.id,
 				 net::Welcome{.slot = static_cast<std::uint8_t>(slot),
@@ -226,6 +251,12 @@ void GameServer::Disconnect(ClientId id) {
 		return;
 	}
 	if (client->slot) {
+		departed_[next_departed_] = {
+			.name = client->name,
+			.standing = rules_.StandingOf(*client->slot),
+			.match = rules_.MatchNumber(),
+			.tick = tick_};
+		next_departed_ = (next_departed_ + 1) % departed_.size();
 		world_->LeavePlayer(*client->slot);
 		rules_.Leave(*client->slot);
 		scores_changed_ = true;
