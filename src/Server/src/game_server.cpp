@@ -83,10 +83,10 @@ void GameServer::NextArena() {
 		!started) {
 		return;
 	}
-	for (const Client& client : clients_) {
+	for (Client& client : clients_) {
 		// No room for it there (cannot be: every slot is free): it goes
 		if (client.open && client.slot && !world_->JoinPlayer(*client.slot)) {
-			outbox_.Close(client.id);
+			Close(client);
 		}
 	}
 	Watch(world_->CurrentLevel());
@@ -119,42 +119,65 @@ void GameServer::Connect(ClientId client) {
 		outbox_.Close(client);
 		return;
 	}
-	*free = Client{.open = true, .id = client, .heard = tick_};
+	*free = Client{.open = true, .id = client, .heard = tick_, .opened = tick_};
+}
+
+void GameServer::Close(Client& client) {
+	if (!client.closing) {
+		client.closing = true;
+		outbox_.Close(client.id);
+	}
 }
 
 void GameServer::Receive(ClientId id, std::span<const std::uint8_t> message) {
 	Client* client = Find(id);
-	if (client == nullptr) {
+	if (client == nullptr || client->closing) {
 		return;
 	}
 	client->heard = tick_;
-	const auto decoded = net::Decode(message);
-	if (!decoded) {
-		// Not the game's protocol: whoever it is, they go
-		outbox_.Close(id);
+	// More than a game sends, not the game's protocol, or not what a player
+	// says then: whoever it is, they go
+	if (client->budget == 0) {
+		Close(*client);
 		return;
 	}
-	if (const auto* hello = std::get_if<net::Hello>(&*decoded)) {
-		Hello(*client, *hello);
-	}
-	else if (const auto* input = std::get_if<net::Input>(&*decoded)) {
-		Input(*client, *input);
-	}
-	else if (const auto* ping = std::get_if<net::Ping>(&*decoded)) {
-		// Answered at once, not at the next tick: the round trip is the
-		// network's
-		client->rtt = ping->rtt;
-		Send(id, net::Pong{.stamp = ping->stamp});
+	--client->budget;
+	const auto decoded = net::Decode(message);
+	if (!decoded || !Take(*client, *decoded)) {
+		Close(*client);
 	}
 }
 
-void GameServer::Hello(Client& client, const net::Hello& hello) {
-	if (client.slot) {
-		return;	 // in already
+bool GameServer::Take(Client& client, const net::Message& message) {
+	if (const auto* hello = std::get_if<net::Hello>(&message)) {
+		// First, and once
+		if (client.slot) {
+			return false;
+		}
+		Hello(client, *hello);
+		return true;
 	}
+	// Anything else only from a player
+	if (!client.slot) {
+		return false;
+	}
+	if (const auto* input = std::get_if<net::Input>(&message)) {
+		return Input(client, *input);
+	}
+	if (const auto* ping = std::get_if<net::Ping>(&message)) {
+		// Answered at once, not at the next tick: the round trip is the
+		// network's
+		client.rtt = std::min(ping->rtt, kMaxRtt);
+		Send(client.id, net::Pong{.stamp = ping->stamp});
+		return true;
+	}
+	return false;  // what only the server sends
+}
+
+void GameServer::Hello(Client& client, const net::Hello& hello) {
 	if (hello.version != net::kProtocolVersion) {
 		Send(client.id, net::Reject{.reason = net::RejectReason::Version});
-		outbox_.Close(client.id);
+		Close(client);
 		return;
 	}
 	// A player of this name not heard from for a while: its connection
@@ -162,8 +185,7 @@ void GameServer::Hello(Client& client, const net::Hello& hello) {
 	const auto stale = static_cast<std::uint32_t>(kStaleSeconds / kTickSeconds);
 	for (const Client& other : clients_) {
 		if (&other != &client && other.open && other.slot &&
-			!hello.name.View().empty() && other.name == hello.name &&
-			tick_ - other.heard > stale) {
+			other.name == hello.name && tick_ - other.heard > stale) {
 			const ClientId gone = other.id;
 			outbox_.Close(gone);
 			Disconnect(gone);
@@ -179,7 +201,7 @@ void GameServer::Hello(Client& client, const net::Hello& hello) {
 			const auto back =
 				static_cast<std::uint32_t>(kComebackSeconds / kTickSeconds);
 			for (Departed& gone : departed_) {
-				if (!hello.name.View().empty() && gone.name == hello.name &&
+				if (gone.name == hello.name &&
 					gone.match == rules_.MatchNumber() &&
 					tick_ - gone.tick <= back) {
 					rules_.Restore(slot, gone.standing);
@@ -196,17 +218,17 @@ void GameServer::Hello(Client& client, const net::Hello& hello) {
 		}
 	}
 	Send(client.id, net::Reject{.reason = net::RejectReason::Full});
-	outbox_.Close(client.id);
+	Close(client);
 }
 
-void GameServer::Input(Client& client, const net::Input& input) {
-	if (!client.slot) {
-		return;	 // commands before hello: nothing to apply them to
-	}
-	if (input.count == 0) {
-		return;
-	}
+bool GameServer::Input(Client& client, const net::Input& input) {
+	// A game numbers its commands one after another and sends each in the
+	// next few inputs, in order: none is skipped, and none comes back
+	const std::uint32_t first = input.commands[0].sequence;
 	const std::uint32_t newest = input.commands[input.count - 1].sequence;
+	if (first > client.received + 1 || newest < client.received) {
+		return false;
+	}
 	for (std::size_t i = 0; i < input.count; ++i) {
 		const net::NumberedCommand& numbered = input.commands[i];
 		// Each command once: one sent again, or already applied, is not
@@ -226,6 +248,7 @@ void GameServer::Input(Client& client, const net::Input& input) {
 		++client.queued;
 		client.received = numbered.sequence;
 	}
+	return true;
 }
 
 PlayerCommand GameServer::NextCommand(Client& client) {
@@ -271,6 +294,19 @@ void GameServer::Disconnect(ClientId id) {
 }
 
 void GameServer::Tick() {
+	// Each connection's budget topped up; one that has not said hello in
+	// time goes
+	const auto hello_ticks =
+		static_cast<std::uint32_t>(kHelloSeconds / kTickSeconds);
+	for (Client& client : clients_) {
+		if (client.open && !client.closing) {
+			client.budget =
+				std::min(client.budget + kMessagesPerTick, kMessageBurst);
+			if (!client.slot && tick_ - client.opened > hello_ticks) {
+				Close(client);
+			}
+		}
+	}
 	wants_back_ = {};
 	for (Client& client : clients_) {
 		if (!client.open || !client.slot) {

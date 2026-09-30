@@ -1,7 +1,10 @@
 #include "Net/protocol.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <limits>
 #include <numbers>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -12,8 +15,10 @@ namespace {
 constexpr double kTurn = 2.0 * std::numbers::pi;
 // Positions in 256ths of a cell: levels up to 256 cells across
 constexpr double kPositionScale = 256.0;
-// Pitch as a share of the furthest a view tips, a little past a player's
+// Pitch as a share of the furthest a view tips, a little past a player's,
+// in steps each way
 constexpr double kPitchRange = 0.5;
+constexpr std::int16_t kPitchSteps = 32767;
 
 std::uint16_t PackPosition(double coordinate) {
 	return static_cast<std::uint16_t>(
@@ -31,10 +36,18 @@ double UnpackAngle(std::uint16_t packed) {
 }
 std::int16_t PackPitch(double pitch) {
 	return static_cast<std::int16_t>(
-		std::lround(std::clamp(pitch / kPitchRange, -1.0, 1.0) * 32767.0));
+		std::lround(std::clamp(pitch / kPitchRange, -1.0, 1.0) * kPitchSteps));
 }
 double UnpackPitch(std::int16_t packed) {
-	return packed / 32767.0 * kPitchRange;
+	return packed / static_cast<double>(kPitchSteps) * kPitchRange;
+}
+// A pitch as PackPitch writes it: one step past the lowest is not
+double ReadPitch(ByteReader& in) {
+	const std::int16_t packed = in.I16();
+	if (packed < -kPitchSteps) {
+		in.Fail();
+	}
+	return UnpackPitch(packed);
 }
 
 // A player in a snapshot is alive, and shielded: the top bits of its slot's
@@ -49,7 +62,31 @@ enum Button : std::uint8_t {
 	kReload = 1U << 1U,
 	kUse = 1U << 2U,
 	kHasView = 1U << 3U,
+	kButtons = kFire | kReload | kUse | kHasView,
 };
+
+// A key's or the wheel's step, -1, 0 or 1: anything else fails the reader
+std::int8_t ReadStep(ByteReader& in) {
+	const std::int8_t step = in.I8();
+	if (step < -1 || step > 1) {
+		in.Fail();
+	}
+	return step;
+}
+
+// A name is printable ASCII, what the scoreboard's font draws
+bool IsNameCharacter(char c) {
+	return c >= ' ' && c <= '~';
+}
+// A player's name: at least a character, each one printable
+PlayerName ReadName(ByteReader& in) {
+	const PlayerName name = PlayerName::Read(in);
+	if (name.View().empty() ||
+		!std::ranges::all_of(name.View(), IsNameCharacter)) {
+		in.Fail();
+	}
+	return name;
+}
 
 void WriteCommand(ByteWriter& out, const PlayerCommand& command) {
 	out.I8(command.forward);
@@ -64,20 +101,26 @@ void WriteCommand(ByteWriter& out, const PlayerCommand& command) {
 	out.I16(PackPitch(command.view_pitch));
 }
 
+// A command as a game writes it: keys held -1, 0 or 1, no button it does
+// not know, a weapon it could carry (or none)
 PlayerCommand ReadCommand(ByteReader& in) {
 	PlayerCommand command;
-	command.forward = std::clamp<std::int8_t>(in.I8(), -1, 1);
-	command.strafe = std::clamp<std::int8_t>(in.I8(), -1, 1);
-	command.turn = std::clamp<std::int8_t>(in.I8(), -1, 1);
+	command.forward = ReadStep(in);
+	command.strafe = ReadStep(in);
+	command.turn = ReadStep(in);
 	const std::uint8_t buttons = in.U8();
 	command.fire = (buttons & kFire) != 0;
 	command.reload = (buttons & kReload) != 0;
 	command.use = (buttons & kUse) != 0;
 	command.has_view = (buttons & kHasView) != 0;
 	command.weapon = in.I8();
-	command.cycle = std::clamp<std::int8_t>(in.I8(), -1, 1);
+	command.cycle = ReadStep(in);
 	command.view_theta = UnpackAngle(in.U16());
-	command.view_pitch = UnpackPitch(in.I16());
+	command.view_pitch = ReadPitch(in);
+	if ((buttons & ~kButtons) != 0 || command.weapon < -1 ||
+		std::cmp_greater_equal(command.weapon, kMaxWeapons)) {
+		in.Fail();
+	}
 	return command;
 }
 
@@ -194,7 +237,7 @@ std::optional<Message> ReadBody(MessageType type, ByteReader& in) {
 		case MessageType::Hello: {
 			Hello hello;
 			hello.version = in.U16();
-			hello.name = PlayerName::Read(in);
+			hello.name = ReadName(in);
 			return hello;
 		}
 		case MessageType::Welcome: {
@@ -219,11 +262,17 @@ std::optional<Message> ReadBody(MessageType type, ByteReader& in) {
 		case MessageType::Input: {
 			Input input;
 			input.count = in.U8();
-			if (input.count > kInputCommands) {
+			if (input.count == 0 || input.count > kInputCommands) {
 				in.Fail();
 				return input;
 			}
+			// Numbered from 1, and not past the last number
 			const std::uint32_t first = in.U32();
+			if (first == 0 ||
+				first > std::numeric_limits<std::uint32_t>::max() -
+							(input.count - 1U)) {
+				in.Fail();
+			}
 			input.seen = in.U32();
 			for (std::size_t i = 0; i < input.count; ++i) {
 				input.commands[i] = {
@@ -250,7 +299,7 @@ std::optional<Message> ReadBody(MessageType type, ByteReader& in) {
 				player.pose.x = UnpackPosition(in.U16());
 				player.pose.y = UnpackPosition(in.U16());
 				player.theta = UnpackAngle(in.U16());
-				player.pitch = UnpackPitch(in.I16());
+				player.pitch = ReadPitch(in);
 				player.health = in.U8();
 				player.weapon = in.U8();
 				if (player.slot >= kMaxPlayers) {
@@ -326,7 +375,7 @@ std::optional<Message> ReadBody(MessageType type, ByteReader& in) {
 			for (std::size_t i = 0; i < scores.count; ++i) {
 				Score& score = scores.players[i];
 				score.slot = in.U8();
-				score.name = PlayerName::Read(in);
+				score.name = ReadName(in);
 				score.frags = in.I16();
 				score.deaths = in.U16();
 				score.step = in.U8();
@@ -365,6 +414,18 @@ std::optional<Message> ReadBody(MessageType type, ByteReader& in) {
 }
 
 }  // namespace
+
+PlayerName MakeName(std::string_view text) {
+	std::string_view::size_type size = 0;
+	std::array<char, PlayerName::kCapacity> kept{};
+	for (const char c : text) {
+		if (size < kept.size() && IsNameCharacter(c)) {
+			kept[size++] = c;
+		}
+	}
+	return size > 0 ? PlayerName(std::string_view(kept.data(), size))
+					: PlayerName("PLAYER");
+}
 
 std::size_t Encode(const Message& message, std::span<std::uint8_t> out) {
 	ByteWriter writer(out);

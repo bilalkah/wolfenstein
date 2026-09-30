@@ -11,7 +11,7 @@ namespace wolfenstein {
 MatchClient::MatchClient(std::unique_ptr<net::Connection> connection,
 						 std::string_view name, Clock clock)
 	: connection_(std::move(connection)),
-	  name_(name),
+	  name_(net::MakeName(name)),
 	  clock_(std::move(clock)) {}
 
 void MatchClient::Poll(World& world) {

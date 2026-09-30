@@ -9,7 +9,10 @@
 //
 // It speaks plain ws://: in front of it on the internet a proxy (Caddy)
 // holds the certificate and passes wss:// on. GET /health answers "ok".
+// At most Addresses::kPerAddress connections come from one address (behind
+// the proxy, the one it names); more are refused with 429.
 
+#include "Server/addresses.h"
 #include "Server/lobby.h"
 #include <App.h>
 #include <array>
@@ -23,10 +26,12 @@
 #include <ranges>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace {
 
+using wolfenstein::Addresses;
 using wolfenstein::ClientId;
 using wolfenstein::GameServer;
 using wolfenstein::Lobby;
@@ -34,7 +39,8 @@ using wolfenstein::Lobby;
 struct Connection
 {
 	ClientId id{};
-	std::string room;  // "" the open one
+	std::string room;	  // "" the open one
+	std::string address;  // what it counts under (Addresses::KeyOf)
 };
 using Socket = uWS::WebSocket<false, true, Connection>;
 
@@ -186,6 +192,7 @@ int main(int argc, char** argv) try {
 	Lobby& lobby = **created;
 
 	std::uint32_t next_id = 1;
+	Addresses addresses;
 	uWS::App app;
 	app.get("/health",
 			[](auto* response, auto* /*request*/) { response->end("ok"); });
@@ -196,12 +203,22 @@ int main(int argc, char** argv) try {
 		 .idleTimeout = 30,
 		 .maxBackpressure = 64 * 1024,
 		 .closeOnBackpressureLimit = true,
-		 // The room the address names goes with the connection
+		 // The room the address names goes with the connection, and whom
+		 // it comes from: one who has too many open already is refused
 		 .upgrade =
 			 [&](auto* response, auto* request, auto* context) {
+				 std::string address =
+					 Addresses::KeyOf(response->getRemoteAddress(),
+									  request->getHeader("x-forwarded-for"));
+				 if (!addresses.Allows(address)) {
+					 response->writeStatus("429 Too Many Requests")
+						 ->end("Too many connections from one address\n");
+					 return;
+				 }
 				 response->template upgrade<Connection>(
 					 {.id = ClientId{next_id++},
-					  .room = Lobby::RoomOf(request->getUrl())},
+					  .room = Lobby::RoomOf(request->getUrl()),
+					  .address = std::move(address)},
 					 request->getHeader("sec-websocket-key"),
 					 request->getHeader("sec-websocket-protocol"),
 					 request->getHeader("sec-websocket-extensions"), context);
@@ -209,6 +226,7 @@ int main(int argc, char** argv) try {
 		 .open =
 			 [&](Socket* socket) {
 				 const Connection& connection = *socket->getUserData();
+				 addresses.Open(connection.address);
 				 sockets.Add(connection.id, socket);
 				 // No room for another room: it goes
 				 if (!lobby.Connect(connection.id, connection.room)) {
@@ -232,9 +250,10 @@ int main(int argc, char** argv) try {
 			 },
 		 .close =
 			 [&](Socket* socket, int /*code*/, std::string_view /*reason*/) {
-				 const ClientId id = socket->getUserData()->id;
-				 lobby.Disconnect(id);
-				 sockets.Remove(id);
+				 const Connection& connection = *socket->getUserData();
+				 lobby.Disconnect(connection.id);
+				 sockets.Remove(connection.id);
+				 addresses.Close(connection.address);
 			 }});
 	app.listen(*port, [port, mode](auto* listening) {
 		if (listening == nullptr) {

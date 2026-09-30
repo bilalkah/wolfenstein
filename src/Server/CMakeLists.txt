@@ -2,6 +2,7 @@
 add_library(
     game_server
     STATIC
+    src/addresses.cpp
     src/game_server.cpp
     src/lobby.cpp
     src/match_rules.cpp

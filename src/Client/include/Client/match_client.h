@@ -77,7 +77,8 @@ class MatchClient
 	// the connection stamps messages with as they come
 	using Clock = std::function<double()>;
 
-	// Plays over `connection`, as `name`, timing its pings with `clock`
+	// Plays over `connection`, as `name` (its printable characters, as the
+	// server takes it: net::MakeName), timing its pings with `clock`
 	MatchClient(std::unique_ptr<net::Connection> connection,
 				std::string_view name, Clock clock = net::Connection::Now);
 

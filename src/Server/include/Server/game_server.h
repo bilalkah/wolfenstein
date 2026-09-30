@@ -60,6 +60,12 @@ class Outbox
 // A shot is judged against the others where the shooter's game showed
 // them as it fired (each command says when that was): the server keeps
 // where everyone stood for the last kRewind ticks.
+//
+// A connection is taken only for what a player's game sends, when it sends
+// it: a hello first, once, then commands and pings. Anything else ends it:
+// bytes that are not a message of the protocol (net::Decode), a message only
+// the server sends, commands skipping ahead or going back, more messages
+// than a game sends, or no hello in time.
 class GameServer : private Hindsight
 {
   public:
@@ -83,6 +89,18 @@ class GameServer : private Hindsight
 	// The scores go out when they change, and this often anyway (the
 	// clock), each player's round trip with them
 	static constexpr std::uint32_t kScoresEvery = 60;
+	// A connection says hello this soon after it opens, or it goes
+	static constexpr double kHelloSeconds = 10.0;
+	// Messages a connection may send, as a budget: a game sends a command a
+	// tick and a ping a second, and the budget grows by kMessagesPerTick a
+	// tick, up to kMessageBurst (the half minute of messages a stalled
+	// network lets through at once). One that spends it all is flooding the
+	// server, and goes.
+	static constexpr std::uint32_t kMessagesPerTick = 2;
+	static constexpr std::uint32_t kMessageBurst = 2000;
+	// The longest round trip a player is shown to have, in ms, whatever it
+	// says
+	static constexpr std::uint16_t kMaxRtt = 9999;
 
 	// Loads the game's content from `asset_dir`, drawing nothing, and starts
 	// a match on the first of `arenas` (none: the configuration's) with no
@@ -106,7 +124,8 @@ class GameServer : private Hindsight
 	// A connection opened: once it says hello it is a player. With every
 	// connection taken it is closed at once.
 	void Connect(ClientId client);
-	// One whole message from `client`
+	// One whole message from `client`; what a player's game would not send
+	// then closes the connection
 	void Receive(ClientId client, std::span<const std::uint8_t> message);
 	// The connection is gone: its player leaves
 	void Disconnect(ClientId client);
@@ -130,6 +149,7 @@ class GameServer : private Hindsight
 	struct Client
 	{
 		bool open = false;
+		bool closing = false;  // told to go: nothing more it sends is read
 		ClientId id{};
 		std::optional<std::size_t> slot{};	// a player once it said hello
 		net::PlayerName name{};
@@ -141,9 +161,11 @@ class GameServer : private Hindsight
 		std::size_t head = 0;
 		std::size_t queued = 0;
 		PlayerCommand last{};
-		std::uint32_t seen = 0;	  // the last command's
-		std::uint32_t heard = 0;  // the tick its last message came
-		std::uint16_t rtt = 0;	  // its round trip, in ms, as it last said
+		std::uint32_t seen = 0;	   // the last command's
+		std::uint32_t heard = 0;   // the tick its last message came
+		std::uint16_t rtt = 0;	   // its round trip, in ms, as it last said
+		std::uint32_t opened = 0;  // the tick it connected at
+		std::uint32_t budget = kMessageBurst;  // messages it may yet send
 	};
 
 	// A player gone, whose score waits a while for it to come back
@@ -168,8 +190,14 @@ class GameServer : private Hindsight
 	void SendScores();
 
 	Client* Find(ClientId id);
+	// Ends the connection: the transport is told to close it, and nothing
+	// more from it is read
+	void Close(Client& client);
+	// Takes `message` from `client`; false if it is not what a player's game
+	// sends then
+	bool Take(Client& client, const net::Message& message);
 	void Hello(Client& client, const net::Hello& hello);
-	void Input(Client& client, const net::Input& input);
+	bool Input(Client& client, const net::Input& input);
 	// The next command for `client`'s player this tick
 	PlayerCommand NextCommand(Client& client);
 	void SendSnapshots();

@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <string_view>
 #include <variant>
 
 namespace wolfenstein::net {
@@ -248,9 +249,16 @@ using Message = std::variant<Hello, Welcome, Reject, Input, Snapshot, Events,
 
 // Writes `message` to `out`; its length, or 0 if it does not fit
 std::size_t Encode(const Message& message, std::span<std::uint8_t> out);
-// Reads a message; nothing if it is malformed, of an unknown type or has
-// bytes left over
+// Reads a message; nothing if it is not exactly what Encode writes:
+// malformed, of an unknown type, with bytes left over, or with a field
+// Encode could not have written (a key held twice over, a button or a
+// weapon no game has, an empty name or one of unprintable characters)
 std::optional<Message> Decode(std::span<const std::uint8_t> data);
+
+// A player's name as its game sends it: `text`'s printable ASCII characters
+// (what the scoreboard's font draws), the first PlayerName::kCapacity of
+// them; "PLAYER" if none
+PlayerName MakeName(std::string_view text);
 
 // How positions and angles are packed, and so how close what a player is
 // sent comes to the server's own: a 256th of a cell, a 65536th of a turn

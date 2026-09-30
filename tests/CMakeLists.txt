@@ -59,6 +59,7 @@ add_executable(unit_tests
     match_test.cpp
     match_url_test.cpp
     lobby_test.cpp
+    addresses_test.cpp
 )
 target_link_libraries(unit_tests PRIVATE
     GTest::gtest_main

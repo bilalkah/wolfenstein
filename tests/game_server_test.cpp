@@ -2,8 +2,9 @@
 // player says hello and gets a slot and the level (or is turned away: another
 // version, no slot free); its commands move its player, one a tick, each
 // once, and a late one is held, not pressed again; every other tick every
-// player hears how the players stand; a player leaving frees its slot. A
-// tick allocates nothing.
+// player hears how the players stand; a player leaving frees its slot. What
+// a game would not send, no hello in time, or a flood of messages ends the
+// connection. A tick allocates nothing.
 
 #include "Server/game_server.h"
 #include "Profiler/profiler.h"
@@ -119,6 +120,10 @@ class GameServerTest : public ::testing::Test
 		}
 		Message(client, input);
 	}
+	bool Closed(ClientId client) const {
+		return std::ranges::find(outbox_.closed, client) !=
+			   outbox_.closed.end();
+	}
 	void Ticks(int count) {
 		for (int i = 0; i < count; ++i) {
 			server_->Tick();
@@ -154,7 +159,8 @@ TEST_F(GameServerTest, AHelloGetsASlotAndTheLevel) {
 
 TEST_F(GameServerTest, AnotherVersionIsTurnedAway) {
 	server_->Connect(ClientId{5});
-	Message(ClientId{5}, net::Hello{.version = net::kProtocolVersion + 1});
+	Message(ClientId{5}, net::Hello{.version = net::kProtocolVersion + 1,
+									.name = net::PlayerName("p")});
 	EXPECT_EQ(outbox_.Last<net::Reject>(ClientId{5}).reason,
 			  net::RejectReason::Version);
 	EXPECT_EQ(outbox_.closed, std::vector<ClientId>{ClientId{5}});
@@ -166,7 +172,7 @@ TEST_F(GameServerTest, ANinthPlayerIsTurnedAway) {
 		EXPECT_EQ(Join(ClientId{100 + i}), i);
 	}
 	server_->Connect(ClientId{200});
-	Message(ClientId{200}, net::Hello{});
+	Message(ClientId{200}, net::Hello{.name = net::PlayerName("p")});
 	EXPECT_EQ(outbox_.Last<net::Reject>(ClientId{200}).reason,
 			  net::RejectReason::Full);
 	EXPECT_EQ(server_->PlayerCount(), Scene::kMaxPlayers);
@@ -177,6 +183,93 @@ TEST_F(GameServerTest, WhatIsNotTheProtocolClosesTheConnection) {
 	const std::array<std::uint8_t, 3> garbage{0xDE, 0xAD, 0x00};
 	server_->Receive(ClientId{3}, garbage);
 	EXPECT_EQ(outbox_.closed, std::vector<ClientId>{ClientId{3}});
+	// Nothing it sends after is read
+	Message(ClientId{3}, net::Hello{.name = net::PlayerName("p")});
+	EXPECT_EQ(outbox_.Count<net::Welcome>(ClientId{3}), 0u);
+	EXPECT_EQ(outbox_.closed.size(), 1u) << "closed once";
+}
+
+// A game says hello first and once, then sends its commands, each in turn,
+// and pings; what only the server sends, it never does
+TEST_F(GameServerTest, WhatAGameWouldNotSendClosesTheConnection) {
+	Join(ClientId{1});
+	Message(ClientId{1}, net::Pong{});
+	EXPECT_TRUE(Closed(ClientId{1})) << "what only the server sends";
+	Join(ClientId{2});
+	Message(ClientId{2}, net::Hello{.name = net::PlayerName("p")});
+	EXPECT_TRUE(Closed(ClientId{2})) << "a second hello";
+	server_->Connect(ClientId{3});
+	Message(ClientId{3}, net::Ping{});
+	EXPECT_TRUE(Closed(ClientId{3})) << "a ping before hello";
+	server_->Connect(ClientId{4});
+	Walk(ClientId{4}, 1, 1, 0.0);
+	EXPECT_TRUE(Closed(ClientId{4})) << "commands before hello";
+	Join(ClientId{5});
+	Walk(ClientId{5}, 1, 4, 0.0);
+	Walk(ClientId{5}, 9, 4, 0.0);
+	EXPECT_TRUE(Closed(ClientId{5})) << "commands 5 to 8 skipped";
+	Join(ClientId{6});
+	Walk(ClientId{6}, 1, 4, 0.0);
+	Walk(ClientId{6}, 5, 4, 0.0);
+	Walk(ClientId{6}, 1, 2, 0.0);
+	EXPECT_TRUE(Closed(ClientId{6})) << "commands going back";
+	// As a game sends them: each new one with those before it, so each
+	// comes more than once
+	Join(ClientId{7});
+	Walk(ClientId{7}, 1, 1, 0.0);
+	Walk(ClientId{7}, 1, 2, 0.0);
+	Walk(ClientId{7}, 3, 4, 0.0);
+	Walk(ClientId{7}, 3, 4, 0.0);
+	Message(ClientId{7}, net::Ping{});
+	EXPECT_FALSE(Closed(ClientId{7}));
+	EXPECT_EQ(outbox_.Count<net::Pong>(ClientId{7}), 1u);
+}
+
+TEST_F(GameServerTest, AConnectionThatSaysNoHelloInTimeGoes) {
+	server_->Connect(ClientId{1});
+	server_->Connect(ClientId{2});
+	const auto ticks = static_cast<int>(
+		std::lround(GameServer::kHelloSeconds / GameServer::kTickSeconds));
+	Ticks(ticks - 5);
+	Message(ClientId{2}, net::Hello{.name = net::PlayerName("p")});
+	EXPECT_TRUE(outbox_.closed.empty());
+	Ticks(10);
+	EXPECT_EQ(outbox_.closed, std::vector<ClientId>{ClientId{1}});
+	EXPECT_EQ(server_->PlayerCount(), 1u);
+}
+
+// A game sends a command a tick and a ping a second: at that pace its
+// budget stays full, so a stall's worth come in at once is taken; more than
+// the budget at once is a flood, and ends the connection
+TEST_F(GameServerTest, AFloodOfMessagesClosesTheConnection) {
+	Join(ClientId{1});
+	Join(ClientId{2});
+	for (std::uint32_t sequence = 1; sequence <= 600; ++sequence) {
+		Walk(ClientId{1}, sequence, 1, 0.0);
+		if (sequence % 60 == 0) {
+			Message(ClientId{1}, net::Ping{});
+		}
+		Ticks(1);
+	}
+	for (std::uint32_t i = 0; i < GameServer::kMessageBurst; ++i) {
+		Message(ClientId{1}, net::Ping{});
+	}
+	EXPECT_FALSE(Closed(ClientId{1}));
+	for (std::uint32_t i = 0; i <= GameServer::kMessageBurst; ++i) {
+		Message(ClientId{2}, net::Ping{});
+	}
+	EXPECT_TRUE(Closed(ClientId{2}));
+	EXPECT_EQ(outbox_.Count<net::Pong>(ClientId{2}), GameServer::kMessageBurst);
+}
+
+// A round trip longer than any is shown as the longest
+TEST_F(GameServerTest, ARoundTripIsShownNoLongerThanTheLongest) {
+	Join(ClientId{1});
+	Message(ClientId{1}, net::Ping{.stamp = 1, .rtt = 60000});
+	Ticks(static_cast<int>(GameServer::kScoresEvery));
+	const auto pings = outbox_.Last<net::Pings>(ClientId{1});
+	ASSERT_EQ(pings.count, 1u);
+	EXPECT_EQ(pings.players[0].rtt, GameServer::kMaxRtt);
 }
 
 TEST_F(GameServerTest, CommandsMoveTheirPlayerOneATick) {

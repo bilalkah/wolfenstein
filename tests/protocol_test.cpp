@@ -1,7 +1,9 @@
 // What the server and its players say to each other: every message comes
 // back as it was sent, packed small; positions and angles within a
-// packing step; and a message cut short, of an unknown type or claiming
-// more than it may is refused whole. Packing and reading allocate nothing.
+// packing step; and a message cut short, of an unknown type, claiming more
+// than it may or with a field no game writes (a command no game makes, a
+// name that is not printable text) is refused whole. A game sends its
+// name's printable characters. Packing and reading allocate nothing.
 
 #include "Net/protocol.h"
 #include "Profiler/profiler.h"
@@ -244,7 +246,9 @@ TEST(Protocol, WhatCannotBeRightIsRefused) {
 	buffer[10] = kMaxPlayers;
 	EXPECT_FALSE(Decode(std::span(buffer).first(size)));
 	// More commands than an input carries
-	size = Encode(Input{.count = 1}, buffer);
+	size = Encode(
+		Input{.count = 1, .commands = {{{.sequence = 1, .command = {}}}}},
+		buffer);
 	buffer[1] = kInputCommands + 1;
 	EXPECT_FALSE(Decode(std::span(buffer).first(size)));
 	// A name claiming more than a name holds
@@ -270,6 +274,98 @@ TEST(Protocol, WhatCannotBeRightIsRefused) {
 	size = Encode(Scores{}, buffer);
 	buffer[6] = kMaxPlayers;  // after type, mode, phase, limit and clock
 	EXPECT_FALSE(Decode(std::span(buffer).first(size)));
+}
+
+// Keys held -1, 0 or 1, the buttons a game has, a weapon it could carry or
+// none, a pitch as it is packed: anything else, no game made
+TEST(Protocol, ACommandNoGameMakesIsRefused) {
+	std::array<std::uint8_t, kMaxMessage> buffer{};
+	const std::size_t size =
+		Encode(Input{.count = 1,
+					 .commands = {{{.sequence = 1, .command = AnyCommand()}}}},
+			   buffer);
+	ASSERT_TRUE(Decode(std::span(buffer).first(size)));
+	// After type, count, first number and tick seen: the command, its keys,
+	// buttons, weapon, wheel, then its view
+	constexpr std::size_t kForward = 10;
+	constexpr std::size_t kStrafe = 11;
+	constexpr std::size_t kTurn = 12;
+	constexpr std::size_t kButtons = 13;
+	constexpr std::size_t kWeapon = 14;
+	constexpr std::size_t kCycle = 15;
+	constexpr std::size_t kPitch = 18;
+	const auto read = [&](std::size_t at, std::uint8_t value) {
+		auto changed = buffer;
+		changed[at] = value;
+		return Decode(std::span(changed).first(size)).has_value();
+	};
+	EXPECT_FALSE(read(kForward, 2));
+	EXPECT_FALSE(read(kStrafe, 0xFE)) << "-2";
+	EXPECT_FALSE(read(kTurn, 0x80));
+	EXPECT_FALSE(read(kButtons, 0x10)) << "a button no game has";
+	EXPECT_FALSE(read(kWeapon, kMaxWeapons));
+	EXPECT_FALSE(read(kWeapon, 0xFE)) << "-2";
+	EXPECT_FALSE(read(kCycle, 2));
+	auto pitch = buffer;
+	pitch[kPitch] = 0x00;
+	pitch[kPitch + 1] = 0x80;  // -32768, a step past the lowest
+	EXPECT_FALSE(Decode(std::span(pitch).first(size)));
+	// What a game does make
+	EXPECT_TRUE(read(kForward, 0xFF)) << "backwards";
+	EXPECT_TRUE(read(kWeapon, 0xFF)) << "no weapon chosen";
+	EXPECT_TRUE(read(kWeapon, kMaxWeapons - 1));
+	EXPECT_TRUE(read(kButtons, 0x0F)) << "every button";
+}
+
+// An input carries a command at least, numbered from 1, the last of them
+// with a number
+TEST(Protocol, AnInputIsNumberedFromOne) {
+	std::array<std::uint8_t, kMaxMessage> buffer{};
+	std::size_t size = Encode(Input{}, buffer);
+	EXPECT_FALSE(Decode(std::span(buffer).first(size))) << "no command";
+	size = Encode(
+		Input{.count = 1, .commands = {{{.sequence = 0, .command = {}}}}},
+		buffer);
+	EXPECT_FALSE(Decode(std::span(buffer).first(size))) << "numbered 0";
+	Input past{.count = 2};
+	past.commands[0].sequence = 0xFFFFFFFF;
+	size = Encode(past, buffer);
+	EXPECT_FALSE(Decode(std::span(buffer).first(size))) << "past the last";
+	past.commands[0].sequence = 0xFFFFFFFE;
+	size = Encode(past, buffer);
+	EXPECT_TRUE(Decode(std::span(buffer).first(size))) << "up to the last";
+}
+
+// A name is printable text, at least a character: none, a control
+// character or a byte past ASCII (what the font does not draw) is refused
+TEST(Protocol, ANameIsPrintableText) {
+	std::array<std::uint8_t, kMaxMessage> buffer{};
+	std::size_t size = Encode(Hello{}, buffer);
+	EXPECT_FALSE(Decode(std::span(buffer).first(size))) << "no name";
+	size = Encode(Hello{.name = PlayerName("ann")}, buffer);
+	ASSERT_TRUE(Decode(std::span(buffer).first(size)));
+	constexpr std::size_t kFirstLetter = 4;	 // after type, version, length
+	for (const int letter : {0x00, 0x07, 0x7F, 0xC5}) {
+		auto changed = buffer;
+		changed[kFirstLetter] = static_cast<std::uint8_t>(letter);
+		EXPECT_FALSE(Decode(std::span(changed).first(size))) << letter;
+	}
+	// A score's name likewise
+	Scores scores{.count = 1};
+	scores.players[0].name = PlayerName("a\tb");
+	size = Encode(scores, buffer);
+	EXPECT_FALSE(Decode(std::span(buffer).first(size)));
+}
+
+// A game sends what the server takes: the printable characters, cut to
+// fit; a name with none is PLAYER
+TEST(Protocol, AGameSendsItsNamesPrintableCharacters) {
+	EXPECT_EQ(MakeName("ann").View(), "ann");
+	EXPECT_EQ(MakeName("Bilal \xC5\x9E!").View(), "Bilal !");
+	EXPECT_EQ(MakeName("\t\xC5\x9E\n").View(), "PLAYER");
+	EXPECT_EQ(MakeName("").View(), "PLAYER");
+	EXPECT_EQ(MakeName("a name that does not fit in sixteen").View(),
+			  "a name that does");
 }
 
 TEST(Protocol, AMessageTooBigForItsBufferIsNotWritten) {

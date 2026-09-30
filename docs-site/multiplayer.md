@@ -139,6 +139,25 @@ know.
   server returns a player's score if it comes back under the same name
   within a minute.
 
+## What the server refuses
+
+A connection that breaks a rule is closed.
+
+- **Positions are never taken from players.** A game sends keys (−1, 0
+  or 1), buttons, a weapon choice and where it looks; the server works out
+  where each player is, so no one can put themselves outside the map.
+- **Exact messages only.** Bytes that are not a message, a field no game
+  writes (a key pressed twice over, an unknown button or weapon, a name
+  that is not printable ASCII), or a message only the server sends.
+- **In order.** A hello first, once, within 10 s; then commands numbered
+  one after another, none skipped, none going back.
+- **No floods.** Each connection has a budget of 2,000 messages, refilled
+  at 120 a second; a game sends about 61.
+- **8 connections per address**, so players behind one router can still
+  play together. An IPv6 address counts by its /64. Behind Caddy, the
+  address Caddy names in `X-Forwarded-For` counts; the header is believed
+  only from the server's own machine or network. More get HTTP 429.
+
 ## Cost
 
 Eight players on one server: about 1.7% of a CPU core, 4.5 MB of memory,
