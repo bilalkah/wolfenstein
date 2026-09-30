@@ -119,6 +119,8 @@ Positions are 1/256 of a cell in 16 bits, angles 1/65536 of a turn.
 | `Events` | server → players | shots, rockets, hurts, kills, pickups |
 | `Scores`, `Pings` | server → players, 1/s | mode, clock, names, frags, deaths, pings |
 | `Ping` / `Pong` | round trip | clocks |
+| `Room` | server → players, on a change | code, host, paused, arenas and the one played |
+| `Control` | host → server | pause, resume, start again on an arena |
 
 A version number turns away a game of another version. New messages can
 be added without a new version: an older game ignores what it does not
@@ -133,8 +135,16 @@ know.
 - **Pickups** come back after 15 to 30 s.
 - **End**: first to 20 frags, or the leader after 10 minutes; the result
   shows for 10 s, then the next match starts on the next arena.
-- **Rooms**: `ws://host:8080/room/CODE` is a private match, created on
-  first join, closed a minute after it empties.
+- **Rooms**: `/create` makes a private room with a code of the server's
+  own (5 letters and digits, none that read alike), hosted by its maker;
+  `/room/CODE` joins it, and an unknown code is refused. At most 16 rooms,
+  2 made from one address; a room closes a minute after it empties. An
+  invite link, `…/play/?server=…&room=CODE`, joins in one step.
+- **The host** pauses the match for everyone (no one moves, the clock
+  stops) and starts it again, on the arena played or another. Gone, the
+  player there longest hosts; back within a minute, the room is its again.
+- **Arenas**: the Courtyard (21 × 21, for two to four), the Bazaar and the
+  Warehouse (36 × 30).
 - **Dropped connection**: the game rejoins by itself (5 tries); the
   server returns a player's score if it comes back under the same name
   within a minute.

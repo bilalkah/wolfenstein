@@ -147,7 +147,41 @@ WAREHOUSE = Arena(
 """,
 )
 
-ARENAS = [BAZAAR, WAREHOUSE]
+# A walled courtyard of the castle, for two to four and quick fights: an
+# open square with a corner of cover in each quarter, short walls to duck
+# behind round the middle, and the rocket launcher out in the open at the
+# centre, a short dash from every spawn point.
+COURTYARD = Arena(
+    name="courtyard",
+    title="THE COURTYARD",
+    music="level2",
+    walls=(CONCRETE, BRICK, MOSS, CONCRETE),
+    drawing="""
+#####################
+#S........S........S#
+#....m.........a....#
+#..%%%.........%%%..#
+#..%......G......%..#
+#..%...&.....&...%..#
+#......&.....&......#
+#....&&&.....&&&....#
+#...................#
+#...................#
+#S..g..M..r.....u..S#
+#...................#
+#...................#
+#....&&&.....&&&....#
+#......&.....&......#
+#..%...&.....&...%..#
+#..%......G......%..#
+#..%%%.........%%%..#
+#....a.........m....#
+#S........S........S#
+#####################
+""",
+)
+
+ARENAS = [BAZAAR, WAREHOUSE, COURTYARD]
 
 
 def cells(arena):

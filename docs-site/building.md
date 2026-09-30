@@ -67,14 +67,15 @@ cmake --build --preset native-release --target karakale-server
 ./scripts/run_web.sh                                   # the web game, port 8000
 ```
 
-Players open `http://<host>:8000`, choose **MULTIPLAYER** and join: the
-page offers the server beside it. The native game joins with
-`--connect ws://<host>:8080 --name ann`.
+Players open `http://<host>:8000` and choose **MULTIPLAYER**: the page
+offers the server beside it. One creates a game and passes its code (or
+its invite link) on; the others join by it. The native game joins with
+`--connect ws://<host>:8080 --room CODE --name ann`.
 
 | Option | Default | |
 | --- | --- | --- |
 | `--port` | 8080 | |
-| `--level` | every arena | `bazaar.json,warehouse.json`, played in turn |
+| `--level` | every arena | `courtyard.json,bazaar.json`, played in turn |
 | `--mode` | `deathmatch` | or `gunrace` |
 | `--frags` | 20 | frag limit |
 | `--minutes` | 10 | time limit |

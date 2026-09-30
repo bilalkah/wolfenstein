@@ -4,7 +4,9 @@
 // once, and a late one is held, not pressed again; every other tick every
 // player hears how the players stand; a player leaving frees its slot. What
 // a game would not send, no hello in time, or a flood of messages ends the
-// connection. A tick allocates nothing.
+// connection. A private room's host pauses the match, and starts it again,
+// on another arena if it likes; the host gone, another hosts. A tick
+// allocates nothing.
 
 #include "Server/game_server.h"
 #include "Profiler/profiler.h"
@@ -15,6 +17,7 @@
 #include <memory>
 #include <numbers>
 #include <ranges>
+#include <string>
 #include <string_view>
 #include <variant>
 #include <vector>
@@ -76,10 +79,11 @@ class GameServerTest : public ::testing::Test
   protected:
 	GameServerTest() { Play({}); }
 
-	// A server afresh, playing by `settings`
-	void Play(const MatchSettings& settings) {
+	// A server afresh, playing by `settings` on `arenas`
+	void Play(const MatchSettings& settings,
+			  std::vector<std::string> arenas = {"bazaar.json"}) {
 		server_.reset();
-		auto created = GameServer::Create(RESOURCE_DIR, {"bazaar.json"},
+		auto created = GameServer::Create(RESOURCE_DIR, std::move(arenas),
 										  outbox_, settings);
 		EXPECT_TRUE(created) << (created ? "" : created.error());
 		if (created) {
@@ -223,6 +227,90 @@ TEST_F(GameServerTest, WhatAGameWouldNotSendClosesTheConnection) {
 	Message(ClientId{7}, net::Ping{});
 	EXPECT_FALSE(Closed(ClientId{7}));
 	EXPECT_EQ(outbox_.Count<net::Pong>(ClientId{7}), 1u);
+}
+
+// The room's maker hosts it: its pause holds everyone where they stand, the
+// clock stopped, until it goes on; another player's say is let pass
+TEST_F(GameServerTest, TheHostPausesTheMatch) {
+	server_->MakeRoom(net::RoomCode("K7QX2"), ClientId{1});
+	const std::size_t host = Join(ClientId{1}, "host");
+	const std::size_t friend_slot = Join(ClientId{2}, "friend");
+	const auto room = outbox_.Last<net::Room>(ClientId{2});
+	EXPECT_EQ(room.code.View(), "K7QX2");
+	EXPECT_EQ(room.host, host);
+	EXPECT_FALSE(room.paused);
+	Message(ClientId{2}, net::Control{.action = net::ControlAction::Pause});
+	EXPECT_FALSE(server_->Paused()) << "not the host's";
+	EXPECT_FALSE(Closed(ClientId{2}));
+	Message(ClientId{1}, net::Control{.action = net::ControlAction::Pause});
+	ASSERT_TRUE(server_->Paused());
+	EXPECT_TRUE(outbox_.Last<net::Room>(ClientId{2}).paused) << "told";
+	const vector2d before = PlayerIn(friend_slot).GetPose();
+	const double clock = server_->Rules().SecondsLeft();
+	Walk(ClientId{2}, 1, 4, PlayerIn(friend_slot).GetPosition().theta);
+	Ticks(30);
+	EXPECT_EQ(PlayerIn(friend_slot).GetPose().Distance(before), 0.0);
+	EXPECT_EQ(server_->Rules().SecondsLeft(), clock);
+	EXPECT_EQ(outbox_.Last<net::Snapshot>(ClientId{2}).tick,
+			  server_->CurrentTick())
+		<< "snapshots still come";
+	Message(ClientId{1}, net::Control{.action = net::ControlAction::Resume});
+	EXPECT_FALSE(outbox_.Last<net::Room>(ClientId{2}).paused);
+	Ticks(4);
+	EXPECT_GT(PlayerIn(friend_slot).GetPose().Distance(before), 0.01);
+	EXPECT_LT(server_->Rules().SecondsLeft(), clock);
+}
+
+// The host starts the match again from the beginning: on the arena played,
+// or another the room offers; everyone welcomed to it, the scores none
+TEST_F(GameServerTest, TheHostStartsTheMatchAgainOnAnArena) {
+	Play({}, {"bazaar.json", "warehouse.json"});
+	server_->MakeRoom(net::RoomCode("ARENA"), ClientId{1});
+	const std::size_t host = Join(ClientId{1}, "host");
+	const std::size_t other = Join(ClientId{2}, "friend");
+	const auto room = outbox_.Last<net::Room>(ClientId{2});
+	ASSERT_EQ(room.count, 2u);
+	EXPECT_EQ(room.arenas[0].View(), "THE BAZAAR");
+	EXPECT_EQ(room.arenas[1].View(), "THE WAREHOUSE");
+	EXPECT_EQ(room.arena, 0u);
+	Kill(host, other);
+	Ticks(1);
+	ASSERT_EQ(server_->Rules().StandingOf(host).frags, 1);
+	Message(ClientId{1}, net::Control{.action = net::ControlAction::Pause});
+	Message(ClientId{1},
+			net::Control{.action = net::ControlAction::Restart, .arena = 1});
+	EXPECT_EQ(outbox_.Last<net::Welcome>(ClientId{2}).level.View(),
+			  "warehouse.json");
+	EXPECT_EQ(outbox_.Last<net::Room>(ClientId{2}).arena, 1u);
+	EXPECT_FALSE(server_->Paused()) << "a new match is under way";
+	EXPECT_EQ(server_->Rules().StandingOf(host).frags, 0);
+	// An arena the room does not offer: nothing
+	const std::size_t welcomes = outbox_.Count<net::Welcome>(ClientId{2});
+	Message(ClientId{1},
+			net::Control{.action = net::ControlAction::Restart, .arena = 5});
+	EXPECT_EQ(outbox_.Count<net::Welcome>(ClientId{2}), welcomes);
+	EXPECT_FALSE(Closed(ClientId{1}));
+}
+
+// The host gone, the player there longest hosts; the host back soon under
+// its name, the room is its again
+TEST_F(GameServerTest, AnotherHostsWhileTheHostIsAway) {
+	server_->MakeRoom(net::RoomCode("AWAY1"), ClientId{1});
+	Join(ClientId{1}, "host");
+	const std::size_t second = Join(ClientId{2}, "second");
+	Join(ClientId{3}, "third");
+	server_->Disconnect(ClientId{1});
+	EXPECT_EQ(outbox_.Last<net::Room>(ClientId{3}).host, second);
+	const std::size_t back = Join(ClientId{4}, "host");
+	EXPECT_EQ(outbox_.Last<net::Room>(ClientId{3}).host, back);
+}
+
+TEST_F(GameServerTest, TheOpenGameHasNoHost) {
+	Join(ClientId{1});
+	EXPECT_EQ(outbox_.Last<net::Room>(ClientId{1}).host, net::kNoHost);
+	Message(ClientId{1}, net::Control{.action = net::ControlAction::Pause});
+	EXPECT_FALSE(server_->Paused());
+	EXPECT_FALSE(Closed(ClientId{1}));
 }
 
 TEST_F(GameServerTest, AConnectionThatSaysNoHelloInTimeGoes) {

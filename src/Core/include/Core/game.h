@@ -85,6 +85,12 @@ MouseLook ToMouseLook(double dx, double dy, const Settings& settings,
 // room's, if one is named ("/room/CODE", the code's letters and digits in
 // capitals)
 std::string MatchUrl(std::string_view server, std::string_view room);
+// The address that asks the server for a new room ("ws://host:port/create")
+std::string CreateUrl(std::string_view server);
+// A link to the game's page `page` that brings a friend straight into room
+// `code` on `server` (?server=...&room=...)
+std::string InviteLink(std::string_view page, std::string_view server,
+					   std::string_view code);
 
 class Game
 {
@@ -111,9 +117,11 @@ class Game
 	// Lets P switch to the full 2D view of the level, with its enemies,
 	// paths and rays: for developers, not players
 	void EnableDebugView() { debug_view_ = true; }
-	// Plays a multiplayer game: connects to the server at `url`
-	// ("ws://host:port") as `name`, in place of the menu
-	void Connect(const std::string& url, std::string_view name);
+	// Plays a multiplayer game on the server at `server` ("ws://host:port")
+	// as `name`, in place of the menu: in the room of code `room` (none:
+	// the server's open game), or, `create`, in a new room it hosts
+	void Connect(std::string_view server, std::string_view room,
+				 std::string_view name, bool create = false);
 
   private:
 	void Init();
@@ -155,6 +163,8 @@ class Game
 	// A match's standing, clock, kills and (Tab, or the match over) its
 	// scoreboard, over the view
 	void DrawMatchHud();
+	// The match, as its menu offers it
+	MatchMenu MatchMenuOf() const;
 	void GameTick();
 	void PausedTick();
 	void ResultTick();
@@ -222,9 +232,13 @@ class Game
 	std::unique_ptr<Menu> menu_;
 	// Built in place when a game ends, so it needs no allocation
 	std::optional<RendererResult> renderer_result_;
-	// A multiplayer game's connection, and where it goes
+	// A multiplayer game's connection, and where it goes: the server, and
+	// the address joined on it (a room made, once it has a code, is joined
+	// again by it)
 	std::unique_ptr<MatchClient> match_;
+	std::string server_;
 	std::string server_url_;
+	net::RoomCode room_code_{};
 	std::string player_name_;
 	// The connection lost in the middle of a match: joining again, a few
 	// times, a while apart

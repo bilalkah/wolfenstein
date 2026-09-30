@@ -124,6 +124,15 @@ class MatchClient
 	// world's level is a new one, and the game's views must be pointed at
 	// it before they draw again
 	bool TakeNewLevel() { return std::exchange(new_level_, false); }
+	// The room played in, as the server last said: its code (none: the open
+	// game), its host, whether paused, its arenas
+	const net::Room& GetRoom() const { return room_; }
+	bool IsHost() const;
+	// Paused by the host: no one moves, and the game sends no commands
+	bool Paused() const { return room_.paused; }
+	// The host's say over the room (from another player, nothing is sent):
+	// pause, go on, or start again on arena `arena`
+	void Control(net::ControlAction action, std::size_t arena = 0);
 
   private:
 	// What the local player carried after a command
@@ -193,6 +202,7 @@ class MatchClient
 	std::size_t kill_count_ = 0;
 	bool revived_ = false;
 	bool new_level_ = false;
+	net::Room room_{};
 	Clock clock_;
 	// The server sends everyone's pings: it answers them too
 	bool server_pings_ = false;

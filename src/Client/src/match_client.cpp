@@ -62,6 +62,9 @@ void MatchClient::Poll(World& world) {
 				pings_[ping.slot] = ping.rtt;
 			}
 		}
+		else if (const auto* room = std::get_if<net::Room>(&*message)) {
+			room_ = *room;
+		}
 	}
 	if (state_ == State::Playing) {
 		KeepTime();
@@ -462,6 +465,17 @@ void MatchClient::KeepTime() {
 	Send(net::Ping{.stamp = static_cast<std::uint32_t>(
 					   static_cast<std::uint64_t>(now * kMilliseconds)),
 				   .rtt = rtt_});
+}
+
+bool MatchClient::IsHost() const {
+	return slot_ && room_.host == *slot_;
+}
+
+void MatchClient::Control(net::ControlAction action, std::size_t arena) {
+	if (state_ == State::Playing && IsHost()) {
+		Send(net::Control{.action = action,
+						  .arena = static_cast<std::uint8_t>(arena)});
+	}
 }
 
 void MatchClient::OnPong(const net::Pong& pong, double arrived) {

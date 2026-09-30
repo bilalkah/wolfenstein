@@ -4,6 +4,10 @@
 #include <cstdlib>
 #include <iostream>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 namespace karakale::ui {
 
 namespace {
@@ -59,6 +63,100 @@ SDL_FRect ToFRect(const SDL_Rect& rect) {
 
 }  // namespace
 
+#ifdef __EMSCRIPTEN__
+namespace {
+
+// The browser's clipboard. SDL has none on the web, and keeps Ctrl with a
+// key from the browser, so it never pastes. While a text field has focus
+// (its text shown to the page), Ctrl or Cmd with C, X or V goes to the
+// browser instead of SDL, and the browser's copy, cut and paste events
+// carry the field's text out and what was pasted in, which the field takes
+// on its next frame.
+EM_JS_DEPS(clipboard, "$stringToUTF8,$UTF8ToString");
+// The bodies are JavaScript, so clang-format must not touch them
+// clang-format off
+EM_JS(void, InstallClipboard, (), {
+	if (Module.karakaleClipboard) {
+		return;
+	}
+	const clip = Module.karakaleClipboard = {text: null, pasted: String(), cut: false};
+	window.addEventListener('keydown', (event) => {
+		if (clip.text !== null && (event.ctrlKey || event.metaKey) &&
+			['c', 'v', 'x'].includes(event.key.toLowerCase())) {
+			event.stopPropagation();
+		}
+	}, true);
+	document.addEventListener('paste', (event) => {
+		if (clip.text !== null) {
+			clip.pasted += event.clipboardData.getData('text');
+			event.preventDefault();
+		}
+	});
+	const copy = (event, cut) => {
+		if (clip.text !== null) {
+			event.clipboardData.setData('text/plain', clip.text);
+			event.preventDefault();
+			clip.cut = clip.cut || cut;
+		}
+	};
+	document.addEventListener('copy', (event) => copy(event, false));
+	document.addEventListener('cut', (event) => copy(event, true));
+});
+
+EM_JS(void, ShowFieldText, (const char* text), {
+	Module.karakaleClipboard.text = text ? UTF8ToString(text) : null;
+});
+
+EM_JS(int, TakePasted, (char* out, int size), {
+	const clip = Module.karakaleClipboard;
+	const written = stringToUTF8(clip.pasted, out, size);
+	clip.pasted = String();
+	return written;
+});
+
+EM_JS(int, TakeCut, (), {
+	const clip = Module.karakaleClipboard;
+	const cut = clip.cut;
+	clip.cut = false;
+	return cut ? 1 : 0;
+});
+
+// Writing needs a page served over https (or from localhost); elsewhere
+// (a LAN address) the older way, through a selected text area
+EM_JS(void, WriteClipboard, (const char* text), {
+	const value = UTF8ToString(text);
+	const fallback = () => {
+		const area = document.createElement('textarea');
+		area.value = value;
+		document.body.appendChild(area);
+		area.select();
+		try { document.execCommand('copy'); } catch (e) {}
+		area.remove();
+	};
+	if (navigator.clipboard && window.isSecureContext) {
+		navigator.clipboard.writeText(value).catch(fallback);
+	}
+	else {
+		fallback();
+	}
+});
+// clang-format on
+
+}  // namespace
+#endif
+
+// NUL-terminated on the stack: nothing allocated
+void CopyText(std::string_view text) {
+	std::array<char, 512> terminated{};
+	const std::size_t size = std::min(text.size(), terminated.size() - 1);
+	std::ranges::copy(text.substr(0, size), terminated.begin());
+#ifdef __EMSCRIPTEN__
+	WriteClipboard(terminated.data());
+#else
+	SDL_SetClipboardText(terminated.data());
+#endif
+}
+
 void Input::BeginFrame() {
 	mouse_moved = false;
 	mouse_pressed = false;
@@ -66,6 +164,15 @@ void Input::BeginFrame() {
 	previous = next = left = right = activate = back = false;
 	typed_size = 0;
 	erased = 0;
+	copy = cut = erase_all = false;
+}
+
+void Input::Type(std::string_view text) {
+	for (const char c : text) {
+		if (c >= ' ' && c <= '~' && typed_size < typed.size()) {
+			typed[typed_size++] = c;
+		}
+	}
 }
 
 void Input::Handle(const SDL_Event& event) {
@@ -93,59 +200,82 @@ void Input::Handle(const SDL_Event& event) {
 			break;
 		case SDL_EVENT_TEXT_INPUT:
 			if (text_mode && event.text.text != nullptr) {
-				for (const char* c = event.text.text; *c != '\0'; ++c) {
-					if (*c >= ' ' && *c <= '~' && typed_size < typed.size()) {
-						typed[typed_size++] = *c;
-					}
+				Type(event.text.text);
+			}
+			break;
+		case SDL_EVENT_KEY_DOWN:
+			HandleKey(event.key);
+			break;
+		default:
+			break;
+	}
+}
+
+void Input::HandleKey(const SDL_KeyboardEvent& event) {
+	const SDL_Keycode key = event.key;
+	if (text_mode && (event.mod & (SDL_KMOD_CTRL | SDL_KMOD_GUI)) != 0) {
+		switch (key) {
+			case SDLK_V:
+				// On the web the browser pastes instead: the key does not
+				// come here (see InstallClipboard)
+				if (char* pasted = SDL_GetClipboardText()) {
+					Type(pasted);
+					SDL_free(pasted);
 				}
-			}
-			break;
-		case SDL_EVENT_KEY_DOWN: {
-			// Typing text, the letters and Space are the text's
-			const SDL_Keycode key = event.key.key;
-			if (text_mode && (key == SDLK_W || key == SDLK_A || key == SDLK_S ||
-							  key == SDLK_D || key == SDLK_SPACE)) {
 				break;
+			case SDLK_C:
+				copy = true;
+				break;
+			case SDLK_X:
+				cut = true;
+				break;
+			case SDLK_BACKSPACE:
+				erase_all = true;
+				break;
+			default:
+				break;
+		}
+		return;
+	}
+	// Typing text, the letters and Space are the text's
+	if (text_mode && (key == SDLK_W || key == SDLK_A || key == SDLK_S ||
+					  key == SDLK_D || key == SDLK_SPACE)) {
+		return;
+	}
+	switch (key) {
+		case SDLK_UP:
+		case SDLK_W:
+			previous = true;
+			break;
+		case SDLK_DOWN:
+		case SDLK_S:
+		case SDLK_TAB:
+			next = true;
+			break;
+		case SDLK_LEFT:
+		case SDLK_A:
+			left = true;
+			break;
+		case SDLK_RIGHT:
+		case SDLK_D:
+			right = true;
+			break;
+		case SDLK_RETURN:
+		case SDLK_KP_ENTER:
+		case SDLK_SPACE:
+			activate = true;
+			break;
+		case SDLK_BACKSPACE:
+			if (text_mode) {
+				++erased;
 			}
-			switch (key) {
-				case SDLK_UP:
-				case SDLK_W:
-					previous = true;
-					break;
-				case SDLK_DOWN:
-				case SDLK_S:
-				case SDLK_TAB:
-					next = true;
-					break;
-				case SDLK_LEFT:
-				case SDLK_A:
-					left = true;
-					break;
-				case SDLK_RIGHT:
-				case SDLK_D:
-					right = true;
-					break;
-				case SDLK_RETURN:
-				case SDLK_KP_ENTER:
-				case SDLK_SPACE:
-					activate = true;
-					break;
-				case SDLK_BACKSPACE:
-					if (text_mode) {
-						++erased;
-					}
-					else {
-						back = true;
-					}
-					break;
-				case SDLK_ESCAPE:
-					back = true;
-					break;
-				default:
-					break;
+			else {
+				back = true;
 			}
 			break;
-		}
+		case SDLK_ESCAPE:
+			back = true;
+			break;
 		default:
 			break;
 	}
@@ -154,6 +284,9 @@ void Input::Handle(const SDL_Event& event) {
 Ui::Ui(SDL_Renderer* renderer, const std::string& display_font_path,
 	   const std::string& text_font_path)
 	: renderer_(renderer) {
+#ifdef __EMSCRIPTEN__
+	InstallClipboard();
+#endif
 	for (std::size_t i = 0; i < kFontSpecs.size(); ++i) {
 		const auto& spec = kFontSpecs[i];
 		const auto& path = spec.display ? display_font_path : text_font_path;
@@ -241,6 +374,7 @@ Ui::~Ui() {
 void Ui::BeginFrame(const Input& input) {
 	input_ = input;
 	widget_count_ = 0;
+	field_focused_ = false;
 	SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
 
 	// Keyboard navigation uses the widget count of the previous frame, since
@@ -262,6 +396,13 @@ void Ui::MoveFocus(int delta) {
 }
 
 void Ui::EndFrame() {
+	// No text field in focus any more: the browser keeps Ctrl with a key
+#ifdef __EMSCRIPTEN__
+	if (field_shown_ && !field_focused_) {
+		ShowFieldText(nullptr);
+		field_shown_ = false;
+	}
+#endif
 	// After a focus reset this frame's widgets belonged to the screen being
 	// left, so their count must not clamp or wrap the new screen's focus
 	if (focus_reset_) {
@@ -431,21 +572,61 @@ TextEdits Ui::TextField(std::string_view label, std::string_view value,
 	const int index = NextWidget(rect);
 	const bool focused = IsFocused(index);
 	constexpr int kPadding = 24;
+	constexpr int kCaret = 3;
 	FillRect(rect, focused ? color::kPanelFocused : color::kPanel);
 	DrawRect(rect, focused ? color::kAccent : color::kBorder, focused ? 2 : 1);
 	const auto label_size = MeasureText(label, FontStyle::Body);
 	const int y = rect.y + (rect.h - label_size.y) / 2;
 	Text(label, rect.x + kPadding, y, FontStyle::Body,
 		 focused ? color::kText : color::kMuted);
-	// The text from the middle on, and where the next letter goes
-	const int left = rect.x + rect.w * 2 / 5;
-	const auto size = Text(value, left, y, FontStyle::Body, color::kText);
+	// The text in the rest of the box, never past it: too long, it starts
+	// from the start, or, focused, is moved along to keep its end and the
+	// place of the next letter in sight
+	const int left = rect.x + rect.w / 4;
+	const int right = rect.x + rect.w - kPadding;
+	const int width = MeasureText(value, FontStyle::Body).x;
+	const int shift =
+		focused ? std::max(0, width + 2 + kCaret - (right - left)) : 0;
+	const bool clipped = SDL_RenderClipEnabled(renderer_);
+	SDL_Rect previous{};
+	SDL_GetRenderClipRect(renderer_, &previous);
+	const SDL_Rect inside{left, rect.y, right - left, rect.h};
+	SDL_SetRenderClipRect(renderer_, &inside);
+	Text(value, left - shift, y, FontStyle::Body, color::kText);
 	if (focused) {
-		FillRect({left + size.x + 2, y + 2, 3, label_size.y - 4},
+		FillRect({left - shift + width + 2, y + 2, kCaret, label_size.y - 4},
 				 color::kAccent);
-		return {.typed = input_.Typed(), .erased = input_.erased};
 	}
-	return {};
+	SDL_SetRenderClipRect(renderer_, clipped ? &previous : nullptr);
+	if (!focused) {
+		return {};
+	}
+
+	field_focused_ = true;
+	int erased = input_.erased;
+	bool cut = input_.cut;
+#ifdef __EMSCRIPTEN__
+	// The browser copies the text shown it; what it pasted is typed
+	std::array<char, 512> text{};
+	const std::size_t size = std::min(value.size(), text.size() - 1);
+	std::ranges::copy(value.substr(0, size), text.begin());
+	ShowFieldText(text.data());
+	field_shown_ = true;
+	std::array<char, 256> pasted{};
+	const int length =
+		TakePasted(pasted.data(), static_cast<int>(pasted.size()));
+	input_.Type(
+		std::string_view(pasted.data(), static_cast<std::size_t>(length)));
+	cut = cut || TakeCut() != 0;
+#else
+	if (input_.copy || input_.cut) {
+		CopyText(value);
+	}
+#endif
+	if (cut || input_.erase_all) {
+		erased = static_cast<int>(value.size());
+	}
+	return {.typed = input_.Typed(), .erased = erased};
 }
 
 bool Ui::Toggle(std::string_view label, const SDL_Rect& rect, bool& value) {

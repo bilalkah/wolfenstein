@@ -1,11 +1,12 @@
 // The game's multiplayer server: its matches (the open one, and private
-// rooms, "/room/CODE"), their players connected by WebSocket. uWebSockets
-// carries the messages; the Lobby hands them to each room's GameServer.
+// rooms: "/create" makes one, "/room/CODE" joins it), their players
+// connected by WebSocket. uWebSockets carries the messages; the Lobby hands
+// them to each room's GameServer.
 //
 //   karakale-server [--port 8080] [--level bazaar.json,warehouse.json]
-//                      [--assets DIR]
-//                      [--mode deathmatch|gunrace] [--frags 20]
-//                      [--minutes 10]
+//                   [--assets DIR]
+//                   [--mode deathmatch|gunrace] [--frags 20]
+//                   [--minutes 10]
 //
 // It speaks plain ws://: in front of it on the internet a proxy (Caddy)
 // holds the certificate and passes wss:// on. GET /health answers "ok".
@@ -39,8 +40,8 @@ using karakale::Lobby;
 struct Connection
 {
 	ClientId id{};
-	std::string room;	  // "" the open one
-	std::string address;  // what it counts under (Addresses::KeyOf)
+	Lobby::Request request;	 // a new room, one by its code, or the open one
+	std::string address;	 // what it counts under (Addresses::KeyOf)
 };
 using Socket = uWS::WebSocket<false, true, Connection>;
 
@@ -217,7 +218,7 @@ int main(int argc, char** argv) try {
 				 }
 				 response->template upgrade<Connection>(
 					 {.id = ClientId{next_id++},
-					  .room = Lobby::RoomOf(request->getUrl()),
+					  .request = Lobby::RequestOf(request->getUrl()),
 					  .address = std::move(address)},
 					 request->getHeader("sec-websocket-key"),
 					 request->getHeader("sec-websocket-protocol"),
@@ -228,8 +229,17 @@ int main(int argc, char** argv) try {
 				 const Connection& connection = *socket->getUserData();
 				 addresses.Open(connection.address);
 				 sockets.Add(connection.id, socket);
-				 // No room for another room: it goes
-				 if (!lobby.Connect(connection.id, connection.room)) {
+				 // No room of its code, or none can be made: it is told why,
+				 // and goes
+				 if (const auto joined = lobby.Connect(
+						 connection.id, connection.request, connection.address);
+					 !joined) {
+					 std::array<std::uint8_t, karakale::net::kMaxMessage>
+						 reject{};
+					 const std::size_t size = karakale::net::Encode(
+						 karakale::net::Reject{.reason = joined.error()},
+						 reject);
+					 sockets.Send(connection.id, std::span(reject).first(size));
 					 sockets.Close(connection.id);
 				 }
 				 sockets.CloseAsked();

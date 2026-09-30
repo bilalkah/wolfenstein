@@ -27,15 +27,19 @@ int main(int argc, char** argv) {
 			game.EnableDebugView();
 		}
 	}
-	// --connect ws://host:port [--name NAME]: play a multiplayer game;
-	// --default-server URL: the server the multiplayer screen offers until
-	// the player names another
+	// --connect ws://host:port [--room CODE] [--name NAME]: play a
+	// multiplayer game (in a friend's room); --default-server URL: the
+	// server the multiplayer screen offers until the player names another
 	std::string_view server;
+	std::string_view room;
 	std::string_view name = "player";
 	for (int i = 1; i + 1 < argc; ++i) {
 		const std::string_view option = argv[i];
 		if (option == "--connect") {
 			server = argv[i + 1];
+		}
+		if (option == "--room") {
+			room = argv[i + 1];
 		}
 		if (option == "--name") {
 			name = argv[i + 1];
@@ -60,7 +64,7 @@ int main(int argc, char** argv) {
 		game.StartSoak(std::max(frames, kMinimumFrames));
 	}
 	else if (!server.empty()) {
-		game.Connect(std::string(server), name);
+		game.Connect(server, room, name);
 	}
 	game.Run();
 

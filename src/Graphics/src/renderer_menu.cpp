@@ -5,6 +5,7 @@
 #include <SDL3/SDL.h>
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cmath>
 #include <format>
 #include <string>
@@ -57,6 +58,10 @@ void Menu::DrawLevelBanner(std::string_view title, std::string_view name,
 		ui_->Text(name, centre_x, top + 118, ui::FontStyle::Heading, accent,
 				  ui::Align::Center);
 	}
+}
+
+void Menu::SetMatch(const MatchMenu& match) {
+	match_ = match;
 }
 
 void Menu::DrawNotice(std::string_view text) {
@@ -441,6 +446,11 @@ void Menu::Open(MenuScreen screen) {
 			SDL_StopTextInput(context_->GetWindow());
 		}
 	}
+	// A match's menu: the arena to start again on is the one played, at
+	// first
+	if (screen == MenuScreen::Pause) {
+		arena_choice_ = static_cast<double>(match_.arena);
+	}
 	if (screen == MenuScreen::DifficultySelect) {
 		// On the one chosen last (at first the middle one)
 		ui_->ResetFocus(static_cast<int>(chosen_difficulty_));
@@ -467,7 +477,8 @@ void Menu::HandleEvent(const SDL_Event& event) {
 	input_.Handle(event);
 }
 
-MenuAction Menu::Update(double /*delta_time*/) {
+MenuAction Menu::Update(double delta_time) {
+	copied_for_ = std::max(0.0, copied_for_ - delta_time);
 	ui_->BeginFrame(input_);
 	MenuAction action;
 	switch (screen_) {
@@ -552,21 +563,29 @@ MenuAction Menu::MainScreen() {
 
 namespace {
 
-// What was typed into a text field, applied to the setting it shows
+// What was typed into a text field, applied to the setting it shows; a
+// room code takes letters and digits alone, in capitals
 template <std::size_t N>
-void Edit(SettingText<N>& text, const ui::TextEdits& edits) {
+void Edit(SettingText<N>& text, const ui::TextEdits& edits, bool code = false) {
 	for (int i = 0; i < edits.erased; ++i) {
 		text.EraseLast();
 	}
 	for (const char c : edits.typed) {
-		text.Append(c);
+		const auto letter = static_cast<unsigned char>(c);
+		if (!code) {
+			text.Append(c);
+		}
+		else if (std::isalnum(letter) != 0) {
+			text.Append(static_cast<char>(std::toupper(letter)));
+		}
 	}
 }
 
 }  // namespace
 
-// Joining a match: the name to play under, the server and the room (none:
-// the server's open game), remembered for the next time
+// A match: the name to play under and the server, remembered for the next
+// time; a room made there (its code the server's to give), or joined by a
+// friend's code (none: the server's open game)
 MenuAction Menu::MultiplayerScreen() {
 	const int width = context_->GetConfig().width;
 	MenuAction action;
@@ -581,7 +600,7 @@ MenuAction Menu::MultiplayerScreen() {
 	constexpr int kHeight = 64;
 	constexpr int kGap = 16;
 	const int left = (width - kWidth) / 2;
-	int y = 230;
+	int y = 200;
 	Edit(settings.player_name,
 		 ui_->TextField("NAME", settings.player_name.View(),
 						{left, y, kWidth, kHeight}));
@@ -589,24 +608,32 @@ MenuAction Menu::MultiplayerScreen() {
 	Edit(settings.server, ui_->TextField("SERVER", settings.server.View(),
 										 {left, y, kWidth, kHeight}));
 	y += kHeight + kGap;
-	Edit(settings.room, ui_->TextField("ROOM", settings.room.View(),
-									   {left, y, kWidth, kHeight}));
+	Edit(settings.room,
+		 ui_->TextField("CODE", settings.room.View(),
+						{left, y, kWidth, kHeight}),
+		 true);
 	y += kHeight + 12;
 	ui_->Text(
-		"No room: the server's open game. Friends in the same room "
-		"play together.",
+		"Create a room and pass its code on, or join a friend's by its code. "
+		"No code: the server's open game.",
 		width / 2, y, ui::FontStyle::Small, ui::color::kMuted,
 		ui::Align::Center);
-	const int buttons = y + 60;
-	if (ui_->Button("JOIN", ButtonRect(width, buttons, 0))) {
+	const int buttons = y + 44;
+	if (ui_->Button("CREATE GAME", ButtonRect(width, buttons, 0))) {
+		settings.Save();
+		action.type = MenuAction::Type::Create;
+	}
+	if (ui_->Button("JOIN GAME", ButtonRect(width, buttons, 1))) {
 		settings.Save();
 		action.type = MenuAction::Type::Join;
 	}
-	if (ui_->Button("BACK", ButtonRect(width, buttons, 1)) || input_.back) {
+	if (ui_->Button("BACK", ButtonRect(width, buttons, 2)) || input_.back) {
 		settings.Save();
 		Open(MenuScreen::Main);
 	}
-	DrawHint("Tab or arrows to move  ·  Enter to choose  ·  Esc to go back");
+	DrawHint(
+		"Tab or arrows to move  ·  Enter to choose  ·  Ctrl or Cmd + V to "
+		"paste  ·  Esc to go back");
 	return action;
 }
 
@@ -763,6 +790,9 @@ MenuAction Menu::SettingsScreen() {
 }
 
 MenuAction Menu::PauseScreen() {
+	if (match_.playing) {
+		return MatchScreen();
+	}
 	const int width = context_->GetConfig().width;
 	DrawDimmer(170);
 
@@ -781,6 +811,82 @@ MenuAction Menu::PauseScreen() {
 		Open(MenuScreen::Settings);
 	}
 	if (ui_->Button("QUIT TO MENU", ButtonRect(width, kTop, 3))) {
+		action.type = MenuAction::Type::QuitToMenu;
+	}
+	return action;
+}
+
+// A match's menu: the match goes on behind it. Its host may pause it for
+// everyone, or start it again, on the arena played or another; anyone in a
+// private room may pass a link to it on
+MenuAction Menu::MatchScreen() {
+	const int width = context_->GetConfig().width;
+	DrawDimmer(170);
+	MenuAction action;
+	const ui::FixedText<32> title =
+		match_.code.empty() ? ui::FixedText<32>("OPEN GAME")
+							: ui::FixedText<32>("ROOM {}", match_.code);
+	ui_->Text(title, width / 2, 60, ui::FontStyle::Heading, ui::color::kText,
+			  ui::Align::Center);
+	const std::string_view about =
+		match_.paused ? "The game is paused for everyone."
+		: match_.host
+			? "You host this room: pause it, start it again, pick its arena."
+		: match_.code.empty() ? "The server's open game goes on behind this."
+							  : "The game goes on behind this.";
+	ui_->Text(about, width / 2, 130, ui::FontStyle::Body, ui::color::kMuted,
+			  ui::Align::Center);
+
+	constexpr int kWidth = 520;
+	constexpr int kHeight = 58;
+	constexpr int kGap = 12;
+	int y = 190;
+	const auto row = [&] {
+		const SDL_Rect rect{(width - kWidth) / 2, y, kWidth, kHeight};
+		y += kHeight + kGap;
+		return rect;
+	};
+	if (ui_->Button("BACK TO THE GAME", row()) || input_.back) {
+		action.type = MenuAction::Type::Resume;
+	}
+	if (match_.host) {
+		if (ui_->Button(
+				match_.paused ? "RESUME FOR EVERYONE" : "PAUSE FOR EVERYONE",
+				row())) {
+			action.type = match_.paused ? MenuAction::Type::ResumeMatch
+										: MenuAction::Type::PauseMatch;
+		}
+		const std::size_t last =
+			match_.arena_count > 0 ? match_.arena_count - 1 : 0;
+		const std::size_t chosen = std::min(
+			static_cast<std::size_t>(std::lround(arena_choice_)), last);
+		if (match_.arena_count > 1) {
+			ui_->Slider("ARENA", match_.arenas[chosen], row(), arena_choice_,
+						0.0, static_cast<double>(last), 1.0);
+		}
+		const ui::FixedText<48> restart =
+			chosen == match_.arena
+				? ui::FixedText<48>("START AGAIN")
+				: ui::FixedText<48>("PLAY {}", match_.arenas[chosen]);
+		if (ui_->Button(restart, row())) {
+			action.type = MenuAction::Type::RestartMatch;
+			action.arena = chosen;
+		}
+	}
+	if (!match_.code.empty() &&
+		ui_->Button(
+			copied_for_ > 0.0 ? "INVITE LINK COPIED" : "COPY INVITE LINK",
+			row())) {
+		action.type = MenuAction::Type::CopyInvite;
+		copied_for_ = 2.0;
+	}
+	if (ui_->Button("CONTROLS", row())) {
+		Open(MenuScreen::Controls);
+	}
+	if (ui_->Button("SETTINGS", row())) {
+		Open(MenuScreen::Settings);
+	}
+	if (ui_->Button("LEAVE THE GAME", row())) {
 		action.type = MenuAction::Type::QuitToMenu;
 	}
 	return action;

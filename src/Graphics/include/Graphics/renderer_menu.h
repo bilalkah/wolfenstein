@@ -14,6 +14,7 @@
 
 #include "Graphics/renderer_interface.h"
 #include "UI/ui.h"
+#include <array>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -32,7 +33,7 @@ enum class MenuScreen : std::uint8_t {
 	Settings,
 	Pause,
 	Result,
-	Multiplayer,  // a name, a server and a room, to join a match
+	Multiplayer,  // a name, a server and a room code: to make or join a match
 };
 
 struct MenuAction
@@ -46,10 +47,32 @@ struct MenuAction
 		SettingsChanged,  // apply Settings::Get() (e.g. volume)
 		Continue,		  // go on with the saved game
 		Join,			  // join the match Settings::Get() names
+		Create,			  // make a room on Settings::Get()'s server
+		// A match's host: pause it for everyone, go on, or start it again
+		// on `arena`
+		PauseMatch,
+		ResumeMatch,
+		RestartMatch,
+		CopyInvite,	 // a link that brings a friend into the match's room
 	};
 	Type type = Type::None;
 	// Index into the difficulties the menu was given
 	std::size_t difficulty = 0;
+	std::size_t arena = 0;
+};
+
+// The match played, as its menu (Esc) offers it: the room's code (none: the
+// server's open game), whether this player hosts it, whether the host has
+// paused it, and the arenas it can be played on, by name, the one played
+struct MatchMenu
+{
+	bool playing = false;
+	std::string_view code;
+	bool host = false;
+	bool paused = false;
+	std::array<std::string_view, 8> arenas{};
+	std::size_t arena_count = 0;
+	std::size_t arena = 0;
 };
 
 // A difficulty a new game offers
@@ -106,6 +129,8 @@ class Menu
 		saved_game_ = ui::FixedText<96>("{}", description);
 		has_saved_game_ = !description.empty();
 	}
+	// The match played, while one is: the pause screen is its menu then
+	void SetMatch(const MatchMenu& match);
 	// A short message across the lower middle of the screen, over the game
 	void DrawNotice(std::string_view text);
 	// The level's current objective, at the top of the screen; empty draws
@@ -162,6 +187,8 @@ class Menu
 	MenuAction ControlsScreen();
 	MenuAction SettingsScreen();
 	MenuAction PauseScreen();
+	// The pause screen during a match, which goes on behind it
+	MenuAction MatchScreen();
 	MenuAction ResultScreen();
 	MenuAction MultiplayerScreen();
 
@@ -183,6 +210,11 @@ class Menu
 	// middle one (normal)
 	std::size_t chosen_difficulty_ = 0;
 	int background_texture_ = 0;
+	MatchMenu match_;
+	// The arena the host would start the match on next, and how long the
+	// invite link shows as copied
+	double arena_choice_ = 0.0;
+	double copied_for_ = 0.0;
 };
 
 }  // namespace karakale

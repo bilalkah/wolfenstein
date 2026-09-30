@@ -94,13 +94,25 @@ class Input
 	bool back = false;		// Esc or Backspace
 	// Typing into text, while a screen with text on it asks for it: the
 	// letters and Space are text then, not moves, Tab moves on, Backspace
-	// erases and only Esc goes back
+	// erases and only Esc goes back. Ctrl (or Cmd) with V pastes, with C
+	// copies the text, with X cuts it, and with Backspace erases it all.
 	bool text_mode = false;
-	std::array<char, 32> typed{};  // printable characters, in order
+	std::array<char, 128> typed{};	// printable characters, in order
 	std::size_t typed_size = 0;
 	int erased = 0;	 // Backspaces
+	bool copy = false;
+	bool cut = false;
+	bool erase_all = false;
 	std::string_view Typed() const { return {typed.data(), typed_size}; }
+	// Adds the printable ASCII of `text` to what was typed, as it fits
+	void Type(std::string_view text);
+
+  private:
+	void HandleKey(const SDL_KeyboardEvent& key);
 };
+
+// Puts `text` on the system clipboard (on the web, the browser's)
+void CopyText(std::string_view text);
 
 // What was done to a text field this frame, for its owner to apply to its
 // text: characters typed at its end, and how many erased from it first
@@ -147,8 +159,10 @@ class Ui
 				const SDL_Rect& rect, double& value, double min, double max,
 				double step);
 	bool Toggle(std::string_view label, const SDL_Rect& rect, bool& value);
-	// A line of text, `value` as it stands, under its label: focused, it
-	// takes what is typed (Input::text_mode), which its owner applies
+	// A line of text, `value` as it stands, beside its label and kept in
+	// its box (focused, the end in sight, where the next letter goes):
+	// focused, it takes what is typed, pasted, cut or erased
+	// (Input::text_mode), which its owner applies
 	TextEdits TextField(std::string_view label, std::string_view value,
 						const SDL_Rect& rect);
 	// A focusable area whose contents the caller draws; `focused` reports
@@ -191,6 +205,10 @@ class Ui
 	int previous_widget_count_ = 0;
 	int pressed_widget_ = -1;  // widget the mouse went down on
 	bool focus_reset_ = false;
+	// A text field has focus this frame; on the web, the browser was told
+	// its text, for copying
+	bool field_focused_ = false;
+	[[maybe_unused]] bool field_shown_ = false;	 // the web's alone
 };
 
 }  // namespace karakale::ui

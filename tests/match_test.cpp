@@ -115,9 +115,11 @@ struct PlayerGame
 	std::unique_ptr<MatchClient> match;
 	PlayerCommand command;
 
+	// As the game plays a tick: paused by the host, not at all
 	void Tick() const {
 		match->Poll(*world);
-		if (match->GetState() != MatchClient::State::Playing) {
+		if (match->GetState() != MatchClient::State::Playing ||
+			match->Paused()) {
 			return;
 		}
 		match->BeforeTick(*world, command);
@@ -437,6 +439,38 @@ TEST_F(MatchTest, APlayerKnowsItsPingAndTheOthersToo) {
 	EXPECT_NEAR(a.match->Ping().value_or(0), round_trip, 2.0);
 	EXPECT_NEAR(b.match->PingOf(0).value_or(0), round_trip, 2.0);
 	EXPECT_NEAR(a.match->PingOf(1).value_or(0), round_trip, 2.0);
+}
+
+// The room's maker knows it hosts it, and its pause holds every game still
+// until it goes on (at the cost of one correction at most); another's say
+// changes nothing
+TEST_F(MatchTest, TheHostsPauseHoldsEveryGame) {
+	server_->MakeRoom(net::RoomCode("K7QX2"), ClientId{1});
+	PlayerGame& host = Join(ClientId{1});
+	PlayerGame& friend_game = Join(ClientId{2});
+	Settle();
+	EXPECT_TRUE(host.match->IsHost());
+	EXPECT_FALSE(friend_game.match->IsHost());
+	EXPECT_EQ(friend_game.match->GetRoom().code.View(), "K7QX2");
+	friend_game.match->Control(net::ControlAction::Pause);
+	Ticks(2 * loop_.delay + 2);
+	EXPECT_FALSE(server_->Paused()) << "not the host's to say";
+	host.match->Control(net::ControlAction::Pause);
+	Ticks(2 * loop_.delay + 2);
+	ASSERT_TRUE(friend_game.match->Paused());
+	friend_game.command = Walking(friend_game.Me().GetPosition().theta);
+	const vector2d here = friend_game.Me().GetPose();
+	const vector2d there = OnServer(1).GetPose();
+	Ticks(30);
+	EXPECT_EQ(friend_game.Me().GetPose().Distance(here), 0.0);
+	EXPECT_EQ(OnServer(1).GetPose().Distance(there), 0.0);
+	host.match->Control(net::ControlAction::Resume);
+	Ticks(2 * loop_.delay + 20);
+	EXPECT_FALSE(friend_game.match->Paused());
+	EXPECT_GT(OnServer(1).GetPose().Distance(there), 0.1) << "walking again";
+	// What it foresaw in the moment before it heard of the pause, the
+	// server never did: set right once, no more
+	EXPECT_LE(friend_game.match->Corrections(), 1u);
 }
 
 TEST_F(MatchTest, APlayerLeavingIsGoneFromTheOthersGame) {

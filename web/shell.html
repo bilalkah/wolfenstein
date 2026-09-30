@@ -390,9 +390,11 @@
     : params.has('soak') ? ['--soak'] : [];
   // ?debug: P shows the whole level in 2D (for developers)
   if (params.has('debug')) benchmarkArgs.push('--debug');
-  // ?server=ws://host:port[&name=NAME]: play that server's multiplayer game
+  // ?server=wss://host[&room=CODE][&name=NAME]: play that server's
+  // multiplayer game, in a friend's room (an invite link's)
   if (params.has('server')) {
     benchmarkArgs.push('--connect', params.get('server'));
+    if (params.has('room')) benchmarkArgs.push('--room', params.get('room'));
     if (params.has('name')) benchmarkArgs.push('--name', params.get('name'));
   }
   // The server the multiplayer screen offers first: the one beside the page

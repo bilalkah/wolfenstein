@@ -26,7 +26,7 @@ namespace karakale::net {
 
 // Both sides must speak the same: a player of another version is turned
 // away
-inline constexpr std::uint16_t kProtocolVersion = 2;
+inline constexpr std::uint16_t kProtocolVersion = 3;
 // A tick, on the server and in a player's game alike: a command each
 inline constexpr double kTickSeconds = 1.0 / 60.0;
 // The most bytes a message takes
@@ -41,6 +41,8 @@ inline constexpr std::size_t kMaxWeapons = 8;
 inline constexpr std::size_t kMaxPickups = 64;
 // Events one message carries at most: a busy tick's take several
 inline constexpr std::size_t kMaxEvents = 40;
+// Arenas a room can be played on, at most
+inline constexpr std::size_t kMaxArenas = 8;
 
 enum class MessageType : std::uint8_t {
 	Hello = 1,	// player to server, first
@@ -55,10 +57,15 @@ enum class MessageType : std::uint8_t {
 	Ping,	// player to server: its clock, and its last round trip
 	Pong,	// server to player: the ping's clock, at once
 	Pings,	// server to player: everyone's round trip, as they tell it
+	// Version 3: rooms made by a player, who hosts them
+	Room,	  // server to player: the room's code, host, pause and arenas
+	Control,  // player to server: the host's say over its room
 };
 
 using PlayerName = FixedString<16>;
 using LevelName = FixedString<32>;
+// A private room's code: capital letters and digits (none: the open game)
+using RoomCode = FixedString<8>;
 
 struct Hello
 {
@@ -81,6 +88,8 @@ struct Welcome
 enum class RejectReason : std::uint8_t {
 	Version = 1,  // it speaks another version of the protocol
 	Full,		  // every slot is taken
+	NoRoom,		  // no room has the code it asked for
+	Busy,		  // no room can be made now (too many, or too many of its)
 };
 struct Reject
 {
@@ -244,8 +253,37 @@ struct Pings
 	friend bool operator==(const Pings&, const Pings&) = default;
 };
 
+// The room a player is in, sent as it joins and whenever this changes: the
+// code friends join it by (none: the server's open game), the slot of the
+// player hosting it (kNoHost: no one, the open game), whether the host has
+// paused the match, and the arenas it can be played on, by name, and the
+// one played
+inline constexpr std::uint8_t kNoHost = 0xFF;
+struct Room
+{
+	RoomCode code{};
+	std::uint8_t host = kNoHost;
+	bool paused = false;
+	std::uint8_t arena = 0;
+	std::uint8_t count = 0;
+	std::array<LevelName, kMaxArenas> arenas{};
+
+	friend bool operator==(const Room&, const Room&) = default;
+};
+
+// The host's say over its room: pause the match, go on with it, or start it
+// again from the beginning on arena `arena` (the one played, or another)
+enum class ControlAction : std::uint8_t { Pause, Resume, Restart };
+struct Control
+{
+	ControlAction action = ControlAction::Pause;
+	std::uint8_t arena = 0;
+
+	friend bool operator==(const Control&, const Control&) = default;
+};
+
 using Message = std::variant<Hello, Welcome, Reject, Input, Snapshot, Events,
-							 Scores, Ping, Pong, Pings>;
+							 Scores, Ping, Pong, Pings, Room, Control>;
 
 // Writes `message` to `out`; its length, or 0 if it does not fit
 std::size_t Encode(const Message& message, std::span<std::uint8_t> out);

@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <gtest/gtest.h>
 #include <numbers>
+#include <utility>
 #include <variant>
 
 namespace karakale::net {
@@ -194,6 +195,58 @@ TEST(Protocol, PingsComeBackAsSent) {
 							.rtt = static_cast<std::uint16_t>(20 * i)};
 	}
 	EXPECT_EQ(RoundTrip(pings), pings);
+}
+
+// A room as its players are told of it, the host's say over it
+TEST(Protocol, ARoomAndItsControlComeBackAsSent) {
+	Room room{.code = RoomCode("K7QX2"),
+			  .host = 3,
+			  .paused = true,
+			  .arena = 1,
+			  .count = 3};
+	room.arenas[0] = LevelName("THE BAZAAR");
+	room.arenas[1] = LevelName("THE WAREHOUSE");
+	room.arenas[2] = LevelName("THE COURTYARD");
+	EXPECT_EQ(RoundTrip(room), room);
+	EXPECT_EQ(RoundTrip(Room{}), Room{}) << "the open game: no code, no host";
+	const Control control{.action = ControlAction::Restart, .arena = 2};
+	EXPECT_EQ(RoundTrip(control), control);
+}
+
+// A code of anything but capitals and digits, a host past the last slot, an
+// arena past those listed, an unknown flag or control: no server sends them
+TEST(Protocol, WhatNoRoomCouldBeIsRefused) {
+	std::array<std::uint8_t, kMaxMessage> buffer{};
+	Room room{.code = RoomCode("AB12"), .host = 0, .arena = 0, .count = 1};
+	room.arenas[0] = LevelName("THE PIT");
+	const std::size_t size = Encode(room, buffer);
+	ASSERT_TRUE(Decode(std::span(buffer).first(size)));
+	// After the type: the code's length and letters, the host, the flags,
+	// the arena played and how many
+	constexpr std::size_t kLetter = 2;
+	constexpr std::size_t kHost = 6;
+	constexpr std::size_t kFlags = 7;
+	constexpr std::size_t kArena = 8;
+	const auto read = [&](std::size_t at, std::uint8_t value) {
+		auto changed = buffer;
+		changed[at] = value;
+		return Decode(std::span(changed).first(size)).has_value();
+	};
+	EXPECT_FALSE(read(kLetter, 'a')) << "a small letter";
+	EXPECT_FALSE(read(kLetter, '-'));
+	EXPECT_FALSE(read(kHost, kMaxPlayers));
+	EXPECT_TRUE(read(kHost, kNoHost));
+	EXPECT_FALSE(read(kFlags, 0x02));
+	EXPECT_FALSE(read(kArena, 1)) << "one arena listed";
+	std::size_t control = Encode(Control{}, buffer);
+	buffer[1] = 3;	// no such action
+	EXPECT_FALSE(Decode(std::span(buffer).first(control)));
+	control = Encode(Control{.arena = kMaxArenas}, buffer);
+	EXPECT_FALSE(Decode(std::span(buffer).first(control)));
+	control = Encode(Reject{.reason = RejectReason::Busy}, buffer);
+	EXPECT_TRUE(Decode(std::span(buffer).first(control)));
+	buffer[1] = std::to_underlying(RejectReason::Busy) + 1;
+	EXPECT_FALSE(Decode(std::span(buffer).first(control)));
 }
 
 // Within half a packing step: a 512th of a cell, a 131072nd of a turn; an

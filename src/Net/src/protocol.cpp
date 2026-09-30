@@ -87,6 +87,28 @@ PlayerName ReadName(ByteReader& in) {
 	}
 	return name;
 }
+// An arena's name, as a room shows it: printable too
+LevelName ReadArenaName(ByteReader& in) {
+	const LevelName name = LevelName::Read(in);
+	if (name.View().empty() ||
+		!std::ranges::all_of(name.View(), IsNameCharacter)) {
+		in.Fail();
+	}
+	return name;
+}
+// A room's code: capital letters and digits, or none
+RoomCode ReadCode(ByteReader& in) {
+	const RoomCode code = RoomCode::Read(in);
+	if (!std::ranges::all_of(code.View(), [](char c) {
+			return (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
+		})) {
+		in.Fail();
+	}
+	return code;
+}
+
+// A room's flags: paused
+constexpr std::uint8_t kPausedBit = 0x01;
 
 void WriteCommand(ByteWriter& out, const PlayerCommand& command) {
 	out.I8(command.forward);
@@ -223,6 +245,21 @@ void Write(ByteWriter& out, const Ping& ping) {
 void Write(ByteWriter& out, const Pong& pong) {
 	out.U32(pong.stamp);
 }
+void Write(ByteWriter& out, const Room& room) {
+	const std::uint8_t count = std::min<std::uint8_t>(room.count, kMaxArenas);
+	room.code.Write(out);
+	out.U8(room.host);
+	out.U8(room.paused ? kPausedBit : 0U);
+	out.U8(room.arena);
+	out.U8(count);
+	for (std::size_t i = 0; i < count; ++i) {
+		room.arenas[i].Write(out);
+	}
+}
+void Write(ByteWriter& out, const Control& control) {
+	out.U8(std::to_underlying(control.action));
+	out.U8(control.arena);
+}
 void Write(ByteWriter& out, const Pings& pings) {
 	const std::uint8_t count = std::min<std::uint8_t>(pings.count, kMaxPlayers);
 	out.U8(count);
@@ -254,7 +291,7 @@ std::optional<Message> ReadBody(MessageType type, ByteReader& in) {
 		case MessageType::Reject: {
 			const std::uint8_t reason = in.U8();
 			if (reason < std::to_underlying(RejectReason::Version) ||
-				reason > std::to_underlying(RejectReason::Full)) {
+				reason > std::to_underlying(RejectReason::Busy)) {
 				in.Fail();
 			}
 			return Reject{.reason = static_cast<RejectReason>(reason)};
@@ -409,6 +446,35 @@ std::optional<Message> ReadBody(MessageType type, ByteReader& in) {
 			}
 			return pings;
 		}
+		case MessageType::Room: {
+			Room room;
+			room.code = ReadCode(in);
+			room.host = in.U8();
+			const std::uint8_t flags = in.U8();
+			room.paused = (flags & kPausedBit) != 0;
+			room.arena = in.U8();
+			room.count = in.U8();
+			if ((room.host != kNoHost && room.host >= kMaxPlayers) ||
+				(flags & ~kPausedBit) != 0 || room.count > kMaxArenas ||
+				(room.count > 0 && room.arena >= room.count)) {
+				in.Fail();
+				return room;
+			}
+			for (std::size_t i = 0; i < room.count; ++i) {
+				room.arenas[i] = ReadArenaName(in);
+			}
+			return room;
+		}
+		case MessageType::Control: {
+			const std::uint8_t action = in.U8();
+			const std::uint8_t arena = in.U8();
+			if (action > std::to_underlying(ControlAction::Restart) ||
+				arena >= kMaxArenas) {
+				in.Fail();
+			}
+			return Control{.action = static_cast<ControlAction>(action),
+						   .arena = arena};
+		}
 	}
 	return std::nullopt;
 }
@@ -460,6 +526,12 @@ std::size_t Encode(const Message& message, std::span<std::uint8_t> out) {
 			else if constexpr (std::is_same_v<Body, Pings>) {
 				type = MessageType::Pings;
 			}
+			else if constexpr (std::is_same_v<Body, Room>) {
+				type = MessageType::Room;
+			}
+			else if constexpr (std::is_same_v<Body, Control>) {
+				type = MessageType::Control;
+			}
 			writer.U8(std::to_underlying(type));
 			Write(writer, body);
 		},
@@ -471,7 +543,7 @@ std::optional<Message> Decode(std::span<const std::uint8_t> data) {
 	ByteReader reader(data);
 	const std::uint8_t type = reader.U8();
 	if (!reader.Ok() || type < std::to_underlying(MessageType::Hello) ||
-		type > std::to_underlying(MessageType::Pings)) {
+		type > std::to_underlying(MessageType::Control)) {
 		return std::nullopt;
 	}
 	auto message = ReadBody(static_cast<MessageType>(type), reader);

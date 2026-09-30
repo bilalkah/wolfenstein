@@ -61,8 +61,15 @@ class Outbox
 // them as it fired (each command says when that was): the server keeps
 // where everyone stood for the last kRewind ticks.
 //
+// A private room (MakeRoom) has a code and a host: the player who made it,
+// or, once it leaves, the one there longest (it gets the room back if it
+// comes back soon). The host may pause the match for everyone, and start it
+// again, on the same arena or another; the players are told of the room
+// (net::Room) as they come and as it changes. The open game has no host.
+//
 // A connection is taken only for what a player's game sends, when it sends
-// it: a hello first, once, then commands and pings. Anything else ends it:
+// it: a hello first, once, then commands, pings and the host's say over the
+// room (from another, it is let pass). Anything else ends it:
 // bytes that are not a message of the protocol (net::Decode), a message only
 // the server sends, commands skipping ahead or going back, more messages
 // than a game sends, or no hello in time.
@@ -121,6 +128,9 @@ class GameServer : private Hindsight
 	GameServer& operator=(GameServer&&) = delete;
 	~GameServer() override = default;
 
+	// Makes this a private room of code `code`, hosted by the player
+	// `creator` becomes once it says hello
+	void MakeRoom(const net::RoomCode& code, ClientId creator);
 	// A connection opened: once it says hello it is a player. With every
 	// connection taken it is closed at once.
 	void Connect(ClientId client);
@@ -137,6 +147,9 @@ class GameServer : private Hindsight
 	std::size_t PlayerCount() const;
 	World& GetWorld() { return *world_; }
 	const MatchRules& Rules() const { return rules_; }
+	// The room as its players are told of it
+	net::Room RoomState() const;
+	bool Paused() const { return paused_; }
 
   private:
 	// A command waiting, and the server tick the player's game showed the
@@ -168,13 +181,15 @@ class GameServer : private Hindsight
 		std::uint32_t budget = kMessageBurst;  // messages it may yet send
 	};
 
-	// A player gone, whose score waits a while for it to come back
+	// A player gone, whose score (and hosting) waits a while for it to come
+	// back
 	struct Departed
 	{
 		net::PlayerName name{};
 		Standing standing{};
 		std::size_t match = 0;	 // MatchRules::MatchNumber
 		std::uint32_t tick = 0;	 // when it left
+		bool hosted = false;
 	};
 
 	// Where `target` stood when `shooter`'s game showed it (Hindsight)
@@ -184,6 +199,14 @@ class GameServer : private Hindsight
 	void Remember();
 	// The next match on the next arena: everyone in it, and welcomed to it
 	void NextArena();
+	// The match on arena `index`, from the beginning: everyone in it, and
+	// welcomed to it
+	void StartArena(std::size_t index);
+	// The host's say over the room
+	void Apply(const net::Control& control);
+	// The host gone: the player there longest hosts, if any is
+	void PassHost();
+	void SendRoom();
 	// A new level's: its events recorded, its shots judged in hindsight
 	void Watch(Scene& scene);
 	void SendEvents(std::span<const MatchEvent> events);
@@ -208,10 +231,19 @@ class GameServer : private Hindsight
 	std::unique_ptr<TextureManager> textures_;
 	std::unique_ptr<World> world_;
 	std::vector<std::string> arenas_;
+	// Their names, as a room shows them (filled by Create)
+	std::vector<net::LevelName> titles_;
 	std::size_t arena_ = 0;	 // the one played
 	net::LevelName level_;
 	Outbox& outbox_;
 	MatchRules rules_;
+	// A private room's: its code, the connection that made it, the slot of
+	// the player hosting it; and whether the host paused the match
+	net::RoomCode code_{};
+	bool hosted_ = false;
+	std::optional<ClientId> creator_;
+	std::optional<std::size_t> host_;
+	bool paused_ = false;
 	std::array<Client, kMaxConnections> clients_{};
 	std::uint32_t tick_ = 0;
 	// Where each slot's player stood after each of the last kRewind ticks

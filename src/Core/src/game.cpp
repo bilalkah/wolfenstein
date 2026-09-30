@@ -19,6 +19,8 @@
 #include <cctype>
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
+#include <format>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -33,6 +35,28 @@
 namespace karakale {
 
 namespace {
+
+#ifdef __EMSCRIPTEN__
+EM_JS_DEPS(page, "$stringToNewUTF8");
+// clang-format off
+EM_JS(char*, PageAddress, (), {
+	return stringToNewUTF8(location.origin + location.pathname);
+});
+// clang-format on
+#endif
+
+// The page this game is played on (a native game: the web game's)
+std::string GamePage() {
+#ifdef __EMSCRIPTEN__
+	char* page = PageAddress();
+	std::string address(page);
+	std::free(page);
+	return address;
+#else
+	// A native game's invites open the web game
+	return "https://bilalkah.github.io/karakale/play/";
+#endif
+}
 
 // Time between the end of a level (or death) and what follows it
 constexpr double kEndOfLevelDelay = 2.0;
@@ -262,7 +286,23 @@ void Game::EnterPlaying() {
 void Game::Pause() {
 	state_ = GameState::Paused;
 	CaptureMouse(false);
+	menu_->SetMatch(InMatch() ? MatchMenuOf() : MatchMenu{});
 	menu_->Open(MenuScreen::Pause);
+}
+
+MatchMenu Game::MatchMenuOf() const {
+	const net::Room& room = match_->GetRoom();
+	MatchMenu menu{.playing = true,
+				   .code = room.code.View(),
+				   .host = match_->IsHost(),
+				   .paused = room.paused,
+				   .arena_count = std::min<std::size_t>(
+					   room.count, MatchMenu{}.arenas.size()),
+				   .arena = room.arena};
+	for (std::size_t i = 0; i < menu.arena_count; ++i) {
+		menu.arenas[i] = room.arenas[i].View();
+	}
+	return menu;
 }
 
 void Game::CaptureMouse(bool captured) {
@@ -283,6 +323,7 @@ void Game::HandleMenuAction(const MenuAction& action) {
 		case MenuAction::Type::QuitToMenu:
 			// Leaving a match leaves its server
 			match_.reset();
+			menu_->SetMatch({});
 			// Where the player left off, unless in the middle of a fight
 			if (world_->IsQuiet() && fade_ == Fade::None && !renderer_result_) {
 				SaveProgress();
@@ -302,15 +343,39 @@ void Game::HandleMenuAction(const MenuAction& action) {
 			ContinueSavedGame();
 			EnterPlaying();
 			break;
-		case MenuAction::Type::Join: {
+		case MenuAction::Type::Join:
+		case MenuAction::Type::Create: {
 			const Settings& settings = Settings::Get();
 			const std::string_view name = settings.player_name.Empty()
 											  ? std::string_view("PLAYER")
 											  : settings.player_name.View();
-			Connect(MatchUrl(settings.server.View(), settings.room.View()),
-					name);
+			const bool create = action.type == MenuAction::Type::Create;
+			Connect(settings.server.View(), create ? "" : settings.room.View(),
+					name, create);
 			break;
 		}
+		case MenuAction::Type::PauseMatch:
+			if (match_) {
+				match_->Control(net::ControlAction::Pause);
+			}
+			break;
+		case MenuAction::Type::ResumeMatch:
+			if (match_) {
+				match_->Control(net::ControlAction::Resume);
+			}
+			break;
+		case MenuAction::Type::RestartMatch:
+			if (match_) {
+				match_->Control(net::ControlAction::Restart, action.arena);
+				EnterPlaying();
+			}
+			break;
+		case MenuAction::Type::CopyInvite:
+			if (match_) {
+				ui::CopyText(InviteLink(GamePage(), server_,
+										match_->GetRoom().code.View()));
+			}
+			break;
 	}
 }
 
@@ -331,6 +396,29 @@ std::string MatchUrl(std::string_view server, std::string_view room) {
 		url += "/room/" + code;
 	}
 	return url;
+}
+
+std::string CreateUrl(std::string_view server) {
+	return MatchUrl(server, "") + "/create";
+}
+
+std::string InviteLink(std::string_view page, std::string_view server,
+					   std::string_view code) {
+	// The server's address as a query must have it: letters, digits and
+	// "-._~" as they are, the rest as %XX
+	std::string link(page);
+	link += "?server=";
+	for (const char c : server) {
+		const auto byte = static_cast<unsigned char>(c);
+		if (std::isalnum(byte) != 0 || c == '-' || c == '.' || c == '_' ||
+			c == '~') {
+			link.push_back(c);
+		}
+		else {
+			link += std::format("%{:02X}", byte);
+		}
+	}
+	return std::format("{}&room={}", link, code);
 }
 
 void Game::ApplySettings() {
@@ -646,11 +734,15 @@ void Game::MenuTick() {
 	HandleMenuAction(action);
 }
 
-void Game::Connect(const std::string& url, std::string_view name) {
-	server_url_ = url;
+void Game::Connect(std::string_view server, std::string_view room,
+				   std::string_view name, bool create) {
+	server_ = server;
+	server_url_ = create ? CreateUrl(server) : MatchUrl(server, room);
+	room_code_ = {};
 	player_name_ = name;
 	rejoining_ = false;
-	match_ = std::make_unique<MatchClient>(net::Connection::Open(url), name);
+	match_ =
+		std::make_unique<MatchClient>(net::Connection::Open(server_url_), name);
 	state_ = GameState::Joining;
 }
 
@@ -695,10 +787,23 @@ void Game::JoiningTick() {
 	const MatchClient::State state =
 		match_ ? match_->GetState() : MatchClient::State::Closed;
 	if (state == MatchClient::State::Rejected) {
-		menu_->DrawNotice(match_->Reason() == net::RejectReason::Full
-							  ? "The game is full  ·  Esc to go back"
-							  : "The server plays another version  ·  Esc "
-								"to go back");
+		switch (match_->Reason()) {
+			case net::RejectReason::Full:
+				menu_->DrawNotice("The game is full  ·  Esc to go back");
+				break;
+			case net::RejectReason::NoRoom:
+				menu_->DrawNotice("No game has that code  ·  Esc to go back");
+				break;
+			case net::RejectReason::Busy:
+				menu_->DrawNotice(
+					"The server cannot make another room now  ·  Esc to go "
+					"back");
+				break;
+			case net::RejectReason::Version:
+				menu_->DrawNotice(
+					"The server plays another version  ·  Esc to go back");
+				break;
+		}
 	}
 	else if (rejoining_ && (state != MatchClient::State::Closed ||
 							rejoin_tries_ < kRejoinTries)) {
@@ -734,8 +839,16 @@ void Game::TickMatch(const PlayerCommand& command, int ticks) {
 	if (match_->TakeNewLevel()) {
 		ShowLevel();
 	}
+	// A room made here has its code now: lost, it is joined again by it
+	if (const net::RoomCode& code = match_->GetRoom().code;
+		!code.View().empty() && !(code == room_code_)) {
+		room_code_ = code;
+		server_url_ = MatchUrl(server_, code.View());
+	}
+	// Paused by the host: no one moves, this player neither
 	for (int tick = 0;
-		 tick < ticks && match_->GetState() == MatchClient::State::Playing;
+		 tick < ticks && match_->GetState() == MatchClient::State::Playing &&
+		 !match_->Paused();
 		 ++tick) {
 		match_->BeforeTick(*world_, tick == 0 ? command : Repeated(command));
 		world_->CurrentLevel().Update(step_.TickSeconds());
@@ -778,6 +891,9 @@ void Game::PausedTick() {
 		camera_->Update(ViewPosition(alpha), alpha);
 	}
 	RenderView(ViewPosition(InMatch() ? step_.Alpha() : 1.0));
+	if (InMatch()) {
+		menu_->SetMatch(MatchMenuOf());
+	}
 	const auto action = menu_->Update(clock_.DeltaTime());
 	Present();
 	HandleMenuAction(action);
@@ -1093,6 +1209,22 @@ void Game::DrawMatchHud() {
 			.opacity = MatchClient::kKillSeconds - kill.age};
 	}
 	menu_->DrawKillFeed(std::span(kills).first(kill_count));
+	// A private room's code, to pass on; paused, everyone told why
+	const net::Room& room = match_->GetRoom();
+	if (!room.code.View().empty()) {
+		menu_->DrawObjective(
+			match_->IsHost()
+				? ui::FixedText<80>("ROOM {}  ·  Esc to invite, pause or pick "
+									"the arena",
+									room.code.View())
+				: ui::FixedText<80>("ROOM {}", room.code.View()));
+	}
+	// (not under the match's own menu, which says so)
+	if (room.paused && state_ != GameState::Paused) {
+		menu_->DrawLevelBanner(
+			"PAUSED",
+			match_->IsHost() ? "BY YOU  ·  ESC TO GO ON" : "BY THE HOST", 255);
+	}
 	// The newest kill, called out for a moment if the local player had a
 	// hand in it
 	const auto feed = match_->KillFeed();

@@ -36,20 +36,30 @@ std::expected<std::unique_ptr<GameServer>, std::string> GameServer::Create(
 	if (arenas.empty()) {
 		return std::unexpected(std::string("no arena to play on"));
 	}
+	if (arenas.size() > net::kMaxArenas) {
+		arenas.resize(net::kMaxArenas);
+	}
 	// Each arena started once, the first last, so a later match cannot
-	// fail to start
-	for (const std::string& arena : std::views::reverse(arenas)) {
-		if (auto started = world->NewMatch(arena, std::nullopt); !started) {
+	// fail to start; its name taken as it is
+	std::vector<net::LevelName> titles(arenas.size());
+	for (std::size_t i = arenas.size(); i-- > 0;) {
+		if (auto started = world->NewMatch(arenas[i], std::nullopt); !started) {
 			return std::unexpected(started.error());
 		}
+		const std::string_view name = world->LevelName();
+		titles[i] =
+			net::LevelName(name.empty() ? std::string_view(arenas[i]) : name);
 	}
 	if (settings.mode == net::MatchMode::GunRace &&
 		world->Config().gun_race.empty()) {
 		return std::unexpected(
 			std::string("a gun race needs the configuration's gun_race"));
 	}
-	return std::make_unique<GameServer>(std::move(*textures), std::move(world),
-										std::move(arenas), outbox, settings);
+	auto server =
+		std::make_unique<GameServer>(std::move(*textures), std::move(world),
+									 std::move(arenas), outbox, settings);
+	server->titles_ = std::move(titles);
+	return server;
 }
 
 GameServer::GameServer(std::unique_ptr<TextureManager> textures,
@@ -76,7 +86,11 @@ void GameServer::NextArena() {
 	if (arenas_.size() < 2) {
 		return;	 // the next match here
 	}
-	arena_ = (arena_ + 1) % arenas_.size();
+	StartArena((arena_ + 1) % arenas_.size());
+}
+
+void GameServer::StartArena(std::size_t index) {
+	arena_ = index;
 	level_ = net::LevelName(arenas_[arena_]);
 	// Each arena was started once already: it starts again
 	if (auto started = world_->NewMatch(arenas_[arena_], std::nullopt);
@@ -105,6 +119,62 @@ std::size_t GameServer::PlayerCount() const {
 		std::ranges::count_if(clients_, [](const Client& client) {
 			return client.open && client.slot.has_value();
 		}));
+}
+
+void GameServer::MakeRoom(const net::RoomCode& code, ClientId creator) {
+	code_ = code;
+	hosted_ = true;
+	creator_ = creator;
+}
+
+net::Room GameServer::RoomState() const {
+	net::Room room{
+		.code = code_,
+		.host = host_ ? static_cast<std::uint8_t>(*host_) : net::kNoHost,
+		.paused = paused_,
+		.arena = static_cast<std::uint8_t>(arena_),
+		.count = static_cast<std::uint8_t>(titles_.size())};
+	std::ranges::copy(titles_, room.arenas.begin());
+	return room;
+}
+
+void GameServer::SendRoom() {
+	Broadcast(RoomState());
+}
+
+void GameServer::PassHost() {
+	host_.reset();
+	const Client* longest = nullptr;
+	for (const Client& client : clients_) {
+		if (client.open && client.slot &&
+			(longest == nullptr || client.opened < longest->opened)) {
+			longest = &client;
+		}
+	}
+	if (longest != nullptr) {
+		host_ = longest->slot;
+	}
+}
+
+void GameServer::Apply(const net::Control& control) {
+	switch (control.action) {
+		case net::ControlAction::Pause:
+			paused_ = true;
+			break;
+		case net::ControlAction::Resume:
+			paused_ = false;
+			break;
+		case net::ControlAction::Restart:
+			if (control.arena >= arenas_.size()) {
+				return;	 // none such here
+			}
+			StartArena(control.arena);
+			rules_.Restart();
+			paused_ = false;
+			scores_changed_ = true;
+			break;
+	}
+	SendRoom();
 }
 
 GameServer::Client* GameServer::Find(ClientId id) {
@@ -171,6 +241,14 @@ bool GameServer::Take(Client& client, const net::Message& message) {
 		Send(client.id, net::Pong{.stamp = ping->stamp});
 		return true;
 	}
+	if (const auto* control = std::get_if<net::Control>(&message)) {
+		// The host's alone; another's is let pass (its game may have
+		// thought it the host a moment ago)
+		if (hosted_ && host_ == client.slot) {
+			Apply(*control);
+		}
+		return true;
+	}
 	return false;  // what only the server sends
 }
 
@@ -197,14 +275,23 @@ void GameServer::Hello(Client& client, const net::Hello& hello) {
 			client.name = hello.name;
 			client.seen = tick_;
 			rules_.Join(slot);
-			// Back soon under the same name: its score is its own again
+			// A private room's maker hosts it; so does whoever comes in to
+			// an empty one
+			if (hosted_ && (!host_ || client.id == creator_)) {
+				host_ = slot;
+			}
+			// Back soon under the same name: its score is its own again,
+			// and the room, if it hosted it
 			const auto back =
 				static_cast<std::uint32_t>(kComebackSeconds / kTickSeconds);
 			for (Departed& gone : departed_) {
-				if (gone.name == hello.name &&
-					gone.match == rules_.MatchNumber() &&
-					tick_ - gone.tick <= back) {
-					rules_.Restore(slot, gone.standing);
+				if (gone.name == hello.name && tick_ - gone.tick <= back) {
+					if (gone.match == rules_.MatchNumber()) {
+						rules_.Restore(slot, gone.standing);
+					}
+					if (hosted_ && gone.hosted) {
+						host_ = slot;
+					}
 					gone = {};
 					break;
 				}
@@ -214,6 +301,7 @@ void GameServer::Hello(Client& client, const net::Hello& hello) {
 				 net::Welcome{.slot = static_cast<std::uint8_t>(slot),
 							  .tick = tick_,
 							  .level = level_});
+			SendRoom();
 			return;
 		}
 	}
@@ -280,15 +368,23 @@ void GameServer::Disconnect(ClientId id) {
 		return;
 	}
 	if (client->slot) {
+		const bool hosted = host_ == client->slot;
 		departed_[next_departed_] = {
 			.name = client->name,
 			.standing = rules_.StandingOf(*client->slot),
 			.match = rules_.MatchNumber(),
-			.tick = tick_};
+			.tick = tick_,
+			.hosted = hosted};
 		next_departed_ = (next_departed_ + 1) % departed_.size();
 		world_->LeavePlayer(*client->slot);
 		rules_.Leave(*client->slot);
 		scores_changed_ = true;
+		*client = Client{};
+		if (hosted) {
+			PassHost();
+			SendRoom();
+		}
+		return;
 	}
 	*client = Client{};
 }
@@ -306,6 +402,20 @@ void GameServer::Tick() {
 				Close(client);
 			}
 		}
+	}
+	if (paused_) {
+		// Paused by the host: everyone stands as they were and the clock
+		// stops; the players are told how things stand all the same
+		++tick_;
+		Remember();
+		if (scores_changed_ || tick_ % kScoresEvery == 0) {
+			SendScores();
+			scores_changed_ = false;
+		}
+		if (tick_ % kSnapshotEvery == 0) {
+			SendSnapshots();
+		}
+		return;
 	}
 	wants_back_ = {};
 	for (Client& client : clients_) {
@@ -333,6 +443,7 @@ void GameServer::Tick() {
 		NextArena();
 		rules_.Restart();
 		scores_changed_ = true;
+		SendRoom();
 	}
 	if (scores_changed_ || tick_ % kScoresEvery == 0) {
 		SendScores();
