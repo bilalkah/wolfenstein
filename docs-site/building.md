@@ -32,8 +32,8 @@ use this one's address.)
 
 1. **Build**, in `emscripten/emsdk:6.0.10`, the Emscripten SDK that CI
    pins: `cmake --preset web-release`, then `cmake --build --preset
-   web-release`. Emscripten downloads and compiles SDL2 and its satellite
-   libraries as ports along with the game, which takes about two minutes.
+   web-release`. The build downloads SDL 3 and its libraries and compiles
+   them with the game, which takes a few minutes.
    It stops early if the assets are Git LFS pointers rather than files.
 2. **Serve**, in a small Python image: the four files of the build
    (`index.html`, `index.js`, `index.wasm`, `index.data`) and
@@ -45,10 +45,10 @@ Only the sources the build needs go into the image
 
 ### While changing the code
 
-A change to any source rebuilds the image from that step, ports and all.
+A change to any source rebuilds the image from that step, SDL and all.
 For quicker rounds, the scripts build incrementally into
 `build/web-release`, with Emscripten still in Docker (a named volume keeps
-SDL's compiled ports between builds), and serve the result with Python on
+Emscripten's cache between builds), and serve the result with Python on
 port 8000 and to the local network:
 
 ```bash
@@ -64,7 +64,8 @@ served over HTTP. See [Building with Emscripten](web/emscripten-build.md).
 ## The native build, tests and checks
 
 The native build runs in a container too: `docker/dev.Dockerfile`
-(Ubuntu 26.04, LLVM 21, SDL2), which `scripts/dev.sh` builds on first use
+(Ubuntu 26.04, LLVM 21, and the headers SDL builds its Linux backends
+against), which `scripts/dev.sh` builds on first use
 and runs any command in, with the repository mounted. CI uses the same
 toolchain.
 
@@ -75,10 +76,20 @@ toolchain.
 ```
 
 The toolchain is Clang with libc++ (the standard library the Emscripten
-build uses too; libstdc++ lacks `<mdspan>`), CMake 3.25 or newer, and SDL2
-with SDL_image, SDL_ttf and SDL_mixer. The container has no display or
-sound card: SDL runs off-screen, so there the game is built, tested and
-measured, and the browser is where it is played.
+build uses too; libstdc++ lacks `<mdspan>`) and CMake 3.25 or newer; SDL 3
+and every other library are downloaded and built with the game. The
+container has no display or sound card: SDL runs off-screen
+(`SDL_FRAMEBUFFER_ACCELERATION=0` keeps it off OpenGL), so there the game
+is built, tested and measured.
+
+The native build also runs on macOS, with the Xcode command line tools
+and CMake, and there the game plays in a window, with sound:
+
+```bash
+cmake --preset native-release
+cmake --build --preset native-release
+./build/native-release/bin/wolfenstein
+```
 
 ### Presets
 
@@ -100,6 +111,12 @@ All presets build with `-Werror`.
 
 In the browser the same runs are `?benchmark=2000` and `?soak` in the
 address, and `?debug` lets **P** show the top-down view.
+
+### A multiplayer server
+
+`cmake --build --preset native-release --target wolfenstein-server`
+builds the server, and `docker/server.Dockerfile` builds it into an image;
+see [Hosting a game](multiplayer/hosting.md).
 
 ### Checks
 

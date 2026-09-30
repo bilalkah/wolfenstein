@@ -2,7 +2,8 @@
 
 This site documents **Wolfenstein**: a first-person shooter in the style of
 *Wolfenstein 3D* and *Doom*, and the small engine under it, written in C++23
-with SDL2. It runs natively and, compiled to WebAssembly, in the browser.
+with SDL 3. It runs natively and, compiled to WebAssembly, in the browser,
+and up to eight players can fight one another on a server.
 
 <a class="md-button md-button--primary" href="play/">Play it in your browser</a>
 <a class="md-button" href="https://github.com/bilalkah/wolfenstein">Source on GitHub</a>
@@ -33,6 +34,11 @@ mouse; Esc releases it and pauses.
   layouts by a script, with enemies that patrol, hear gunfire, take cover
   and take turns to shoot, keys and locked doors, secret walls, pickups,
   story pages and intel pinned to walls.
+- **Multiplayer**: a free-for-all deathmatch for up to eight players, in
+  the browser and the native game together, on a server that runs in a
+  container. Each game foresees its own player's moves; the server judges
+  every shot against the others where the shooter saw them.
+  See [Multiplayer](multiplayer/index.md).
 - An exercise in **engineering discipline**: after startup the game makes
   no heap allocation at all, on native builds and in the browser, and CI
   fails if it does. Levels live in one arena; objects in fixed pools.
@@ -50,6 +56,7 @@ mouse; Esc releases it and pauses.
 | Weapons | Number keys 1 to 8, or the mouse wheel |
 | Open a door, push a secret wall, throw the exit switch, read intel again | E, or Space |
 | Map, small or large | M |
+| Scoreboard, in a match | Tab (held) |
 | Pause | Esc |
 | Menus, story pages, briefings | Arrow keys, Enter, Esc (Space, E or a click go on) |
 
@@ -82,6 +89,9 @@ excerpts link to the exact lines on GitHub.
 5. **[The web build](web/index.md)** covers what it takes to run the same
    code in a browser: Emscripten, the main loop, pointer lock, audio,
    downloading and caching.
+6. **[Multiplayer](multiplayer/index.md)** covers the server, the
+   protocol, prediction and lag compensation, the rules and the rooms, and
+   hosting a game on a local network or the internet.
 
 Click a diagram or a screenshot to see it full-screen. In a diagram, scroll
 or pinch to zoom and drag to move around; Esc closes it.

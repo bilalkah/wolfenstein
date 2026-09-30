@@ -381,7 +381,7 @@ walls, tactics choosing spots in sight of the player.
   equal angles from its first version until `dafd4e8`, when the bending
   they caused at wide views was fixed.
 - **Rendering by the GPU, not a framebuffer.** Each column is a
-  `SDL_RenderCopy` of a one-texel-wide strip of the wall texture; SDL's
+  `SDL_RenderTexture` of a one-texel-wide strip of the wall texture; SDL's
   accelerated renderer (WebGL in the browser) scales it. No software pixel
   loop, but one draw command per column (see [The 3D renderer](renderer.md)).
 - **Doors as planes, push walls as boxes.** Both are handled at the point

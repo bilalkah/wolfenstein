@@ -122,7 +122,9 @@ the clock.
 ### Settings
 
 `Settings` is a struct with defaults and ranges (sensitivity 0.25 to 3,
-field of view 60 to 80 degrees, volumes 0 to 1). `Parse` reads
+field of view 60 to 80 degrees, volumes 0 to 1), and the multiplayer
+screen's text (the name, the server and the room, each a fixed buffer of
+printable characters). `Parse` reads
 `key=value` lines, clamping values to their ranges and ignoring unknown
 keys and malformed values, so an old or hand-edited file never breaks the
 game. It is read once at startup and written whenever the settings screen

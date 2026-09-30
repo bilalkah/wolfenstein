@@ -1,8 +1,10 @@
 # The big picture
 
-The engine is one executable, `wolfenstein`, built from about twenty small
-static libraries (one per directory under `src/`) and a `main.cpp`. It has
-two halves that are kept apart on purpose:
+The engine is two executables built from about twenty small static
+libraries (one per directory under `src/`): the game, `wolfenstein`
+(`app/main.cpp`), and the multiplayer server, `wolfenstein-server`
+(`server/main.cpp`). The game has two halves that are kept apart on
+purpose:
 
 - the **simulation** (`World`, `Scene`, the player, the enemies, the map,
   pathfinding, weapons, collision), which advances in fixed ticks and knows
@@ -12,14 +14,16 @@ two halves that are kept apart on purpose:
   the simulation's state as often as the display allows.
 
 The simulation can be built without a window: the unit tests create a
-`World` or a `Scene` directly, and a comment in `World` notes that "a
-server can create worlds of their own".
+`World` or a `Scene` directly, and the server runs one with no window and
+no sound, the players' games each running the same code for their own
+player (see [Multiplayer](../multiplayer/index.md)).
 
 ## Code map
 
 | Directory | Subsystem | Responsibility |
 | --- | --- | --- |
-| `app/` | Entry point | `main.cpp` picks the mode (`--debug`, `--benchmark N`, `--soak`) and runs the `Game`; `allocation_counter.cpp` replaces the allocator to count heap allocations |
+| `app/` | Entry point | `main.cpp` picks the mode (`--debug`, `--benchmark N`, `--soak`, `--connect URL`) and runs the `Game`; `allocation_counter.cpp` replaces the allocator to count heap allocations |
+| `server/` | The server | `main.cpp`: uWebSockets, a timer ticking the matches, a room for each address |
 | `src/Core/` | Game, world, level | `Game` (loop, game states, input sampling, level transitions, story), `World` (owns the simulation), `Scene` (one level: its objects, doors, noise, sounds, stats), `SceneLoader` and `level_data` (reading `config.json` and level files), `story.h` |
 | `src/TimeManager/` | Timing | `FrameClock` (time between frames), `FixedStep` (turns frame time into fixed ticks) |
 | `src/Camera/` | Raycasting | `Camera2D` (the fan of rays, each object's place on screen), `RayCaster` (DDA), `CastRay`, `CastLineOfSight`, `Ray` |
@@ -32,7 +36,7 @@ server can create worlds of their own".
 | `src/Strike/` | Weapons | `Weapon` (the player's), `SimpleWeapon` (an enemy's) |
 | `src/ShootingManager/` | Shots | `Aim`, `Cross`, resolving the player's and enemies' shots, damage falloff, bullet marks |
 | `src/NavigationManager/` | Pathfinding | `GridPathFinder` (weighted A*), `NavigationManager` (the enemies' routes) |
-| `src/SoundManager/` | Audio | `SoundManager` (SDL_mixer: effects, music, channels), `SpatialMixer` (positional sound) |
+| `src/SoundManager/` | Audio | `SoundManager` (the device stream, the music through SDL_mixer), `SpatialMixer` (every sound effect, positional or not) |
 | `src/TextureManager/` | Textures | `TextureManager` and its manifest (`assets/textures.json`): images, wall textures, animation clips, sprite masks |
 | `src/Animation/` | Animation | `LoopedAnimation` (clips seen from 8 sides), `TriggeredSingleAnimation` (fades) |
 | `src/Allocators/` | Memory | `MonotonicArena`, `ObjectPool` with generational `Handle`s, AddressSanitizer poisoning |
@@ -40,9 +44,13 @@ server can create worlds of their own".
 | `src/Settings/` | Persistence | `Settings`, `SavedGame`, record storage (a file natively, `localStorage` on the web) |
 | `src/UI/` | UI toolkit | A small immediate-mode UI over `SDL_Renderer`: buttons, sliders, toggles, text from pre-rasterised glyphs |
 | `src/Math/` | Maths | `vector2d`, `vector2i`, angle helpers |
+| `src/Net/` | Networking | The multiplayer protocol (messages, packing), `Connection` (a WebSocket and its inbox) |
+| `src/Client/` | A player's side of a match | `MatchClient`: prediction, reconciliation, the others as puppets, events, scores, ping |
+| `src/Server/` | The server's side | `GameServer` (one match), `MatchRules`, `Lobby` (the open match and rooms) |
 | `assets/` | Content | `textures.json`, `levels/config.json`, `levels/*.json`, `maps/*.txt`, images, sounds, music, fonts, `licenses/` |
 | `scripts/` | Tooling | Level generator, art importers, builds, dev container, lint, CI checks |
-| `web/shell.html` | Web page | The page the WebAssembly build runs in: loading, caching, pointer lock, audio unlock |
+| `web/shell.html` | Web page | The page the WebAssembly build runs in: loading, caching, pointer lock, audio unlock, the multiplayer server beside it |
+| `docker/` | Containers | The dev toolchain, the web game, the server, and `compose.yml` with Caddy for hosting |
 | `tests/`, `benchmarks/` | Checks | GoogleTest unit tests; the web benchmark and soak runners; micro-benchmarks |
 
 ## Layers
@@ -53,6 +61,11 @@ flowchart TB
         game["Core: Game<br/>loop, states, input, transitions"]
         gfx["Graphics<br/>Renderer3D, Renderer2D, Minimap, Menu"]
         ui["UI<br/>immediate-mode widgets"]
+    end
+    subgraph Multiplayer
+        client["Client: MatchClient"]
+        server["Server: GameServer, MatchRules, Lobby"]
+        net["Net: protocol, Connection"]
     end
     subgraph Simulation
         world["Core: World<br/>owns content, player, level"]
@@ -78,11 +91,18 @@ flowchart TB
         math["Math"]
     end
     subgraph Platform
-        sdl["SDL2, SDL_image, SDL_ttf, SDL_mixer<br/>(system packages, or Emscripten ports)"]
+        sdl["SDL 3, SDL3_image, SDL3_ttf, SDL3_mixer<br/>(built from source)"]
         json["nlohmann/json"]
+        ws["uWebSockets, IXWebSocket<br/>(or the browser's WebSocket)"]
     end
     game --> world
     game --> gfx
+    game --> client
+    client --> world
+    client --> net
+    server --> world
+    server --> net
+    net --> ws
     game --> time
     gfx --> ui
     gfx --> cam
@@ -119,7 +139,10 @@ against. Collapsed to directories, the graph is:
 
 ```mermaid
 flowchart LR
-    Core --> Graphics & Camera & Characters & TimeManager & SoundManager & TextureManager & NavigationManager & ShootingManager & Profiler & Settings & GameMap & CollisionManager & GameObjects & Allocators & State
+    Core --> Graphics & Camera & Characters & TimeManager & SoundManager & TextureManager & NavigationManager & ShootingManager & Profiler & Settings & GameMap & CollisionManager & GameObjects & Allocators & State & Client
+    Client --> Core & Net
+    Server --> Core & Net & TextureManager
+    Net --> Characters & Math
     Graphics --> Camera & Core & TextureManager & UI & Settings & TimeManager & Profiler & Animation
     Characters --> Core & Camera & CollisionManager & State & Strike & ShootingManager & SoundManager & GameObjects & Animation & Profiler & Settings
     State --> Characters & Strike & NavigationManager & Animation & TextureManager & SoundManager & Profiler
@@ -143,7 +166,7 @@ through its `Scene&`, and the scene updates the enemies.
 
 ### Why the libraries are split this way
 
-There are 32 libraries in 20 folders, one folder per concept. Six of them
+There are 36 libraries in 23 folders, one folder per concept. Six of them
 form a single loop: `scene`, `character`, `camera`, `navigation_manager`,
 `shooting_manager` and `enemy_state` each depend, directly or through the
 others, on all the rest. `weapon` and `weapon_state` form a second, smaller

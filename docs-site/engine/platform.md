@@ -3,11 +3,12 @@
 ## Purpose
 
 The engine runs natively (on Linux, where the dev container and CI build
-it) and in browsers, from one code base. The platform layer is what makes that possible: SDL2 and its three
-satellite libraries for windows, drawing, fonts, images and sound; CMake
-targets that pick system packages natively and Emscripten ports on the
-web; and a handful of `#ifdef __EMSCRIPTEN__` blocks for what genuinely
-differs.
+it, and on macOS) and in browsers, from one code base. The platform layer
+is what makes that possible: SDL 3 and its three libraries for windows,
+drawing, fonts, images and sound, built from source with the game at the
+same versions everywhere; CMake targets that hide where each library
+comes from; and a handful of `#ifdef __EMSCRIPTEN__` blocks for what
+genuinely differs.
 
 Code: `src/Graphics/src/renderer_interface.cpp` (`RendererContext`),
 `cmake/Dependencies.cmake`, `cmake/ProjectOptions.cmake`,
@@ -20,24 +21,35 @@ Code: `src/Graphics/src/renderer_interface.cpp` (`RendererContext`),
 SDL (Simple DirectMedia Layer) hides the operating system and graphics API
 behind one C API: create a window, poll events, draw textured rectangles
 and triangles with `SDL_Renderer` (backed by Metal, Direct3D, OpenGL or,
-in a browser, WebGL), open an audio device. Its satellite libraries add
-image decoding (SDL_image), TrueType text (SDL_ttf) and mixing and music
-(SDL_mixer). Emscripten ships all four as **ports**: selecting them is a
-compiler flag, and they are built from source for WebAssembly on first use.
+in a browser, WebGL), open an audio device. Its libraries add image
+decoding (SDL3_image), TrueType text (SDL3_ttf, over FreeType) and mixing
+and music (SDL3_mixer). All four compile for WebAssembly with Emscripten
+as they do natively, so the game builds them from source the same way on
+every platform.
 
 ## How it is implemented here
 
 ### Dependencies as targets
 
-`cmake/Dependencies.cmake` exposes `wolfenstein::sdl2`,
-`wolfenstein::sdl2_image`, `wolfenstein::sdl2_ttf` and
-`wolfenstein::sdl2_mixer`. Natively they wrap the system packages found by
-`find_package`; on the web they are interface targets carrying the port
-flags (`-sUSE_SDL=2`, `-sUSE_SDL_IMAGE=2 -sSDL2_IMAGE_FORMATS=png,jpg`,
-`-sUSE_SDL_TTF=2`, `-sUSE_SDL_MIXER=2 -sSDL2_MIXER_FORMATS=mp3`). Modules
-link the `wolfenstein::` names and never care which. nlohmann/json is
-downloaded at a pinned version with a checksum; GoogleTest and Google
-Benchmark likewise, for native builds only.
+`cmake/Dependencies.cmake` downloads SDL 3.4.16, SDL3_image 3.4.6, SDL3_ttf
+3.2.2 (with FreeType 2.14.3) and SDL3_mixer 3.2.4 at pinned versions,
+checked by checksum (`FetchContent`), and builds them as static libraries
+with only what the game uses: PNG through stb_image, MP3 through dr_mp3;
+no GPU API, gamepads, camera, sensors or dialogs. It exposes them as
+`wolfenstein::sdl3`, `wolfenstein::sdl3_image`, `wolfenstein::sdl3_ttf`
+and `wolfenstein::sdl3_mixer`; modules link those names and never care
+where a library came from. The libraries are optimised in debug builds
+too, as a system's packages would be: the tests draw through SDL's
+software renderer, several times slower unoptimised.
+
+For multiplayer, native builds also fetch uWebSockets (the server's
+WebSockets, with its event loop uSockets, built without TLS or
+compression) and IXWebSocket (the native game's WebSocket client, with
+TLS through the system's library where there is one: Apple's on macOS,
+OpenSSL on Linux when it is installed); the browser has its own
+WebSocket. nlohmann/json is downloaded at a pinned version with a
+checksum; GoogleTest and Google Benchmark likewise, for native builds
+only.
 
 ### Project-wide options
 
@@ -73,7 +85,14 @@ as a container (`docker/dev.Dockerfile`, Ubuntu 26.04 with LLVM 21):
 ### The renderer context
 
 `RendererContext` owns the SDL window, an accelerated `SDL_Renderer`, the
-HUD font and the `TextureManager`. Besides creating them, its constructor
+HUD font and the `TextureManager`. The window is made from properties,
+centred; the renderer scales pictures with the nearest pixel (SDL 3
+smooths them unless told otherwise), and draws at the configured size
+through a **logical presentation**: SDL scales the picture to the window,
+keeping its shape, letterboxed. In the browser the window takes the size
+the page gives the canvas, so the picture scales with the page, and menu
+clicks are turned into the picture's coordinates
+(`SDL_ConvertEventToRenderCoordinates`). Besides creating them, its constructor
 **warms the renderer up**: thousands of throwaway copies, one of each kind
 of draw, and one geometry batch as large as the 2D view ever draws, so
 SDL's command pool and vertex buffer reach their final size and the GPU
@@ -88,8 +107,10 @@ loaded: there is no game without them.
 | --- | --- | --- |
 | `Game::Run` | `while (Tick()) {}` | `emscripten_set_main_loop_arg`: the browser calls `Tick` each animation frame |
 | `Game::GameTick` | Sleeps to cap at 120 Hz | No sleep: `requestAnimationFrame` paces |
+| `RendererContext` | No vsync (the game paces itself) | Vsync on: SDL 3 paces the page's loop by it |
+| `net::Connection` | IXWebSocket, on a thread of its own | The browser's WebSocket (`emscripten/websocket.h`) |
 | `Game::CheckGameEvent` | Esc pauses | Losing pointer lock pauses (the browser eats Esc) |
-| `Game::CanvasStretch` | 1 | The canvas's CSS width over its pixels |
+| `Game::CanvasStretch` | 1 | The canvas's CSS width over the window's |
 | `storage.cpp` | Files in SDL's preferences directory | `localStorage`, through `EM_JS` |
 | `allocation_counter.cpp` | Counts `operator new` | Counts `malloc` (and friends) |
 | `renderer_menu.cpp` | A Quit button | No Quit ("a browser tab cannot close itself"); a hint about capturing the mouse |
@@ -105,9 +126,19 @@ code. See [The web build](../web/index.md).
   free of boilerplate; the options apply everywhere automatically.
 - **Pinned downloads with checksums.** Reproducible builds without
   vendoring third-party code.
+- **SDL built from source, not from system packages or Emscripten's
+  ports.** The same version everywhere, and only what the game uses (the
+  web build's WebAssembly shrank by a quarter); the cost is a longer first
+  build. Emscripten has no port of SDL3_image or SDL3_mixer, and Linux
+  distributions lag behind (see [Moving to SDL 3](../features/sdl3.md)).
 
 ## Pitfalls
 
+- **Headless OpenGL.** SDL 3 on Linux presents even its software renderer
+  through OpenGL when it can; without a display that loads Mesa's
+  llvmpipe, whose shader compiler crashed under AddressSanitizer on x86.
+  Headless runs (CI, `scripts/dev.sh`) set
+  `SDL_FRAMEBUFFER_ACCELERATION=0`, so no GL driver is loaded.
 - **`exit()` on missing resources.** `RendererContext` and the texture
   lookups end the program on failure, which is right for a game but means
   those paths cannot be unit-tested; tests use placeholder textures.

@@ -23,6 +23,8 @@ hostable as static files.
 
 1. **The port** (`903f2a3`): Emscripten, SDL2 ports, the assets preloaded
    into `index.data`, `emscripten_set_main_loop_arg` driving `Tick`.
+   (Since `e9f5599` SDL 3 and its libraries are built from source with the
+   game instead; see [Moving to SDL 3](sdl3.md).)
 2. **Parallel chunks and a progress bar** (`e8894ae`): "On some networks
    one connection stalls while others run at full speed, and a single
    stalled download froze loading for minutes."

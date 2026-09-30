@@ -137,6 +137,8 @@ nav:
       - Hearing where sounds are: features/positional-audio.md
       - Dying and hurting: features/death-and-feedback.md
       - Story and intel: features/story-and-intel.md
+      - Moving to SDL 3: features/sdl3.md
+      - Multiplayer: features/multiplayer.md
   - C++ techniques:
       - Techniques used here: techniques/index.md
       - Special members and pinned types: techniques/special-members.md
@@ -164,6 +166,12 @@ nav:
       - Audio in the browser: web/audio.md
       - Storage: web/storage.md
       - Limitations: web/limitations.md
+  - Multiplayer:
+      - Overview: multiplayer/index.md
+      - Prediction, lag and who decides: multiplayer/netcode.md
+      - The protocol: multiplayer/protocol.md
+      - Matches, modes and rooms: multiplayer/matches.md
+      - Hosting a game: multiplayer/hosting.md
   - Building: building.md
   - Glossary: glossary.md
   - Design decisions:

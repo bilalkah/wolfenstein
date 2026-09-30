@@ -10,7 +10,7 @@ What the browser build cannot do, or does differently, and why.
 | **Sound needs a gesture** | Browsers' autoplay policy suspends audio until the user interacts | The page resumes audio on the first key or click |
 | **About 15 MB to download** (as sent compressed) | Every asset is packed into `index.data` and loaded before the game starts | The first visit waits; later visits use the copy kept in IndexedDB |
 | **No Quit button** | A page cannot close its own tab | The main menu omits it on the web |
-| **Deprecated audio node** | SDL2's web audio uses `ScriptProcessorNode` | A console warning; works in current browsers |
+| **Deprecated audio node** | SDL 3's web audio still uses `ScriptProcessorNode` | A console warning; works in current browsers |
 | **Keyboard and mouse only** | The game reads no touch or gamepad input | Phones and tablets cannot play |
 | **Timers are coarse** | Without cross-origin isolation, `performance.now()` is rounded (the benchmark's own server sets COOP/COEP to get finer timing) | Profiling in a normal browser tab is less precise |
 

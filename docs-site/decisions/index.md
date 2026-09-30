@@ -23,6 +23,10 @@ they concern, in the **Design decisions and trade-offs** section of each
 | 8 | [SDL_Renderer and the painter's algorithm](#8-sdl_renderer-and-the-painters-algorithm) | 2024 | Accepted |
 | 9 | [A single-threaded web build](#9-a-single-threaded-web-build) | 2026-09-21 | Accepted |
 | 10 | [This site's sources in `docs-site/`](#10-this-sites-sources-in-docs-site) | 2026-09-29 | Accepted |
+| 11 | [SDL 3, built from source](#11-sdl-3-built-from-source) | 2026-09-29 | Accepted |
+| 12 | [An authoritative server, over WebSockets](#12-an-authoritative-server-over-websockets) | 2026-09-30 | Accepted |
+| 13 | [Libraries for the WebSockets](#13-libraries-for-the-websockets) | 2026-09-30 | Accepted |
+| 14 | [Players foresee, the server judges](#14-players-foresee-the-server-judges) | 2026-09-30 | Accepted |
 
 ## 1. Clang and libc++ on every platform
 
@@ -175,3 +179,73 @@ only.
 
 **Consequences.** Local notes cannot leak into the published site, and
 the site's sources are versioned with the code they describe.
+
+## 11. SDL 3, built from source
+
+**Context.** The engine ran on SDL 2, from system packages natively and
+Emscripten's ports on the web. "Emscripten has no SDL3_image or
+SDL3_mixer port and Ubuntu 26.04 ships SDL 3.4.2 without SDL3_mixer"
+(`e9f5599`).
+
+**Decision.** SDL 3 and its three libraries are downloaded at pinned
+versions, checked by checksum, and built with the game as static
+libraries, the same way on every platform, with only what the game uses.
+
+**Consequences.** One version everywhere and a quarter less WebAssembly;
+a longer first build. SDL3_mixer's tracks allocate when given a new sound,
+so the game opens the audio device itself and mixes every effect in its
+spatial mixer. See [Moving to SDL 3](../features/sdl3.md).
+
+## 12. An authoritative server, over WebSockets
+
+**Context.** A deathmatch for up to eight, in browsers and the native game
+together, cheap to host. Browsers cannot open raw sockets; UDP from a
+browser means WebRTC, with signalling and, behind many networks, relay
+(TURN) servers. A game hosted by one of its players would need the same,
+and would let that player decide every hit.
+
+**Decision.** One server decides everything that happens, in a container
+anyone can run; players connect to it with WebSockets, binary messages
+over TCP.
+
+**Consequences.** Every player sees the same match, and a cheating game
+can only lie about its own commands. TCP delays the messages behind a lost
+packet; commands are sent four times and the others are shown 100 ms
+behind, which absorbs it. A page served over https needs `wss://`, so a
+server on the internet sits behind a proxy with a certificate
+(`docker/compose.yml`). See [Multiplayer](../multiplayer/index.md).
+
+## 13. Libraries for the WebSockets
+
+**Context.** WebSocket's handshake, framing, masking and TLS are the same
+in every program. A first draft of the server had a WebSocket of its own.
+
+**Decision.** Libraries replaced it before it was committed:
+uWebSockets on the server, IXWebSocket in the native game, and the
+browser's own WebSocket through Emscripten. The game's code starts where
+the bytes do: `net::Connection` and the `Outbox` interface hide which one
+carries them.
+
+**Consequences.** Less code to own and to secure; the server's socket
+code is widely used and fast. Two downloaded dependencies, native builds
+only; TLS in the native game comes from the system (Apple's, or OpenSSL
+where installed).
+
+## 14. Players foresee, the server judges
+
+**Context.** A move that waits a round trip for the server feels sluggish
+even at 50 ms; others drawn where the newest snapshot has them jump; a
+shot judged against where targets are when it reaches the server misses
+what the shooter aimed at.
+
+**Decision.** A player's game foresees its own player's moves and puts
+them right against the snapshots, replaying the commands since; shows
+the others 100 ms in the past, interpolated; and decides nothing about
+the players (`Scene::SetJudging`). The server judges each shot against
+the others where the shooter's game showed them, up to half a second
+back.
+
+**Consequences.** Moves are felt at once and shots aimed true hit; a
+target can be hit just after taking cover. Both sides must run the same
+simulation, which the protocol's version enforces. See
+[Prediction, lag and who decides](../multiplayer/netcode.md).

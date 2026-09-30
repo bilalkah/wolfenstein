@@ -26,11 +26,11 @@ same order:
 | [Pathfinding](navigation.md) | Weighted A* on a fine grid, crowding, steering round lamps | `NavigationManager` |
 | [Weapons and combat](combat.md) | Weapon states, hitscan shots, pellets, hit zones, masks, projectiles, damage | `Strike`, `State/weapon_state`, `ShootingManager` |
 | [Input](input.md) | From SDL events to `PlayerCommand`; view angles; mouse on the web | `Core/game`, `Characters/player_command`, `view_angles` |
-| [Audio](audio.md) | SDL_mixer channels, music, the spatial mixer | `SoundManager` |
+| [Audio](audio.md) | The device stream, the music through SDL_mixer, every effect through the spatial mixer | `SoundManager` |
 | [Textures and animation](assets.md) | The texture manifest, clips seen from 8 sides, masks; the art pipeline | `TextureManager`, `Animation`, `scripts/` |
 | [Levels and content data](levels.md) | `config.json`, level files, the SAX reader, the level generator, the campaign | `Core/level_data`, `Core/scene_loader`, `scripts/make_levels.py` |
 | [Memory](memory.md) | The level arena, object pools, zero allocations after startup | `Allocators`, `app/allocation_counter.cpp` |
 | [UI, menus and HUD](ui.md) | The immediate-mode toolkit, menus, story pages, text without allocating | `UI`, `Graphics/renderer_menu` |
 | [Settings and saved games](persistence.md) | Records in `localStorage` or a file, the save format | `Settings` |
 | [Profiling and testing](profiling.md) | Sections, the benchmark, the soak session, unit tests, CI gates | `Profiler`, `tests/`, `benchmarks/` |
-| [Platform layer](platform.md) | SDL2 and its satellite libraries, native and web builds | `Graphics/renderer_interface`, `cmake/` |
+| [Platform layer](platform.md) | SDL 3 and its libraries, built from source; native and web builds | `Graphics/renderer_interface`, `cmake/` |

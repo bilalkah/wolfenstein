@@ -16,11 +16,11 @@ Code: `src/SoundManager/` (`sound_manager.cpp`, `spatial_mixer.cpp`).
 
 ### Mixing
 
-Digital audio is a stream of samples, here 16-bit signed integers, two
-per frame (left and right). A **mixer** adds several sounds' samples
-together into the stream the device plays, each scaled by a gain, clamping
-the sum to the 16-bit range. SDL_mixer does this for its channels on an
-audio thread, calling back for more samples every few milliseconds.
+Digital audio is a stream of samples, here 32-bit floats, two per frame
+(left and right), 44,100 frames a second. A **mixer** adds several
+sounds' samples together into the stream the device plays, each scaled
+by a gain. The audio device asks for more samples every few milliseconds
+on a thread of its own (the audio thread), through a callback.
 
 ### Positional sound in two dimensions
 
@@ -39,7 +39,7 @@ distance \(d\) and bearing \(\phi\):
 
 ### Talking to the audio thread without locks
 
-The game decides what to play on its own thread; SDL_mixer mixes on the
+The game decides what to play on its own thread; the mix is made on the
 audio thread. Protecting shared voices with a mutex would make the game
 thread wait on the audio thread, and worse the other way round (an audio
 callback that blocks causes an audible glitch). A **single-producer,
@@ -49,20 +49,64 @@ that counter at the start of each mix and owns the voices outright.
 
 ## How it is implemented here
 
-### Two paths
+### One mix: the music, then the effects
 
-- `PlayEffect(channel, effect)`: the player's own sounds, through
-  SDL_mixer's channels. Each sound source gets a channel for life
-  (`AllocateChannel`, round-robin over 16), so a new sound from a source
-  cuts off its own last one, never another's.
-- `PlayAt(effect, where, muffled, source)`: a sound from a place, through
-  the `SpatialMixer`, used when the device plays 16-bit stereo (as it is
-  asked to); otherwise it falls back to a plain channel.
+`SoundManager::Open` sets the device up itself, rather than letting
+SDL_mixer own it:
 
-Effects are an `enum class SoundEffect` indexing an array of loaded
-`Mix_Chunk*`: playing one involves no string and no lookup ("a string name
-allocated on wasm32, whose short-string buffer holds only 10 characters",
-the comment on `PlayEffect` notes).
+1. an SDL_mixer **mixer** that plays to no device (`MIX_CreateMixer`), in
+   float stereo at 44.1 kHz, holding each music track the game plays on
+   a track of its own;
+2. the 36 sound effects, read from WAV files and converted to that format
+   once (`SDL_ConvertAudioSamples`), each a `SoundClip`: its samples and
+   its level;
+3. last, the **device stream** (`SDL_OpenAudioDeviceStream`), with the
+   game's own callback, `Feed`, which fills a fixed buffer 2048 frames at
+   a time: SDL_mixer renders the music into it (`MIX_Generate`), and the
+   `SpatialMixer` adds every sound effect on top. SDL converts the result
+   to whatever the device plays.
+
+```cpp title="src/SoundManager/src/sound_manager.cpp"
+void SoundManager::Generate(int frames) {
+    const int bytes = frames * kFrameBytes;
+    if (MIX_Generate(mixer_, feed_.data(), bytes) != bytes) {
+        std::ranges::fill(feed_, 0.0F);
+    }
+    spatial_.Mix(feed_.data(), frames, kMix.channels);
+}
+```
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/60a190225b296a849c4d27c806ea9186e85a324b/src/SoundManager/src/sound_manager.cpp#L231-L237){ .excerpt-source }
+
+```cpp title="src/SoundManager/src/sound_manager.cpp"
+void SDLCALL SoundManager::Feed(void* manager, SDL_AudioStream* stream,
+                                int additional_amount, int /*total_amount*/) {
+    auto& sound = *static_cast<SoundManager*>(manager);
+    for (int left = additional_amount; left > 0;) {
+        const int frames =
+            std::min((left + kFrameBytes - 1) / kFrameBytes, kFeedFrames);
+        sound.Generate(frames);
+        SDL_PutAudioStreamData(stream, sound.feed_.data(),
+                               frames * kFrameBytes);
+        left -= frames * kFrameBytes;
+    }
+}
+```
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/60a190225b296a849c4d27c806ea9186e85a324b/src/SoundManager/src/sound_manager.cpp#L239-L250){ .excerpt-source }
+
+Every effect goes through the `SpatialMixer`, in one of two ways:
+
+- `PlayEffect(channel, effect)`: the player's own sounds, heard as
+  recorded, from nowhere in particular. Each sound source gets a channel
+  for life (`AllocateChannel`, round-robin over 16), which has one voice:
+  a new sound from a source cuts off its own last one, never another's.
+- `PlayAt(effect, where, muffled, source)`: a sound from a place, panned
+  and faded as the listener moves and turns. A source other than 0 (an
+  enemy, a door, another player's gun or feet) has one voice too.
+
+Effects are an `enum class SoundEffect` indexing an array of clips:
+playing one involves no string and no lookup. SDL_mixer's own tracks are
+not used for effects: a track allocates whenever it is given a new sound,
+and the game plays sounds constantly.
 
 ### Hearing a sound from a place
 
@@ -114,8 +158,8 @@ bool SpatialMixer::Send(const Command& command) {
 ```
 [View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/SoundManager/src/spatial_mixer.cpp#L60-L68){ .excerpt-source }
 
-Two commands exist: *play this chunk from here* and *the listener is now
-here, facing this way* (sent every frame). The ring holds 256 commands;
+Two commands exist: *play this clip from here* (or on this channel) and
+*the listener is now here, facing this way* (sent every frame). The ring holds 256 commands;
 the counters are free-running 32-bit integers, so `sent - taken` is the
 number of commands in flight even after they wrap. The memory orders are
 the textbook pairing: the release store of `sent_` publishes the command
@@ -124,12 +168,11 @@ See [Atomics and a lock-free ring](../techniques/lock-free-ring.md).
 
 ### The mix
 
-On the audio thread, SDL_mixer calls `SpatialMixer::MixHook` after mixing
-its own channels (`Mix_SetPostMix`). `Mix` takes every command sent since
-the last call, then adds each of its 24 voices into the stream:
+`Mix` takes every command sent since the last call, then adds each of its
+40 voices into the buffer:
 
 ```cpp title="src/SoundManager/src/spatial_mixer.cpp"
-void SpatialMixer::Mix(std::uint8_t* stream, int bytes) {
+void SpatialMixer::Mix(float* out, int frames, int channels) {
     // What the game asked since the last mix, in order
     std::uint32_t taken = taken_.load(std::memory_order_relaxed);
     const std::uint32_t sent = sent_.load(std::memory_order_acquire);
@@ -137,72 +180,81 @@ void SpatialMixer::Mix(std::uint8_t* stream, int bytes) {
         Take(commands_[taken % kCommands]);
     }
     taken_.store(taken, std::memory_order_release);
+    if (frames <= 0 || channels <= 0) {
+        return;
+    }
 
-    auto* out = reinterpret_cast<std::int16_t*>(stream);
-    const auto frames = static_cast<std::uint32_t>(bytes) / kFrameBytes;
-    constexpr float kLowest = std::numeric_limits<std::int16_t>::min();
-    constexpr float kHighest = std::numeric_limits<std::int16_t>::max();
+    const auto stride = static_cast<std::size_t>(channels);
+    // Mono: left and right go into its one channel, at half each
+    const std::size_t right_channel = channels > 1 ? 1 : 0;
+    const float share = channels > 1 ? 1.0F : 0.5F;
     for (Voice& voice : voices_) {
-        if (voice.chunk == nullptr) {
+        if (voice.clip == nullptr) {
             continue;
         }
-        const auto* in =
-            reinterpret_cast<const std::int16_t*>(voice.chunk->abuf);
-        const std::uint32_t count =
-            std::min(frames, FramesOf(*voice.chunk) - voice.at);
-        // The sound's own level, as SDL_mixer would play it, and the
-        // effects' volume
-        const float level = volume_.load(std::memory_order_relaxed) *
-                            static_cast<float>(voice.chunk->volume) /
-                            static_cast<float>(MIX_MAX_VOLUME);
+        const float* in = voice.clip->samples;
+        const std::uint32_t count = std::min(static_cast<std::uint32_t>(frames),
+                                             voice.clip->frames - voice.at);
+        // The sound's own level, and the effects' volume
+        const float level =
+            volume_.load(std::memory_order_relaxed) * voice.clip->level * share;
         const float left = voice.gain.left * level;
         const float right = voice.gain.right * level;
         for (std::uint32_t i = 0; i < count; ++i) {
             const std::size_t from = 2 * static_cast<std::size_t>(voice.at + i);
-            // Heard as one voice, from its place: both its channels together
-            const float sample = 0.5F * (static_cast<float>(in[from]) +
-                                         static_cast<float>(in[from + 1]));
-            std::int16_t& out_left = out[2 * static_cast<std::size_t>(i)];
-            std::int16_t& out_right = out[2 * static_cast<std::size_t>(i) + 1];
-            out_left = static_cast<std::int16_t>(
-                std::clamp(static_cast<float>(out_left) + sample * left,
-                           kLowest, kHighest));
-            out_right = static_cast<std::int16_t>(
-                std::clamp(static_cast<float>(out_right) + sample * right,
-                           kLowest, kHighest));
+            float* frame = out + stride * i;
+            if (voice.placed) {
+                // Heard as one voice, from its place: both its channels
+                // together
+                const float sample = 0.5F * (in[from] + in[from + 1]);
+                frame[0] += sample * left;
+                frame[right_channel] += sample * right;
+            }
+            else {
+                frame[0] += in[from] * left;
+                frame[right_channel] += in[from + 1] * right;
+            }
         }
         voice.at += count;
-        if (voice.at >= FramesOf(*voice.chunk)) {
+        if (voice.at >= voice.clip->frames) {
             voice = Voice{};
         }
     }
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/SoundManager/src/spatial_mixer.cpp#L111-L158){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/60a190225b296a849c4d27c806ea9186e85a324b/src/SoundManager/src/spatial_mixer.cpp#L114-L162){ .excerpt-source }
 
-Each voice is heard as one point source: its stereo sample is averaged,
-then split between the ears by the voice's gains. A voice's gains are
-recomputed whenever the listener moves or turns, so a sound already
-playing pans as the player turns. When all 24 voices are busy, the
-quietest gives way; a source other than 0 (an enemy) has one voice, and
-its new sound replaces its last.
+A voice from a place is heard as one point source: its stereo sample is
+averaged, then split between the ears by the voice's gains. A voice's
+gains are recomputed whenever the listener moves or turns, so a sound
+already playing pans as the player turns. A channel's voice plays both
+its channels as recorded. When every voice is busy, the quietest gives
+way. The mix is not clamped here: it is float, and what goes past full
+scale is clipped further on, where the device's format needs it.
 
 ### Music
 
 Every track the game plays (the menu's and each level's) is loaded at
-startup as a `Mix_Music` and played on loop, fading in; asking for the
-track already playing leaves it alone, so consecutive levels with the same
-track do not restart it. Volumes: a master level, with music and effects
-as shares of it.
+startup (decoded as it plays) onto a track of its own, played on loop,
+fading in; asking for the track already playing leaves it alone, so
+consecutive levels with the same track do not restart it. At startup each
+track is played for a moment, unheard, and stopped: SDL_mixer sets up
+what a track needs the first time it plays, which would otherwise happen
+as a level starts. Volumes: a master level, with music and effects as
+shares of it.
 
 ## Design decisions and trade-offs
 
-- **A custom spatial mixer instead of `Mix_SetPosition`.** SDL_mixer can
-  position a channel, but registers an effect per play that allocates, and
-  channels are removed from positioning when they finish; the game plays
-  sounds constantly, and the zero-allocation rule forbids that (the
-  comment on `SpatialMixer`: "SDL_mixer's own positioning (an effect per
-  channel) allocates every time a sound starts; this allocates nothing").
+- **The game mixes every effect itself.** SDL_mixer can position a
+  sound, and SDL3_mixer plays sounds on tracks, but a track allocates each
+  time it is given a new sound, and the zero-allocation rule forbids that.
+  The spatial mixer allocates nothing; SDL_mixer does what it is best at,
+  decoding and playing the music.
+- **The game opens the device.** Filling the device's stream itself lets
+  the game play the music and the effects into one buffer, and prime
+  every track at startup, unheard.
+- **Float all the way.** The clips are converted to the mix's format once,
+  at startup; mixing adds floats, with no clamping per voice.
 - **Loudness squared.** Loudness perceived falls off faster up close than
   far; \(r^2\) is a cheap approximation of that curve.
 - **Stereo, not HRTF.** Left and right panning only; behind and in front
@@ -215,13 +267,12 @@ as shares of it.
 - **A full ring drops commands.** `Send` returns false when 256 commands
   are waiting; the game does not retry. Between two mixes (a few
   milliseconds) the game sends far fewer.
-- **Only 16-bit stereo is mixed spatially.** The device is asked for
-  `MIX_DEFAULT_FORMAT` in stereo; if a platform opens something else, the
-  positional sounds fall back to plain channels, centred.
-- **The web's audio clock.** SDL2's web backend drives the mixer from a
-  `ScriptProcessorNode`, which browsers mark as deprecated (the console
-  says so on start) and which runs on the main thread; see
-  [Audio in the browser](../web/audio.md).
+- **Forty voices.** Eight players firing, their footsteps and the doors
+  can take them all; the quietest gives way, which is the right one to
+  lose.
+- **The web's audio clock.** SDL 3's web backend still drives the device
+  from a `ScriptProcessorNode`, which browsers mark as deprecated and
+  which runs on the main thread; see [Audio in the browser](../web/audio.md).
 
 ## Possible improvements
 

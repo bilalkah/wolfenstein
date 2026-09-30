@@ -42,7 +42,7 @@ void Count(std::size_t size) {
 [View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/app/allocation_counter.cpp#L50-L55){ .excerpt-source }
 
 Why two strategies: headless native runs (CI, the dev container) draw with
-SDL's *software* renderer, which allocates inside every `SDL_RenderCopy`;
+SDL's *software* renderer, which allocates inside every `SDL_RenderTexture`;
 counting that would measure the test setup, not the game. In a real
 browser, the shipped configuration, counting at the `malloc` level is
 exactly right, and it found allocations the native count missed (strings

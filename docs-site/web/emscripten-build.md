@@ -4,9 +4,9 @@
 
 [Emscripten](https://emscripten.org) compiles C and C++ to WebAssembly with
 Clang, and supplies what a native program expects from its platform: a C
-library, a file system, and ports of popular libraries (SDL2 among them)
-implemented on browser APIs. This page covers how the game's CMake build
-uses it.
+library, a file system, and browser APIs behind C interfaces (WebSockets
+among them); libraries such as SDL build for it from source as they do
+natively. This page covers how the game's CMake build uses it.
 
 ## The toolchain
 
@@ -21,21 +21,21 @@ uses it.
 
 ## Flags
 
+SDL 3 and its libraries (image, TrueType text, mixing) are not
+Emscripten ports: `cmake/Dependencies.cmake` downloads and builds them
+with the game, as it does natively; SDL's own CMake build picks its
+Emscripten backends (the canvas, WebGL, Web Audio, DOM events). The flags
+the game adds:
+
 | Flag | Where | What it does |
 | --- | --- | --- |
-| `-sUSE_SDL=2` | `Dependencies.cmake` | SDL2, implemented on the canvas, WebGL, Web Audio and DOM events |
-| `-sUSE_SDL_IMAGE=2 -sSDL2_IMAGE_FORMATS=png,jpg` | same | Image decoding, only the two formats used |
-| `-sUSE_SDL_TTF=2` | same | TrueType fonts (FreeType) |
-| `-sUSE_SDL_MIXER=2 -sSDL2_MIXER_FORMATS=mp3` | same | Mixing and music, with MP3 decoding for the music |
-| `--preload-file assets@/assets` | `CMakeLists.txt` | Packs every file under `assets/` into `index.data`, mounted at `/assets` |
+| `--preload-file assets@/assets` | `app/CMakeLists.txt` | Packs every file under `assets/` into `index.data`, mounted at `/assets` |
 | `--shell-file web/shell.html` | same | The page template the output `index.html` is made from |
 | `-sALLOW_MEMORY_GROWTH=1` | same | Lets the WebAssembly heap grow past its initial size |
+| `-lwebsocket.js` | `src/Net/CMakeLists.txt` | The browser's WebSocket behind `emscripten/websocket.h`, for multiplayer |
 
-The ports are flags on both compiling and linking: CMake interface
-targets carry them, so a module linking `wolfenstein::sdl2_mixer` gets the
-right flags on either platform. The output target is renamed so the build
-emits `index.html`, `index.js`, `index.wasm` and `index.data`: a static
-site that can be served as is.
+The output target is renamed so the build emits `index.html`, `index.js`,
+`index.wasm` and `index.data`: a static site that can be served as is.
 
 ### No threads
 
@@ -84,7 +84,9 @@ server is needed even locally.
   files, and packing those would produce a game that cannot load its
   textures. `build_web.sh` and `docker/web.Dockerfile` refuse to build in
   that case.
-- **First build is slow.** Emscripten compiles the SDL ports on first use
-  and caches them (the Docker scripts keep the cache in a named volume).
+- **First build is slow.** SDL and its libraries compile with the game
+  (a few minutes); later builds rebuild only what changed. The Docker
+  scripts keep Emscripten's own cache (its C library and runtime) in a
+  named volume.
 - **Sanitizers** are native only (`WOLFENSTEIN_SANITIZERS` fails on the
   web build).

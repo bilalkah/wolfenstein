@@ -62,7 +62,7 @@ At startup, for each of five font styles (title, heading and button in the
 display font, Black Ops One; body and small text in Roboto), `Ui`
 rasterises printable ASCII plus the two symbols the screens use ("·" and
 "°") in white, keeps a texture per glyph, and records its advance. Drawing
-text is then a `SDL_RenderCopy` per character with the colour set as a
+text is then a `SDL_RenderTexture` per character with the colour set as a
 texture colour modulation: any text, any colour, no allocation. A
 character outside the set draws as "?", which is why the level-design test
 checks every word of the story can be drawn.
@@ -101,10 +101,10 @@ compile time (`std::format_string`). See
 ### The screens
 
 `Menu` owns the screens (`Main`, `DifficultySelect`, `Controls`,
-`Settings`, `Pause`, `Result`) and returns a `MenuAction` (start a game
-with a difficulty, continue, resume, quit to menu, quit, settings
-changed) that `Game::HandleMenuAction` carries out. It also draws, over
-the game:
+`Settings`, `Pause`, `Result`, `Multiplayer`) and returns a `MenuAction`
+(start a game with a difficulty, continue, resume, quit to menu, quit,
+settings changed, join a match) that `Game::HandleMenuAction` carries out.
+It also draws, over the game:
 
 - the **briefing** before a level, with its objectives;
 - **pages of story** between levels, with a row of dots for the pages;
@@ -126,6 +126,17 @@ its text.
   <figcaption>A page of intel: a panel sized to its text by measuring first, then drawing.</figcaption>
 </figure>
 
+### Text fields
+
+The multiplayer screen asks for a name, a server and a room.
+`Ui::TextField` draws a field with its label and, while it has focus,
+hands its owner what was typed that frame (`TextEdits`: the characters,
+and how many were erased); the owner applies them to its text, here a
+`SettingText`, a fixed buffer of printable characters. While a screen has
+text on it, `Input::text_mode` is set and SDL's text input is on: the
+letters and Space are text rather than moves, Tab moves on, Backspace
+erases and only Esc goes back.
+
 ### The HUD
 
 The 3D renderer draws the health, keys, rounds and FPS counter from
@@ -133,6 +144,15 @@ digit textures (Freedoom's status bar digits, and pre-rendered digits for
 the FPS counter); the menu's `DrawEnemyCounter` and `DrawWeaponSlots` add
 the kill count and the weapon slots, which light up for the weapons
 carried and mark the one in hand (or the one coming).
+
+In a match, the enemy counter gives way to the match's standing (the
+frags, or a gun race's weapon, the place and the clock:
+`DrawMatchStanding`), the latest kills are listed at the top left
+(`DrawKillFeed`), a kill the player had a hand in is called out across
+the view (`DrawCallout`), and Tab shows the scoreboard
+(`DrawScoreboard`: each player's colour, name, frags, deaths and ping).
+The round trip to the server is drawn under the FPS counter, in the same
+digits.
 
 ## Design decisions and trade-offs
 

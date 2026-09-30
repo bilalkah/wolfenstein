@@ -11,6 +11,10 @@ Terms used across this site, in the sense the engine uses them.
 :   An allocator over one block that hands out consecutive pieces and frees
     everything at once. Here, one per level (`memory::MonotonicArena`).
 
+**Authoritative server**
+:   The one program that decides what happens in a match: the players' games
+    send what their players want to do and show what it says (`GameServer`).
+
 **Billboard**
 :   A flat picture that always faces the viewer, standing in the world as
     a sprite: enemies, lamps, pickups, puffs, projectiles.
@@ -43,6 +47,11 @@ Terms used across this site, in the sense the engine uses them.
 :   A pickup an enemy carries and leaves where it dies; made, hidden, when
     the level loads, and rolled from the game's seed.
 
+**Event (match)**
+:   Something that happened to the players in a tick (a shot, a rocket
+    launched, a hurt, a kill, a pickup taken), recorded by the server's
+    scene and sent to every player (`MatchEvent`).
+
 **Fishbowl effect**
 :   Walls bulging towards the middle of the screen when heights come from
     the distance along each ray; fixed by using the perpendicular distance.
@@ -58,6 +67,11 @@ Terms used across this site, in the sense the engine uses them.
     generation (stale handles), or A*'s per-query stamp (entries from
     previous queries).
 
+**Hindsight (lag compensation)**
+:   Judging a shot against the other players where the shooter's game showed
+    them as it fired, from the server's record of the last half second
+    (`Hindsight`, `GameServer::Seen`).
+
 **Hitscan**
 :   A shot resolved instantly along a line, as opposed to a projectile
     that flies.
@@ -67,6 +81,15 @@ Terms used across this site, in the sense the engine uses them.
 
 **Intel**
 :   A page of the story pinned to a wall, read by walking up to it.
+
+**Interpolation delay**
+:   How far in the past a player's game shows the others: 100 ms (six
+    ticks), between the two snapshots round that moment.
+
+**Judging (scene)**
+:   Whether a level decides what happens to its players (their health, the
+    pickups they take): the server's does, a player's game's does not
+    (`Scene::SetJudging`).
 
 **Level (scene)**
 :   One map with its enemies, objects, doors and secrets, owned by a
@@ -89,6 +112,10 @@ Terms used across this site, in the sense the engine uses them.
     for a point \(t\) along a ray at angle \(\phi\) with the view at
     \(\theta\).
 
+**Ping (round trip)**
+:   How long a message takes to the server and back, measured once a second
+    and shown under the frame rate and on the scoreboard.
+
 **Pinned (type)**
 :   A type whose copy and move operations are deleted because other objects
     point into it.
@@ -110,16 +137,41 @@ Terms used across this site, in the sense the engine uses them.
 :   Fixed-capacity storage for objects of one type, with O(1) create and
     destroy and no allocation.
 
+**Prediction**
+:   A player's game moving its own player by its commands at once, before the
+    server has seen them.
+
+**Puppet**
+:   Another player in a player's game: placed where the snapshots had it,
+    not moved by commands (`Player::SetPuppet`).
+
 **Push wall (secret)**
 :   A wall that slides two cells back when used, opening a hidden room.
+
+**Reconciliation**
+:   Putting the local player where the server had it after a command, and
+    playing the commands since again (`MatchClient::Reconcile`).
 
 **Render queue**
 :   The frame's list of draw commands (wall strips, sprites, decals, the
     weapon), sorted by distance and drawn back to front.
 
+**Room**
+:   A private match on a server, named in the address (`/room/CODE`); the
+    open match is the one with no room (`Lobby`).
+
 **Seed**
 :   The number a game's random rolls (the enemies' drops) derive from;
     kept in saved games.
+
+**Slot**
+:   A player's place in a match, 0 to 7: its colour, its figure, its line in
+    the snapshots.
+
+**Snapshot**
+:   How the players stand after a server tick, sent to each player every
+    other tick: where each one is, its health and weapon in hand, and what
+    the receiver carries.
 
 **Soak session**
 :   A scripted run through every screen a player can reach, checking that
@@ -140,3 +192,7 @@ Terms used across this site, in the sense the engine uses them.
 **WASM (WebAssembly)**
 :   The portable binary format the game is compiled to for browsers, by
     Emscripten.
+
+**WebSocket**
+:   A two-way connection opened over HTTP, by a browser or any program; a
+    match's messages travel on one, as binary frames.

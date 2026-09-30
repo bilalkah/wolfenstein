@@ -71,6 +71,7 @@ needed a build it could trust on every platform.
 
 ## What I'd change
 
-- Cache the SDL ports and GoogleTest downloads in CI between runs.
+- Cache the builds of SDL and the other downloaded libraries in CI
+  between runs.
 - Build `docker/web.Dockerfile` in CI, so the documented way to build and
   play the game is checked on every change.

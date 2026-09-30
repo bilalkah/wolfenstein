@@ -28,7 +28,8 @@ gun, steps and cries stay as they were. SDL_mixer's own positioning
 allocates for every sound played, so these are mixed in by the game, after
 SDL_mixer's channels".
 
-The `SpatialMixer` keeps 24 voices on the audio thread and takes commands
+The `SpatialMixer` keeps 24 voices (40 since the move to SDL 3, when the
+player's own sounds joined them; see [Moving to SDL 3](sdl3.md)) on the audio thread and takes commands
 from the game through a lock-free single-producer, single-consumer ring.
 
 ## C++ techniques used

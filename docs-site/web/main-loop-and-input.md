@@ -32,7 +32,11 @@ void Game::Run() {
 - `_arg` passes `this` through a `void*`, so a capture-free lambda works
   as the C callback.
 - A frame rate of `0` means "use `requestAnimationFrame`": the game draws
-  at the display's rate, and the browser pauses it in a hidden tab.
+  at the display's rate, and the browser pauses it in a hidden tab. With
+  SDL 3 that holds only while the renderer's vsync is on: SDL 3 paces the
+  page's loop by it, and runs it on `setTimeout`, as fast as it can go,
+  when it is off. `RendererContext` asks for vsync in the browser (see
+  [Moving to SDL 3](../features/sdl3.md)).
 - `simulate_infinite_loop = true` makes the call not return: Emscripten
   unwinds the stack by throwing, so `main()` never runs past `Game::Run`,
   and objects on `main`'s stack (the `Game`) stay alive while the loop

@@ -196,19 +196,35 @@ void Renderer3D::RenderTextures() {
                                kQuadTriangles.data(),
                                static_cast<int>(kQuadTriangles.size()));
         }
-        else if (command.mirrored) {
-            SDL_RenderCopyEx(renderer, texture.texture, &command.src_rect,
-                             &command.dest_rect, 0.0, nullptr,
-                             SDL_FLIP_HORIZONTAL);
-        }
         else {
-            SDL_RenderCopy(renderer, texture.texture, &command.src_rect,
-                           &command.dest_rect);
+            const SDL_FRect src = ToFRect(command.src_rect);
+            const SDL_FRect dest = ToFRect(command.dest_rect);
+            // Pictures are shared (every soldier's, a player's figure): a
+            // tint is set for the one drawing, then taken off
+            const bool tinted = command.tint != IGameObject::Tint{};
+            if (tinted) {
+                SDL_SetTextureColorMod(texture.texture, command.tint.r,
+                                       command.tint.g, command.tint.b);
+            }
+            if (command.mirrored) {
+                SDL_RenderTextureRotated(renderer, texture.texture, &src, &dest,
+                                         0.0, nullptr, SDL_FLIP_HORIZONTAL);
+            }
+            else {
+                SDL_RenderTexture(renderer, texture.texture, &src, &dest);
+            }
+            if (tinted) {
+                SDL_SetTextureColorMod(texture.texture, 255, 255, 255);
+            }
         }
     }
 }
 ```
-[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/fab3414ad0f99c23307e2a7cb6a5b7beaadb0f61/src/Graphics/src/renderer_3d.cpp#L644-L677){ .excerpt-source }
+[View on GitHub](https://github.com/bilalkah/wolfenstein/blob/60a190225b296a849c4d27c806ea9186e85a324b/src/Graphics/src/renderer_3d.cpp#L680-L725){ .excerpt-source }
+
+A picture drawn tinted (another player's figure, in its slot's colour) has
+the colour set on its texture for that one draw, and taken off after: the
+texture is shared by every figure and soldier.
 
 The comparator is a C++23 **static lambda** (`static` after the parameter
 list): it captures nothing, so it has no `this` to pass. `std::stable_sort`

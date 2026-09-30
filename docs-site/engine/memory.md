@@ -151,7 +151,7 @@ counts every allocation in `AllocationStats`:
 
 - **natively**, the global `operator new` and `delete`: the game's own C++
   allocations. (Headless native runs draw with SDL's software renderer,
-  which allocates in every `SDL_RenderCopy`; counting that would measure
+  which allocates in every `SDL_RenderTexture`; counting that would measure
   the test setup.)
 - **on the web**, `malloc` itself (through `emscripten_builtin_malloc` and
   friends), so SDL, SDL_mixer, SDL_ttf and the WebGL renderer, which never

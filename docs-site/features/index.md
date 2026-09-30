@@ -1,6 +1,6 @@
 # How the game grew
 
-The repository's history (about 170 commits) falls into three periods:
+The repository's history (about 150 commits) falls into four periods:
 
 - **2024, the raycaster** (February to December): the first 2D and 3D
   views, textures, sprites, animation, pathfinding through a submodule,
@@ -16,6 +16,9 @@ The repository's history (about 170 commits) falls into three periods:
   pickups, difficulties, saves, a campaign, an arsenal, Freedoom art and
   music, enemies that hear and use tactics, positional sound, a story and
   intel, fifteen levels.
+- **29 and 30 September 2026, SDL 3 and multiplayer**: the move to SDL 3,
+  built from source for every platform, and a deathmatch for up to eight
+  players on a server, in the browser and the native game together.
 
 Each page below follows the same outline: **Problem**, **Constraints**,
 **Approach**, **C++ techniques used**, **Key code**, **Pitfalls**, and
@@ -51,6 +54,8 @@ Each page below follows the same outline: **Problem**, **Constraints**,
 | [Dying and hurting](death-and-feedback.md) | 2026-09-28 | `64ee770`, `28b59ee` |
 | [Hearing where sounds are](positional-audio.md) | 2026-09-29 | `d41e706` |
 | [Story and intel](story-and-intel.md) | 2026-09-26 to 29 | `0bf1592`, `5880c6e`, `5880c6e` |
+| [Moving to SDL 3](sdl3.md) | 2026-09-29 | `e9f5599`, `bf24807` |
+| [Multiplayer](multiplayer.md) | 2026-09-30 | `5bca75b`, `a6cdb55`, `728a115`, `1ed5290`, `ae5cbde`, `60a1902` |
 
 !!! note "Squashed history"
     The commits of 28 and 29 September 2026 were squashed before they were
