@@ -1,0 +1,53 @@
+# The game on the internet, on one machine: the multiplayer server, the web
+# game, and Caddy in front of both, holding the certificate (Let's Encrypt)
+# for the domain. The page is https://DOMAIN/, and the game it serves joins
+# wss://DOMAIN, which Caddy passes on to the server as plain ws://.
+#
+#   DOMAIN=play.kergit.com docker compose -f docker/compose.yml up -d --build
+#
+# The domain's DNS must point at the machine, with ports 80 and 443 open.
+# MODE (deathmatch or gunrace), FRAGS and MINUTES set how matches are
+# played. A small machine is plenty: a match of eight takes a few percent
+# of a core, some megabytes, and about 0.6 Mbit/s.
+services:
+  server:
+    build:
+      context: ..
+      dockerfile: docker/server.Dockerfile
+    restart: unless-stopped
+    command:
+      - wolfenstein-server
+      - --port
+      - "8080"
+      - --assets
+      - /assets/
+      - --mode
+      - ${MODE:-deathmatch}
+      - --frags
+      - "${FRAGS:-20}"
+      - --minutes
+      - "${MINUTES:-10}"
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/web.Dockerfile
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [server, web]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN to the name players reach the game at}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

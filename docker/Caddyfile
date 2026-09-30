@@ -1,0 +1,9 @@
+# In front of the game (docker/compose.yml): the certificate for $DOMAIN,
+# WebSockets (the open game at /, rooms at /room/CODE) to the server, and
+# everything else to the web game
+{$DOMAIN} {
+	@game header Connection *Upgrade*
+	reverse_proxy @game server:8080
+	reverse_proxy /health server:8080
+	reverse_proxy web:8000
+}
