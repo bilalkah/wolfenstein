@@ -1,73 +1,29 @@
-# Building
+# Building and hosting
 
-Everything builds in Docker, so Docker is the one tool a machine needs.
-The WebAssembly build is the one to play, in any desktop browser; the
-native build, in a Linux container, runs the tests, the benchmark and the
-scripted sessions.
-
-## Get the code and the assets
-
-The assets (images, fonts, sounds, music) are stored with
-[Git LFS](https://git-lfs.com); install it before cloning, or run
-`git lfs pull` after.
+The assets are stored with [Git LFS](https://git-lfs.com):
 
 ```bash
 git lfs install
 git clone https://github.com/bilalkah/wolfenstein
-cd wolfenstein
 ```
 
-## Build and play in the browser
+## Play in the browser
 
 ```bash
 docker build -f docker/web.Dockerfile -t wolfenstein-web .
-docker run --rm -p 8000:8000 wolfenstein-web
+docker run --rm -p 8000:8000 wolfenstein-web      # http://localhost:8000
 ```
 
-Then open <http://localhost:8000>; Ctrl+C stops the server. (The address
-it prints for other machines is the container's own; from another machine,
-use this one's address.)
-
-`docker/web.Dockerfile` builds in two stages:
-
-1. **Build**, in `emscripten/emsdk:6.0.10`, the Emscripten SDK that CI
-   pins: `cmake --preset web-release`, then `cmake --build --preset
-   web-release`. The build downloads SDL 3 and its libraries and compiles
-   them with the game, which takes a few minutes.
-   It stops early if the assets are Git LFS pointers rather than files.
-2. **Serve**, in a small Python image: the four files of the build
-   (`index.html`, `index.js`, `index.wasm`, `index.data`) and
-   `scripts/serve_web.py`, which answers byte-range requests as the page's
-   loader expects.
-
-Only the sources the build needs go into the image
-(`docker/web.Dockerfile.dockerignore`), not the build trees or the history.
-
-### While changing the code
-
-A change to any source rebuilds the image from that step, SDL and all.
-For quicker rounds, the scripts build incrementally into
-`build/web-release`, with Emscripten still in Docker (a named volume keeps
-Emscripten's cache between builds), and serve the result with Python on
-port 8000 and to the local network:
+While changing the code, build incrementally and serve to the network:
 
 ```bash
-./scripts/build_web.sh   # build/web-release/bin
-./scripts/run_web.sh     # builds, then serves on http://localhost:8000
+./scripts/run_web.sh          # builds build/web-release, serves on port 8000
 ```
 
-With an Emscripten SDK installed locally (`emcmake` on the `PATH`),
-`build_web.sh` uses it instead of the container. The output is a static
-site; browsers refuse to load WebAssembly from `file://`, so it has to be
-served over HTTP. See [Building with Emscripten](web/emscripten-build.md).
+## Native
 
-## The native build, tests and checks
-
-The native build runs in a container too: `docker/dev.Dockerfile`
-(Ubuntu 26.04, LLVM 21, and the headers SDL builds its Linux backends
-against), which `scripts/dev.sh` builds on first use
-and runs any command in, with the repository mounted. CI uses the same
-toolchain.
+The toolchain (Clang, libc++, CMake) comes as a container; SDL 3 and every
+other library are downloaded and built with the game.
 
 ```bash
 ./scripts/dev.sh cmake --preset native-debug
@@ -75,87 +31,79 @@ toolchain.
 ./scripts/dev.sh ctest --preset native-debug
 ```
 
-The toolchain is Clang with libc++ (the standard library the Emscripten
-build uses too; libstdc++ lacks `<mdspan>`) and CMake 3.25 or newer; SDL 3
-and every other library are downloaded and built with the game. The
-container has no display or sound card: SDL runs off-screen
-(`SDL_FRAMEBUFFER_ACCELERATION=0` keeps it off OpenGL), so there the game
-is built, tested and measured.
-
-The native build also runs on macOS, with the Xcode command line tools
-and CMake, and there the game plays in a window, with sound:
+On macOS it builds and plays directly:
 
 ```bash
-cmake --preset native-release
-cmake --build --preset native-release
+cmake --preset native-release && cmake --build --preset native-release
 ./build/native-release/bin/wolfenstein
 ```
 
-### Presets
-
-| Preset | What |
+| Preset | For |
 | --- | --- |
-| `native-debug` | Debug build, tests, the allocation gates |
-| `native-release` | Optimised with debug info, for benchmarking |
-| `native-asan` | AddressSanitizer and UndefinedBehaviorSanitizer |
-| `web-release` | The WebAssembly build (`docker/web.Dockerfile`, `scripts/build_web.sh`) |
+| `native-debug` | Development, tests, the allocation checks |
+| `native-release` | Playing, benchmarking |
+| `native-asan` | Tests under AddressSanitizer and UndefinedBehaviorSanitizer |
+| `web-release` | The WebAssembly build |
 
-All presets build with `-Werror`.
-
-### Scripted runs
+## Checks
 
 ```bash
+./scripts/dev.sh ctest --preset native-debug                  # unit tests
+./scripts/dev.sh ./scripts/tidy.sh                            # clang-tidy
 ./scripts/dev.sh bash -c "./build/native-release/bin/wolfenstein --benchmark 2000 | python3 scripts/alloc_breakdown.py"
 ./scripts/dev.sh bash -c "./build/native-debug/bin/wolfenstein --soak | python3 scripts/check_soak.py"
 ```
 
-In the browser the same runs are `?benchmark=2000` and `?soak` in the
-address, and `?debug` lets **P** show the top-down view.
+In the browser the same runs are `?benchmark=2000` and `?soak`; `?debug`
+lets **P** show the top-down view with the rays and the enemies' paths.
 
-### A multiplayer server
+## A multiplayer server
 
-`cmake --build --preset native-release --target wolfenstein-server`
-builds the server, and `docker/server.Dockerfile` builds it into an image;
-see [Hosting a game](multiplayer/hosting.md).
-
-### Checks
+### On a local network
 
 ```bash
-./scripts/dev.sh ctest --preset native-debug        # unit tests
-./scripts/dev.sh ./scripts/tidy.sh                   # clang-tidy, after configuring native-debug
+cmake --build --preset native-release --target wolfenstein-server
+./build/native-release/bin/wolfenstein-server          # port 8080
+./scripts/run_web.sh                                   # the web game, port 8000
 ```
 
-## This documentation site
+Players open `http://<host>:8000`, choose **MULTIPLAYER** and join: the
+page offers the server beside it. The native game joins with
+`--connect ws://<host>:8080 --name ann`.
 
-The site is built with [MkDocs](https://www.mkdocs.org) and
-[Material for MkDocs](https://squidfunk.github.io/mkdocs-material/); its
-sources are in `docs-site/`, its configuration in `mkdocs.yml`.
+| Option | Default | |
+| --- | --- | --- |
+| `--port` | 8080 | |
+| `--level` | every arena | `bazaar.json,warehouse.json`, played in turn |
+| `--mode` | `deathmatch` | or `gunrace` |
+| `--frags` | 20 | frag limit |
+| `--minutes` | 10 | time limit |
+
+### In Docker
 
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements-docs.txt    # MkDocs, Material, glightbox, pinned
-.venv/bin/mkdocs serve                 # http://127.0.0.1:8000/wolfenstein/
-.venv/bin/mkdocs build --strict        # the site in site/, failing on any warning
+docker build -f docker/server.Dockerfile -t wolfenstein-server .
+docker run --rm -p 8080:8080 wolfenstein-server
 ```
 
-### With the game
+### On the internet
 
-The game's page, `play/`, is not in the repository: CI copies the web
-build there before building the site, and the home page links to it. To
-preview the two together:
+An https page may only open `wss://`, so the server needs a certificate.
+`docker/compose.yml` runs the server, the web game, and Caddy in front
+(certificate from Let's Encrypt):
 
 ```bash
-./scripts/build_web.sh
-mkdir -p docs-site/play && cp build/web-release/bin/* docs-site/play/
-.venv/bin/mkdocs serve
+DOMAIN=play.example.com docker compose -f docker/compose.yml up -d --build
 ```
 
-`docs-site/play/` and `site/` are git-ignored.
+The domain must point at the machine, with ports 80 and 443 open.
 
-## Publishing
+## This site
 
-`.github/workflows/pages.yml` builds the WebAssembly version with the
-pinned Emscripten SDK, copies it into `docs-site/play/`, builds the site
-with `mkdocs build --strict`, and deploys it to GitHub Pages on every push
-to `master` (or by hand, from the Actions tab). The repository's Pages
-source must be set to **GitHub Actions**.
+```bash
+python3 -m venv .venv && .venv/bin/pip install -r requirements-docs.txt
+.venv/bin/mkdocs serve             # http://127.0.0.1:8000/wolfenstein/
+```
+
+CI builds the game and this site and publishes both to GitHub Pages on
+every push to `master`.

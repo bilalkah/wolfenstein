@@ -1,7 +1,7 @@
 site_name: Wolfenstein engine
 site_description: >-
-  How a small C++23 raycasting engine works, from the frame loop to the
-  WebAssembly build: the design, the code, and why it is the way it is.
+  A C++23 raycasting engine, native and in the browser, with an online
+  deathmatch: the problems it solves, its stack, and its algorithms.
 site_author: Bilal Kahraman
 site_url: https://bilalkah.github.io/wolfenstein/
 repo_url: https://github.com/bilalkah/wolfenstein
@@ -83,97 +83,9 @@ not_in_nav: |
 
 nav:
   - Home: index.md
-  - Architecture:
-      - The big picture: architecture/index.md
-      - One frame, input to pixels: architecture/frame-lifecycle.md
-      - Data flow: architecture/data-flow.md
-      - Ownership and lifetimes: architecture/ownership.md
-  - Engine:
-      - Subsystems: engine/index.md
-      - Main loop and timing: engine/main-loop.md
-      - Raycasting and the camera: engine/raycasting.md
-      - The 3D renderer: engine/renderer.md
-      - The map: engine/map.md
-      - Collision and movement: engine/collision.md
-      - Game objects and the scene: engine/entities.md
-      - The player: engine/player.md
-      - Enemy AI: engine/ai.md
-      - Pathfinding: engine/navigation.md
-      - Weapons and combat: engine/combat.md
-      - Input: engine/input.md
-      - Audio: engine/audio.md
-      - Textures and animation: engine/assets.md
-      - Levels and content data: engine/levels.md
-      - Memory: engine/memory.md
-      - UI, menus and HUD: engine/ui.md
-      - Settings and saved games: engine/persistence.md
-      - Profiling and testing: engine/profiling.md
-      - Platform layer: engine/platform.md
-  - Features:
-      - How the game grew: features/index.md
-      - The first raycaster: features/raycaster-origins.md
-      - Sprites and animation: features/sprites-and-animation.md
-      - Weapons: features/weapons.md
-      - Rockets and plasma: features/projectiles.md
-      - Where shots land: features/hit-detection.md
-      - Enemy pathfinding: features/enemy-pathfinding.md
-      - Enemy senses: features/enemy-senses.md
-      - Combat tactics: features/combat-tactics.md
-      - Menus and settings: features/menus-and-settings.md
-      - The toolchain and CI: features/toolchain-and-ci.md
-      - Playing in the browser: features/webassembly.md
-      - Zero allocations per frame: features/zero-allocations.md
-      - A World that owns the game: features/world-and-ownership.md
-      - A deterministic simulation: features/deterministic-simulation.md
-      - Content as data: features/data-driven-content.md
-      - The campaign: features/campaign.md
-      - Doors, keys and secrets: features/doors-keys-secrets.md
-      - Pickups and drops: features/pickups-and-drops.md
-      - The map of the level: features/map-and-exploration.md
-      - Difficulty and saved games: features/difficulty-and-saves.md
-      - Bodies that collide: features/collision-and-physics.md
-      - Looking up and down: features/looking-up-and-down.md
-      - Freedoom art and music: features/freedoom-art-and-music.md
-      - Hearing where sounds are: features/positional-audio.md
-      - Dying and hurting: features/death-and-feedback.md
-      - Story and intel: features/story-and-intel.md
-      - Moving to SDL 3: features/sdl3.md
-      - Multiplayer: features/multiplayer.md
-  - C++ techniques:
-      - Techniques used here: techniques/index.md
-      - Special members and pinned types: techniques/special-members.md
-      - RAII and custom deleters: techniques/raii.md
-      - Errors as values with std::expected: techniques/expected.md
-      - Non-owning views: techniques/views.md
-      - Polymorphic memory resources: techniques/pmr-arenas.md
-      - Object pools and generational handles: techniques/object-pool.md
-      - std::mdspan: techniques/mdspan.md
-      - State machines with templates: techniques/state-machines.md
-      - Strong types with enum class: techniques/strong-types.md
-      - Ranges algorithms: techniques/ranges.md
-      - Compile-time code and attributes: techniques/compile-time.md
-      - Text without allocating: techniques/allocation-free-text.md
-      - Heterogeneous lookup: techniques/heterogeneous-lookup.md
-      - Atomics and a lock-free ring: techniques/lock-free-ring.md
-      - Streaming JSON with SAX: techniques/sax-parsing.md
-      - Replacing the allocator: techniques/allocation-counting.md
-      - Templates, concepts and forwarding: techniques/templates.md
-  - The web build:
-      - How the WebAssembly port works: web/index.md
-      - Building with Emscripten: web/emscripten-build.md
-      - Main loop, input and pointer lock: web/main-loop-and-input.md
-      - Downloading and caching: web/loading-and-caching.md
-      - Audio in the browser: web/audio.md
-      - Storage: web/storage.md
-      - Limitations: web/limitations.md
-  - Multiplayer:
-      - Overview: multiplayer/index.md
-      - Prediction, lag and who decides: multiplayer/netcode.md
-      - The protocol: multiplayer/protocol.md
-      - Matches, modes and rooms: multiplayer/matches.md
-      - Hosting a game: multiplayer/hosting.md
-  - Building: building.md
-  - Glossary: glossary.md
-  - Design decisions:
-      - Decision records: decisions/index.md
-      - Template: decisions/template.md
+  - Stack and why: stack.md
+  - Architecture: architecture.md
+  - Problems solved: problems.md
+  - Algorithms: algorithms.md
+  - Multiplayer: multiplayer.md
+  - Building and hosting: building.md
