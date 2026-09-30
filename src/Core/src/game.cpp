@@ -1088,6 +1088,21 @@ void Game::DrawMatchHud() {
 			.opacity = MatchClient::kKillSeconds - kill.age};
 	}
 	menu_->DrawKillFeed(std::span(kills).first(kill_count));
+	// The newest kill, called out for a moment if the local player had a
+	// hand in it
+	const auto feed = match_->KillFeed();
+	constexpr double kCalloutSeconds = 2.0;
+	if (!feed.empty() && feed.back().age < kCalloutSeconds &&
+		(feed.back().killer == local || feed.back().victim == local)) {
+		const MatchClient::Kill& kill = feed.back();
+		const ui::FixedText<48> callout =
+			kill.killer != local
+				? ui::FixedText<48>("{} FRAGGED YOU", name_of(kill.killer))
+			: kill.victim == local
+				? ui::FixedText<48>("YOU FRAGGED YOURSELF")
+				: ui::FixedText<48>("YOU FRAGGED {}", name_of(kill.victim));
+		menu_->DrawCallout(callout, kCalloutSeconds - kill.age);
+	}
 	// The scoreboard while Tab is held, and while the result shows
 	const bool over = scores.phase == net::MatchPhase::Intermission;
 	if (over || SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_TAB]) {

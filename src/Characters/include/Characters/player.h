@@ -165,6 +165,8 @@ class Player : public ICharacter, public IGameObject
 	double GetPitch() const { return pitch_; }
 	// The furthest the player looks up or down
 	static constexpr double kMaxPitch = 0.4;
+	// A footstep every stride walked, one foot then the other
+	static constexpr double kStride = 0.9;
 	// How fast the turning keys turn the player, radians a second
 	static constexpr double kKeyboardTurnSpeed = 2.5;
 	// The hit marker round the crosshair after a shot hit: how strongly it

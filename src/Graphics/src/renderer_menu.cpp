@@ -168,6 +168,14 @@ void Menu::DrawKillFeed(std::span<const KillLine> kills) {
 	}
 }
 
+void Menu::DrawCallout(std::string_view text, double opacity) {
+	const auto& config = context_->GetConfig();
+	SDL_Color colour = ui::color::kAccentBright;
+	colour.a = static_cast<Uint8>(std::clamp(opacity, 0.0, 1.0) * 255.0);
+	ui_->Text(text, config.width / 2, config.height / 4, ui::FontStyle::Heading,
+			  colour, ui::Align::Center);
+}
+
 void Menu::DrawScoreboard(std::string_view heading,
 						  std::span<const ScoreLine> lines, bool race,
 						  std::string_view footer) {

@@ -88,11 +88,19 @@ IGameObject::Appearance PlayerFigure::SeenFrom(const vector2d& viewer) const {
 		const LoopedAnimation& shown = firing_ > 0.0 ? attack_
 									   : walking_	 ? walk_
 													 : idle_;
+		// Shielded (just back in), it shows paler: shots do it no harm
+		const auto pale = [](std::uint8_t c) {
+			return static_cast<std::uint8_t>((c + 255) / 2);
+		};
+		const Tint tint = player_->IsProtected() ? Tint{.r = pale(tint_.r),
+														.g = pale(tint_.g),
+														.b = pale(tint_.b)}
+												 : tint_;
 		return {
 			.texture_id = shown.GetFrame(SideSeen(at.pose, at.theta, viewer)),
 			.width = width_,
 			.mirrored = false,
-			.tint = tint_};
+			.tint = tint};
 	}
 	// Falling, a frame of the fall each share of it; seen end on, a body
 	// lying down is this much of its length, as an enemy's is

@@ -274,6 +274,27 @@ TEST_F(MatchTest, BumpingIntoAnotherEndsWhereTheServerSays) {
 	EXPECT_LT(a.Me().GetPose().Distance(OnServer(0).GetPose()), 0.01);
 }
 
+// b walks, a stands still: a hears b's footsteps, and none of its own
+TEST_F(MatchTest, AnotherPlayersFootstepsAreHeard) {
+	PlayerGame& a = Join(ClientId{1});
+	PlayerGame& b = Join(ClientId{2});
+	Settle();
+	const auto steps = [](const PlayerGame& game) {
+		const SoundManager& sound = game.world->Sound();
+		return sound.PlayCount(SoundEffect::StepLeft) +
+			   sound.PlayCount(SoundEffect::StepRight);
+	};
+	const auto a_before = steps(a);
+	const auto b_before = steps(b);
+	b.command = Walking(b.Me().GetPosition().theta);
+	Ticks(60);
+	b.command = Walking(b.Me().GetPosition().theta, 0);
+	Ticks(20);
+	const auto walked = steps(b) - b_before;
+	EXPECT_GE(walked, 1u) << "b hears itself";
+	EXPECT_GE(steps(a) - a_before, walked - 1) << "a hears b, as b does";
+}
+
 // a shoots b down: b falls in its own game, both are told of the kill and
 // the scores, and b comes back where the server brings it in; a's rounds
 // in its own game are the server's

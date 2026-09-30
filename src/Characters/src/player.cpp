@@ -306,6 +306,22 @@ void Player::Follow(const Position2D& position, double pitch, double health,
 		is_alive_ = false;
 		since_death_ = 0.0;
 	}
+	// Its footsteps, heard from where it walks (a jump is no walk)
+	const double moved = position.pose.Distance(position_.pose);
+	constexpr double kFarthestStep = 0.5;
+	if (is_alive_ && scene_ != nullptr && moved < kFarthestStep) {
+		walked_ += moved;
+		if (walked_ >= kStride) {
+			walked_ -= kStride;
+			left_foot_ = !left_foot_;
+			// Each player's feet one step at a time
+			constexpr std::uint32_t kStepSources = 0x30000;
+			scene_->PlaySoundAt(
+				left_foot_ ? SoundEffect::StepLeft : SoundEffect::StepRight,
+				position.pose,
+				kStepSources + static_cast<std::uint32_t>(slot_));
+		}
+	}
 	position_ = position;
 	pitch_ = pitch;
 	health_ = health;
@@ -413,8 +429,6 @@ void Player::Move(double delta_time) {
 	if (!CheckWallCollision(map, position_.pose, {0, step.y}, width_ / 2)) {
 		position_.pose.y += step.y;
 	}
-	// A footstep every stride walked, one foot then the other
-	constexpr double kStride = 0.9;
 	// A replay goes over steps already taken (and heard)
 	if (replaying_) {
 		return;

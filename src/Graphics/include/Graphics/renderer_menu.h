@@ -123,6 +123,9 @@ class Menu
 						   std::string_view clock);
 	// The latest kills at the top left, the newest last
 	void DrawKillFeed(std::span<const KillLine> kills);
+	// Big, across the upper middle of the view ("YOU FRAGGED ANN"), fading
+	// as `opacity` goes from 1 to 0
+	void DrawCallout(std::string_view text, double opacity);
 	// The scoreboard over the view: its `heading`, the players in order
 	// (a gun race's by weapon), and a `footer` under them
 	void DrawScoreboard(std::string_view heading,
