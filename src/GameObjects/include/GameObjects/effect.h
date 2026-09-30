@@ -12,7 +12,7 @@
 #include <cstdint>
 #include <span>
 
-namespace wolfenstein {
+namespace karakale {
 
 // Plays a clip once where it is started, then hides until started again.
 // A level keeps a few for its whole life and reuses them, so a shot makes
@@ -69,6 +69,6 @@ class Effect : public IGameObject
 	double age_ = 0.0;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// GAME_OBJECTS_INCLUDE_EFFECT_H

@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 std::ifstream OpenLevelFile(const std::string& name) {
@@ -444,4 +444,4 @@ TEST(LevelData, AnEnemyNeedsAFullPosition) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

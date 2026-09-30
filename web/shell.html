@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Wolfenstein</title>
+<title>Last Signal from Karakale</title>
 <style>
   html, body {
     margin: 0;
@@ -36,6 +36,12 @@
     text-align: center;
   }
   #loader[hidden] { display: none; }
+  #loader .phrase {
+    margin: 0 0 6px;
+    font-size: 13px;
+    letter-spacing: 0.3em;
+    color: #999;
+  }
   #loader h1 {
     margin: 0 0 20px;
     font-size: 28px;
@@ -64,7 +70,8 @@
 </head>
 <body>
 <div id="loader">
-  <h1>WOLFENSTEIN</h1>
+  <p class="phrase">LAST SIGNAL FROM</p>
+  <h1>KARAKALE</h1>
   <div id="bar"><div id="fill"></div></div>
   <div id="status">Loading…</div>
 </div>
@@ -232,7 +239,9 @@
   // Version 2 forgets the copies version 1 kept: those could mix two builds
   const store = new Promise((resolve) => {
     try {
-      const request = indexedDB.open('wolfenstein', 2);
+      // The game's copies were kept under its earlier name: forgotten
+      indexedDB.deleteDatabase('wolfenstein');
+      const request = indexedDB.open('karakale', 2);
       request.onupgradeneeded = () => {
         const db = request.result;
         if (db.objectStoreNames.contains('files')) db.deleteObjectStore('files');
@@ -336,7 +345,7 @@
   // A game that fails to start may have met a stale or broken copy of its
   // files: the page forgets its copies and loads afresh, once. Only a
   // second failure is shown.
-  const kRecoveredKey = 'wolfenstein-recovered';
+  const kRecoveredKey = 'karakale-recovered';
   const session = (() => {
     try { return window.sessionStorage; } catch { return null; }
   })();

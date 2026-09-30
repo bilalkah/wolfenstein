@@ -14,7 +14,7 @@
 
 #include <cmath>
 
-namespace wolfenstein {
+namespace karakale {
 
 inline double LinearSlope(const std::pair<double, double> damage_limits,
 						  const double range, const double distance) {
@@ -42,6 +42,6 @@ inline double ExponentialSlope(const std::pair<double, double> damage_limits,
 	return exp_slope_formula(damage_limits, range, distance);
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// SHOOTING_MANAGER_INCLUDE_SHOOTING_MANAGER_SHOOTING_HELPER_H

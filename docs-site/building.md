@@ -4,14 +4,14 @@ The assets are stored with [Git LFS](https://git-lfs.com):
 
 ```bash
 git lfs install
-git clone https://github.com/bilalkah/wolfenstein
+git clone https://github.com/bilalkah/karakale
 ```
 
 ## Play in the browser
 
 ```bash
-docker build -f docker/web.Dockerfile -t wolfenstein-web .
-docker run --rm -p 8000:8000 wolfenstein-web      # http://localhost:8000
+docker build -f docker/web.Dockerfile -t karakale-web .
+docker run --rm -p 8000:8000 karakale-web      # http://localhost:8000
 ```
 
 While changing the code, build incrementally and serve to the network:
@@ -35,7 +35,7 @@ On macOS it builds and plays directly:
 
 ```bash
 cmake --preset native-release && cmake --build --preset native-release
-./build/native-release/bin/wolfenstein
+./build/native-release/bin/karakale
 ```
 
 | Preset | For |
@@ -50,8 +50,8 @@ cmake --preset native-release && cmake --build --preset native-release
 ```bash
 ./scripts/dev.sh ctest --preset native-debug                  # unit tests
 ./scripts/dev.sh ./scripts/tidy.sh                            # clang-tidy
-./scripts/dev.sh bash -c "./build/native-release/bin/wolfenstein --benchmark 2000 | python3 scripts/alloc_breakdown.py"
-./scripts/dev.sh bash -c "./build/native-debug/bin/wolfenstein --soak | python3 scripts/check_soak.py"
+./scripts/dev.sh bash -c "./build/native-release/bin/karakale --benchmark 2000 | python3 scripts/alloc_breakdown.py"
+./scripts/dev.sh bash -c "./build/native-debug/bin/karakale --soak | python3 scripts/check_soak.py"
 ```
 
 In the browser the same runs are `?benchmark=2000` and `?soak`; `?debug`
@@ -62,8 +62,8 @@ lets **P** show the top-down view with the rays and the enemies' paths.
 ### On a local network
 
 ```bash
-cmake --build --preset native-release --target wolfenstein-server
-./build/native-release/bin/wolfenstein-server          # port 8080
+cmake --build --preset native-release --target karakale-server
+./build/native-release/bin/karakale-server          # port 8080
 ./scripts/run_web.sh                                   # the web game, port 8000
 ```
 
@@ -82,8 +82,8 @@ page offers the server beside it. The native game joins with
 ### In Docker
 
 ```bash
-docker build -f docker/server.Dockerfile -t wolfenstein-server .
-docker run --rm -p 8080:8080 wolfenstein-server
+docker build -f docker/server.Dockerfile -t karakale-server .
+docker run --rm -p 8080:8080 karakale-server
 ```
 
 ### On the internet
@@ -102,7 +102,7 @@ The domain must point at the machine, with ports 80 and 443 open.
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements-docs.txt
-.venv/bin/mkdocs serve             # http://127.0.0.1:8000/wolfenstein/
+.venv/bin/mkdocs serve             # http://127.0.0.1:8000/karakale/
 ```
 
 CI builds the game and this site and publishes both to GitHub Pages on

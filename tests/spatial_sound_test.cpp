@@ -11,7 +11,7 @@
 #include <numbers>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kPi = std::numbers::pi;
@@ -139,7 +139,7 @@ TEST_F(SpatialMixerTest, TheQuietestGivesWay) {
 	EXPECT_EQ(mixer_.Playing(), SpatialMixer::kVoices);
 }
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 TEST_F(SpatialMixerTest, MixingAllocatesNothing) {
 	std::array<float, std::size_t{2} * 256> stream{};
 	const auto before = AllocationStats::count;
@@ -155,4 +155,4 @@ TEST_F(SpatialMixerTest, MixingAllocatesNothing) {
 #endif
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

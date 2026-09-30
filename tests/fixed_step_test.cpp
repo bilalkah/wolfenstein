@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -53,4 +53,4 @@ TEST(Interpolate, TurnsTheShortWayRound) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

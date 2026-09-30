@@ -21,7 +21,7 @@ flowchart TB
         g["Game"] --> m["MatchClient"] --> w["World<br/>(not judging)"]
         m --> c["Connection"]
     end
-    subgraph server["wolfenstein-server"]
+    subgraph server["karakale-server"]
         direction LR
         u["uWebSockets"] --> l["Lobby"] --> gs["GameServer<br/>(one per room)"]
         gs --> r["MatchRules"]

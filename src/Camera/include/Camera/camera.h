@@ -21,7 +21,7 @@
 #include <memory>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 struct Camera2DConfig
 {
@@ -108,6 +108,6 @@ class Camera2D
 	std::uint64_t frame_ = 0;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// CAMERA_INCLUDE_CAMERA_H

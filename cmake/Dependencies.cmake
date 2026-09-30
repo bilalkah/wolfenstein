@@ -1,4 +1,4 @@
-# Third-party dependencies, exposed as wolfenstein::* targets so modules do not
+# Third-party dependencies, exposed as karakale::* targets so modules do not
 # care where a library comes from.
 
 include(FetchContent)
@@ -11,7 +11,7 @@ include(FetchContent)
 # compile. SYSTEM keeps the project's strict warnings out of their headers.
 
 # Sets each dependency option named to its value, over any earlier choice
-function(wolfenstein_dependency_options)
+function(karakale_dependency_options)
     set(options ${ARGN})
     while(options)
         list(POP_FRONT options name value)
@@ -19,7 +19,7 @@ function(wolfenstein_dependency_options)
     endwhile()
 endfunction()
 
-wolfenstein_dependency_options(BUILD_SHARED_LIBS OFF)
+karakale_dependency_options(BUILD_SHARED_LIBS OFF)
 
 FetchContent_Declare(SDL3
     URL https://github.com/libsdl-org/SDL/releases/download/release-3.4.16/SDL3-3.4.16.tar.gz
@@ -28,7 +28,7 @@ FetchContent_Declare(SDL3
 )
 # Windows, rendering and sound; no GPU API, gamepads, camera, sensors,
 # dialogs or tray
-wolfenstein_dependency_options(
+karakale_dependency_options(
     SDL_SHARED OFF SDL_STATIC ON
     SDL_TEST_LIBRARY OFF SDL_TESTS OFF SDL_EXAMPLES OFF
     SDL_GPU OFF SDL_CAMERA OFF SDL_JOYSTICK OFF SDL_HAPTIC OFF SDL_HIDAPI OFF
@@ -43,7 +43,7 @@ FetchContent_Declare(SDL3_image
     URL_HASH SHA256=d2e4637ae700f72e5196b8fbd749850ed2e5e1e09c5a5be8d06ff55aaccf3b01
     SYSTEM
 )
-wolfenstein_dependency_options(
+karakale_dependency_options(
     SDLIMAGE_VENDORED OFF SDLIMAGE_SAMPLES OFF SDLIMAGE_TESTS OFF
     SDLIMAGE_BACKEND_STB ON SDLIMAGE_BACKEND_IMAGEIO OFF
     SDLIMAGE_PNG ON SDLIMAGE_PNG_LIBPNG OFF SDLIMAGE_PNG_SAVE OFF
@@ -64,7 +64,7 @@ FetchContent_Declare(freetype
     SYSTEM
     OVERRIDE_FIND_PACKAGE
 )
-wolfenstein_dependency_options(
+karakale_dependency_options(
     FT_DISABLE_ZLIB ON FT_DISABLE_BZIP2 ON FT_DISABLE_PNG ON
     FT_DISABLE_HARFBUZZ ON FT_DISABLE_BROTLI ON
 )
@@ -76,7 +76,7 @@ FetchContent_Declare(SDL3_ttf
     URL_HASH SHA256=63547d58d0185c833213885b635a2c0548201cc8f301e6587c0be1a67e1e045d
     SYSTEM
 )
-wolfenstein_dependency_options(
+karakale_dependency_options(
     SDLTTF_VENDORED OFF SDLTTF_SAMPLES OFF
     SDLTTF_HARFBUZZ OFF SDLTTF_PLUTOSVG OFF
 )
@@ -89,7 +89,7 @@ FetchContent_Declare(SDL3_mixer
     URL_HASH SHA256=182a07c745375e113dc740d43964ff21b0be29f29f59876c4dbc4db3d32f6901
     SYSTEM
 )
-wolfenstein_dependency_options(
+karakale_dependency_options(
     SDLMIXER_VENDORED OFF SDLMIXER_TESTS OFF SDLMIXER_EXAMPLES OFF
     SDLMIXER_MP3 ON SDLMIXER_MP3_DRMP3 ON SDLMIXER_MP3_MPG123 OFF
     SDLMIXER_WAVE OFF SDLMIXER_AIFF OFF SDLMIXER_VOC OFF SDLMIXER_AU OFF
@@ -106,18 +106,18 @@ foreach(target SDL3-static SDL3_image-static freetype SDL3_ttf-static SDL3_mixer
     target_compile_options(${target} PRIVATE $<$<CONFIG:Debug>:-O2>)
 endforeach()
 
-add_library(wolfenstein_sdl3 INTERFACE)
-target_link_libraries(wolfenstein_sdl3 INTERFACE SDL3::SDL3)
-add_library(wolfenstein_sdl3_image INTERFACE)
-target_link_libraries(wolfenstein_sdl3_image INTERFACE SDL3_image::SDL3_image)
-add_library(wolfenstein_sdl3_ttf INTERFACE)
-target_link_libraries(wolfenstein_sdl3_ttf INTERFACE SDL3_ttf::SDL3_ttf)
-add_library(wolfenstein_sdl3_mixer INTERFACE)
-target_link_libraries(wolfenstein_sdl3_mixer INTERFACE SDL3_mixer::SDL3_mixer)
-add_library(wolfenstein::sdl3 ALIAS wolfenstein_sdl3)
-add_library(wolfenstein::sdl3_image ALIAS wolfenstein_sdl3_image)
-add_library(wolfenstein::sdl3_ttf ALIAS wolfenstein_sdl3_ttf)
-add_library(wolfenstein::sdl3_mixer ALIAS wolfenstein_sdl3_mixer)
+add_library(karakale_sdl3 INTERFACE)
+target_link_libraries(karakale_sdl3 INTERFACE SDL3::SDL3)
+add_library(karakale_sdl3_image INTERFACE)
+target_link_libraries(karakale_sdl3_image INTERFACE SDL3_image::SDL3_image)
+add_library(karakale_sdl3_ttf INTERFACE)
+target_link_libraries(karakale_sdl3_ttf INTERFACE SDL3_ttf::SDL3_ttf)
+add_library(karakale_sdl3_mixer INTERFACE)
+target_link_libraries(karakale_sdl3_mixer INTERFACE SDL3_mixer::SDL3_mixer)
+add_library(karakale::sdl3 ALIAS karakale_sdl3)
+add_library(karakale::sdl3_image ALIAS karakale_sdl3_image)
+add_library(karakale::sdl3_ttf ALIAS karakale_sdl3_ttf)
+add_library(karakale::sdl3_mixer ALIAS karakale_sdl3_mixer)
 
 # ---- uWebSockets: the game server's WebSockets (native only) --------------
 # Its event loop, uSockets, at the commit this release pins, built without
@@ -143,31 +143,31 @@ if(NOT EMSCRIPTEN)
     target_include_directories(usockets SYSTEM PUBLIC ${usockets_SOURCE_DIR}/src)
     target_compile_definitions(usockets PUBLIC LIBUS_NO_SSL)
     target_compile_options(usockets PRIVATE $<$<CONFIG:Debug>:-O2>)
-    add_library(wolfenstein_uwebsockets INTERFACE)
-    target_include_directories(wolfenstein_uwebsockets SYSTEM INTERFACE
+    add_library(karakale_uwebsockets INTERFACE)
+    target_include_directories(karakale_uwebsockets SYSTEM INTERFACE
         ${uwebsockets_SOURCE_DIR}/src)
-    target_compile_definitions(wolfenstein_uwebsockets INTERFACE UWS_NO_ZLIB)
-    target_link_libraries(wolfenstein_uwebsockets INTERFACE usockets)
-    add_library(wolfenstein::uwebsockets ALIAS wolfenstein_uwebsockets)
+    target_compile_definitions(karakale_uwebsockets INTERFACE UWS_NO_ZLIB)
+    target_link_libraries(karakale_uwebsockets INTERFACE usockets)
+    add_library(karakale::uwebsockets ALIAS karakale_uwebsockets)
 
     # The native game's WebSocket client (the browser has its own). A
     # server on the internet speaks wss://, through the system's TLS:
     # Apple's own, or OpenSSL where it is installed; without it, the game
     # joins plain ws:// servers only (on a LAN)
     if(APPLE)
-        set(WOLFENSTEIN_CLIENT_TLS ON)
+        set(KARAKALE_CLIENT_TLS ON)
     else()
         find_package(OpenSSL QUIET)
-        set(WOLFENSTEIN_CLIENT_TLS ${OPENSSL_FOUND})
+        set(KARAKALE_CLIENT_TLS ${OPENSSL_FOUND})
     endif()
-    message(STATUS "wss:// for the native game: ${WOLFENSTEIN_CLIENT_TLS}")
+    message(STATUS "wss:// for the native game: ${KARAKALE_CLIENT_TLS}")
     FetchContent_Declare(ixwebsocket
         URL https://github.com/machinezone/IXWebSocket/archive/refs/tags/v12.0.1.tar.gz
         URL_HASH SHA256=d23bdc91dbfe2b9ae13c322d539392d7a6b8b506560f41c90e227fa0f86a2405
         SYSTEM
     )
-    wolfenstein_dependency_options(
-        USE_TLS ${WOLFENSTEIN_CLIENT_TLS} USE_ZLIB OFF IXWEBSOCKET_INSTALL OFF)
+    karakale_dependency_options(
+        USE_TLS ${KARAKALE_CLIENT_TLS} USE_ZLIB OFF IXWEBSOCKET_INSTALL OFF)
     FetchContent_MakeAvailable(ixwebsocket)
     target_compile_options(ixwebsocket PRIVATE $<$<CONFIG:Debug>:-O2>)
 endif()

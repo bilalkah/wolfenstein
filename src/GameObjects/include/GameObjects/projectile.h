@@ -17,7 +17,7 @@
 #include <string>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 // A weapon's projectile as config.json describes it. Its art is the clips
 // "<name>_flight" (seen from 8 sides if it turns, as a rocket does) and
@@ -124,6 +124,6 @@ class Projectile : public IGameObject
 	bool flying_ = false;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// GAME_OBJECTS_INCLUDE_PROJECTILE_H

@@ -6,7 +6,7 @@
 #include "SoundManager/sound_manager.h"
 #include "TextureManager/texture_manager.h"
 
-namespace wolfenstein {
+namespace karakale {
 
 void EnemyState::Reset() {
 	animation_.Reset();
@@ -444,4 +444,4 @@ EnemyStateType RetreatState::GetType() const {
 	return EnemyStateType::Retreat;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

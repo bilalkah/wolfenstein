@@ -3,7 +3,7 @@
 #include <cmath>
 #include <cstddef>
 
-namespace wolfenstein {
+namespace karakale {
 
 StereoGain Hear(const vector2d& ear, double theta, const vector2d& source,
 				bool muffled) {
@@ -161,4 +161,4 @@ void SpatialMixer::Mix(float* out, int frames, int channels) {
 	}
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

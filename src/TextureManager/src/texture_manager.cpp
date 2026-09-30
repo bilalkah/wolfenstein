@@ -9,7 +9,7 @@
 #include <nlohmann/json.hpp>
 #include <numeric>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -287,4 +287,4 @@ void TextureManager::DefineCollection(std::string key, uint16_t begin,
 	std::ranges::iota(ids, begin);
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

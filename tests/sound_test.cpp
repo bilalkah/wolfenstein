@@ -10,7 +10,7 @@
 #include <numbers>
 #include <string>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -48,7 +48,7 @@ class SoundTest : public ::testing::Test
 	CharacterConfig config_{Position2D({1.5, 1.5}, kSouth), 2.0, 0.4, 0.4, 1.0};
 	Player player_{config_, testing::GameData().weapons, 0,
 				   testing::TestTextures(), testing::TestSound()};
-	Map map_{testing::WriteMapFile("wolfenstein_sound_test.txt",
+	Map map_{testing::WriteMapFile("karakale_sound_test.txt",
 								   {"3333333333", "3000D00003", "3333333333"})
 				 .string()};
 	memory::MonotonicArena arena_{Scene::MemoryFor(map_, kCapacity)};
@@ -156,4 +156,4 @@ TEST(MixerLevels, MusicAndEffectsAreSharesOfTheMaster) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

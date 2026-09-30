@@ -28,7 +28,7 @@
 #include <string_view>
 #include <utility>
 
-namespace wolfenstein::ui {
+namespace karakale::ui {
 
 namespace color {
 inline constexpr SDL_Color kText{236, 229, 216, 255};
@@ -193,6 +193,6 @@ class Ui
 	bool focus_reset_ = false;
 };
 
-}  // namespace wolfenstein::ui
+}  // namespace karakale::ui
 
 #endif	// UI_INCLUDE_UI_UI_H

@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace wolfenstein::memory {
+namespace karakale::memory {
 namespace {
 
 // Counts constructions and destructions; no default constructor, so the
@@ -123,7 +123,7 @@ TEST(ObjectPool, TakesItsStorageFromAnArena) {
 	EXPECT_EQ(live, 0);
 }
 
-#ifdef WOLFENSTEIN_ASAN
+#ifdef KARAKALE_ASAN
 TEST(ObjectPoolDeathTest, UseAfterDestroyIsReported) {
 	EXPECT_DEATH(
 		{
@@ -139,4 +139,4 @@ TEST(ObjectPoolDeathTest, UseAfterDestroyIsReported) {
 #endif
 
 }  // namespace
-}  // namespace wolfenstein::memory
+}  // namespace karakale::memory

@@ -7,7 +7,7 @@
 #include <tuple>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -282,4 +282,4 @@ std::expected<void, std::string> SoundManager::LoadSound(
 	return {};
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

@@ -11,7 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace wolfenstein {
+namespace karakale {
 
 // What collecting a pickup gives the player
 struct PickupEffect
@@ -73,6 +73,6 @@ class Pickup : public IGameObject
 	bool drop_ = false;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// GAME_OBJECTS_INCLUDE_PICKUP_H

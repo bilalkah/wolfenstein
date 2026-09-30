@@ -12,7 +12,7 @@
 #include <gtest/gtest.h>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -89,7 +89,7 @@ class ProjectileTest : public ::testing::Test
 	}
 
 	CharacterConfig config_{Position2D({1.5, 1.5}, kDown), 2.0, 0.4, 0.4, 1.0};
-	Map map_{testing::WriteMapFile("wolfenstein_projectile_test.txt",
+	Map map_{testing::WriteMapFile("karakale_projectile_test.txt",
 								   {"3333333333333333", "3000000000000303",
 									"3000000000000333", "3333333333333333"})
 				 .string()};
@@ -229,7 +229,7 @@ TEST_F(ProjectileTest, TheRocketLauncherFiresRockets) {
 	EXPECT_EQ(player_.GetWeapon().GetAmmo(), rounds - 1);
 }
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 // Rockets and bolts fired, flying and bursting allocate nothing
 TEST_F(ProjectileTest, FiringAllocatesNothing) {
 	Add({1.5, 10.5});
@@ -263,4 +263,4 @@ TEST_F(ProjectileTest, ALampStopsIt) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

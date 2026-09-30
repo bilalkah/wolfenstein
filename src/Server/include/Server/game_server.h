@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 // A connection, as the transport numbers it
 enum class ClientId : std::uint32_t {};
@@ -229,6 +229,6 @@ class GameServer : private Hindsight
 	std::array<std::uint8_t, net::kMaxMessage> buffer_{};
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// SERVER_INCLUDE_SERVER_GAME_SERVER_H_

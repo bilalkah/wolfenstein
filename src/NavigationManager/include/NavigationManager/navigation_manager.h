@@ -23,7 +23,7 @@
 #include <span>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 class Scene;
 
@@ -117,6 +117,6 @@ class NavigationManager
 	std::pmr::vector<GridCell> cells_;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// NAVIGATION_MANAGER_INCLUDE_NAVIGATION_MANAGER_NAVIGATION_MANAGER_H

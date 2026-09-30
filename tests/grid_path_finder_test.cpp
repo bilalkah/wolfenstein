@@ -6,7 +6,7 @@
 #include <string_view>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 // Builds a finder from rows of '.' (free) and '#' (wall)
@@ -124,7 +124,7 @@ TEST(GridPathFinder, HandlesTrivialAndOutOfBoundsQueries) {
 	EXPECT_FALSE(finder.FindPath({-1, 0}, {1, 1}, {}, path));
 }
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 // The point of the design: after the first query has sized the output
 // buffer, queries allocate nothing
 TEST(GridPathFinder, QueriesDoNotAllocate) {
@@ -144,4 +144,4 @@ TEST(GridPathFinder, QueriesDoNotAllocate) {
 #endif
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

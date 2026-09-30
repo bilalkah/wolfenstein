@@ -3,14 +3,14 @@
 #include "test_map.h"
 #include <gtest/gtest.h>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 // Line of sight from `from` to `to` on the given map
 bool CanSee(std::initializer_list<const char*> rows, vector2d from,
 			vector2d to) {
 	const Map map(
-		testing::WriteMapFile("wolfenstein_los_test.txt", rows).string());
+		testing::WriteMapFile("karakale_los_test.txt", rows).string());
 	return CastLineOfSight(map, from, to).is_hit;
 }
 
@@ -31,4 +31,4 @@ TEST(LineOfSight, TerminatesWhenTheRayLeavesTheMap) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <iostream>
 #include <numbers>
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -845,4 +845,4 @@ int Renderer3D::RenderCounter(int number, int y) {
 	return height;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

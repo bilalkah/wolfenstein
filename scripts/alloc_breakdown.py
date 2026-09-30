@@ -2,10 +2,10 @@
 """Prints where a frame's heap allocations come from.
 
 Reads the benchmark's output (the BENCHMARK_RESULT line printed by
-`wolfenstein --benchmark N`) from stdin and shows allocations and bytes per
+`karakale --benchmark N`) from stdin and shows allocations and bytes per
 frame for each profiler section, nested as the sections are in the code.
 
-    ./scripts/dev.sh ./build/native-release/bin/wolfenstein --benchmark 600 \
+    ./scripts/dev.sh ./build/native-release/bin/karakale --benchmark 600 \
         | ./scripts/alloc_breakdown.py
 
 With --report it reads a saved report instead (the JSON files the web

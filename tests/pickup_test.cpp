@@ -9,7 +9,7 @@
 #include <gtest/gtest.h>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -22,7 +22,7 @@ class PickupTest : public ::testing::Test
 	static constexpr SceneCapacity kCapacity{.pickups = 2};
 
 	PickupTest()
-		: map_(testing::WriteMapFile("wolfenstein_pickup_test.txt",
+		: map_(testing::WriteMapFile("karakale_pickup_test.txt",
 									 {"3333333", "3000003", "3333333"})
 				   .string()),
 		  arena_(Scene::MemoryFor(map_, kCapacity)),
@@ -189,7 +189,7 @@ TEST_F(PickupTest, AnObjectTheEyeStandsInIsNotSeen) {
 	EXPECT_EQ(camera.FindObject(medkit.GetId()), nullptr);
 }
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 TEST_F(PickupTest, CollectingAllocatesNothing) {
 	Place("medkit", {1.5, 1.5});
 	Place("ammo_box", {1.5, 1.5});
@@ -262,4 +262,4 @@ TEST_F(ReserveTest, AFullMagazineIsNotReloaded) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

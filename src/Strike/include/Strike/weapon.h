@@ -20,7 +20,7 @@
 #include <memory>
 #include <optional>
 #include <string>
-namespace wolfenstein {
+namespace karakale {
 
 class TextureManager;
 
@@ -170,6 +170,6 @@ class Weapon
 	StateMachine<WeaponState> state_machine_;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// STRIKE_INCLUDE_STRIKE_WEAPON_H

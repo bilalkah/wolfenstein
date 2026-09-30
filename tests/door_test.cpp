@@ -12,7 +12,7 @@
 #include <numbers>
 #include <string>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -28,7 +28,7 @@ Map CorridorWithDoor(const char* name, char door = 'D') {
 }
 
 TEST(Door, AMapReadsItsDoors) {
-	Map map = CorridorWithDoor("wolfenstein_door_map_test.txt");
+	Map map = CorridorWithDoor("karakale_door_map_test.txt");
 	ASSERT_EQ(map.GetDoors().size(), 1u);
 	const Door* door = map.FindDoor(1, 3);
 	ASSERT_NE(door, nullptr);
@@ -45,19 +45,18 @@ TEST(Door, AMapReadsItsDoors) {
 }
 
 TEST(Door, GAndSAreLockedDoors) {
-	const Map gold = CorridorWithDoor("wolfenstein_door_gold_test.txt", 'G');
+	const Map gold = CorridorWithDoor("karakale_door_gold_test.txt", 'G');
 	ASSERT_NE(gold.FindDoor(1, 3), nullptr);
 	EXPECT_EQ(gold.FindDoor(1, 3)->lock, KeyColour::Gold);
 	EXPECT_TRUE(gold.IsLockedDoor(1, 3));
-	const Map silver =
-		CorridorWithDoor("wolfenstein_door_silver_test.txt", 'S');
+	const Map silver = CorridorWithDoor("karakale_door_silver_test.txt", 'S');
 	EXPECT_EQ(silver.FindDoor(1, 3)->lock, KeyColour::Silver);
-	const Map plain = CorridorWithDoor("wolfenstein_door_plain_test.txt");
+	const Map plain = CorridorWithDoor("karakale_door_plain_test.txt");
 	EXPECT_FALSE(plain.IsLockedDoor(1, 3));
 }
 
 TEST(Door, ADoorStandsBetweenTwoWalls) {
-	const auto loose = testing::WriteMapFile("wolfenstein_door_loose_test.txt",
+	const auto loose = testing::WriteMapFile("karakale_door_loose_test.txt",
 											 {"3300033", "300D003", "3333333"});
 	const auto map = Map::FromFile(loose.string());
 	ASSERT_FALSE(map);
@@ -65,7 +64,7 @@ TEST(Door, ADoorStandsBetweenTwoWalls) {
 }
 
 TEST(Door, AClosedDoorStopsRaysAtItsMiddle) {
-	Map map = CorridorWithDoor("wolfenstein_door_ray_test.txt");
+	Map map = CorridorWithDoor("karakale_door_ray_test.txt");
 	const Ray closed =
 		CastRay(map, Position2D({1.5, 1.5}, kFacingDown), kFacingDown, 15.0);
 	ASSERT_TRUE(closed.is_hit);
@@ -82,7 +81,7 @@ TEST(Door, AClosedDoorStopsRaysAtItsMiddle) {
 // Half open, the door covers the far half of the doorway: rays through the
 // near half pass, and the rest show the door's texture from halfway along
 TEST(Door, AHalfOpenDoorLetsRaysThroughItsGap) {
-	Map map = CorridorWithDoor("wolfenstein_door_half_test.txt");
+	Map map = CorridorWithDoor("karakale_door_half_test.txt");
 	map.SetDoorOpenness(0, 0.5);
 	const Ray gap =
 		CastRay(map, Position2D({1.2, 1.5}, kFacingDown), kFacingDown, 15.0);
@@ -94,7 +93,7 @@ TEST(Door, AHalfOpenDoorLetsRaysThroughItsGap) {
 }
 
 TEST(Door, AClosedDoorBlocksSight) {
-	Map map = CorridorWithDoor("wolfenstein_door_sight_test.txt");
+	Map map = CorridorWithDoor("karakale_door_sight_test.txt");
 	EXPECT_FALSE(CastLineOfSight(map, {1.5, 1.5}, {1.5, 5.5}).is_hit);
 	map.SetDoorOpenness(0, 1.0);
 	EXPECT_TRUE(CastLineOfSight(map, {1.5, 1.5}, {1.5, 5.5}).is_hit);
@@ -108,7 +107,7 @@ class DoorSceneTest : public ::testing::Test
 	static constexpr SceneCapacity kCapacity{.enemies = 1};
 
 	explicit DoorSceneTest(char door = 'D')
-		: map_(CorridorWithDoor("wolfenstein_door_scene_test.txt", door)),
+		: map_(CorridorWithDoor("karakale_door_scene_test.txt", door)),
 		  arena_(Scene::MemoryFor(map_, kCapacity)),
 		  scene_(testing::TestTextures(), testing::TestSound(), map_, kCapacity,
 				 arena_),
@@ -219,7 +218,7 @@ TEST_F(DoorSceneTest, AKeyIsPickedUpOnce) {
 	EXPECT_FALSE(player_.TryPickUp(gold)) << "already held";
 }
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 TEST_F(DoorSceneTest, DoorsMoveWithoutAllocating) {
 	scene_.FinishLoading();
 	scene_.Update(kTick);
@@ -231,4 +230,4 @@ TEST_F(DoorSceneTest, DoorsMoveWithoutAllocating) {
 #endif
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

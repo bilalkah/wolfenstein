@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 struct TestOwner;
 
@@ -103,7 +103,7 @@ TEST(StateMachine, EnteringAStateResetsIt) {
 	EXPECT_EQ(owner.second.updates, 0);
 }
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 // A weapon owns all of its states: reloading and returning to loaded switch
 // between them without touching the heap
 TEST(StateMachine, WeaponTransitionsDoNotAllocate) {
@@ -120,4 +120,4 @@ TEST(StateMachine, WeaponTransitionsDoNotAllocate) {
 #endif
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

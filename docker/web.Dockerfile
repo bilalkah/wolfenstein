@@ -1,8 +1,8 @@
 # The game's WebAssembly build, compiled and served in containers: Docker is
 # all it takes to build the game and play it in a browser.
 #
-#   docker build -f docker/web.Dockerfile -t wolfenstein-web .
-#   docker run --rm -p 8000:8000 wolfenstein-web      # then open http://localhost:8000
+#   docker build -f docker/web.Dockerfile -t karakale-web .
+#   docker run --rm -p 8000:8000 karakale-web      # then open http://localhost:8000
 
 # The Emscripten SDK as CI pins it (.github/workflows/ci.yml and pages.yml)
 FROM emscripten/emsdk:6.0.10 AS build

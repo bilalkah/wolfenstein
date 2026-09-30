@@ -13,7 +13,7 @@
 #include <span>
 #include <string_view>
 
-namespace wolfenstein::net {
+namespace karakale::net {
 
 // Writes numbers into a fixed buffer, least significant byte first, as the
 // protocol has them. What does not fit is not written, and the writer is
@@ -156,6 +156,6 @@ class FixedString
 	static_assert(N < 256, "a length is one byte");
 };
 
-}  // namespace wolfenstein::net
+}  // namespace karakale::net
 
 #endif	// NET_INCLUDE_NET_BYTES_H_

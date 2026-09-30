@@ -23,7 +23,7 @@
 #include <numbers>
 #include <optional>
 
-namespace wolfenstein {
+namespace karakale {
 
 struct RenderConfig
 {
@@ -194,6 +194,6 @@ class IRenderer
 	Scene* scene_ = nullptr;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// GRAPHICS_INCLUDE_GRAPHICS_RENDERER_INTERFACE_H_

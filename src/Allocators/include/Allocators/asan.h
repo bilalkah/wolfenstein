@@ -20,33 +20,33 @@
 #include <cstddef>
 
 #if defined(__SANITIZE_ADDRESS__)
-#define WOLFENSTEIN_ASAN 1
+#define KARAKALE_ASAN 1
 #elif defined(__has_feature)
 #if __has_feature(address_sanitizer)
-#define WOLFENSTEIN_ASAN 1
+#define KARAKALE_ASAN 1
 #endif
 #endif
 
-#ifdef WOLFENSTEIN_ASAN
+#ifdef KARAKALE_ASAN
 #include <sanitizer/asan_interface.h>
 #endif
 
-namespace wolfenstein::memory {
+namespace karakale::memory {
 
 inline void PoisonRegion([[maybe_unused]] const void* address,
 						 [[maybe_unused]] std::size_t size) noexcept {
-#ifdef WOLFENSTEIN_ASAN
+#ifdef KARAKALE_ASAN
 	__asan_poison_memory_region(address, size);
 #endif
 }
 
 inline void UnpoisonRegion([[maybe_unused]] const void* address,
 						   [[maybe_unused]] std::size_t size) noexcept {
-#ifdef WOLFENSTEIN_ASAN
+#ifdef KARAKALE_ASAN
 	__asan_unpoison_memory_region(address, size);
 #endif
 }
 
-}  // namespace wolfenstein::memory
+}  // namespace karakale::memory
 
 #endif	// ALLOCATORS_INCLUDE_ALLOCATORS_ASAN_H

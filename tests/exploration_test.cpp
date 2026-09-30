@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kFacingDown = std::numbers::pi / 2;  // towards +y
@@ -24,7 +24,7 @@ class ExplorationTest : public ::testing::Test
 
 	ExplorationTest()
 		: map_(testing::WriteMapFile(
-				   "wolfenstein_exploration_test.txt",
+				   "karakale_exploration_test.txt",
 				   {"33333333", "30000003", "33333333", "30000003", "33333333"})
 				   .string()),
 		  arena_(Scene::MemoryFor(map_, kCapacity)),
@@ -77,7 +77,7 @@ TEST_F(ExplorationTest, CellsOutsideTheMapAreIgnored) {
 	EXPECT_FALSE(scene_.IsExplored(0, 100));
 }
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 TEST_F(ExplorationTest, ExploringAllocatesNothing) {
 	Look(Position2D({1.5, 1.5}, kFacingDown));	// the camera's first frame
 	const auto before = AllocationStats::count;
@@ -125,4 +125,4 @@ TEST_F(ExplorationTest, DrawingTheMapAllocatesNothing) {
 #endif
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

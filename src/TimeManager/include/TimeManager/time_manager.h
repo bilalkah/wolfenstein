@@ -14,7 +14,7 @@
 
 #include <chrono>
 
-namespace wolfenstein {
+namespace karakale {
 
 // Measures the time between frames. The game owns it and hands each frame's
 // delta to whatever advances with it, instead of everything reading a global
@@ -69,6 +69,6 @@ class FixedStep
 	double accumulator_ = 0.0;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// TIME_MANAGER_INCLUDE_TIME_MANAGER_H_

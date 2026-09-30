@@ -2,12 +2,12 @@
 #include "test_map.h"
 #include <gtest/gtest.h>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 TEST(Map, LoadsSizeAndCells) {
-	const auto path = testing::WriteMapFile("wolfenstein_map_test.txt",
-											{"333", "302", "333"});
+	const auto path =
+		testing::WriteMapFile("karakale_map_test.txt", {"333", "302", "333"});
 	const Map map(path.string());
 
 	ASSERT_EQ(map.GetSizeX(), 3);
@@ -31,21 +31,21 @@ TEST(Map, LoadsLevelOneMap) {
 }
 
 TEST(Map, RejectsMalformedFiles) {
-	const auto ragged = testing::WriteMapFile("wolfenstein_map_ragged_test.txt",
+	const auto ragged = testing::WriteMapFile("karakale_map_ragged_test.txt",
 											  {"333", "30", "333"});
 	const auto ragged_map = Map::FromFile(ragged.string());
 	ASSERT_FALSE(ragged_map);
 	EXPECT_NE(ragged_map.error().find("row 1"), std::string::npos);
 
-	const auto unknown = testing::WriteMapFile(
-		"wolfenstein_map_unknown_test.txt", {"333", "3x3", "333"});
+	const auto unknown = testing::WriteMapFile("karakale_map_unknown_test.txt",
+											   {"333", "3x3", "333"});
 	EXPECT_FALSE(Map::FromFile(unknown.string()));
 
-	EXPECT_FALSE(Map::FromFile("/nonexistent/wolfenstein_map.txt"));
+	EXPECT_FALSE(Map::FromFile("/nonexistent/karakale_map.txt"));
 }
 
 TEST(Map, CellsOutsideTheMapAreBlocked) {
-	const auto path = testing::WriteMapFile("wolfenstein_map_bounds_test.txt",
+	const auto path = testing::WriteMapFile("karakale_map_bounds_test.txt",
 											{"000", "010", "000"});
 	const Map map(path.string());
 
@@ -57,7 +57,7 @@ TEST(Map, CellsOutsideTheMapAreBlocked) {
 }
 
 TEST(Map, PositionsAreFlooredNotTruncated) {
-	const auto path = testing::WriteMapFile("wolfenstein_map_floor_test.txt",
+	const auto path = testing::WriteMapFile("karakale_map_floor_test.txt",
 											{"000", "000", "000"});
 	const Map map(path.string());
 
@@ -69,4 +69,4 @@ TEST(Map, PositionsAreFlooredNotTruncated) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

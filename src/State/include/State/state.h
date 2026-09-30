@@ -14,7 +14,7 @@
 
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 template <typename T>
 struct StateType;
@@ -111,6 +111,6 @@ class StateMachine
 	bool updating_ = false;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// STATE_INCLUDE_STATE_STATE_H_

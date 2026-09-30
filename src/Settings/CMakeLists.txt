@@ -11,5 +11,5 @@ target_include_directories(settings PUBLIC
 target_link_libraries(
     settings
     PUBLIC
-    wolfenstein::sdl3
+    karakale::sdl3
 )

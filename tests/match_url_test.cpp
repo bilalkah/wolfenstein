@@ -5,7 +5,7 @@
 #include "Core/game.h"
 #include <gtest/gtest.h>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 TEST(MatchUrl, NoRoomIsTheServersOpenGame) {
@@ -22,4 +22,4 @@ TEST(MatchUrl, ARoomIsItsCodeInCapitals) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

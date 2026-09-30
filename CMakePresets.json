@@ -17,7 +17,7 @@
         "CMAKE_C_COMPILER": "clang",
         "CMAKE_CXX_COMPILER": "clang++",
         "CMAKE_CXX_FLAGS": "-stdlib=libc++",
-        "WOLFENSTEIN_WARNINGS_AS_ERRORS": "ON"
+        "KARAKALE_WARNINGS_AS_ERRORS": "ON"
       }
     },
     {
@@ -36,7 +36,7 @@
       "inherits": "native-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "WOLFENSTEIN_SANITIZERS": "address,undefined"
+        "KARAKALE_SANITIZERS": "address,undefined"
       }
     },
     {
@@ -45,7 +45,7 @@
       "toolchainFile": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "WOLFENSTEIN_WARNINGS_AS_ERRORS": "ON"
+        "KARAKALE_WARNINGS_AS_ERRORS": "ON"
       }
     }
   ],

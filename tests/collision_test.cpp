@@ -12,7 +12,7 @@
 #include <gtest/gtest.h>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -28,7 +28,7 @@ class CollisionTest : public ::testing::Test
 
 	CollisionTest()
 		: map_(testing::WriteMapFile(
-				   "wolfenstein_collision_test.txt",
+				   "karakale_collision_test.txt",
 				   {"33333333", "30000003", "30000003", "30000003", "30000003",
 					"30000003", "33333333"})
 				   .string()),
@@ -171,7 +171,7 @@ TEST_F(CollisionTest, EnemiesPassEachOtherButNotLamps) {
 TEST(WallCollision, CornersAreSolidToo) {
 	// A room with a pillar at (3, 3); walk diagonally at its corner
 	const Map map(
-		testing::WriteMapFile("wolfenstein_corner_test.txt",
+		testing::WriteMapFile("karakale_corner_test.txt",
 							  {"3333333", "3000003", "3000003", "3003003",
 							   "3000003", "3000003", "3333333"})
 			.string());
@@ -206,7 +206,7 @@ TEST(WallCollision, CornersAreSolidToo) {
 // away from it
 TEST(WallCollision, AlongAndAwayFromAWall) {
 	const Map map(
-		testing::WriteMapFile("wolfenstein_along_test.txt",
+		testing::WriteMapFile("karakale_along_test.txt",
 							  {"33333", "30003", "30003", "30003", "33333"})
 			.string());
 	// Pressed against the wall at x = 1 (standing just clear of it)
@@ -219,7 +219,7 @@ TEST(WallCollision, AlongAndAwayFromAWall) {
 // Each body keeps its own size from the walls: a bigger one stops further
 // off
 TEST(WallCollision, EachBodyKeepsItsOwnSize) {
-	const Map map(testing::WriteMapFile("wolfenstein_wall_size_test.txt",
+	const Map map(testing::WriteMapFile("karakale_wall_size_test.txt",
 										{"3333", "3003", "3003", "3333"})
 					  .string());
 	const vector2d pose{1.22, 1.5};	 // 0.22 from the wall's face at x = 1
@@ -240,4 +240,4 @@ TEST_F(CollisionTest, ADiagonalIsNoFaster) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

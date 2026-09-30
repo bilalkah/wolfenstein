@@ -27,7 +27,7 @@
 #include <utility>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 struct Texture
 {
@@ -162,6 +162,6 @@ class TextureManager
 	void SetMask(int id, Mask mask);
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// TEXTURE_MANAGER_INCLUDE_TEXTURE_MANAGER_H

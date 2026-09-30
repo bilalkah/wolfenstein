@@ -9,7 +9,7 @@
 #include <string_view>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -256,4 +256,4 @@ std::expected<void, std::string> SceneLoader::Populate(
 	return {};
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

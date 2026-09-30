@@ -9,7 +9,7 @@
 #include <memory>
 #include <variant>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 // What was sent, the last welcome to each; whom it closed
@@ -114,4 +114,4 @@ TEST_F(LobbyTest, AnEmptyRoomCloses) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

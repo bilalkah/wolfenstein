@@ -16,7 +16,7 @@
 #include "Math/vector.h"
 #include <cstdint>
 
-namespace wolfenstein {
+namespace karakale {
 
 enum class ObjectType : std::uint8_t {
 	STATIC_OBJECT,
@@ -96,6 +96,6 @@ class IGameObject
   private:
 	ObjectId id_ = ObjectId::None;
 };
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// GAME_OBJECTS_INCLUDE_GAME_OBJECT_H

@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -115,4 +115,4 @@ IGameObject::Appearance PlayerFigure::SeenFrom(const vector2d& viewer) const {
 			.tint = tint_};
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

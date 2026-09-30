@@ -10,7 +10,7 @@
 #include <gtest/gtest.h>
 #include <memory>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 TEST(Lifetime, WeaponIsDestroyedWithItsLastOwner) {
@@ -26,7 +26,7 @@ TEST(Lifetime, WeaponIsDestroyedWithItsLastOwner) {
 // Enemies live in the scene's pool, inside the level arena; a level cannot
 // hold more than it declared
 Map RoomMap() {
-	return Map(testing::WriteMapFile("wolfenstein_lifetime_test.txt",
+	return Map(testing::WriteMapFile("karakale_lifetime_test.txt",
 									 {"33333", "30003", "30003", "33333"})
 				   .string());
 }
@@ -68,4 +68,4 @@ TEST(Lifetime, NavigationLivesInTheLevelArena) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

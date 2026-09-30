@@ -16,7 +16,7 @@
 #include <span>
 #include <string>
 
-namespace wolfenstein::net {
+namespace karakale::net {
 
 // A message taken in: its length, and when it came (seconds, by
 // Connection::Now), which a frame taking it later does not change
@@ -82,6 +82,6 @@ class Connection
 	Inbox inbox_;
 };
 
-}  // namespace wolfenstein::net
+}  // namespace karakale::net
 
 #endif	// NET_INCLUDE_NET_CONNECTION_H_

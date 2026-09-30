@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -31,7 +31,7 @@ class PlayersTest : public ::testing::Test
 
 	PlayersTest()
 		: map_(testing::WriteMapFile(
-				   "wolfenstein_players_test.txt",
+				   "karakale_players_test.txt",
 				   {"33333333", "30000003", "30000003", "30000003", "30000003",
 					"30000003", "33333333"})
 				   .string()),
@@ -210,7 +210,7 @@ class PlayersDoorTest : public ::testing::Test
 	static constexpr SceneCapacity kCapacity{};
 
 	PlayersDoorTest()
-		: map_(testing::WriteMapFile("wolfenstein_players_door_test.txt",
+		: map_(testing::WriteMapFile("karakale_players_door_test.txt",
 									 {"3333333", "3000003", "3000003",
 									  "33D3G33", "3000003", "3333333"})
 				   .string()),
@@ -312,4 +312,4 @@ TEST(WorldPlayers, EveryLevelFitsTheViewsSetAside) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

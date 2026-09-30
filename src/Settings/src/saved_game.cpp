@@ -4,7 +4,7 @@
 #include <charconv>
 #include <string>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -219,4 +219,4 @@ void SavedGame::Clear() {
 	ClearRecord(Record::SavedGame);
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

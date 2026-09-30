@@ -20,7 +20,7 @@
 #include <tuple>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 class Renderer3D : public IRenderer
 {
@@ -187,6 +187,6 @@ class Renderer3D : public IRenderer
 	int ping_ = 0;
 };	// class Renderer3D
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// GRAPHICS_INCLUDE_GRAPHICS_RENDERER_3D_H_

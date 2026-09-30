@@ -1,5 +1,5 @@
 {
-  "name": "wolfenstein-benchmarks",
+  "name": "karakale-benchmarks",
   "private": true,
   "type": "module",
   "description": "Runs the WebAssembly build's benchmark mode in headless Chromium",

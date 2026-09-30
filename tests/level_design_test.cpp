@@ -18,7 +18,7 @@
 #include <string_view>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 // How far from the start no enemy may stand, in map units
@@ -329,4 +329,4 @@ INSTANTIATE_TEST_SUITE_P(Campaign, LevelDesign,
 						 });
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

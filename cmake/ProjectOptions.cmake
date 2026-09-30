@@ -1,26 +1,26 @@
 # Build settings shared by every first-party target, applied through the
-# wolfenstein::options interface target.
+# karakale::options interface target.
 
-option(WOLFENSTEIN_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
-set(WOLFENSTEIN_SANITIZERS "" CACHE STRING
+option(KARAKALE_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
+set(KARAKALE_SANITIZERS "" CACHE STRING
     "Comma-separated sanitizers for native builds, e.g. address,undefined")
 
-add_library(wolfenstein_options INTERFACE)
-add_library(wolfenstein::options ALIAS wolfenstein_options)
+add_library(karakale_options INTERFACE)
+add_library(karakale::options ALIAS karakale_options)
 
-target_compile_features(wolfenstein_options INTERFACE cxx_std_23)
+target_compile_features(karakale_options INTERFACE cxx_std_23)
 
 # Where the game reads its assets: the web build packages them into a
 # virtual file system mounted at /assets
 if(EMSCRIPTEN)
-    target_compile_definitions(wolfenstein_options INTERFACE RESOURCE_DIR="/assets/")
+    target_compile_definitions(karakale_options INTERFACE RESOURCE_DIR="/assets/")
 else()
-    target_compile_definitions(wolfenstein_options INTERFACE
+    target_compile_definitions(karakale_options INTERFACE
         RESOURCE_DIR="${PROJECT_SOURCE_DIR}/assets/")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-    target_compile_options(wolfenstein_options INTERFACE
+    target_compile_options(karakale_options INTERFACE
         -Wall
         -Wextra
         -Wpedantic
@@ -32,7 +32,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         -Woverloaded-virtual
         -Wnull-dereference
         -Wimplicit-fallthrough
-        $<$<BOOL:${WOLFENSTEIN_WARNINGS_AS_ERRORS}>:-Werror>
+        $<$<BOOL:${KARAKALE_WARNINGS_AS_ERRORS}>:-Werror>
     )
 endif()
 
@@ -40,26 +40,26 @@ endif()
 # is single threaded
 if(NOT EMSCRIPTEN)
     find_package(Threads REQUIRED)
-    target_link_libraries(wolfenstein_options INTERFACE Threads::Threads)
+    target_link_libraries(karakale_options INTERFACE Threads::Threads)
 endif()
 
-if(WOLFENSTEIN_SANITIZERS)
+if(KARAKALE_SANITIZERS)
     if(EMSCRIPTEN)
-        message(FATAL_ERROR "WOLFENSTEIN_SANITIZERS is for native builds")
+        message(FATAL_ERROR "KARAKALE_SANITIZERS is for native builds")
     endif()
-    target_compile_options(wolfenstein_options INTERFACE
-        -fsanitize=${WOLFENSTEIN_SANITIZERS} -fno-omit-frame-pointer
+    target_compile_options(karakale_options INTERFACE
+        -fsanitize=${KARAKALE_SANITIZERS} -fno-omit-frame-pointer
         -fno-sanitize-recover=all)
-    target_link_options(wolfenstein_options INTERFACE
-        -fsanitize=${WOLFENSTEIN_SANITIZERS})
+    target_link_options(karakale_options INTERFACE
+        -fsanitize=${KARAKALE_SANITIZERS})
 endif()
 
-# Links wolfenstein::options into every target defined in the project's own
+# Links karakale::options into every target defined in the project's own
 # directories (app/, src/, tests/), recursively, so module CMakeLists stay
 # free of boilerplate. Downloaded dependencies are left alone.
-function(wolfenstein_apply_options_to_project)
+function(karakale_apply_options_to_project)
     get_property(subdirs DIRECTORY ${PROJECT_SOURCE_DIR} PROPERTY SUBDIRECTORIES)
-    wolfenstein_apply_options(${subdirs})
+    karakale_apply_options(${subdirs})
 endfunction()
 
 # Applies the options to every target in the given directories and their
@@ -67,7 +67,7 @@ endfunction()
 # dependencies (GoogleTest, Google Benchmark): those live under the build
 # directory, which may itself be inside the source tree, and keep their own
 # flags rather than the project's strict warnings
-function(wolfenstein_apply_options)
+function(karakale_apply_options)
     foreach(dir ${ARGN})
         cmake_path(IS_PREFIX PROJECT_SOURCE_DIR "${dir}" NORMALIZE inside_project)
         cmake_path(IS_PREFIX PROJECT_BINARY_DIR "${dir}" NORMALIZE in_build_dir)
@@ -81,15 +81,15 @@ function(wolfenstein_apply_options)
             get_target_property(type ${target} TYPE)
             if(type STREQUAL "INTERFACE_LIBRARY")
                 set_property(TARGET ${target} APPEND PROPERTY
-                    INTERFACE_LINK_LIBRARIES wolfenstein::options)
+                    INTERFACE_LINK_LIBRARIES karakale::options)
             else()
                 set_property(TARGET ${target} APPEND PROPERTY
-                    LINK_LIBRARIES wolfenstein::options)
+                    LINK_LIBRARIES karakale::options)
             endif()
         endforeach()
         get_property(subdirs DIRECTORY ${dir} PROPERTY SUBDIRECTORIES)
         if(subdirs)
-            wolfenstein_apply_options(${subdirs})
+            karakale_apply_options(${subdirs})
         endif()
     endforeach()
 endfunction()

@@ -7,7 +7,7 @@
 #include <new>
 #include <vector>
 
-namespace wolfenstein::memory {
+namespace karakale::memory {
 namespace {
 
 bool IsAligned(const void* pointer, std::size_t alignment) {
@@ -70,7 +70,7 @@ TEST(MonotonicArena, BacksStandardContainers) {
 	EXPECT_GT(arena.Used(), 1000 * sizeof(int));
 }
 
-#ifdef WOLFENSTEIN_ASAN
+#ifdef KARAKALE_ASAN
 // Under AddressSanitizer, memory released by Reset() is poisoned. The object
 // is 8-byte aligned and sized, matching AddressSanitizer's 8-byte shadow
 // granules; see asan.h for smaller or unaligned regions
@@ -89,4 +89,4 @@ TEST(MonotonicArenaDeathTest, UseAfterResetIsReported) {
 #endif
 
 }  // namespace
-}  // namespace wolfenstein::memory
+}  // namespace karakale::memory

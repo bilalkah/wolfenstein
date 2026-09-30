@@ -9,7 +9,7 @@
 #include <string>
 #include <string_view>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 // An address as the socket has it: its bytes
@@ -76,4 +76,4 @@ TEST(Addresses, EightComeFromOneAddressAndNoMore) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

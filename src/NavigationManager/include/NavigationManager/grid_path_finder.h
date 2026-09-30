@@ -19,7 +19,7 @@
 #include <span>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 struct GridCell
 {
@@ -117,6 +117,6 @@ class GridPathFinder
 	std::uint32_t generation_ = 0;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// NAVIGATION_MANAGER_INCLUDE_NAVIGATION_MANAGER_GRID_PATH_FINDER_H

@@ -7,7 +7,7 @@
 #include <ranges>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 std::expected<std::unique_ptr<GameServer>, std::string> GameServer::Create(
 	const std::string& asset_dir, std::vector<std::string> arenas,
@@ -493,4 +493,4 @@ void GameServer::Send(ClientId client, const net::Message& message) {
 	}
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

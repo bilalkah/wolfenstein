@@ -19,7 +19,7 @@
 #include <variant>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 // What the server sent, and to whom, and whom it closed
@@ -588,7 +588,7 @@ TEST_F(GameServerTest, AShotStrikesWhereTheShooterSawTheOther) {
 	EXPECT_EQ(PlayerIn(1).GetHealth(), health);
 }
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 // Players fighting, falling and coming back: the ticks allocate nothing
 TEST_F(GameServerTest, AFightAllocatesNothing) {
 	for (std::uint32_t i = 0; i < Scene::kMaxPlayers; ++i) {
@@ -638,4 +638,4 @@ TEST_F(GameServerTest, ATickAllocatesNothing) {
 #endif
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

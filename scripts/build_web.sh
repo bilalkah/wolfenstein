@@ -23,7 +23,7 @@ else
 	# builds (SDL 3 is built in the build directory, with the game)
 	docker run --rm \
 		-v "$PWD":/src -w /src \
-		-v wolfenstein-emcache:/emsdk/upstream/emscripten/cache \
+		-v karakale-emcache:/emsdk/upstream/emscripten/cache \
 		emscripten/emsdk:6.0.10 \
 		bash -c "cmake --preset web-release \
 			&& cmake --build --preset web-release \

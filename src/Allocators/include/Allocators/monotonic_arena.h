@@ -15,7 +15,7 @@
 #include <memory_resource>
 #include <new>
 
-namespace wolfenstein::memory {
+namespace karakale::memory {
 
 // A monotonic (bump) allocator over one block of memory, for data that lives
 // and dies together, such as everything created for one level. Allocating
@@ -101,6 +101,6 @@ class MonotonicArena final : public std::pmr::memory_resource
 	std::size_t high_water_mark_ = 0;
 };
 
-}  // namespace wolfenstein::memory
+}  // namespace karakale::memory
 
 #endif	// ALLOCATORS_INCLUDE_ALLOCATORS_MONOTONIC_ARENA_H

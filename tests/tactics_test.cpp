@@ -19,7 +19,7 @@
 #include <string>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -74,8 +74,7 @@ class TacticsTest : public ::testing::Test
 										   0, testing::TestTextures(),
 										   testing::TestSound());
 		map_ = std::make_unique<Map>(
-			testing::WriteMapFile("wolfenstein_tactics_test.txt", rows)
-				.string());
+			testing::WriteMapFile("karakale_tactics_test.txt", rows).string());
 		arena_ = std::make_unique<memory::MonotonicArena>(
 			Scene::MemoryFor(*map_, kCapacity));
 		scene_ = std::make_unique<Scene>(testing::TestTextures(),
@@ -434,4 +433,4 @@ TEST_F(TacticsTest, NoOneShootsTheFallen) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

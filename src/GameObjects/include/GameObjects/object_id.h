@@ -11,7 +11,7 @@
 #include <limits>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 // Identifies an object within its scene: its index in the scene's object
 // list. Per-object data elsewhere (camera views, enemy routes) is then a
@@ -25,6 +25,6 @@ constexpr std::size_t ToIndex(ObjectId id) noexcept {
 	return std::to_underlying(id);
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// GAME_OBJECTS_INCLUDE_OBJECT_ID_H

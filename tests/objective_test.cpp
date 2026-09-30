@@ -8,13 +8,13 @@
 #include <gtest/gtest.h>
 #include <sstream>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
 
 TEST(Exit, AnXIsTheExitSwitch) {
-	const Map map(testing::WriteMapFile("wolfenstein_exit_map_test.txt",
+	const Map map(testing::WriteMapFile("karakale_exit_map_test.txt",
 										{"3333333", "3000003", "333333X"})
 					  .string());
 	ASSERT_TRUE(map.HasExit());
@@ -22,7 +22,7 @@ TEST(Exit, AnXIsTheExitSwitch) {
 	EXPECT_TRUE(map.IsWall(2, 6));
 	EXPECT_EQ((map.GetCells()[2, 6]), Map::kExitWall);
 
-	const auto two = testing::WriteMapFile("wolfenstein_exit_two_test.txt",
+	const auto two = testing::WriteMapFile("karakale_exit_two_test.txt",
 										   {"33X3333", "3000003", "333333X"});
 	const auto rejected = Map::FromFile(two.string());
 	ASSERT_FALSE(rejected);
@@ -63,7 +63,7 @@ class ExitTest : public ::testing::Test
 
 	explicit ExitTest(const char* last_row = "333X333")
 		: map_(testing::WriteMapFile(
-				   "wolfenstein_exit_test.txt",
+				   "karakale_exit_test.txt",
 				   {"3333333", "3000003", "3000003", "3000003", last_row})
 				   .string()),
 		  arena_(Scene::MemoryFor(map_, kCapacity)),
@@ -140,4 +140,4 @@ TEST_F(NoExitTest, ALevelWithoutAnExitEndsWhenCleared) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

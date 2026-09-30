@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <limits>
 
-namespace wolfenstein {
+namespace karakale {
 
 MatchRules::MatchRules(World& world, const MatchSettings& settings)
 	: world_(world), settings_(settings) {
@@ -250,4 +250,4 @@ double MatchRules::ComebackSeconds(const Pickup& pickup) const {
 	return effect.health >= kLarge ? kLargeHealth : kOther;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

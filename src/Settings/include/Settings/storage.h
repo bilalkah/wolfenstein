@@ -13,9 +13,9 @@
 #include <string>
 #include <string_view>
 
-namespace wolfenstein {
+namespace karakale {
 
-// Web builds keep each record in localStorage ("wolfenstein.<name>"), native
+// Web builds keep each record in localStorage ("karakale.<name>"), native
 // builds in a file in SDL's per-user preferences directory ("<name>.txt").
 // Storage that cannot be used (blocked site data, no preferences directory)
 // reads as empty and ignores writes.
@@ -94,6 +94,6 @@ class RecordWriter
 	bool failed_ = false;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// SETTINGS_INCLUDE_SETTINGS_STORAGE_H

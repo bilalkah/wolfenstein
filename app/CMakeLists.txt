@@ -1,7 +1,7 @@
 add_executable(${EXECUTABLE} main.cpp)
 # The allocation counter replaces global operator new/delete, which clashes
 # with the sanitizers' own allocator; sanitizer builds track memory themselves
-if(NOT WOLFENSTEIN_SANITIZERS)
+if(NOT KARAKALE_SANITIZERS)
     target_sources(${EXECUTABLE} PRIVATE allocation_counter.cpp)
 endif()
 target_compile_definitions(${EXECUTABLE} PRIVATE DEBUG=0)

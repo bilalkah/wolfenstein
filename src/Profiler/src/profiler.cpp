@@ -3,7 +3,7 @@
 #include <cmath>
 #include <format>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -167,4 +167,4 @@ ScopedTimer::~ScopedTimer() {
 	}
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

@@ -1,6 +1,6 @@
 #include "GameObjects/pickup.h"
 
-namespace wolfenstein {
+namespace karakale {
 
 Pickup::Pickup(const vector2d& pose, int texture_id, double width,
 			   double height, PickupEffect effect)
@@ -10,4 +10,4 @@ Pickup::Pickup(const vector2d& pose, int texture_id, double width,
 	  height_(height),
 	  effect_(effect) {}
 
-}  // namespace wolfenstein
+}  // namespace karakale

@@ -10,7 +10,7 @@
 #include <gtest/gtest.h>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -27,7 +27,7 @@ class ImpactTest : public ::testing::Test
 	static constexpr SceneCapacity kCapacity{.enemies = 1};
 
 	ImpactTest()
-		: map_(testing::WriteMapFile("wolfenstein_impact_test.txt",
+		: map_(testing::WriteMapFile("karakale_impact_test.txt",
 									 {"33333333", "3000D003", "33333333"})
 				   .string()),
 		  arena_(Scene::MemoryFor(map_, kCapacity)),
@@ -237,7 +237,7 @@ TEST_F(ImpactTest, AKilledPlayerFallsToTheFloor) {
 	EXPECT_LT(player_.GetEyeHeight(), 0.1) << "on the floor";
 }
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 TEST_F(ImpactTest, ShootingAllocatesNothing) {
 	ASSERT_TRUE(scene_.AddEnemy(testing::Enemy("soldier"),
 								Position2D({1.5, 3.5}, -kSouth)));
@@ -252,4 +252,4 @@ TEST_F(ImpactTest, ShootingAllocatesNothing) {
 #endif
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

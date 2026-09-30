@@ -22,7 +22,7 @@
 #include <string>
 #include <string_view>
 
-namespace wolfenstein {
+namespace karakale {
 
 class TextureManager;
 
@@ -176,6 +176,6 @@ class World
 	std::uint64_t seed_ = 0;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// CORE_INCLUDE_CORE_WORLD_H_

@@ -4,7 +4,7 @@
 #include <cmath>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 constexpr int kCirclePoints = 20;
@@ -177,4 +177,4 @@ void Renderer2D::DrawCircle(vector2i center, int radius) {
 	}
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

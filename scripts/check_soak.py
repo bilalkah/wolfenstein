@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks a soak session's report (the SOAK_RESULT line of `wolfenstein
+"""Checks a soak session's report (the SOAK_RESULT line of `karakale
 --soak` or benchmarks/run_web_soak.mjs), read from stdin.
 
 Fails unless nothing was allocated after startup and the session really went

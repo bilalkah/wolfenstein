@@ -19,7 +19,7 @@
 #include <cstddef>
 #include <optional>
 
-namespace wolfenstein {
+namespace karakale {
 
 class Enemy;
 class Player;
@@ -95,6 +95,6 @@ ShotResult ResolvePlayerShot(Scene& scene, const Weapon& weapon,
 void ResolveEnemyShot(Player& player, const SimpleWeapon& weapon,
 					  double damage_scale = 1.0);
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// SHOOTING_MANAGER_INCLUDE_SHOOTING_MANAGER_SHOOTING_MANAGER_H

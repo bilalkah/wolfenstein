@@ -18,7 +18,7 @@
 #include <utility>
 #include <vector>
 
-namespace wolfenstein::memory {
+namespace karakale::memory {
 
 // Refers to an object in an ObjectPool<T>. A handle stays safe after its
 // object is destroyed: the slot's generation moves on, so the pool rejects
@@ -177,6 +177,6 @@ class ObjectPool
 	std::pmr::vector<std::uint32_t> free_list_;
 };
 
-}  // namespace wolfenstein::memory
+}  // namespace karakale::memory
 
 #endif	// ALLOCATORS_INCLUDE_ALLOCATORS_OBJECT_POOL_H

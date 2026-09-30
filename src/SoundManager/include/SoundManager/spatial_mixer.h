@@ -12,7 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace wolfenstein {
+namespace karakale {
 
 // How loud a sound is in each ear, 0 to 1
 struct StereoGain
@@ -122,6 +122,6 @@ class SpatialMixer
 	double theta_ = 0.0;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// SOUND_MANAGER_INCLUDE_SOUND_MANAGER_SPATIAL_MIXER_H

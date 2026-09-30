@@ -17,7 +17,7 @@
 #include <string_view>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 // An enemy weapon as config.json describes it
 struct SimpleWeaponConfig
@@ -57,6 +57,6 @@ class SimpleWeapon
 	Ray crosshair_ray_;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// STRIKE_INCLUDE_STRIKE_SIMPLE_WEAPON_H

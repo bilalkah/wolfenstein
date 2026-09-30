@@ -9,7 +9,7 @@
 #include <string>
 #include <string_view>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 Settings Changed() {
@@ -105,7 +105,7 @@ TEST(Settings, AnOlderRecordKeepsTheNewDefaults) {
 	EXPECT_EQ(settings.effects_volume, defaults.effects_volume);
 }
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 // Settings are saved when the settings screen closes, which can be in the
 // middle of a game
 TEST(Settings, FormattingAllocatesNothing) {
@@ -120,4 +120,4 @@ TEST(Settings, FormattingAllocatesNothing) {
 #endif
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

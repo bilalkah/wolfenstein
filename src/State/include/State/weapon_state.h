@@ -18,7 +18,7 @@
 #include <cstdint>
 #include <memory>
 
-namespace wolfenstein {
+namespace karakale {
 
 class Weapon;
 
@@ -152,6 +152,6 @@ class LoweringState : public WeaponState
 	bool animated_ = false;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// STATE_INCLUDE_STATE_WEAPON_STATE_H_

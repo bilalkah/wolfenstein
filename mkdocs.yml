@@ -1,11 +1,11 @@
-site_name: Wolfenstein engine
+site_name: Last Signal from Karakale
 site_description: >-
   A C++23 raycasting engine, native and in the browser, with an online
   deathmatch: the problems it solves, its stack, and its algorithms.
 site_author: Bilal Kahraman
-site_url: https://bilalkah.github.io/wolfenstein/
-repo_url: https://github.com/bilalkah/wolfenstein
-repo_name: bilalkah/wolfenstein
+site_url: https://bilalkah.github.io/karakale/
+repo_url: https://github.com/bilalkah/karakale
+repo_name: bilalkah/karakale
 edit_uri: edit/master/docs-site/
 copyright: Code under the MIT licence; art and sounds from Freedoom (BSD) and others, see the repository's assets/licenses. Not affiliated with id Software or ZeniMax Media, whose trademarks Wolfenstein and DOOM are.
 

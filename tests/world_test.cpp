@@ -11,7 +11,7 @@
 #include <memory>
 #include <string>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 std::unique_ptr<World> MakeWorld() {
@@ -283,7 +283,7 @@ TEST(World, TheBenchmarkLevelIsNotPartOfTheCampaign) {
 	EXPECT_FALSE(world->HasNextLevel());
 }
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 // Games are saved while they run
 TEST(World, CapturingAGameAllocatesNothing) {
 	auto world = MakeWorld();
@@ -321,4 +321,4 @@ TEST(World, AMissingLevelIsAnError) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

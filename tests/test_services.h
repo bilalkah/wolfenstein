@@ -10,7 +10,7 @@
 #include <iostream>
 #include <string>
 
-namespace wolfenstein::testing {
+namespace karakale::testing {
 
 // Defines on `textures` every clip the enemies and weapons look up, over
 // placeholder ids: tests have no renderer, so load no image
@@ -113,6 +113,6 @@ inline SoundManager& TestSound() {
 	return sound;
 }
 
-}  // namespace wolfenstein::testing
+}  // namespace karakale::testing
 
 #endif	// TESTS_TEST_SERVICES_H

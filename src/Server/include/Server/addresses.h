@@ -12,7 +12,7 @@
 #include <string>
 #include <string_view>
 
-namespace wolfenstein {
+namespace karakale {
 
 // The connections open from each address, at most kPerAddress: players on
 // one network share its address (a home, a school), so several may come
@@ -41,6 +41,6 @@ class Addresses
 	std::map<std::string, std::size_t, std::less<>> open_;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// SERVER_INCLUDE_SERVER_ADDRESSES_H_

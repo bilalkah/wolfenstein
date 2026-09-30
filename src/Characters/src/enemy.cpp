@@ -14,7 +14,7 @@
 #include <numbers>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 Enemy::Enemy(Scene& scene, const EnemyConfig& config,
 			 const Position2D& position)
@@ -562,7 +562,7 @@ int Enemy::GetTextureId() const {
 }
 
 double Enemy::TurnedFrom(const vector2d& viewer) const {
-	return wolfenstein::TurnedFrom(position_.pose, position_.theta, viewer);
+	return karakale::TurnedFrom(position_.pose, position_.theta, viewer);
 }
 
 std::size_t Enemy::ViewFrom(const vector2d& viewer) const {
@@ -606,4 +606,4 @@ const SimpleWeapon& Enemy::GetWeapon() const {
 	return weapon_;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

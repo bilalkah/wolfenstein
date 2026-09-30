@@ -15,7 +15,7 @@
 #include <memory>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -39,7 +39,7 @@ class ArsenalTest : public ::testing::Test
 	static constexpr SceneCapacity kCapacity{.enemies = 1};
 
 	ArsenalTest()
-		: map_(testing::WriteMapFile("wolfenstein_arsenal_test.txt",
+		: map_(testing::WriteMapFile("karakale_arsenal_test.txt",
 									 {"33333333", "30000003", "33333333"})
 				   .string()),
 		  arena_(Scene::MemoryFor(map_, kCapacity)),
@@ -374,7 +374,7 @@ TEST_F(ArsenalTest, TheSawSoundsWhatItCuts) {
 	EXPECT_LT(enemy.GetHealth(), health);
 }
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 TEST_F(ArsenalTest, SwitchingWeaponsAllocatesNothing) {
 	player_.SetOwnedWeapons(0b111);
 	const auto before = AllocationStats::count;
@@ -416,4 +416,4 @@ TEST(Arsenal, ASavedGameKeepsTheArsenal) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

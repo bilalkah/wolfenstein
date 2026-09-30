@@ -17,7 +17,7 @@
 #include "Math/vector.h"
 #include <span>
 
-namespace wolfenstein {
+namespace karakale {
 
 // How close the player's centre comes to a wall (half its width)
 inline constexpr double kCollisionDistance = 0.2;
@@ -45,6 +45,6 @@ vector2d ResolveObjectCollisions(std::span<IGameObject* const> objects,
 vector2d PushOutOf(const vector2d& centre, double solid, const vector2d& from,
 				   const vector2d& to, double radius);
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// COLLISION_MANAGER_INCLUDE_COLLISION_MANAGER_H

@@ -7,7 +7,7 @@
 #include <string_view>
 #include <vector>
 
-namespace wolfenstein::testing {
+namespace karakale::testing {
 
 // Writes a map in the game's text format to a temporary file and returns its
 // path; rows are indexed by x, columns by y
@@ -36,6 +36,6 @@ inline std::filesystem::path WriteMapFile(
 	return path;
 }
 
-}  // namespace wolfenstein::testing
+}  // namespace karakale::testing
 
 #endif	// TESTS_TEST_MAP_H

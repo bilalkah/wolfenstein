@@ -16,7 +16,7 @@
 #include "GameObjects/game_object.h"
 #include <memory>
 
-namespace wolfenstein {
+namespace karakale {
 
 class DynamicObject : public IGameObject
 {
@@ -43,6 +43,6 @@ class DynamicObject : public IGameObject
 	double height;
 	double radius_;
 };
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// GAME_OBJECTS_INCLUDE_DYNAMIC_OBJECT_H

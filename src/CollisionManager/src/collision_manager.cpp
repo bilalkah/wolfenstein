@@ -1,7 +1,7 @@
 #include "CollisionManager/collision_manager.h"
 #include <cmath>
 
-namespace wolfenstein {
+namespace karakale {
 
 bool CheckWallCollision(const Map& map, const vector2d& pose,
 						const vector2d& delta_pose, double radius) {
@@ -69,4 +69,4 @@ vector2d ResolveObjectCollisions(std::span<IGameObject* const> objects,
 	return end;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

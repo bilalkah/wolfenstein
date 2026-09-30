@@ -14,7 +14,7 @@
 #include <set>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -31,7 +31,7 @@ class PatrolTest : public ::testing::Test
 
 	PatrolTest()
 		: map_(testing::WriteMapFile(
-				   "wolfenstein_patrol_test.txt",
+				   "karakale_patrol_test.txt",
 				   {"333333333333333", "300000000000003", "300000000000003",
 					"300000000000003", "300000000000003", "300000000000003",
 					"300000000000003", "333333333333333", "333333333333303",
@@ -200,4 +200,4 @@ TEST_F(PatrolTest, StandingItDoesNotStep) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

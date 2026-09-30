@@ -5,7 +5,7 @@
 #include <cmath>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -169,4 +169,4 @@ void Minimap::Render(const Position2D& player, bool expanded) {
 	SDL_SetRenderDrawBlendMode(renderer, previous);
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

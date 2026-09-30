@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(wolfenstein VERSION 1.0 LANGUAGES CXX C)
+project(karakale VERSION 1.0 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,7 +9,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-set(EXECUTABLE wolfenstein)
+set(EXECUTABLE karakale)
 
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 include(ProjectOptions)
@@ -41,13 +41,13 @@ add_subdirectory(src/TimeManager)
 add_subdirectory(src/UI)
 
 # The tests and micro benchmarks; a build of the server alone leaves them out
-option(WOLFENSTEIN_TESTS "Build the tests and micro benchmarks" ON)
+option(KARAKALE_TESTS "Build the tests and micro benchmarks" ON)
 
 if(NOT EMSCRIPTEN)
     # The multiplayer server: native only
     add_subdirectory(src/Server)
     add_subdirectory(server)
-    if(WOLFENSTEIN_TESTS)
+    if(KARAKALE_TESTS)
         enable_testing()
         add_subdirectory(tests)
         add_subdirectory(benchmarks/micro)
@@ -55,4 +55,4 @@ if(NOT EMSCRIPTEN)
 endif()
 
 # Warnings, sanitizers and shared definitions for all first-party code
-wolfenstein_apply_options_to_project()
+karakale_apply_options_to_project()

@@ -15,7 +15,7 @@
 #include "GameObjects/game_object.h"
 #include "Math/vector.h"
 
-namespace wolfenstein {
+namespace karakale {
 
 class StaticObject : public IGameObject
 {
@@ -41,6 +41,6 @@ class StaticObject : public IGameObject
 	double height;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// GAME_OBJECTS_INCLUDE_STATIC_OBJECT_H

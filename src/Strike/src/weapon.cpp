@@ -7,7 +7,7 @@
 #include <memory>
 #include <string>
 #include <utility>
-namespace wolfenstein {
+namespace karakale {
 
 Weapon::Weapon(const WeaponConfig& config, const TextureManager& textures,
 			   SoundManager& sound)
@@ -123,4 +123,4 @@ int Weapon::GetTextureId() const {
 	return state_machine_.Current().GetCurrentFrame();
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

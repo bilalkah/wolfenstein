@@ -1,7 +1,7 @@
 #include "Camera/single_raycaster.h"
 #include <cmath>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -93,4 +93,4 @@ Ray CastLineOfSight(const Map& map, const vector2d& src, const vector2d& dest) {
 	return ray;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

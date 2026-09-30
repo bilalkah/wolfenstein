@@ -22,7 +22,7 @@
 #include <string>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 // The keys that lock doors, as bits of a set of keys held
 enum class KeyColour : std::uint8_t { None = 0, Gold = 1, Silver = 2 };
@@ -169,6 +169,6 @@ class Map
 	int exit_y_ = 0;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// GAME_MAP_INCLUDE_GAME_MAP_MAP_H_

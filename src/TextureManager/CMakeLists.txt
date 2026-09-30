@@ -9,8 +9,8 @@ target_include_directories(texture_manager PUBLIC
 target_link_libraries(
     texture_manager
     PUBLIC
-    wolfenstein::sdl3
-    wolfenstein::sdl3_image
+    karakale::sdl3
+    karakale::sdl3_image
     PRIVATE
     nlohmann_json::nlohmann_json
 )

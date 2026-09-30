@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 // Sections may nest (e.g. Pathfinding runs inside UpdateEnemies), so their
 // times are not meant to add up to Frame
@@ -129,6 +129,6 @@ class ScopedTimer
 	std::uint64_t start_bytes_{};
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// PROFILER_INCLUDE_PROFILER_PROFILER_H

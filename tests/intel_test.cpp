@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -23,7 +23,7 @@ class IntelTest : public ::testing::Test
   protected:
 	IntelTest()
 		: map_(testing::WriteMapFile(
-				   "wolfenstein_intel_test.txt",
+				   "karakale_intel_test.txt",
 				   {"3333333", "3000003", "3003003", "3000003", "3333333"})
 				   .string()),
 		  arena_(Scene::MemoryFor(map_, {})),
@@ -133,7 +133,7 @@ TEST_F(IntelTest, APageFacesTheWayItLooks) {
 	EXPECT_EQ(pages[3].face, 3);
 }
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 TEST_F(IntelTest, ReadingAllocatesNothing) {
 	StandAt({1.3, 3.5}, kFacingDown);
 	const auto before = AllocationStats::count;
@@ -144,4 +144,4 @@ TEST_F(IntelTest, ReadingAllocatesNothing) {
 #endif
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

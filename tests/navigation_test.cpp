@@ -9,7 +9,7 @@
 #include <gtest/gtest.h>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -32,8 +32,7 @@ class NavigationTest : public ::testing::Test
 											 .dynamic_objects = 1};
 
 	NavigationTest()
-		: map_(testing::WriteMapFile("wolfenstein_navigation_test.txt",
-									 kCorridors)
+		: map_(testing::WriteMapFile("karakale_navigation_test.txt", kCorridors)
 				   .string()),
 		  arena_(Scene::MemoryFor(map_, kCapacity)),
 		  scene_(testing::TestTextures(), testing::TestSound(), map_, kCapacity,
@@ -156,4 +155,4 @@ TEST_F(NavigationTest, ACrowdedDoorwayDoesNotStopAHunter) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

@@ -1,7 +1,7 @@
 #include "GameObjects/dynamic_object.h"
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 DynamicObject::DynamicObject(const vector2d& pose_, LoopedAnimation animation_,
 							 const double width_, const double height_,
@@ -39,4 +39,4 @@ double DynamicObject::GetHeight() const {
 	return height;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

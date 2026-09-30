@@ -18,7 +18,7 @@
 #include <cstddef>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 class Renderer2D : public IRenderer
 {
@@ -45,6 +45,6 @@ class Renderer2D : public IRenderer
 
 };	// class Renderer2D
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// GRAPHICS_INCLUDE_GRAPHICS_RENDERER_2D_H_

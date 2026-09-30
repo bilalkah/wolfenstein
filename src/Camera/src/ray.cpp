@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-namespace wolfenstein {
+namespace karakale {
 
 Ray::Ray()
 	: origin{0, 0},
@@ -45,4 +45,4 @@ void Ray::Reset(const vector2d ray_orig, const double ray_theta) {
 	is_hit_vertical = false;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

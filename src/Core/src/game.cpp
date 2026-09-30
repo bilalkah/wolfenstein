@@ -30,7 +30,7 @@
 #include <emscripten/html5.h>
 #endif
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -96,7 +96,7 @@ void Game::Init() {
 								  config_.base_fov,		config_.fullscreen};
 
 	renderer_context_ = std::make_unique<RendererContext>(
-		"Wolfenstein", render_config, *camera_);
+		"Last Signal from Karakale", render_config, *camera_);
 	auto world = World::Create(renderer_context_->Textures(), RESOURCE_DIR);
 	if (!world) {
 		std::cerr << "Cannot start the game: " << world.error() << '\n';
@@ -1541,4 +1541,4 @@ void Game::BenchmarkStep() {
 	}
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

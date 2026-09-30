@@ -12,7 +12,7 @@
 #ifndef ANIMATION_INCLUDE_ANIMATION_ANIMATION_H_
 #define ANIMATION_INCLUDE_ANIMATION_ANIMATION_H_
 
-namespace wolfenstein {
+namespace karakale {
 
 class IAnimation
 {
@@ -35,6 +35,6 @@ class IAnimation
 	virtual bool IsAnimationFinishedOnce() const = 0;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// ANIMATION_INCLUDE_ANIMATION_ANIMATION_H_

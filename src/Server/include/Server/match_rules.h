@@ -14,7 +14,7 @@
 #include <optional>
 #include <span>
 
-namespace wolfenstein {
+namespace karakale {
 
 // How a match is played
 struct MatchSettings
@@ -128,6 +128,6 @@ class MatchRules
 	std::size_t match_number_ = 0;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// SERVER_INCLUDE_SERVER_MATCH_RULES_H_

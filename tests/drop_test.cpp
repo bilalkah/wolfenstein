@@ -15,7 +15,7 @@
 #include <span>
 #include <string_view>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 // The first level: seven soldiers, each may carry a clip and a medkit
@@ -239,4 +239,4 @@ TEST_F(DropTest, ASavedGameKeepsTheDrops) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

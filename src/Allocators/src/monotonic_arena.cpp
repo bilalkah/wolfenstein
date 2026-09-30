@@ -2,7 +2,7 @@
 #include "Allocators/asan.h"
 #include <algorithm>
 
-namespace wolfenstein::memory {
+namespace karakale::memory {
 
 namespace {
 
@@ -34,4 +34,4 @@ void MonotonicArena::Reset() noexcept {
 	current_ = end_;
 }
 
-}  // namespace wolfenstein::memory
+}  // namespace karakale::memory

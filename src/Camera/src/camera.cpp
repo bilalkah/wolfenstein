@@ -20,7 +20,7 @@
 #include <cstddef>
 #include <memory>
 
-namespace wolfenstein {
+namespace karakale {
 
 void Camera2D::InitRays() {
 	rays_.assign(static_cast<std::size_t>(config_.width / 2), Ray());
@@ -204,4 +204,4 @@ double Camera2D::WorldAngleToCameraAngle(double angle) const {
 	return angle_between;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

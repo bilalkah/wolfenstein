@@ -6,7 +6,7 @@
 #include <array>
 #include <gtest/gtest.h>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 Campaign TwoChapters() {
@@ -62,4 +62,4 @@ TEST(Story, ItKeepsToItsPages) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

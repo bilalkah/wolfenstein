@@ -19,7 +19,7 @@
 #include <utility>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 struct Ray
 {
@@ -65,6 +65,6 @@ inline std::pair<int, int> HitCell(const Ray& ray) {
 			static_cast<int>(std::floor(inside.y))};
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// CAMERA_INCLUDE_CAMERA_RAY_H_

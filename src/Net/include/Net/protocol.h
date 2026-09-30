@@ -17,7 +17,7 @@
 #include <string_view>
 #include <variant>
 
-namespace wolfenstein::net {
+namespace karakale::net {
 
 // The server decides what happens; its players send what they do (their
 // commands) and it sends back how the level stands (snapshots). Each
@@ -266,6 +266,6 @@ double QuantisePosition(double coordinate);
 double QuantiseAngle(double theta);
 double QuantisePitch(double pitch);
 
-}  // namespace wolfenstein::net
+}  // namespace karakale::net
 
 #endif	// NET_INCLUDE_NET_PROTOCOL_H_

@@ -7,7 +7,7 @@
 #include <sstream>
 #include <string>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 // Every image the shipped manifest names exists, and the textures the code
@@ -79,4 +79,4 @@ TEST(TextureManifest, RejectsAClipWithoutFrames) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

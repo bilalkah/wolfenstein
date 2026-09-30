@@ -91,16 +91,17 @@ target_link_libraries(unit_tests PRIVATE
 )
 # Counting heap allocations replaces global operator new, which clashes with
 # the sanitizers' allocator, so allocation tests run in non-sanitizer builds
-if(NOT WOLFENSTEIN_SANITIZERS)
+if(NOT KARAKALE_SANITIZERS)
     target_sources(unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/app/allocation_counter.cpp)
-    target_compile_definitions(unit_tests PRIVATE WOLFENSTEIN_COUNTS_ALLOCATIONS)
+    target_compile_definitions(unit_tests PRIVATE KARAKALE_COUNTS_ALLOCATIONS)
 endif()
 
 # A test that hangs (e.g. an unbounded loop) fails instead of stalling CI.
 # Under the sanitizers, leaks inside the graphics driver SDL loads are not
-# the game's (see lsan.supp).
-if(WOLFENSTEIN_SANITIZERS)
-    gtest_discover_tests(unit_tests PROPERTIES TIMEOUT 10 ENVIRONMENT
+# the game's (see lsan.supp), and everything runs several times slower: a
+# lobby filled with rooms, each loading the game, takes up to 12 s there.
+if(KARAKALE_SANITIZERS)
+    gtest_discover_tests(unit_tests PROPERTIES TIMEOUT 30 ENVIRONMENT
         "LSAN_OPTIONS=suppressions=${CMAKE_CURRENT_SOURCE_DIR}/lsan.supp")
 else()
     gtest_discover_tests(unit_tests PROPERTIES TIMEOUT 10)

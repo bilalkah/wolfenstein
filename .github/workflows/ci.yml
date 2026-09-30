@@ -37,14 +37,14 @@ jobs:
       - run: cmake --build --preset ${{ matrix.preset }}
       - run: ctest --preset ${{ matrix.preset }}
       - name: Benchmark scenario (headless, 300 frames)
-        run: ./build/${{ matrix.preset }}/bin/wolfenstein --benchmark 300 | grep BENCHMARK_RESULT > /dev/null
+        run: ./build/${{ matrix.preset }}/bin/karakale --benchmark 300 | grep BENCHMARK_RESULT > /dev/null
       - name: No heap allocations per frame (benchmark scenario)
         # Only builds without sanitizers count allocations
         if: matrix.preset == 'native-debug'
-        run: ./build/native-debug/bin/wolfenstein --benchmark 1000 | python3 scripts/alloc_breakdown.py --require-zero
+        run: ./build/native-debug/bin/karakale --benchmark 1000 | python3 scripts/alloc_breakdown.py --require-zero
       - name: Nothing allocates once a game starts (scripted session)
         if: matrix.preset == 'native-debug'
-        run: ./build/native-debug/bin/wolfenstein --soak | python3 scripts/check_soak.py
+        run: ./build/native-debug/bin/karakale --soak | python3 scripts/check_soak.py
 
   web:
     name: Web (Emscripten)

@@ -14,7 +14,7 @@
 
 #include <cstdint>
 
-namespace wolfenstein {
+namespace karakale {
 
 // Fades an opacity from alpha_start to alpha_end, once per Reset(). It only
 // computes the alpha: whoever draws the faded texture applies it, so the
@@ -41,5 +41,5 @@ class TriggeredSingleAnimation
 	double progress_{};
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 #endif	// ANIMATION_INCLUDE_ANIMATION_TRIGGERED_SINGLE_ANIMATION_H_

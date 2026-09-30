@@ -20,7 +20,7 @@
 #include <string_view>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 // A player's side of a multiplayer game. It says hello and, welcomed,
 // starts the match in the world (the level the server names, the local
@@ -203,6 +203,6 @@ class MatchClient
 	std::array<std::uint8_t, net::kMaxMessage> buffer_{};
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// CLIENT_INCLUDE_CLIENT_MATCH_CLIENT_H_

@@ -9,7 +9,7 @@
 #include "Graphics/quad_batch.h"
 #include "Graphics/renderer_interface.h"
 
-namespace wolfenstein {
+namespace karakale {
 
 class Scene;
 
@@ -36,6 +36,6 @@ class Minimap
 	QuadBatch batch_;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// GRAPHICS_INCLUDE_GRAPHICS_MINIMAP_H_

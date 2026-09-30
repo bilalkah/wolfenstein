@@ -6,7 +6,7 @@
 #include <utility>
 #include <variant>
 
-namespace wolfenstein {
+namespace karakale {
 
 MatchClient::MatchClient(std::unique_ptr<net::Connection> connection,
 						 std::string_view name, Clock clock)
@@ -483,4 +483,4 @@ void MatchClient::Send(const net::Message& message) {
 	}
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

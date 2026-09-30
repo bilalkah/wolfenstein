@@ -11,7 +11,7 @@
 #include "Math/vector.h"
 #include <algorithm>
 
-namespace wolfenstein {
+namespace karakale {
 
 // Where the player looks, kept by the game rather than the simulation. The
 // mouse and the turning keys move it every frame and the view is drawn from
@@ -52,6 +52,6 @@ class ViewAngles
 	double pitch_ = 0.0;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// CHARACTERS_INCLUDE_CHARACTERS_VIEW_ANGLES_H_

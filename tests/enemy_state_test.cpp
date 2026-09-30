@@ -12,7 +12,7 @@
 #include <gtest/gtest.h>
 #include <memory>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 class EnemyStateTest : public ::testing::Test
@@ -43,7 +43,7 @@ class EnemyStateTest : public ::testing::Test
 				   testing::TestTextures(), testing::TestSound()};
 	static constexpr SceneCapacity kCapacity{.enemies = 1};
 	Map map_{testing::WriteMapFile(
-				 "wolfenstein_enemy_state_test.txt",
+				 "karakale_enemy_state_test.txt",
 				 // Two chambers split by a wall: the enemy cannot see the
 				 // player, so only hits drive its state (a visible player
 				 // would make an idle enemy walk first)
@@ -124,7 +124,7 @@ TEST(EnemyUnderFire, StillShootsBack) {
 				  testing::TestSound());
 	static constexpr SceneCapacity kCapacity{.enemies = 1};
 	// A corridor along y (a map file's rows run along x): they see each other
-	Map map(testing::WriteMapFile("wolfenstein_under_fire_test.txt",
+	Map map(testing::WriteMapFile("karakale_under_fire_test.txt",
 								  {"333333", "300003", "333333"})
 				.string());
 	memory::MonotonicArena arena(Scene::MemoryFor(map, kCapacity));
@@ -149,4 +149,4 @@ TEST(EnemyUnderFire, StillShootsBack) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

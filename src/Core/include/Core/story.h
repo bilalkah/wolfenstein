@@ -11,7 +11,7 @@
 #include <span>
 #include <string_view>
 
-namespace wolfenstein {
+namespace karakale {
 
 // A page of story as drawn between levels: a small heading over a title,
 // and its text; views into the game's config, which outlives them
@@ -62,6 +62,6 @@ inline std::size_t StoryAtTheEnd(const Campaign& campaign,
 	return count;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// CORE_INCLUDE_CORE_STORY_H_

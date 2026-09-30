@@ -8,7 +8,7 @@
 #include <span>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 constexpr int kCellsPerSide =
@@ -261,4 +261,4 @@ double NavigationManager::EuclideanDistanceToPlayer(
 	return scene_.GetPlayer().GetPosition().pose.Distance(position.pose);
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

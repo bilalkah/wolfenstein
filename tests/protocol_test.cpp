@@ -14,7 +14,7 @@
 #include <numbers>
 #include <variant>
 
-namespace wolfenstein::net {
+namespace karakale::net {
 namespace {
 
 // The message as it comes out at the other end
@@ -373,7 +373,7 @@ TEST(Protocol, AMessageTooBigForItsBufferIsNotWritten) {
 	EXPECT_EQ(Encode(Snapshot{.count = kMaxPlayers}, small), 0u);
 }
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 TEST(Protocol, PackingAndReadingAllocateNothing) {
 	std::array<std::uint8_t, kMaxMessage> buffer{};
 	const auto before = AllocationStats::count;
@@ -389,4 +389,4 @@ TEST(Protocol, PackingAndReadingAllocateNothing) {
 #endif
 
 }  // namespace
-}  // namespace wolfenstein::net
+}  // namespace karakale::net

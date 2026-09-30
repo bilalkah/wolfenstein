@@ -15,10 +15,10 @@
 #include <memory>
 #include <string>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 // Every text is drawn from glyphs rasterised when the menu is built, so no
 // frame allocates: not the first frame of a screen, and not a frame whose
 // text is new (a slider value that just changed)
@@ -126,4 +126,4 @@ TEST(Menu, ANewGameStartsAtTheChosenDifficulty) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

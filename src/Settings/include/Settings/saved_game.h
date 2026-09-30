@@ -13,7 +13,7 @@
 #include <span>
 #include <string_view>
 
-namespace wolfenstein {
+namespace karakale {
 
 // The campaign as it stood when last saved (as a level starts, and when
 // nothing is fighting the player): the level, what the player carries and
@@ -78,6 +78,6 @@ struct SavedGame
 	friend bool operator==(const SavedGame&, const SavedGame&) = default;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// SETTINGS_INCLUDE_SETTINGS_SAVED_GAME_H

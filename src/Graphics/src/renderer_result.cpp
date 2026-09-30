@@ -3,7 +3,7 @@
 #include <SDL3/SDL_render.h>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 RendererResult::RendererResult(RendererContext& context, int texture_id)
 	: context_(&context),
@@ -28,4 +28,4 @@ void RendererResult::ClearScreen() {
 	SDL_RenderClear(context_->GetRenderer());
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

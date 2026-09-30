@@ -12,7 +12,7 @@
 #include <memory>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 Player::Player(CharacterConfig& config, std::span<const WeaponConfig> arsenal,
 			   std::size_t first, const TextureManager& textures,
@@ -512,4 +512,4 @@ void Player::ShootOrReload() {
 	}
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 // Carries messages both ways, each `delay` ticks late
@@ -451,4 +451,4 @@ TEST_F(MatchTest, APlayerLeavingIsGoneFromTheOthersGame) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

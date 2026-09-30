@@ -7,7 +7,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <utility>
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -936,4 +936,4 @@ LevelStats Scene::GetStats() const {
 			.seconds = elapsed_};
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

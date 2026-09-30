@@ -39,7 +39,7 @@
 #include <string_view>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 enum class RenderType : std::uint8_t { TEXTURE, LINE };
 
@@ -296,6 +296,6 @@ class Game
 	std::array<std::uint64_t, 12> soak_phase_start_{};
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// CORE_INCLUDE_CORE_GAME_H_

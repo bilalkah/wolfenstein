@@ -1,4 +1,4 @@
-# Wolfenstein engine
+# Last Signal from Karakale
 
 A first-person shooter in the style of *Wolfenstein 3D* and *Doom*, and
 the C++23 engine under it. It runs natively and in the browser
@@ -6,7 +6,7 @@ the C++23 engine under it. It runs natively and in the browser
 eight players.
 
 <a class="md-button md-button--primary" href="play/">Play it in your browser</a>
-<a class="md-button" href="https://github.com/bilalkah/wolfenstein">Source on GitHub</a>
+<a class="md-button" href="https://github.com/bilalkah/karakale">Source on GitHub</a>
 
 <figure markdown="span">
   ![The barracks courtyard: a soldier comes round a pillar](assets/screenshots/combat-barracks.png){ width="640" }

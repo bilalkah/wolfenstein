@@ -13,7 +13,7 @@
 #include <initializer_list>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kPi = std::numbers::pi;
@@ -173,7 +173,7 @@ class ViewAimTest : public ::testing::Test
 	}
 
 	CharacterConfig config_{Position2D({1.5, 1.5}, 0.0), 2.0, 0.4, 0.4, 1.0};
-	Map map_{testing::WriteMapFile("wolfenstein_view_test.txt",
+	Map map_{testing::WriteMapFile("karakale_view_test.txt",
 								   {"33333", "30003", "30003", "33333"})
 				 .string()};
 	memory::MonotonicArena arena_{Scene::MemoryFor(map_, kCapacity)};
@@ -214,4 +214,4 @@ TEST_F(ViewAimTest, TheKickEasesBetweenTicks) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

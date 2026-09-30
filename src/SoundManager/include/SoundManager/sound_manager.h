@@ -27,7 +27,7 @@
 #include <utility>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 enum class SoundEffect : std::uint8_t {
 	NpcAttack,
@@ -186,6 +186,6 @@ class SoundManager
 	std::string_view playing_;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// SOUND_MANAGER_INCLUDE_SOUND_MANAGER_H

@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <thread>
 
-namespace wolfenstein {
+namespace karakale {
 
 FrameClock::FrameClock() : previous_(Clock::now()) {}
 
@@ -46,4 +46,4 @@ int FixedStep::Advance(double frame_seconds) {
 	return ticks;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

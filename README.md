@@ -1,6 +1,6 @@
-# Wolfenstein Project
+# Last Signal from Karakale
 
-Welcome to the Wolfenstein project! This README provides an overview of the game's features, setup instructions, and how to contribute to the development. Dive into a dynamic and immersive world built using **C++** and **SDL**, where you'll experience real-time combat and a rich environment.
+*Last Signal from Karakale* is a first-person shooter in the style of *Wolfenstein 3D* and *DOOM*, written in C++23 and played natively or in the browser: a raycasting engine, a campaign through a valley and its castle, and an online deathmatch. This README covers its features, how to build and run it, and how to contribute.
 
 ## View from the game
 
@@ -52,8 +52,8 @@ Welcome to the Wolfenstein project! This README provides an overview of the game
 Clone the repository with its assets, which are stored with [Git LFS](https://git-lfs.com):
 ```bash
 git lfs install
-git clone https://github.com/bilalkah/wolfenstein
-cd wolfenstein
+git clone https://github.com/bilalkah/karakale
+cd karakale
 ```
 
 ### Play in the Browser (WebAssembly)
@@ -61,8 +61,8 @@ cd wolfenstein
 The game compiles to WebAssembly with [Emscripten](https://emscripten.org) and runs in any desktop browser. Docker is all it takes to build and play it:
 
 ```bash
-docker build -f docker/web.Dockerfile -t wolfenstein-web .
-docker run --rm -p 8000:8000 wolfenstein-web
+docker build -f docker/web.Dockerfile -t karakale-web .
+docker run --rm -p 8000:8000 karakale-web
 ```
 
 Then open http://localhost:8000. The image builds the game with the Emscripten SDK that CI pins (6.0.10) and serves it.
@@ -83,7 +83,7 @@ The output in `build/web-release/bin` is a static site (`index.html`, `.js`, `.w
 ./scripts/bench_web.sh [frames] [label]
 ```
 
-This builds the web version, runs the benchmark in headless Chromium (Docker), saves the full report to `docs/benchmarks/results/`, appends a row to `docs/benchmarks/results.md` (both git-ignored, local records) and prints the change against the previous run. Natively, `./scripts/dev.sh ./build/native-release/bin/wolfenstein --benchmark 2000 | ./scripts/alloc_breakdown.py` shows where each frame's heap allocations come from, section by section.
+This builds the web version, runs the benchmark in headless Chromium (Docker), saves the full report to `docs/benchmarks/results/`, appends a row to `docs/benchmarks/results.md` (both git-ignored, local records) and prints the change against the previous run. Natively, `./scripts/dev.sh ./build/native-release/bin/karakale --benchmark 2000 | ./scripts/alloc_breakdown.py` shows where each frame's heap allocations come from, section by section.
 
 ### Native Build
 
@@ -105,7 +105,7 @@ On Ubuntu 26.04 you can also install the toolchain directly with `./scripts/inst
 | `native-asan` | AddressSanitizer + UndefinedBehaviorSanitizer |
 | `web-release` | WebAssembly build (`./scripts/build_web.sh`) |
 
-The game binary is `build/<preset>/bin/wolfenstein`; `--benchmark 300` runs the headless benchmark scenario. Static analysis: `./scripts/dev.sh ./scripts/tidy.sh`.
+The game binary is `build/<preset>/bin/karakale`; `--benchmark 300` runs the headless benchmark scenario. Static analysis: `./scripts/dev.sh ./scripts/tidy.sh`.
 
 ---
 
@@ -163,7 +163,7 @@ We welcome contributions! Here are a few ways you can help:
 
 ## Acknowledgments
 
-Thank you for checking out the first version of my Wolfenstein game! This release represents my learning journey, including experimenting with game design, state management, and spatial data handling. I hope you enjoy playing it as much as I enjoyed creating it.
+Thank you for checking out my game! This release represents my learning journey, including experimenting with game design, state management, and spatial data handling. I hope you enjoy playing it as much as I enjoyed creating it.
 
 Additionally, I would also like to share the source of motivation and inspiration for me to do this project:
 

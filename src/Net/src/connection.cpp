@@ -9,7 +9,7 @@
 #include <ixwebsocket/IXWebSocket.h>
 #endif
 
-namespace wolfenstein::net {
+namespace karakale::net {
 
 bool Inbox::Put(std::span<const std::uint8_t> message, double arrived) {
 	const std::scoped_lock lock(mutex_);
@@ -191,4 +191,4 @@ std::unique_ptr<Connection> Connection::Open(const std::string& url) {
 #endif
 }
 
-}  // namespace wolfenstein::net
+}  // namespace karakale::net

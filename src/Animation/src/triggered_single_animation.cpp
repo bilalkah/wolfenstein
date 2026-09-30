@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace wolfenstein {
+namespace karakale {
 
 TriggeredSingleAnimation::TriggeredSingleAnimation(double animation_speed,
 												   int alpha_start,
@@ -28,4 +28,4 @@ std::uint8_t TriggeredSingleAnimation::GetAlpha() const {
 	return static_cast<std::uint8_t>(std::clamp(std::lround(alpha), 0L, 255L));
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

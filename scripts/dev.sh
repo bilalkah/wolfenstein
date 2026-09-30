@@ -8,7 +8,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 # Tagged by what goes into the image, so a change to it builds a new one
-IMAGE=wolfenstein-dev:26.04-$(cat docker/dev.Dockerfile scripts/install_deps.sh | cksum | cut -d ' ' -f 1)
+IMAGE=karakale-dev:26.04-$(cat docker/dev.Dockerfile scripts/install_deps.sh | cksum | cut -d ' ' -f 1)
 
 if ! docker info >/dev/null 2>&1; then
 	echo "Docker is not running; start Docker Desktop and try again." >&2

@@ -20,7 +20,7 @@ GIT_DIRTY=$([ -n "$(git status --porcelain -- src app CMakeLists.txt web)" ] && 
 # of the repository
 docker run --rm \
 	-v "$PWD":/repo -w /repo/benchmarks \
-	-v wolfenstein-bench-node:/repo/benchmarks/node_modules \
+	-v karakale-bench-node:/repo/benchmarks/node_modules \
 	-e GIT_COMMIT="$GIT_COMMIT" -e GIT_DIRTY="$GIT_DIRTY" \
 	"mcr.microsoft.com/playwright:v$PLAYWRIGHT_VERSION-noble" \
 	bash -c "npm install --no-audit --no-fund --silent \

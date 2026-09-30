@@ -12,7 +12,7 @@
 #include <utility>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -997,4 +997,4 @@ std::expected<LevelData, std::string> ParseLevel(std::istream& input) {
 	return level;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

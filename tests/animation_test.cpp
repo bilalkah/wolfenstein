@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include <string>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 TEST(FadeAnimation, InterpolatesTheAlpha) {
@@ -64,4 +64,4 @@ TEST(LoopedAnimation, EachSidePlaysItsOwnFrames) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

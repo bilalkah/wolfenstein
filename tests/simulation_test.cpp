@@ -11,7 +11,7 @@
 #include <numbers>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -117,4 +117,4 @@ TEST(Simulation, TheSameCommandsGiveTheSameGame) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

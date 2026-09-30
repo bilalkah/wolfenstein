@@ -2,7 +2,7 @@
 #include <cmath>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 
 vector2i::vector2i() : x(0), y(0) {}
 
@@ -277,4 +277,4 @@ std::size_t SideSeen(const vector2d& at, double facing,
 		static_cast<long>(std::lround(-turned / (std::numbers::pi / 4)));
 	return static_cast<std::size_t>(((eighths % 8) + 8) % 8);
 }
-}  // namespace wolfenstein
+}  // namespace karakale

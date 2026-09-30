@@ -18,7 +18,7 @@
 #include <SDL3/SDL_render.h>
 #include <memory>
 
-namespace wolfenstein {
+namespace karakale {
 
 class RendererResult
 {
@@ -36,6 +36,6 @@ class RendererResult
 	TriggeredSingleAnimation result_animation_;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// GRAPHICS_INCLUDE_GRAPHICS_RENDERER_RESULT_H_

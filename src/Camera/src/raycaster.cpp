@@ -6,7 +6,7 @@
 #include <numbers>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 RayCaster::RayCaster(int num_ray, double fov, double depth)
 	: depth_(depth), num_ray_(num_ray), half_width_(std::tan(fov / 2)) {}
@@ -205,4 +205,4 @@ double RayCaster::Across(double camera_angle) const {
 	return std::tan(std::clamp(camera_angle, -kLimit, kLimit)) / half_width_;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <iostream>
 
-namespace wolfenstein::ui {
+namespace karakale::ui {
 
 namespace {
 
@@ -487,4 +487,4 @@ bool Ui::Selectable(const SDL_Rect& rect, bool& focused) {
 	return clicked || (focused && input_.activate);
 }
 
-}  // namespace wolfenstein::ui
+}  // namespace karakale::ui

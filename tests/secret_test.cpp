@@ -13,7 +13,7 @@
 #include <gtest/gtest.h>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -28,7 +28,7 @@ Map WithSecret(const char* name) {
 }
 
 TEST(Secret, AWallWithRoomBehindItCanBeASecret) {
-	Map map = WithSecret("wolfenstein_secret_add_test.txt");
+	Map map = WithSecret("karakale_secret_add_test.txt");
 	EXPECT_TRUE(map.AddPushWall(2, 3, 0, 1));
 	EXPECT_FALSE(map.AddPushWall(1, 3, 0, 1)) << "rock behind it";
 	EXPECT_FALSE(map.AddPushWall(2, 2, 0, 1)) << "not a wall";
@@ -37,7 +37,7 @@ TEST(Secret, AWallWithRoomBehindItCanBeASecret) {
 }
 
 TEST(Secret, ItSlidesTwoCellsAndStays) {
-	Map map = WithSecret("wolfenstein_secret_slide_test.txt");
+	Map map = WithSecret("karakale_secret_slide_test.txt");
 	ASSERT_TRUE(map.AddPushWall(2, 3, 0, 1));
 	map.Push(0);
 	map.AdvancePushWalls(0.5);
@@ -56,7 +56,7 @@ TEST(Secret, ItSlidesTwoCellsAndStays) {
 }
 
 TEST(Secret, RaysMeetItWhereItIs) {
-	Map map = WithSecret("wolfenstein_secret_ray_test.txt");
+	Map map = WithSecret("karakale_secret_ray_test.txt");
 	ASSERT_TRUE(map.AddPushWall(2, 3, 0, 1));
 	const Position2D eye({2.5, 1.5}, kFacingDown);
 	EXPECT_NEAR(CastRay(map, eye, kFacingDown, 15.0).distance, 1.5, 1e-9);
@@ -75,7 +75,7 @@ class SecretSceneTest : public ::testing::Test
 	static constexpr SceneCapacity kCapacity{.secrets = 1};
 
 	SecretSceneTest()
-		: map_(WithSecret("wolfenstein_secret_scene_test.txt")),
+		: map_(WithSecret("karakale_secret_scene_test.txt")),
 		  arena_(Scene::MemoryFor(map_, kCapacity)),
 		  scene_(testing::TestTextures(), testing::TestSound(), map_, kCapacity,
 				 arena_),
@@ -109,7 +109,7 @@ TEST_F(SecretSceneTest, UsingItPushesItAndCountsIt) {
 	EXPECT_TRUE(scene_.GetMap().IsWall(2, 5));
 }
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 // Face to face with a secret wall, every column draws the wall and many its
 // mark too: the draw queue has room for both
 TEST_F(SecretSceneTest, DrawingItsMarkAllocatesNothing) {
@@ -163,7 +163,7 @@ class SecretWayTest : public ::testing::Test
 
 	CharacterConfig config_{Position2D({2.5, 2.2}, kFacingDown), 2.0, 0.4, 0.4,
 							1.0};
-	Map map_{WithSecret("wolfenstein_secret_way_test.txt")};
+	Map map_{WithSecret("karakale_secret_way_test.txt")};
 	memory::MonotonicArena arena_{Scene::MemoryFor(map_, kCapacity)};
 	Scene scene_{testing::TestTextures(), testing::TestSound(), map_, kCapacity,
 				 arena_};
@@ -194,4 +194,4 @@ TEST_F(SecretWayTest, AnEnemyInTheWayKeepsItShut) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

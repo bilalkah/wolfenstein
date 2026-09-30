@@ -8,7 +8,7 @@
 #include <string>
 #include <string_view>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr SavedGame kSaved{.level = 2,
@@ -124,7 +124,7 @@ TEST(RecordWriter, WritesKeyValueLines) {
 	EXPECT_TRUE(cut.Text().empty());
 }
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 // Settings are saved when the settings screen closes, which can be in the
 // middle of a game
 TEST(RecordWriter, WritingDoublesAllocatesNothing) {
@@ -149,4 +149,4 @@ TEST(SavedGame, FormattingAllocatesNothing) {
 #endif
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

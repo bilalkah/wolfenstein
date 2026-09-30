@@ -568,7 +568,7 @@
         "opening": [
             {
                 "title": "THE NUMBERS",
-                "text": "For three weeks nothing has come out of the Kessel Valley but numbers. Every hour, on every band, the transmitter at Burg Kessel sends eleven digits and then falls silent. The garrison posts along the valley road stopped answering the day the numbers began."
+                "text": "For three weeks nothing has come out of the Kara Valley but numbers. Every hour, on every band, the transmitter at Karakale sends eleven digits and then falls silent. The garrison posts along the valley road stopped answering the day the numbers began."
             },
             {
                 "title": "THE TEAMS",
@@ -607,7 +607,7 @@
             {
                 "title": "CHAPTER III",
                 "name": "THE CASTLE",
-                "text": "Burg Kessel. The numbers were a count, and it is nearly done. Over the wall, under it and up through the keep to the bell tower: at the end of the count, something in the sanctum opens.",
+                "text": "Karakale. The numbers were a count, and it is nearly done. Over the wall, under it and up through the keep to the bell tower: at the end of the count, something in the sanctum opens.",
                 "levels": [
                     "outer_wall.json",
                     "dungeons.json",
@@ -624,7 +624,7 @@
             },
             {
                 "title": "THE SILENCE",
-                "text": "At dawn the transmitter at Burg Kessel sends nothing at all. Down the valley, in the barracks and the works, the soldiers who were not dead lie down at last."
+                "text": "At dawn the transmitter at Karakale sends nothing at all. Down the valley, in the barracks and the works, the soldiers who were not dead lie down at last."
             },
             {
                 "title": "AFTERWARD",

@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <limits>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -200,4 +200,4 @@ bool GridPathFinder::FindPath(GridCell start, GridCell goal,
 	return true;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

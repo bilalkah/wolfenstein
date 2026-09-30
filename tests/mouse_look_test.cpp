@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 const GeneralConfig kView(1200, 900, 0, 20, 120, 15.0, std::numbers::pi / 3,
@@ -114,4 +114,4 @@ TEST(MouseLook, InvertedPushingAwayLooksDown) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

@@ -10,7 +10,7 @@
 #include <gtest/gtest.h>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -23,7 +23,7 @@ class EnemyViewTest : public ::testing::Test
 
 	EnemyViewTest()
 		: map_(testing::WriteMapFile(
-				   "wolfenstein_enemy_view_test.txt",
+				   "karakale_enemy_view_test.txt",
 				   {"3333333333", "3000000003", "3000000003", "3000000003",
 					"3000000003", "3000000003", "3000000003", "3000000003",
 					"3000000003", "3333333333"})
@@ -137,4 +137,4 @@ TEST_F(EnemyViewTest, TheLivingHaveASideForEachView) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

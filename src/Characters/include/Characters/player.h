@@ -27,7 +27,7 @@
 #include <optional>
 #include <span>
 
-namespace wolfenstein {
+namespace karakale {
 
 class Scene;
 struct Ray;
@@ -236,6 +236,6 @@ class Player : public ICharacter, public IGameObject
 	TriggeredSingleAnimation pickup_animation_;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// CHARACTERS_PLAYER_H

@@ -10,7 +10,7 @@
 #include <cstddef>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 // Collects quads and triangles and draws them in one SDL_RenderGeometry
 // call: SDL's own rectangle, point and line functions build temporary
@@ -48,6 +48,6 @@ class QuadBatch
 	SDL_FColor color_{1.0F, 1.0F, 1.0F, 1.0F};
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// GRAPHICS_INCLUDE_GRAPHICS_QUAD_BATCH_H_

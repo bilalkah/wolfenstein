@@ -1,6 +1,6 @@
 #include "GameObjects/static_object.h"
 
-namespace wolfenstein {
+namespace karakale {
 
 StaticObject::StaticObject(const vector2d& pose_, const int texture_id_,
 						   const double width_, const double height_)
@@ -33,4 +33,4 @@ double StaticObject::GetHeight() const {
 	return height;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

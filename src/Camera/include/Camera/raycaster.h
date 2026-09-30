@@ -17,7 +17,7 @@
 #include "GameMap/map.h"
 #include "Math/vector.h"
 
-namespace wolfenstein {
+namespace karakale {
 
 // Casts one ray from `from` at angle `theta` until it hits a wall or has
 // travelled `depth`: what lies in a line of fire, or a line of view
@@ -45,6 +45,6 @@ class RayCaster
 	double half_width_;	 // tan(fov / 2): the plane's half width a unit ahead
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// CAMERA_INCLUDE_CAMERA_RAYCASTER_H_

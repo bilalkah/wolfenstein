@@ -24,7 +24,7 @@
 #include <string_view>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 // A level ready to play: its file parsed and its map read at startup
 struct PreparedLevel
@@ -75,6 +75,6 @@ class SceneLoader
 	std::size_t largest_objects_ = 0;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// CORE_INCLUDE_CORE_SCENE_LOADER_H_

@@ -17,7 +17,7 @@
 #include <string>
 #include <string_view>
 
-namespace wolfenstein {
+namespace karakale {
 
 // The matches one server holds: the open one, always there, and private
 // rooms, each made as its first player comes and closed a while after its
@@ -75,6 +75,6 @@ class Lobby
 	std::map<ClientId, std::string> clients_;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// SERVER_INCLUDE_SERVER_LOBBY_H_

@@ -1,6 +1,6 @@
 #include "Graphics/quad_batch.h"
 
-namespace wolfenstein {
+namespace karakale {
 
 QuadBatch::QuadBatch(SDL_Renderer* renderer) : renderer_(renderer) {
 	vertices_.reserve(kVertexCapacity);
@@ -51,4 +51,4 @@ void QuadBatch::Flush() {
 	indices_.clear();
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

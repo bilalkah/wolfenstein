@@ -7,13 +7,13 @@
 #include <string>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 // A 5x5 room: solid border (wall id 3), empty inside
 Map RoomMap() {
 	const auto path =
-		testing::WriteMapFile("wolfenstein_raycaster_test.txt",
+		testing::WriteMapFile("karakale_raycaster_test.txt",
 							  {"33333", "30003", "30003", "30003", "33333"});
 	return Map(path.string());
 }
@@ -49,7 +49,7 @@ Map HallMap() {
 	std::vector<std::string> rows(41, "3" + std::string(39, '0') + "3");
 	rows.front() = rows.back() = std::string(41, '3');
 	const auto path =
-		testing::WriteMapFile("wolfenstein_raycaster_hall_test.txt", rows);
+		testing::WriteMapFile("karakale_raycaster_hall_test.txt", rows);
 	return Map(path.string());
 }
 
@@ -100,4 +100,4 @@ TEST(RayCaster, AcrossPlacesEachRayAtItsColumn) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

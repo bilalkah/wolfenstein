@@ -13,7 +13,7 @@
 #include <set>
 #include <string>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 // A fight's usual distance, in map units: across a room
@@ -165,4 +165,4 @@ TEST(Balance, EveryLevelCarriesTheAmmunitionItsEnemiesNeed) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

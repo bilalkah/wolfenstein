@@ -10,7 +10,7 @@
 #include <string>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -503,7 +503,9 @@ MenuAction Menu::MainScreen() {
 	DrawBackground();
 	DrawDimmer(150);
 
-	ui_->Text("WOLFENSTEIN", width / 2, 120, ui::FontStyle::Title,
+	ui_->Text("LAST SIGNAL FROM", width / 2, 96, ui::FontStyle::Heading,
+			  ui::color::kAccentBright, ui::Align::Center);
+	ui_->Text("KARAKALE", width / 2, 136, ui::FontStyle::Title,
 			  ui::color::kText, ui::Align::Center);
 	ui_->FillRect({width / 2 - 180, 262, 360, 4}, ui::color::kAccent);
 	ui_->Text("Hold the line, comrade.", width / 2, 290, ui::FontStyle::Body,
@@ -814,4 +816,4 @@ void Menu::DrawHint(std::string_view text) {
 			  ui::color::kMuted, ui::Align::Center);
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

@@ -21,7 +21,7 @@
 #include <string_view>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 struct LevelStats;
 
@@ -185,6 +185,6 @@ class Menu
 	int background_texture_ = 0;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// GRAPHICS_INCLUDE_GRAPHICS_RENDERER_MENU_H_

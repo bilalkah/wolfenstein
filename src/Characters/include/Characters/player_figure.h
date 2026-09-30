@@ -12,7 +12,7 @@
 #include <span>
 #include <string_view>
 
-namespace wolfenstein {
+namespace karakale {
 
 class Player;
 class TextureManager;
@@ -73,6 +73,6 @@ class PlayerFigure : public IGameObject
 	bool walking_ = false;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// CHARACTERS_INCLUDE_CHARACTERS_PLAYER_FIGURE_H_

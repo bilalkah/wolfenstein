@@ -26,7 +26,7 @@
 #include <span>
 #include <string>
 #include <vector>
-namespace wolfenstein {
+namespace karakale {
 
 class Scene;
 
@@ -348,6 +348,6 @@ class Enemy : public ICharacter, public IGameObject
 	SimpleWeapon weapon_;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// CHARACTERS_INCLUDE_ENEMY_H_

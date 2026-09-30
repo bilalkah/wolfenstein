@@ -19,7 +19,7 @@
 #include <string_view>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 // The JSON tree exists only while a file is parsed: the game keeps these
 // typed values, and a malformed file comes back as an error message rather
@@ -225,6 +225,6 @@ struct LevelData
 std::expected<GameConfig, std::string> ParseGameConfig(std::istream& input);
 std::expected<LevelData, std::string> ParseLevel(std::istream& input);
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// CORE_INCLUDE_CORE_LEVEL_DATA_H_

@@ -40,17 +40,17 @@ bool OnMainThread() {
 	return emscripten_is_main_runtime_thread();
 }
 }  // namespace
-#define WOLFENSTEIN_COUNT_MALLOC 1
+#define KARAKALE_COUNT_MALLOC 1
 
 #endif
 
-#if defined(WOLFENSTEIN_COUNT_MALLOC)
+#if defined(KARAKALE_COUNT_MALLOC)
 
 namespace {
 void Count(std::size_t size) {
 	if (OnMainThread()) {
-		wolfenstein::AllocationStats::count++;
-		wolfenstein::AllocationStats::bytes += size;
+		karakale::AllocationStats::count++;
+		karakale::AllocationStats::bytes += size;
 	}
 }
 }  // namespace
@@ -108,8 +108,8 @@ void free(void* ptr) {
 // directly: this file is the allocator, so nothing here can use RAII
 // NOLINTBEGIN(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory)
 void* operator new(std::size_t size) {
-	wolfenstein::AllocationStats::count++;
-	wolfenstein::AllocationStats::bytes += size;
+	karakale::AllocationStats::count++;
+	karakale::AllocationStats::bytes += size;
 	if (void* ptr = std::malloc(size == 0 ? 1 : size)) {
 		return ptr;
 	}

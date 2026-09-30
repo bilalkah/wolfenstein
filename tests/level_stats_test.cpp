@@ -9,7 +9,7 @@
 #include <gtest/gtest.h>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -23,7 +23,7 @@ class LevelStatsTest : public ::testing::Test
 	static constexpr SceneCapacity kCapacity{.enemies = 1, .pickups = 2};
 
 	LevelStatsTest()
-		: map_(testing::WriteMapFile("wolfenstein_stats_test.txt",
+		: map_(testing::WriteMapFile("karakale_stats_test.txt",
 									 {"3333333", "3000003", "3333333"})
 				   .string()),
 		  arena_(Scene::MemoryFor(map_, kCapacity)),
@@ -105,4 +105,4 @@ TEST_F(LevelStatsTest, TheClockStopsWhenTheLevelIsCleared) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

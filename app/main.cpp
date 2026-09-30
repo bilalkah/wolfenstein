@@ -17,7 +17,7 @@
 #include <string_view>
 
 int main(int argc, char** argv) {
-	using namespace wolfenstein;
+	using namespace karakale;
 	GeneralConfig config(1200, 900, 0, 20, 120, 15.0, ToRadians(60.0), false);
 
 	Game game(config);

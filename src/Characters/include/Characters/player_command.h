@@ -8,7 +8,7 @@
 
 #include <cstdint>
 
-namespace wolfenstein {
+namespace karakale {
 
 // What the player wants to do this tick. The game samples it from the
 // keyboard and mouse; the simulation only ever sees commands, so it can be
@@ -89,6 +89,6 @@ inline PlayerCommand Repeated(const PlayerCommand& command) {
 	return repeated;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// CHARACTERS_INCLUDE_CHARACTERS_PLAYER_COMMAND_H_

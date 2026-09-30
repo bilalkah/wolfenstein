@@ -3,7 +3,7 @@
 #include <iostream>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 std::expected<std::unique_ptr<World>, std::string> World::Create(
 	const TextureManager& textures, const std::string& asset_dir) {
@@ -358,4 +358,4 @@ const Player* World::FindPlayer(std::size_t slot) const {
 	return player.has_value() ? &*player : nullptr;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

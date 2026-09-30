@@ -1,7 +1,7 @@
 # Architecture
 
-Two programs share one engine: the game, `wolfenstein`, and the
-multiplayer server, `wolfenstein-server`. Each directory under `src/` is a
+Two programs share one engine: the game, `karakale`, and the
+multiplayer server, `karakale-server`. Each directory under `src/` is a
 small static library.
 
 ## Two halves

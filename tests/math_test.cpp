@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kPi = std::numbers::pi;
@@ -25,4 +25,4 @@ TEST(Math, Distance) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

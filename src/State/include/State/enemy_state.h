@@ -18,7 +18,7 @@
 #include <memory>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 class Enemy;
 
@@ -172,6 +172,6 @@ class RetreatState : public EnemyState
 	double hidden_for_{0.0};
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// STATE_INCLUDE_STATE_ENEMY_STATE_H_

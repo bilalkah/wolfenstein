@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace wolfenstein {
+namespace karakale {
 
 RendererContext::RendererContext(const std::string& window_name,
 								 const RenderConfig& config, Camera2D& camera)
@@ -179,4 +179,4 @@ void IRenderer::SetScene(Scene& scene) {
 	context_->GetCamera().SetScene(scene);
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

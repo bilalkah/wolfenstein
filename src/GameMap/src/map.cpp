@@ -8,7 +8,7 @@
 #include <string_view>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -268,4 +268,4 @@ bool Map::IsBlocked(const vector2d& position) const {
 					 static_cast<int>(std::floor(position.y)));
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

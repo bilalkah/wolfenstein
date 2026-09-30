@@ -8,7 +8,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace wolfenstein::net {
+namespace karakale::net {
 
 namespace {
 
@@ -493,4 +493,4 @@ double QuantisePitch(double pitch) {
 	return UnpackPitch(PackPitch(pitch));
 }
 
-}  // namespace wolfenstein::net
+}  // namespace karakale::net

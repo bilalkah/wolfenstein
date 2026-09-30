@@ -15,9 +15,9 @@
 
 namespace {
 
-using wolfenstein::memory::Handle;
-using wolfenstein::memory::MonotonicArena;
-using wolfenstein::memory::ObjectPool;
+using karakale::memory::Handle;
+using karakale::memory::MonotonicArena;
+using karakale::memory::ObjectPool;
 
 // About the size of a small game object's hot data
 struct Entity

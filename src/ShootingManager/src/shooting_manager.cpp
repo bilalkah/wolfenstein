@@ -14,7 +14,7 @@
 #include <optional>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -303,4 +303,4 @@ void ResolveEnemyShot(Player& player, const SimpleWeapon& weapon,
 									  weapon.GetCrosshair().distance));
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

@@ -16,7 +16,7 @@
 
 #include <iostream>
 
-namespace wolfenstein {
+namespace karakale {
 
 struct vector2d;
 
@@ -124,6 +124,6 @@ double TurnedFrom(const vector2d& at, double facing, const vector2d& viewer);
 // shows its left side, 6 (Doom's rotation 7).
 std::size_t SideSeen(const vector2d& at, double facing, const vector2d& viewer);
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// MATH_INCLUDE_MATH_VECTOR_H_

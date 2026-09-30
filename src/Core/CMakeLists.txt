@@ -78,9 +78,9 @@ target_link_libraries(
     navigation_manager
     shooting_manager
     sound_manager
-    wolfenstein::sdl3
-    wolfenstein::sdl3_image
-    wolfenstein::sdl3_ttf
+    karakale::sdl3
+    karakale::sdl3_image
+    karakale::sdl3_ttf
     enemy_state
     single_raycaster
     renderer_interface

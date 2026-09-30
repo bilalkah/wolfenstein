@@ -11,7 +11,7 @@
 #include <memory>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 constexpr double kTick = 1.0 / 60.0;
@@ -36,8 +36,7 @@ class HearingTest : public ::testing::Test
 
 	void Load(std::initializer_list<const char*> rows, vector2d enemy) {
 		map_ = std::make_unique<Map>(
-			testing::WriteMapFile("wolfenstein_hearing_test.txt", rows)
-				.string());
+			testing::WriteMapFile("karakale_hearing_test.txt", rows).string());
 		arena_ = std::make_unique<memory::MonotonicArena>(
 			Scene::MemoryFor(*map_, kCapacity));
 		scene_ = std::make_unique<Scene>(testing::TestTextures(),
@@ -120,7 +119,7 @@ TEST(EnemyGunfire, BringsTheOthersHunting) {
 	ASSERT_GE(testing::Enemy("soldier").weapon.noise_range, 7);
 	constexpr SceneCapacity kCapacity{.enemies = 2};
 	const Map map(
-		testing::WriteMapFile("wolfenstein_gunfire_test.txt", kBend).string());
+		testing::WriteMapFile("karakale_gunfire_test.txt", kBend).string());
 	memory::MonotonicArena arena(Scene::MemoryFor(map, kCapacity));
 	Scene scene(testing::TestTextures(), testing::TestSound(), map, kCapacity,
 				arena);
@@ -159,7 +158,7 @@ TEST(EnemyCry, BringsThoseNearTheOneHit) {
 	ASSERT_LT(cry, 10);
 	constexpr SceneCapacity kCapacity{.enemies = 3};
 	const Map map(testing::WriteMapFile(
-					  "wolfenstein_cry_test.txt",
+					  "karakale_cry_test.txt",
 					  {"333333333333333333333333", "300000000000000000000003",
 					   "333333333333333333333333"})
 					  .string());
@@ -197,7 +196,7 @@ TEST(PatrolHunt, GivenUpItWalksAboutAgain) {
 	constexpr SceneCapacity kCapacity{.enemies = 1};
 	// Two corridors joined at their far end, long enough that when what it
 	// heard is forgotten it is still round the bend, further than it sees
-	const Map map(testing::WriteMapFile("wolfenstein_patrol_hunt_test.txt",
+	const Map map(testing::WriteMapFile("karakale_patrol_hunt_test.txt",
 										{"3333333333333333", "3000000000000003",
 										 "3333333333333303", "3000000000000003",
 										 "3333333333333333"})
@@ -236,7 +235,7 @@ TEST(PatrolHunt, GivenUpItWalksAboutAgain) {
 	EXPECT_TRUE(patrolled) << "it gave up the hunt";
 }
 
-#ifdef WOLFENSTEIN_COUNTS_ALLOCATIONS
+#ifdef KARAKALE_COUNTS_ALLOCATIONS
 TEST_F(HearingTest, MakingANoiseAllocatesNothing) {
 	Load(kBend, {3.5, 1.5});
 	const auto before = AllocationStats::count;
@@ -248,4 +247,4 @@ TEST_F(HearingTest, MakingANoiseAllocatesNothing) {
 #endif
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

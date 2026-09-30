@@ -2,7 +2,7 @@
 #include <cctype>
 #include <utility>
 
-namespace wolfenstein {
+namespace karakale {
 
 std::expected<std::unique_ptr<Lobby>, std::string> Lobby::Create(Factory make) {
 	auto open = make();
@@ -97,4 +97,4 @@ GameServer* Lobby::Find(const std::string& room) {
 	return found != rooms_.end() ? found->second.server.get() : nullptr;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

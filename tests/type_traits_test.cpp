@@ -15,7 +15,7 @@
 #include <gtest/gtest.h>
 #include <type_traits>
 
-namespace wolfenstein {
+namespace karakale {
 namespace {
 
 template <typename T>
@@ -51,4 +51,4 @@ TEST(TypeTraits, CheckedAtCompileTime) {
 }
 
 }  // namespace
-}  // namespace wolfenstein
+}  // namespace karakale

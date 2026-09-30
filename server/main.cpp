@@ -2,7 +2,7 @@
 // rooms, "/room/CODE"), their players connected by WebSocket. uWebSockets
 // carries the messages; the Lobby hands them to each room's GameServer.
 //
-//   wolfenstein-server [--port 8080] [--level bazaar.json,warehouse.json]
+//   karakale-server [--port 8080] [--level bazaar.json,warehouse.json]
 //                      [--assets DIR]
 //                      [--mode deathmatch|gunrace] [--frags 20]
 //                      [--minutes 10]
@@ -31,10 +31,10 @@
 
 namespace {
 
-using wolfenstein::Addresses;
-using wolfenstein::ClientId;
-using wolfenstein::GameServer;
-using wolfenstein::Lobby;
+using karakale::Addresses;
+using karakale::ClientId;
+using karakale::GameServer;
+using karakale::Lobby;
 
 struct Connection
 {
@@ -47,7 +47,7 @@ using Socket = uWS::WebSocket<false, true, Connection>;
 // The open connections, by id, for the game to send to. Closing waits until
 // the game is done with the message or tick that asked for it: uWebSockets
 // closes straight away, and would tell the game so while it is still busy.
-class Sockets : public wolfenstein::Outbox
+class Sockets : public karakale::Outbox
 {
   public:
 	void Add(ClientId id, Socket* socket) { open_.push_back({id, socket}); }
@@ -162,10 +162,10 @@ int main(int argc, char** argv) try {
 		}
 	}
 	const std::string assets(Option(argc, argv, "--assets", RESOURCE_DIR));
-	wolfenstein::MatchSettings settings;
+	karakale::MatchSettings settings;
 	const std::string_view mode = Option(argc, argv, "--mode", "deathmatch");
 	if (mode == "gunrace") {
-		settings.mode = wolfenstein::net::MatchMode::GunRace;
+		settings.mode = karakale::net::MatchMode::GunRace;
 	}
 	else if (mode != "deathmatch") {
 		std::cerr << "No such mode: " << mode << " (deathmatch, gunrace)\n";
@@ -199,7 +199,7 @@ int main(int argc, char** argv) try {
 	app.ws<Connection>(
 		"/*",
 		{.compression = uWS::DISABLED,
-		 .maxPayloadLength = wolfenstein::net::kMaxMessage,
+		 .maxPayloadLength = karakale::net::kMaxMessage,
 		 .idleTimeout = 30,
 		 .maxBackpressure = 64 * 1024,
 		 .closeOnBackpressureLimit = true,

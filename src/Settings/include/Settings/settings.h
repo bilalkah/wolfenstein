@@ -18,7 +18,7 @@
 #include <span>
 #include <string_view>
 
-namespace wolfenstein {
+namespace karakale {
 
 // Text a setting holds, kept in place (a name, an address): at most N
 // printable characters, what does not fit or cannot be printed left out
@@ -109,6 +109,6 @@ struct Settings
 	void Save() const;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// SETTINGS_INCLUDE_SETTINGS_SETTINGS_H

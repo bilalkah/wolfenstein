@@ -8,7 +8,7 @@
 #include <string>
 #include <sys/socket.h>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -129,4 +129,4 @@ std::size_t Addresses::CountOf(std::string_view key) const {
 	return found != open_.end() ? found->second : 0;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -114,4 +114,4 @@ void Settings::Save() const {
 	}
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

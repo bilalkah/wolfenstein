@@ -7,7 +7,7 @@
 #include <cstddef>
 #include <memory>
 
-namespace wolfenstein {
+namespace karakale {
 
 void WeaponState::Reset() {
 	animation_.Reset();
@@ -224,4 +224,4 @@ void LoweringState::OnContextSet() {
 									seconds_);
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

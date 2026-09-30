@@ -19,7 +19,7 @@
 #include <span>
 #include <string_view>
 
-namespace wolfenstein {
+namespace karakale {
 
 class TextureManager;
 
@@ -77,6 +77,6 @@ class LoopedAnimation : public IAnimation
 	bool finished_once_ = false;
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// ANIMATION_INCLUDE_ANIMATION_LOOPED_ANIMATION_H_

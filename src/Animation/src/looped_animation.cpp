@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <iostream>
 
-namespace wolfenstein {
+namespace karakale {
 
 namespace {
 
@@ -114,4 +114,4 @@ bool LoopedAnimation::IsAnimationFinishedOnce() const {
 	return finished_once_;
 }
 
-}  // namespace wolfenstein
+}  // namespace karakale

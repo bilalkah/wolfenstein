@@ -16,7 +16,7 @@ services:
       dockerfile: docker/server.Dockerfile
     restart: unless-stopped
     command:
-      - wolfenstein-server
+      - karakale-server
       - --port
       - "8080"
       - --assets

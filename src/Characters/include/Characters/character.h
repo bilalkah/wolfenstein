@@ -16,7 +16,7 @@
 #include <cmath>
 #include <numbers>
 
-namespace wolfenstein {
+namespace karakale {
 
 struct Position2D
 {
@@ -77,6 +77,6 @@ class ICharacter
 	virtual void DecreaseHealth(double amount) = 0;
 	virtual double GetHealth() const = 0;
 };
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// CHARACTERS_INCLUDE_CHARACTER_H

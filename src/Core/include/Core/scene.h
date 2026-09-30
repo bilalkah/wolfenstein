@@ -36,7 +36,7 @@
 #include <string>
 #include <string_view>
 
-namespace wolfenstein {
+namespace karakale {
 
 // How hard a game is: multipliers on the damage enemies deal, the health
 // they start with and what pickups give, and how many enemies may be
@@ -497,6 +497,6 @@ class Scene
 	size_t number_of_alive_enemies{};
 };
 
-}  // namespace wolfenstein
+}  // namespace karakale
 
 #endif	// CORE_INCLUDE_CORE_SCENE_H_
